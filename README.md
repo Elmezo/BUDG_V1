@@ -1,7 +1,11 @@
 # Project Name: BUDG_V2
 
 ## Description:
-[أضف وصف المشروع هنا / Add project description here]
+Business Data Governance (BUDG) is a comprehensive data governance and management application designed to centralize and streamline the organization of business-critical data assets across the enterprise. It provides a unified platform that enables teams to define, manage, and govern business glossaries, datasets, attributes, systems, policies, and processes with clarity and consistency.
+
+BUDG integrates governance workflows, role-based stewardship, and change management capabilities to ensure accountability, traceability, and data quality across all domains. By bridging the gap between business and technical stakeholders, it empowers users to easily discover, understand, and trust the data they rely on—without heavy dependency on IT.
+
+Built with flexibility and scalability in mind, BUDG supports customization, automation, and seamless integration with modern data ecosystems. It enhances collaboration, improves decision-making, and drives data governance maturity by enabling organizations to standardize definitions, enforce policies, and maintain a single source of truth for all governed data assets.
 
 ## المتطلبات (Requirements)
 - Java 17
