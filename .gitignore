@@ -1,5 +1,15 @@
-node_modules/
-dist/
-src/main/webapp/assets/js/bulk-upload/
-*.log
-.DS_Store
+# ignore everything
+*
+
+# allow folders
+!python/
+!src/
+!frontend/
+
+# allow their contents
+!python/**
+!src/**
+!frontend/**
+
+# important: allow .gitignore نفسه
+!.gitignore
