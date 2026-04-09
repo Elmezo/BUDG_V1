@@ -113,6 +113,12 @@
         geography: 'Geography'
     };
 
+    /** Dataset facet uses definition field; label overlay button text for dataset-lineage. */
+    function overlayButtonLabel(overlayKey, mapType) {
+        if (overlayKey === 'description' && mapType === 'dataset-lineage') return 'Definition';
+        return OVERLAY_LABELS[overlayKey] || overlayKey || 'None';
+    }
+
     function syncMapLayoutRichUiFromSelect() {
         const layoutSel = document.getElementById('mapLayoutSelect');
         const layoutMenu = document.getElementById('mapLayoutMenu');
@@ -396,7 +402,7 @@
             }
         });
         const btnText = document.getElementById('mapOverlayBtnText');
-        if (btnText) btnText.textContent = OVERLAY_LABELS[MapState.overlay] || MapState.overlay || 'None';
+        if (btnText) btnText.textContent = overlayButtonLabel(MapState.overlay, MapState.mapType);
     }
 
     function switchFilterMenuByMapType() {
@@ -463,7 +469,7 @@
                 const overlay = item.getAttribute('data-overlay');
                 if (overlay) {
                     MapState.overlay = overlay;
-                    if (overlayBtnText) overlayBtnText.textContent = OVERLAY_LABELS[overlay] || overlay;
+                    if (overlayBtnText) overlayBtnText.textContent = overlayButtonLabel(overlay, MapState.mapType);
                     closeAllOverlayMenus();
                     applyOverlay();
                     document.querySelectorAll('.map-overlay-menu .overlay-menu-item').forEach(i => i.classList.remove('active'));
@@ -2777,7 +2783,8 @@
                     if (overlayType === 'description' && API && typeof API.getDatasetById === 'function') {
                         const s = await API.getDatasetById(datasetId, null, { silent404: true }).catch(err => { if (err && err.status === 403) markInaccessibleDataset(datasetId); return null; });
                         const d = (s && (s.data || s)) || {};
-                        if (d.description) items = [{ value: d.description }];
+                        const defText = d.definition || d.Definition || d.description || d.Description;
+                        if (defText) items = [{ value: defText }];
                     } else if (overlayType === 'glossary') {
                         var seenDsG = new Set();
                         // 1) Dataset's own glossary
@@ -2844,12 +2851,11 @@
             MapState.canvas.appendChild(container);
         }
         container.innerHTML = '';
-        const title = getOverlayTitle(overlayType);
-
         MapState.network.nodes().forEach(node => {
             const nodeId = node.id();
             const items = overlayData.get(nodeId) || [];
             if (!items || !items.length) return;
+            const panelTitle = getOverlayTitle(overlayType, nodeId, node);
             const panel = document.createElement('div');
             panel.className = 'map-node-overlay-panel';
             panel.setAttribute('data-node-id', nodeId);
@@ -2857,7 +2863,7 @@
 
             const header = document.createElement('div');
             header.className = 'map-node-overlay-header';
-            header.innerHTML = '<span>' + escapeOverlayHtml(title) + '</span>';
+            header.innerHTML = '<span>' + escapeOverlayHtml(panelTitle) + '</span>';
             const gearBtn = document.createElement('button');
             gearBtn.type = 'button';
             gearBtn.innerHTML = '<i class="fas fa-cog"></i>';
@@ -2930,7 +2936,11 @@
         requestAnimationFrame(() => requestAnimationFrame(updateOverlayPositions));
     }
 
-    function getOverlayTitle(overlayType) {
+    function getOverlayTitle(overlayType, nodeId, node) {
+        const group = node && typeof node.data === 'function' ? node.data('group') : null;
+        if (overlayType === 'description' && (group === 'dataset' || (nodeId != null && String(nodeId).indexOf('dataset-') === 0))) {
+            return 'Definition';
+        }
         const titles = { description: 'Description', glossary: 'Glossary', attributes: 'Attributes', 'linking-attributes': 'Linking Attributes', 'data-quality': 'Data Quality', stakeholders: 'Stakeholders', processes: 'Processes', projects: 'Projects', policies: 'Policies' };
         return titles[overlayType] || overlayType || 'Overlay';
     }
@@ -3104,7 +3114,7 @@
             syncMapLayoutRichUiFromSelect();
         }
         if (mapTypeSelect) mapTypeSelect.value = state.mapType;
-        if (overlayBtnText) overlayBtnText.textContent = OVERLAY_LABELS[MapState.overlay] || MapState.overlay || 'None';
+        if (overlayBtnText) overlayBtnText.textContent = overlayButtonLabel(MapState.overlay, MapState.mapType);
         
         updateNetworkLayout();
         if (MapState.network && state.zoom) {

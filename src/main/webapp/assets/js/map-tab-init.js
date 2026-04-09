@@ -1755,6 +1755,14 @@
             if (tb && (fsBtnId(tb, 'Legend') || (tb.getAttribute('aria-label') && tb.getAttribute('aria-label').indexOf('Legend') >= 0))) {
                 var leg = elInToolbarOrDoc('mapTabLegend') || document.getElementById('mapTabLegend');
                 if (leg) {
+                    /* Live fullscreen URLs never get legendHtml in state; fill from the same APIs as the in-app map. */
+                    if (state.liveFromUrl) {
+                        if (state.mapTabKind === 'system-interfaces' && window.SystemInterfacesMap && typeof SystemInterfacesMap.getLegendHtml === 'function') {
+                            try { leg.innerHTML = SystemInterfacesMap.getLegendHtml() || ''; } catch (eLeg) { /* no-op */ }
+                        } else if (state.mapTabKind === 'process-data' && window.ProcessDataMap && typeof ProcessDataMap.getLegendHtml === 'function') {
+                            try { leg.innerHTML = ProcessDataMap.getLegendHtml() || ''; } catch (eLeg2) { /* no-op */ }
+                        }
+                    }
                     var vis = leg.style.display !== 'none' && window.getComputedStyle(leg).display !== 'none';
                     leg.style.display = vis ? 'none' : 'block';
                     tb.classList.toggle('active', !vis);

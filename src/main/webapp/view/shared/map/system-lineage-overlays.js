@@ -601,9 +601,9 @@
                                 return [];
                             }
                             // Check various possible description fields
-                            const desc = ds.description || ds.Definition || ds.definition || ds.Description;
+                            const desc = ds.definition || ds.Definition || ds.description || ds.Description;
                             if (desc) {
-                                return [{ name: 'Description', value: desc }];
+                                return [{ name: 'Definition', value: desc }];
                             }
                             // If no description but we have the dataset, return that as info
                             if (ds.name || ds.Name || ds.datasetName) {
@@ -616,11 +616,17 @@
                             const datasetData = await API.getDatasetById(datasetId, null, { silent404: true });
                             ovLog(logPrefix + ' API response for dataset', datasetId, ':', datasetData);
                             const dataset = datasetData?.data || datasetData;
-                            if (dataset?.description) {
-                                return [{ name: 'Description', value: dataset.description }];
+                            if (dataset?.definition != null && String(dataset.definition).trim() !== '') {
+                                return [{ name: 'Definition', value: dataset.definition }];
                             }
-                            if (dataset?.Definition) {
-                                return [{ name: 'Description', value: dataset.Definition }];
+                            if (dataset?.Definition != null && String(dataset.Definition).trim() !== '') {
+                                return [{ name: 'Definition', value: dataset.Definition }];
+                            }
+                            if (dataset?.description != null && String(dataset.description).trim() !== '') {
+                                return [{ name: 'Definition', value: dataset.description }];
+                            }
+                            if (dataset?.Description != null && String(dataset.Description).trim() !== '') {
+                                return [{ name: 'Definition', value: dataset.Description }];
                             }
                         } catch (apiError) {
                             // If API fails with "not found", return empty (dataset is likely locked)
@@ -1432,7 +1438,10 @@
     }
 
     // Get display title for overlay type
-    function getOverlayTitle(overlayType) {
+    function getOverlayTitle(overlayType, nodeId) {
+        if (overlayType === 'description' && nodeId != null && String(nodeId).indexOf('dataset-') === 0) {
+            return 'Definition';
+        }
         const titles = {
             'description': 'Description',
             'stakeholders': 'Stakeholders',
@@ -1514,6 +1523,24 @@
     function getOverlayItemField(overlayType, item, fieldId) {
         if (!item) return '';
         const v = (x) => (x != null && x !== '') ? String(x) : '';
+        /** Match list-style overlay text: APIs use *Name, PrimaryName, PascalCase, etc. */
+        function entityNameCell() {
+            return v(
+                item.processName || item.ProcessName ||
+                item.projectName || item.ProjectName ||
+                item.policyName || item.PolicyName ||
+                item.businessAreaName || item.BusinessAreaName ||
+                item.productName || item.ProductName ||
+                item.legalEntityName || item.LegalEntityName ||
+                item.clientName || item.ClientName ||
+                item.capabilityName || item.CapabilityName ||
+                item.systemName || item.SystemName ||
+                item.name || item.Name || item.primaryName || item.PrimaryName ||
+                item.glossaryName || item.GlossaryName || item.ruleName || item.RuleName ||
+                item.longName || item.longname ||
+                item.region || item.country
+            );
+        }
         switch (overlayType) {
             case 'glossary':
                 switch (fieldId) {
@@ -1527,28 +1554,33 @@
                     default: return v(item[fieldId]);
                 }
             case 'description':
-                return fieldId === 'value' ? v(item.value || item.description) : v(item[fieldId]);
+                return fieldId === 'value'
+                    ? v(item.value || item.definition || item.Definition || item.description || item.Description)
+                    : v(item[fieldId]);
             case 'datasets':
                 switch (fieldId) {
-                    case 'name': return v(item.primaryName || item.name || item.shortName);
-                    case 'refNumber': return v(item.refNumber || item.ref);
-                    case 'type': return v(item.typeName || item.type);
-                    case 'lifecycle': return v(item.lifecycleName || item.lifecycle);
+                    case 'name': return v(item.primaryName || item.PrimaryName || item.name || item.shortName);
+                    case 'refNumber': return v(item.refNumber || item.ref || item.RefNumber || item.Ref);
+                    case 'type': return v(item.typeName || item.type || item.TypeName || item.Type);
+                    case 'lifecycle': return v(item.lifecycleName || item.lifecycle || item.LifecycleName || item.Lifecycle);
                     default: return v(item[fieldId]);
                 }
             case 'attributes':
             case 'linking-attributes':
                 switch (fieldId) {
-                    case 'name': return v(item.name || item['Name attribute'] || item.attributeName || item.primaryName);
-                    case 'type': return v(item.typeName || item.type);
-                    case 'glossary': return v(item.glossaryName || item.glossary);
-                    case 'refNumber': return v(item.refNumber || item.ref);
+                    case 'name': return v(item.name || item['Name attribute'] || item.attributeName || item.primaryName || item.PrimaryName || item.Name);
+                    case 'type': return v(item.typeName || item.type || item.TypeName || item.Type);
+                    case 'glossary': return v(item.glossaryName || item.glossary || item['Glossary Name attribute']);
+                    case 'refNumber': return v(item.refNumber || item.ref || item.RefNumber || item.Ref);
+                    case 'direction': return v(item.direction || item.Direction);
+                    case 'relatedDataset': return v(item.relatedDataset || item.related_dataset);
+                    case 'relatedAttribute': return v(item.relatedAttribute || item.related_attribute);
                     default: return v(item[fieldId]);
                 }
             case 'stakeholders':
                 switch (fieldId) {
-                    case 'name': return v(item.personName || item.name);
-                    case 'role': return v(item.roleName || item.role);
+                    case 'name': return v(item.personName || item.PersonName || item.name || item.Name);
+                    case 'role': return v(item.roleName || item.RoleName || item.role || item.Role);
                     default: return v(item[fieldId]);
                 }
             case 'processes':
@@ -1557,20 +1589,23 @@
             case 'business-area':
             case 'products':
             case 'legal-entities':
+            case 'clients':
+            case 'capabilities':
+            case 'systems':
             case 'data-quality':
             case 'data-privacy':
             case 'geography':
                 switch (fieldId) {
-                    case 'name': return v(item.name || item.primaryName || item.PrimaryName || item.glossaryName || item.ruleName);
-                    case 'refNumber': return v(item.refNumber || item.ref);
-                    case 'type': return v(item.typeName || item.type);
-                    case 'lifecycle': return v(item.lifecycleName || item.lifecycle);
-                    case 'status': return v(item.statusName || item.status);
-                    case 'ruleName': return v(item.ruleName);
+                    case 'name': return entityNameCell();
+                    case 'refNumber': return v(item.refNumber || item.ref || item.RefNumber || item.Ref);
+                    case 'type': return v(item.typeName || item.type || item.TypeName || item.Type);
+                    case 'lifecycle': return v(item.lifecycleName || item.lifecycle || item.LifecycleName || item.Lifecycle);
+                    case 'status': return v(item.statusName || item.status || item.StatusName || item.Status);
+                    case 'ruleName': return v(item.ruleName || item.RuleName);
                     case 'rating': return v(item.rating || item.qualityRating);
                     case 'classification': return v(item.classification || item.privacyClassification);
-                    case 'region': return v(item.region);
-                    case 'country': return v(item.country);
+                    case 'region': return v(item.region || item.Region);
+                    case 'country': return v(item.country || item.Country);
                     default: return v(item[fieldId]);
                 }
             default:
