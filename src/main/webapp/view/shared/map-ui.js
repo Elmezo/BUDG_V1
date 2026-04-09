@@ -7,6 +7,7 @@
  *   • window.MapOverlayPanel
  *   • window.OverlayColumns
  *   • window.SharedMapHTML + window.SharedMapDropdowns
+ *   • window.SharedMapLayoutRichControlsHtml + window.SharedMapSpacingEdgeControlsHtml
  *
  * Load map-ui.js once before map-engine / facet map scripts.
  */
@@ -511,6 +512,70 @@
     'use strict';
 
     /**
+     * Rich layout picker + hidden LayoutSelect + spacing/edge controls.
+     * @param {string} mapId
+     * @param {{ richItems?: 'three'|'four' }} [options] - 'four' adds Right-To-Left row in the menu.
+     */
+    function sharedMapLayoutRichControlsHtml(mapId, options) {
+        const id = mapId || 'map';
+        const opts = options && typeof options === 'object' ? options : {};
+        const four = opts.richItems === 'four';
+        const rtlRow = four
+            ? `
+                                <div class="map-layout-rich-item" data-layout="right-to-left">
+                                <div class="map-layout-rich-icon"><i class="fas fa-arrow-left"></i></div>
+                                <div class="map-layout-rich-content">
+                                <div class="map-layout-rich-title">Right-To-Left</div>
+                                <div class="map-layout-rich-desc">Flow from right to left; useful for RTL workflows.</div>
+                                </div>
+                                </div>`
+            : '';
+        const spacingEdge = typeof window.SharedMapSpacingEdgeControlsHtml === 'function'
+            ? window.SharedMapSpacingEdgeControlsHtml(id)
+            : '';
+        return `
+                            <div class="map-btn-dropdown-wrapper map-layout-dropdown-wrapper">
+                                <button type="button" class="map-select" id="${id}LayoutBtn">
+                                <span id="${id}LayoutBtnText">Top-To-Bottom</span>
+                                <i class="fas fa-chevron-down" aria-hidden="true"></i>
+                                </button>
+                                <div class="map-btn-dropdown-menu map-layout-rich-menu" id="${id}LayoutMenu">
+                                <div class="map-layout-rich-item active" data-layout="top-to-bottom">
+                                <div class="map-layout-rich-icon"><i class="fas fa-arrow-down"></i></div>
+                                <div class="map-layout-rich-content">
+                                <div class="map-layout-rich-title">Top-To-Bottom</div>
+                                <div class="map-layout-rich-desc">Most useful in representing information flows that aggregate into a central point.</div>
+                                </div>
+                                </div>
+                                <div class="map-layout-rich-item" data-layout="left-to-right">
+                                <div class="map-layout-rich-icon"><i class="fas fa-arrow-right"></i></div>
+                                <div class="map-layout-rich-content">
+                                <div class="map-layout-rich-title">Left-To-Right</div>
+                                <div class="map-layout-rich-desc">The best way to view your information flow for small to medium sized maps.</div>
+                                </div>
+                                </div>
+                                ${rtlRow}
+                                <div class="map-layout-rich-item" data-layout="force">
+                                <div class="map-layout-rich-icon"><i class="fas fa-project-diagram"></i></div>
+                                <div class="map-layout-rich-content">
+                                <div class="map-layout-rich-title">Organic</div>
+                                <div class="map-layout-rich-desc">Ideal for larger maps or maps with no overriding direction in the information flow.</div>
+                                </div>
+                                </div>
+                                </div>
+                                </div>
+                                <select id="${id}LayoutSelect" class="map-select" style="display:none;" aria-hidden="true" tabindex="-1">
+                                <option value="top-to-bottom" selected>Top-To-Bottom</option>
+                                <option value="left-to-right">Left-To-Right</option>
+                                <option value="right-to-left">Right-To-Left</option>
+                                <option value="force">Organic</option>
+                                </select>
+                            ${spacingEdge}`;
+    }
+
+    window.SharedMapLayoutRichControlsHtml = sharedMapLayoutRichControlsHtml;
+
+    /**
      * Generate map HTML structure.
      *
      * @param {Object}  config
@@ -777,37 +842,7 @@
                     <div class="map-control-group">
                         <label>Layout:</label>
                         <div class="map-layout-controls">
-                            <select id="${mapId}LayoutSelect" class="map-select">
-                                <option value="top-to-bottom" selected>Top-To-Bottom</option>
-                                <option value="left-to-right">Left-To-Right</option>
-                                <option value="right-to-left">Right-To-Left</option>
-                                <option value="force">Force Directed</option>
-                            </select>
-                            <div class="map-btn-dropdown-wrapper">
-                                <button type="button" class="map-toolbar-btn-sm" id="${mapId}Spacing" title="Node spacing">
-                                    <i class="fas fa-expand-arrows-alt" id="${mapId}SpacingIcon"></i>
-                                    <i class="fas fa-chevron-down map-toolbar-chevron"></i>
-                                </button>
-                                <div class="map-btn-dropdown-menu" id="${mapId}SpacingMenu">
-                                    <div class="map-btn-dropdown-item" data-spacing="compact">Compact</div>
-                                    <div class="map-btn-dropdown-item active" data-spacing="normal">Normal</div>
-                                    <div class="map-btn-dropdown-item" data-spacing="spacey">Spacey</div>
-                                </div>
-                            </div>
-                            <div class="map-btn-dropdown-wrapper">
-                                <button type="button" class="map-toolbar-btn-sm" id="${mapId}EdgeStyle" title="Edge routing style">
-                                    <i class="fas fa-arrow-right" id="${mapId}EdgeStyleIcon"></i>
-                                    <i class="fas fa-chevron-down map-toolbar-chevron"></i>
-                                </button>
-                                <div class="map-btn-dropdown-menu" id="${mapId}EdgeStyleMenu">
-                                    <div class="map-btn-dropdown-item" data-edge-style="angle">Angle</div>
-                                    <div class="map-btn-dropdown-item" data-edge-style="square">Square</div>
-                                    <div class="map-btn-dropdown-item active" data-edge-style="direct">Direct</div>
-                                    <div class="map-btn-dropdown-item" data-edge-style="loop">Loop</div>
-                                    <div class="map-btn-dropdown-item" data-edge-style="top-down">Top-Down</div>
-                                    <div class="map-btn-dropdown-item" data-edge-style="left-right">Left-Right</div>
-                                </div>
-                            </div>
+                            ${sharedMapLayoutRichControlsHtml(mapId)}
                         </div>
                     </div>
 
@@ -942,9 +977,30 @@
         const edgeBtn     = document.getElementById(mapId + 'EdgeStyle');
         const edgeMenu    = document.getElementById(mapId + 'EdgeStyleMenu');
         const layoutSel   = document.getElementById(mapId + 'LayoutSelect');
+        const layoutBtn   = document.getElementById(mapId + 'LayoutBtn');
+        const layoutMenu  = document.getElementById(mapId + 'LayoutMenu');
+        const layoutText  = document.getElementById(mapId + 'LayoutBtnText');
 
         let currentSpacing   = 'normal';
         let currentEdgeStyle = 'direct';
+
+        function syncLayoutRichUi() {
+            if (!layoutSel) return;
+            const v = layoutSel.value;
+            if (layoutMenu) {
+                layoutMenu.querySelectorAll('.map-layout-rich-item').forEach(it => {
+                    it.classList.toggle('active', it.dataset.layout === v);
+                });
+            }
+            if (!layoutText) return;
+            const activeItem = layoutMenu && layoutMenu.querySelector('.map-layout-rich-item.active');
+            const titleEl = activeItem && activeItem.querySelector('.map-layout-rich-title');
+            if (titleEl) layoutText.textContent = titleEl.textContent;
+            else {
+                const opt = layoutSel.options[layoutSel.selectedIndex];
+                if (opt) layoutText.textContent = opt.textContent;
+            }
+        }
 
         function closeMenus() {
             document.querySelectorAll('.map-btn-dropdown-menu.show').forEach(m => m.classList.remove('show'));
@@ -1020,9 +1076,11 @@
                 if (cy) cy.edges().style('curve-style', curveStyle());
                 if (es === 'top-down') {
                     if (layoutSel) layoutSel.value = 'top-to-bottom';
+                    syncLayoutRichUi();
                     if (typeof setLayout === 'function') setLayout('top-to-bottom');
                 } else if (es === 'left-right') {
                     if (layoutSel) layoutSel.value = 'left-to-right';
+                    syncLayoutRichUi();
                     if (typeof setLayout === 'function') setLayout('left-to-right');
                 }
                 closeMenus();
@@ -1031,8 +1089,32 @@
 
         if (layoutSel) {
             layoutSel.addEventListener('change', () => {
+                syncLayoutRichUi();
                 if (typeof setLayout === 'function') setLayout(layoutSel.value);
             });
+        }
+
+        if (layoutBtn && layoutMenu && layoutSel) {
+            layoutBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const wasOpen = layoutMenu.classList.contains('show');
+                closeMenus();
+                if (!wasOpen) layoutMenu.classList.add('show');
+            });
+            layoutMenu.addEventListener('click', (e) => {
+                const item = e.target.closest('.map-layout-rich-item');
+                if (!item || !item.dataset.layout) return;
+                const dir = item.dataset.layout;
+                layoutMenu.querySelectorAll('.map-layout-rich-item').forEach(it => {
+                    it.classList.toggle('active', it.dataset.layout === dir);
+                });
+                const title = item.querySelector('.map-layout-rich-title');
+                if (layoutText && title) layoutText.textContent = title.textContent;
+                layoutSel.value = dir;
+                if (typeof setLayout === 'function') setLayout(dir);
+                closeMenus();
+            });
+            syncLayoutRichUi();
         }
 
         const api = {
@@ -1048,6 +1130,39 @@
         window._sharedDropdownApis[mapId]  = api;
 
         return api;
+    };
+
+    /**
+     * Spacing + edge-style dropdown markup (paired with SharedMapLayoutRichControlsHtml).
+     */
+    window.SharedMapSpacingEdgeControlsHtml = function (mapId) {
+        const id = mapId || 'map';
+        return `
+                            <div class="map-btn-dropdown-wrapper">
+                                <button type="button" class="map-toolbar-btn-sm" id="${id}Spacing" title="Node spacing">
+                                    <i class="fas fa-expand-arrows-alt" id="${id}SpacingIcon"></i>
+                                    <i class="fas fa-chevron-down map-toolbar-chevron"></i>
+                                </button>
+                                <div class="map-btn-dropdown-menu" id="${id}SpacingMenu">
+                                    <div class="map-btn-dropdown-item" data-spacing="compact">Compact</div>
+                                    <div class="map-btn-dropdown-item active" data-spacing="normal">Normal</div>
+                                    <div class="map-btn-dropdown-item" data-spacing="spacey">Spacey</div>
+                                </div>
+                            </div>
+                            <div class="map-btn-dropdown-wrapper">
+                                <button type="button" class="map-toolbar-btn-sm" id="${id}EdgeStyle" title="Edge routing style">
+                                    <i class="fas fa-arrow-right" id="${id}EdgeStyleIcon"></i>
+                                    <i class="fas fa-chevron-down map-toolbar-chevron"></i>
+                                </button>
+                                <div class="map-btn-dropdown-menu" id="${id}EdgeStyleMenu">
+                                    <div class="map-btn-dropdown-item" data-edge-style="angle">Angle</div>
+                                    <div class="map-btn-dropdown-item" data-edge-style="square">Square</div>
+                                    <div class="map-btn-dropdown-item active" data-edge-style="direct">Direct</div>
+                                    <div class="map-btn-dropdown-item" data-edge-style="loop">Loop</div>
+                                    <div class="map-btn-dropdown-item" data-edge-style="top-down">Top-Down</div>
+                                    <div class="map-btn-dropdown-item" data-edge-style="left-right">Left-Right</div>
+                                </div>
+                            </div>`;
     };
 
 })();

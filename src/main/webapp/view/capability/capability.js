@@ -1164,37 +1164,7 @@ function showError(message) {
                                     <div class="map-control-group">
                                         <label>Layout:</label>
                                         <div class="map-layout-controls">
-                                            <select id="capabilityRelationshipsMapLayoutSelect" class="map-select">
-                                                <option value="left-to-right">Left-To-Right</option>
-                                                <option value="right-to-left">Right-To-Left</option>
-                                                <option value="top-to-bottom" selected>Top-To-Bottom</option>
-                                                <option value="force">Force Directed</option>
-                                            </select>
-                                            <div class="map-btn-dropdown-wrapper">
-                                                <button type="button" class="map-toolbar-btn-sm" id="capabilityRelationshipsMapSpacing" title="Node spacing">
-                                                    <i class="fas fa-expand-arrows-alt" id="capabilityRelationshipsMapSpacingIcon"></i>
-                                                    <i class="fas fa-chevron-down" style="font-size: 8px; margin-left: 2px;"></i>
-                                                </button>
-                                                <div class="map-btn-dropdown-menu" id="capabilityRelationshipsMapSpacingMenu">
-                                                    <div class="map-btn-dropdown-item" data-spacing="compact">Compact</div>
-                                                    <div class="map-btn-dropdown-item active" data-spacing="normal">Normal</div>
-                                                    <div class="map-btn-dropdown-item" data-spacing="spacey">Spacey</div>
-                                                </div>
-                                            </div>
-                                            <div class="map-btn-dropdown-wrapper">
-                                                <button type="button" class="map-toolbar-btn-sm" id="capabilityRelationshipsMapEdgeStyle" title="Edge routing style">
-                                                    <i class="fas fa-arrow-right" id="capabilityRelationshipsMapEdgeStyleIcon"></i>
-                                                    <i class="fas fa-chevron-down" style="font-size: 8px; margin-left: 2px;"></i>
-                                                </button>
-                                                <div class="map-btn-dropdown-menu" id="capabilityRelationshipsMapEdgeStyleMenu">
-                                                    <div class="map-btn-dropdown-item" data-edge-style="angle">Angle</div>
-                                                    <div class="map-btn-dropdown-item" data-edge-style="square">Square</div>
-                                                    <div class="map-btn-dropdown-item active" data-edge-style="direct">Direct</div>
-                                                    <div class="map-btn-dropdown-item" data-edge-style="loop">Loop</div>
-                                                    <div class="map-btn-dropdown-item" data-edge-style="top-down">Top-Down</div>
-                                                    <div class="map-btn-dropdown-item" data-edge-style="left-right">Left-Right</div>
-                                                </div>
-                                            </div>
+                                            ${typeof window.SharedMapLayoutRichControlsHtml === 'function' ? window.SharedMapLayoutRichControlsHtml('capabilityRelationshipsMap', { richItems: 'four' }) : ''}
                                         </div>
                                     </div>
                                     <div class="map-control-group map-hops-group" id="capabilityRelationshipsMapHopsGroup">
@@ -1408,15 +1378,6 @@ function showError(message) {
         // Map type selector (only capability-lineage)
         const mapTypeSelect = byId(`${mapId}TypeSelect`);
         
-        // Layout selector
-        const layoutSelect = byId(`${mapId}LayoutSelect`);
-        if (layoutSelect) {
-            layoutSelect.addEventListener('change', (e) => {
-                if (window.CapabilityRelationshipsMap) {
-                    window.CapabilityRelationshipsMap.setLayout(e.target.value);
-                }
-            });
-        }
         // Hops Count (1-99, default 15)
         const hopsInput = byId(`${mapId}HopsCount`);
         if (hopsInput) {
@@ -1437,7 +1398,8 @@ function showError(message) {
                 mapId: mapId,
                 getNetwork: () => window.CapabilityRelationshipsMap ? window.CapabilityRelationshipsMap.cy : null,
                 setLayout: (dir) => {
-                    if (layoutSelect) layoutSelect.value = dir;
+                    const ls = byId(`${mapId}LayoutSelect`);
+                    if (ls) ls.value = dir;
                     if (window.CapabilityRelationshipsMap) window.CapabilityRelationshipsMap.setLayout(dir);
                 },
                 getCanvas: () => byId(mapId + 'Canvas')

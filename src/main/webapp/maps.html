@@ -48,39 +48,7 @@
                 
                 <div class="map-control-group">
                     <label>Layout:</label>
-                    <div class="map-layout-controls">
-                        <select id="mapLayoutSelect" class="map-select" title="Change lineage flow direction">
-                            <option value="left-to-right">Left-To-Right</option>
-                            <option value="top-to-bottom">Top-To-Bottom</option>
-                            <option value="right-to-left">Right-To-Left</option>
-                            <option value="force">Organic</option>
-                        </select>
-                        <div class="map-btn-dropdown-wrapper">
-                            <button type="button" class="map-toolbar-btn-sm" id="mapSpacingBtn" title="Node spacing">
-                                <i class="fas fa-expand-arrows-alt" id="mapSpacingIcon"></i>
-                                <i class="fas fa-chevron-down" style="font-size: 8px; margin-left: 2px;"></i>
-                            </button>
-                            <div class="map-btn-dropdown-menu" id="mapSpacingMenu">
-                                <div class="map-btn-dropdown-item" data-spacing="compact">Compact</div>
-                                <div class="map-btn-dropdown-item active" data-spacing="normal">Normal</div>
-                                <div class="map-btn-dropdown-item" data-spacing="spacey">Spacey</div>
-                            </div>
-                        </div>
-                        <div class="map-btn-dropdown-wrapper">
-                            <button type="button" class="map-toolbar-btn-sm" id="mapEdgeStyleBtn" title="Edge routing style">
-                                <i class="fas fa-arrow-right" id="mapEdgeStyleIcon"></i>
-                                <i class="fas fa-chevron-down" style="font-size: 8px; margin-left: 2px;"></i>
-                            </button>
-                            <div class="map-btn-dropdown-menu" id="mapEdgeStyleMenu">
-                                <div class="map-btn-dropdown-item" data-edge-style="angle">Angle</div>
-                                <div class="map-btn-dropdown-item" data-edge-style="square">Square</div>
-                                <div class="map-btn-dropdown-item active" data-edge-style="direct">Direct</div>
-                                <div class="map-btn-dropdown-item" data-edge-style="loop">Loop</div>
-                                <div class="map-btn-dropdown-item" data-edge-style="top-down">Top-Down</div>
-                                <div class="map-btn-dropdown-item" data-edge-style="left-right">Left-Right</div>
-                            </div>
-                        </div>
-                    </div>
+                    <div class="map-layout-controls" id="mapLayoutControlsHost"></div>
                 </div>
                 <div class="map-control-group">
                     <label for="mapHopsSelect">Hops:</label>

@@ -113,6 +113,31 @@
         geography: 'Geography'
     };
 
+    function syncMapLayoutRichUiFromSelect() {
+        const layoutSel = document.getElementById('mapLayoutSelect');
+        const layoutMenu = document.getElementById('mapLayoutMenu');
+        const layoutText = document.getElementById('mapLayoutBtnText');
+        if (!layoutSel || !layoutMenu || !layoutText) return;
+        const v = layoutSel.value;
+        layoutMenu.querySelectorAll('.map-layout-rich-item').forEach(function (it) {
+            it.classList.toggle('active', it.dataset.layout === v);
+        });
+        const activeItem = layoutMenu.querySelector('.map-layout-rich-item.active');
+        const titleEl = activeItem && activeItem.querySelector('.map-layout-rich-title');
+        if (titleEl) layoutText.textContent = titleEl.textContent;
+        else {
+            const opt = layoutSel.options[layoutSel.selectedIndex];
+            if (opt) layoutText.textContent = opt.textContent;
+        }
+    }
+
+    function syncMapStateFromSharedDropdowns() {
+        const api = window._sharedDropdownApis && window._sharedDropdownApis.map;
+        if (!api) return;
+        if (typeof api.getSpacing === 'function') MapState.spacing = api.getSpacing();
+        if (typeof api.getEdgeStyle === 'function') MapState.edgeStyle = api.getEdgeStyle();
+    }
+
     // Initialize maps when DOM is ready
     document.addEventListener('DOMContentLoaded', function() {
         initMaps();
@@ -159,8 +184,13 @@
     }
 
     function initMapControls() {
+        const layoutHost = document.getElementById('mapLayoutControlsHost');
+        if (layoutHost && !layoutHost.dataset.injected && typeof window.SharedMapLayoutRichControlsHtml === 'function') {
+            layoutHost.innerHTML = window.SharedMapLayoutRichControlsHtml('map', { richItems: 'four' });
+            layoutHost.dataset.injected = '1';
+        }
+
         const mapTypeSelect = document.getElementById('mapTypeSelect');
-        const layoutSelect = document.getElementById('mapLayoutSelect');
         const refreshBtn = document.getElementById('mapRefreshBtn');
         const zoomInBtn = document.getElementById('mapZoomInBtn');
         const zoomOutBtn = document.getElementById('mapZoomOutBtn');
@@ -199,13 +229,6 @@
         switchFilterMenuByMapType();
         bindMultiNodeFilterCheckboxes();
         bindLinkFilterCheckboxes();
-
-        if (layoutSelect) {
-            layoutSelect.addEventListener('change', (e) => {
-                MapState.layout = e.target.value;
-                updateNetworkLayout();
-            });
-        }
 
         initOverlayDropdown();
         initFilterDropdown();
@@ -601,92 +624,19 @@
     }
 
     function initLayoutToggles() {
-        const spacingBtn = document.getElementById('mapSpacingBtn');
-        const spacingMenu = document.getElementById('mapSpacingMenu');
-        const edgeStyleBtn = document.getElementById('mapEdgeStyleBtn');
-        const edgeStyleMenu = document.getElementById('mapEdgeStyleMenu');
-        const layoutSelect = document.getElementById('mapLayoutSelect');
-
-        // Helper: close all toolbar dropdown menus
-        function closeAllToolbarMenus() {
-            document.querySelectorAll('.map-btn-dropdown-menu.show').forEach(m => m.classList.remove('show'));
-        }
-
-        // Close dropdowns when clicking outside
-        document.addEventListener('click', (e) => {
-            if (!e.target.closest('.map-btn-dropdown-wrapper')) {
-                closeAllToolbarMenus();
-            }
+        const layoutHost = document.getElementById('mapLayoutControlsHost');
+        if (layoutHost && layoutHost.dataset.sharedDropdownsBound === '1') return;
+        if (typeof window.SharedMapDropdowns !== 'function') return;
+        window.SharedMapDropdowns({
+            mapId: 'map',
+            getNetwork: () => MapState.network,
+            setLayout: (dir) => {
+                MapState.layout = dir;
+                updateNetworkLayout();
+            },
+            getCanvas: () => MapState.canvas
         });
-
-        // ── Spacing dropdown (Compact / Normal / Spacey) ──
-        if (spacingBtn && spacingMenu) {
-            spacingBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const wasOpen = spacingMenu.classList.contains('show');
-                closeAllToolbarMenus();
-                if (!wasOpen) spacingMenu.classList.add('show');
-            });
-
-            spacingMenu.addEventListener('click', (e) => {
-                const item = e.target.closest('.map-btn-dropdown-item');
-                if (!item) return;
-                const spacing = item.dataset.spacing;
-                if (!spacing) return;
-
-                MapState.spacing = spacing;
-                // Update active state
-                spacingMenu.querySelectorAll('.map-btn-dropdown-item').forEach(it => {
-                    it.classList.toggle('active', it.dataset.spacing === spacing);
-                });
-                updateNetworkLayout();
-                closeAllToolbarMenus();
-            });
-        }
-
-        // ── Edge Style dropdown (Angle / Square / Direct / Loop / Top-Down / Left-Right) ──
-        if (edgeStyleBtn && edgeStyleMenu) {
-            edgeStyleBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const wasOpen = edgeStyleMenu.classList.contains('show');
-                closeAllToolbarMenus();
-                if (!wasOpen) edgeStyleMenu.classList.add('show');
-            });
-
-            edgeStyleMenu.addEventListener('click', (e) => {
-                const item = e.target.closest('.map-btn-dropdown-item');
-                if (!item) return;
-                const style = item.dataset.edgeStyle;
-                if (!style) return;
-
-                MapState.edgeStyle = style;
-                // Update active state
-                edgeStyleMenu.querySelectorAll('.map-btn-dropdown-item').forEach(it => {
-                    it.classList.toggle('active', it.dataset.edgeStyle === style);
-                });
-
-                // Some edge styles imply a layout direction
-                if (style === 'top-down') {
-                    MapState.layout = 'top-to-bottom';
-                    if (layoutSelect) layoutSelect.value = 'top-to-bottom';
-                } else if (style === 'left-right') {
-                    MapState.layout = 'left-to-right';
-                    if (layoutSelect) layoutSelect.value = 'left-to-right';
-                }
-
-                applyEdgeStyle();
-                updateNetworkLayout();
-                closeAllToolbarMenus();
-            });
-        }
-
-        // Keep layout direction in sync when the <select> changes
-        if (layoutSelect) {
-            layoutSelect.addEventListener('change', () => {
-                MapState.layout = layoutSelect.value;
-                updateNetworkLayout();
-            });
-        }
+        if (layoutHost) layoutHost.dataset.sharedDropdownsBound = '1';
     }
 
     /** Get spacing factor based on MapState.spacing */
@@ -817,14 +767,23 @@
     /** Axon Table 1: Multi-Node Lineage uses Organic layout only (general connections, not directional flow) */
     function toggleMultiNodeLayoutOrganicOnly() {
         const layoutSelect = document.getElementById('mapLayoutSelect');
+        const layoutBtn = document.getElementById('mapLayoutBtn');
         if (!layoutSelect) return;
         const isMultiNode = MapState.mapType === 'multi-node-lineage';
         if (isMultiNode) {
             MapState.layout = 'force';
-            layoutSelect.value = 'force';
             layoutSelect.innerHTML = '<option value="force">Organic</option>';
+            layoutSelect.value = 'force';
             layoutSelect.title = 'Multi-Node uses Organic layout only';
+            if (layoutBtn) {
+                layoutBtn.disabled = true;
+                layoutBtn.title = layoutSelect.title;
+            }
         } else {
+            if (layoutBtn) {
+                layoutBtn.disabled = false;
+                layoutBtn.title = '';
+            }
             if (layoutSelect.options.length === 1) {
                 layoutSelect.innerHTML = '<option value="top-to-bottom">Top-To-Bottom</option><option value="left-to-right">Left-To-Right</option><option value="right-to-left">Right-To-Left</option><option value="force">Organic</option>';
                 layoutSelect.title = '';
@@ -834,6 +793,7 @@
             }
             layoutSelect.value = MapState.layout;
         }
+        syncMapLayoutRichUiFromSelect();
     }
 
     function bindMultiNodeFilterCheckboxes() {
@@ -2622,6 +2582,7 @@
     }
 
     function updateNetworkLayout() {
+        syncMapStateFromSharedDropdowns();
         if (!MapState.network) return;
         let layoutOpt = buildCytoscapeLayout();
         let layout;
@@ -3138,7 +3099,10 @@
         const mapTypeSelect = document.getElementById('mapTypeSelect');
         const overlayBtnText = document.getElementById('mapOverlayBtnText');
         
-        if (layoutSelect) layoutSelect.value = state.layout;
+        if (layoutSelect) {
+            layoutSelect.value = state.layout;
+            syncMapLayoutRichUiFromSelect();
+        }
         if (mapTypeSelect) mapTypeSelect.value = state.mapType;
         if (overlayBtnText) overlayBtnText.textContent = OVERLAY_LABELS[MapState.overlay] || MapState.overlay || 'None';
         

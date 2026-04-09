@@ -1415,7 +1415,6 @@ function showEditControls() {
         
         // Map type selector
         const mapTypeSelect = byId('datasetRelationshipsMapTypeSelect');
-        const layoutSelect = byId('datasetRelationshipsMapLayoutSelect');
         const directionBtn = byId('datasetRelationshipsMapDirection');
         const collapseBtn = byId('datasetRelationshipsMapCollapseBtn');
         const mapSection = byId('datasetRelationshipsMapSection');
@@ -1506,15 +1505,6 @@ function showEditControls() {
             });
         }
         
-        // Layout select dropdown
-        if (layoutSelect) {
-            layoutSelect.addEventListener('change', (e) => {
-                const layout = e.target.value;
-                if (window.DatasetRelationshipsMap) {
-                    window.DatasetRelationshipsMap.setLayout(layout);
-                }
-            });
-        }
         
         // Hops Count (1-99, default 15)
         const hopsInput = byId('datasetRelationshipsMapHopsCount');
@@ -1536,7 +1526,8 @@ function showEditControls() {
                 mapId: 'datasetRelationshipsMap',
                 getNetwork: () => window.DatasetRelationshipsMap ? window.DatasetRelationshipsMap.cy : null,
                 setLayout: (dir) => {
-                    if (layoutSelect) layoutSelect.value = dir;
+                    const ls = byId('datasetRelationshipsMapLayoutSelect');
+                    if (ls) ls.value = dir;
                     if (window.DatasetRelationshipsMap) window.DatasetRelationshipsMap.setLayout(dir);
                 },
                 getCanvas: () => byId('datasetRelationshipsMapCanvas')
@@ -2138,10 +2129,9 @@ function showEditControls() {
                     </div>
                     <div class="map-control-group">
                         <label>Layout:</label>
-                        <select id="datasetRelationshipsMapLayoutSelect" class="map-select">
-                            <option value="top-to-bottom" selected>Top-To-Bottom</option>
-                            <option value="left-to-right">Left-To-Right</option>
-                        </select>
+                        <div class="map-layout-controls">
+                            ${typeof window.SharedMapLayoutRichControlsHtml === 'function' ? window.SharedMapLayoutRichControlsHtml('datasetRelationshipsMap') : ''}
+                        </div>
                     </div>
                     <div class="map-control-group map-hops-group" id="datasetRelationshipsMapHopsGroup">
                         <label>Hops:</label>

@@ -1014,36 +1014,7 @@
                     <div class="map-control-group">
                         <label>Layout:</label>
                         <div class="map-layout-controls">
-                            <select id="${MAP_ID}LayoutSelect" class="map-select" title="Change lineage flow direction">
-                                <option value="top-to-bottom" selected>Top to Bottom</option>
-                                <option value="left-to-right">Left to Right</option>
-                                <option value="organic">Organic</option>
-                            </select>
-                            <div class="map-btn-dropdown-wrapper">
-                                <button type="button" class="map-toolbar-btn-sm" id="${MAP_ID}Spacing" title="Node spacing">
-                                    <i class="fas fa-expand-arrows-alt" id="${MAP_ID}SpacingIcon"></i>
-                                    <i class="fas fa-chevron-down map-toolbar-chevron"></i>
-                                </button>
-                                <div class="map-btn-dropdown-menu" id="${MAP_ID}SpacingMenu">
-                                    <div class="map-btn-dropdown-item" data-spacing="compact">Compact</div>
-                                    <div class="map-btn-dropdown-item active" data-spacing="normal">Normal</div>
-                                    <div class="map-btn-dropdown-item" data-spacing="spacey">Spacey</div>
-                                </div>
-                            </div>
-                            <div class="map-btn-dropdown-wrapper">
-                                <button type="button" class="map-toolbar-btn-sm" id="${MAP_ID}EdgeStyle" title="Edge routing style">
-                                    <i class="fas fa-arrow-right" id="${MAP_ID}EdgeStyleIcon"></i>
-                                    <i class="fas fa-chevron-down map-toolbar-chevron"></i>
-                                </button>
-                                <div class="map-btn-dropdown-menu" id="${MAP_ID}EdgeStyleMenu">
-                                    <div class="map-btn-dropdown-item" data-edge-style="angle">Angle</div>
-                                    <div class="map-btn-dropdown-item" data-edge-style="square">Square</div>
-                                    <div class="map-btn-dropdown-item active" data-edge-style="direct">Direct</div>
-                                    <div class="map-btn-dropdown-item" data-edge-style="loop">Loop</div>
-                                    <div class="map-btn-dropdown-item" data-edge-style="top-down">Top-Down</div>
-                                    <div class="map-btn-dropdown-item" data-edge-style="left-right">Left-Right</div>
-                                </div>
-                            </div>
+                            ${typeof window.SharedMapLayoutRichControlsHtml === 'function' ? window.SharedMapLayoutRichControlsHtml(MAP_ID) : ''}
                         </div>
                     </div>
                     <div class="map-control-group">
@@ -1279,9 +1250,6 @@
             return;
         }
         if (shellRoot) shellRoot.dataset.processFlowToolbarBound = MAP_ID;
-
-        const layoutSelect = document.getElementById(`${MAP_ID}LayoutSelect`);
-        if (layoutSelect) layoutSelect.addEventListener('change', () => setLayout(layoutSelect.value));
 
         document.getElementById(`${MAP_ID}ZoomIn`)?.addEventListener('click', zoomIn);
         document.getElementById(`${MAP_ID}ZoomOut`)?.addEventListener('click', zoomOut);

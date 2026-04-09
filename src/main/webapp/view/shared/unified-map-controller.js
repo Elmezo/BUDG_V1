@@ -480,33 +480,35 @@
             // Layout
             + '<div class="map-control-group"><label>Layout:</label>'
             + '<div class="map-layout-controls">'
-            + '<select id="' + mapId + 'LayoutSelect" class="map-select">'
-            + '<option value="top-to-bottom" selected>Top-To-Bottom</option>'
-            + '<option value="left-to-right">Left-To-Right</option>'
-            + '<option value="right-to-left">Right-To-Left</option>'
-            + '<option value="force">Force Directed</option>'
-            + '</select>'
-            + '<div class="map-btn-dropdown-wrapper">'
-            + '<button type="button" class="map-toolbar-btn-sm" id="' + mapId + 'Spacing" title="Node spacing">'
-            + '<i class="fas fa-expand-arrows-alt" id="' + mapId + 'SpacingIcon"></i>'
-            + '<i class="fas fa-chevron-down map-toolbar-chevron"></i></button>'
-            + '<div class="map-btn-dropdown-menu" id="' + mapId + 'SpacingMenu">'
-            + '<div class="map-btn-dropdown-item" data-spacing="compact">Compact</div>'
-            + '<div class="map-btn-dropdown-item active" data-spacing="normal">Normal</div>'
-            + '<div class="map-btn-dropdown-item" data-spacing="spacey">Spacey</div>'
-            + '</div></div>'
-            + '<div class="map-btn-dropdown-wrapper">'
-            + '<button type="button" class="map-toolbar-btn-sm" id="' + mapId + 'EdgeStyle" title="Edge routing style">'
-            + '<i class="fas fa-arrow-right" id="' + mapId + 'EdgeStyleIcon"></i>'
-            + '<i class="fas fa-chevron-down map-toolbar-chevron"></i></button>'
-            + '<div class="map-btn-dropdown-menu" id="' + mapId + 'EdgeStyleMenu">'
-            + '<div class="map-btn-dropdown-item" data-edge-style="angle">Angle</div>'
-            + '<div class="map-btn-dropdown-item" data-edge-style="square">Square</div>'
-            + '<div class="map-btn-dropdown-item active" data-edge-style="direct">Direct</div>'
-            + '<div class="map-btn-dropdown-item" data-edge-style="loop">Loop</div>'
-            + '<div class="map-btn-dropdown-item" data-edge-style="top-down">Top-Down</div>'
-            + '<div class="map-btn-dropdown-item" data-edge-style="left-right">Left-Right</div>'
-            + '</div></div>'
+            + (typeof window.SharedMapLayoutRichControlsHtml === 'function'
+                ? window.SharedMapLayoutRichControlsHtml(mapId)
+                : '<select id="' + mapId + 'LayoutSelect" class="map-select">'
+                + '<option value="top-to-bottom" selected>Top-To-Bottom</option>'
+                + '<option value="left-to-right">Left-To-Right</option>'
+                + '<option value="right-to-left">Right-To-Left</option>'
+                + '<option value="force">Force Directed</option>'
+                + '</select>'
+                + '<div class="map-btn-dropdown-wrapper">'
+                + '<button type="button" class="map-toolbar-btn-sm" id="' + mapId + 'Spacing" title="Node spacing">'
+                + '<i class="fas fa-expand-arrows-alt" id="' + mapId + 'SpacingIcon"></i>'
+                + '<i class="fas fa-chevron-down map-toolbar-chevron"></i></button>'
+                + '<div class="map-btn-dropdown-menu" id="' + mapId + 'SpacingMenu">'
+                + '<div class="map-btn-dropdown-item" data-spacing="compact">Compact</div>'
+                + '<div class="map-btn-dropdown-item active" data-spacing="normal">Normal</div>'
+                + '<div class="map-btn-dropdown-item" data-spacing="spacey">Spacey</div>'
+                + '</div></div>'
+                + '<div class="map-btn-dropdown-wrapper">'
+                + '<button type="button" class="map-toolbar-btn-sm" id="' + mapId + 'EdgeStyle" title="Edge routing style">'
+                + '<i class="fas fa-arrow-right" id="' + mapId + 'EdgeStyleIcon"></i>'
+                + '<i class="fas fa-chevron-down map-toolbar-chevron"></i></button>'
+                + '<div class="map-btn-dropdown-menu" id="' + mapId + 'EdgeStyleMenu">'
+                + '<div class="map-btn-dropdown-item" data-edge-style="angle">Angle</div>'
+                + '<div class="map-btn-dropdown-item" data-edge-style="square">Square</div>'
+                + '<div class="map-btn-dropdown-item active" data-edge-style="direct">Direct</div>'
+                + '<div class="map-btn-dropdown-item" data-edge-style="loop">Loop</div>'
+                + '<div class="map-btn-dropdown-item" data-edge-style="top-down">Top-Down</div>'
+                + '<div class="map-btn-dropdown-item" data-edge-style="left-right">Left-Right</div>'
+                + '</div></div>')
             + '</div></div>'
             // Hops
             + '<div class="map-control-group map-hops-group" id="' + mapId + 'HopsGroup"><label>Hops:</label>'
@@ -573,6 +575,8 @@
     // =========================================================================
     // SECTION 3 – SharedMapDropdowns (spacing / edge-style dropdowns)
     // =========================================================================
+    // map-ui.js is canonical when loaded first; keep this block only as fallback.
+    if (typeof window.SharedMapDropdowns !== 'function') {
     /**
      * Initialise spacing and edge-style dropdown menus for a map instance.
      * @param {Object} opts
@@ -703,7 +707,7 @@
 
         return api;
     };
-
+    }
 
     // =========================================================================
     // SECTION 4 – SharedMapControls (toolbar button wiring)

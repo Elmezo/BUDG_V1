@@ -689,6 +689,12 @@
         var mapId = options.mapId;
         var adapter = options.adapter;
         var state = options.state;
+        function lineageSetLayout(dir) {
+            state.layout = dir;
+            var ls = document.getElementById(mapId + 'LayoutSelect');
+            if (ls) ls.value = dir;
+            if (typeof options.setLayout === 'function') options.setLayout(dir);
+        }
         if (typeof window.SharedMapControls === 'function') {
             window.SharedMapControls({
                 mapId: mapId,
@@ -700,6 +706,7 @@
                     exportAsPng: options.exportAsPng,
                     openFullscreen: options.openFullscreen,
                     getLegendHtml: options.getLegendHtml,
+                    setLayout: lineageSetLayout,
                     toggleLabels: function (show) {
                         if (state.network) state.network.edges().style('label', show ? 'data(label)' : '');
                     }
@@ -710,12 +717,7 @@
             window.SharedMapDropdowns({
                 mapId: mapId,
                 getNetwork: function () { return state.network; },
-                setLayout: function (dir) {
-                    state.layout = dir;
-                    var ls = document.getElementById(mapId + 'LayoutSelect');
-                    if (ls) ls.value = dir;
-                    if (typeof options.setLayout === 'function') options.setLayout(dir);
-                },
+                setLayout: lineageSetLayout,
                 getCanvas: function () { return document.getElementById(mapId + 'Canvas'); }
             });
         }

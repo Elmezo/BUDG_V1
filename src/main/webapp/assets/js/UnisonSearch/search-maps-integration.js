@@ -143,6 +143,16 @@
             await loadScript('/assets/js/dagre.min.js');
         }
 
+        if (typeof window.SharedMapLayoutRichControlsHtml !== 'function') {
+            await loadScript('/view/shared/map-ui.js');
+        }
+        if (!document.querySelector('link[href*="view/shared/map/map.css"]')) {
+            const mapSharedCss = document.createElement('link');
+            mapSharedCss.rel = 'stylesheet';
+            mapSharedCss.href = '/view/shared/map/map.css';
+            document.head.appendChild(mapSharedCss);
+        }
+
         // Load maps.js if not already loaded
         if (!window.mapsJsLoaded) {
             await loadScript('/assets/js/maps.js');

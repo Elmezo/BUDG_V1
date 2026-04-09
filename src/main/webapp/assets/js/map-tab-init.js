@@ -1664,7 +1664,12 @@
             var richLayoutBtn = t.closest('.map-select-btn[id*="LayoutBtn"]') || t.closest('button[id*="LayoutBtn"]');
             if (richLayoutBtn) {
                 e.stopPropagation();
-                var rmenu = root().querySelector('.map-layout-rich-menu');
+                var rmenu = null;
+                if (richLayoutBtn.id) {
+                    rmenu = document.getElementById(richLayoutBtn.id.replace(/LayoutBtn$/, 'LayoutMenu'));
+                }
+                if (!rmenu) rmenu = root().querySelector('#interfaceMapLayoutMenu');
+                if (!rmenu) rmenu = root().querySelector('.map-layout-rich-menu');
                 if (rmenu) {
                     var ro = rmenu.classList.contains('show');
                     closeAllMenus();
