@@ -11,6 +11,9 @@ let currentFilterFacetId = null; // the facet currently loaded in the filter pan
 // Custom field metadata per facet: { [facetId]: [{ id, displayName, customFieldName }] }
 let customFieldsMetadata = {};
 
+/** Layers that escape .filter-panel-content overflow via fixed positioning */
+const FILTER_DROPDOWN_LAYER_SELECTOR = '.filter-dropdown-values, .filter-dropdown-options, .filter-people-results';
+
 // Make available globally
 if (typeof window !== 'undefined') {
     window.activeFilters = activeFilters;
@@ -275,6 +278,7 @@ function updateAddFilterDropdown() {
                 // Close the dropdown after selection
                 const addNewOptions = document.getElementById('filterAddNewOptions');
                 if (addNewOptions) {
+                    resetFilterDropdownFloating(addNewOptions);
                     addNewOptions.style.display = 'none';
                 }
                 addFilterRow(field);
@@ -437,15 +441,23 @@ function createDropdownValueSelector(filterField, filterId) {
     button.addEventListener('click', async (e) => {
         e.stopPropagation();
         
-        // Close all other dropdowns (both values and options)
-        document.querySelectorAll('.filter-dropdown-values, .filter-dropdown-options').forEach(d => {
+        document.querySelectorAll(FILTER_DROPDOWN_LAYER_SELECTOR).forEach((d) => {
             if (d !== dropdown) {
+                resetFilterDropdownFloating(d);
                 d.style.display = 'none';
             }
         });
         
         const isVisible = dropdown.style.display !== 'none';
-        dropdown.style.display = isVisible ? 'none' : 'block';
+        if (isVisible) {
+            resetFilterDropdownFloating(dropdown);
+            dropdown.style.display = 'none';
+        } else {
+            dropdown.style.display = 'block';
+            positionFilterDropdownFloating(dropdown, button);
+            initFilterDropdownFloatingListeners();
+            requestAnimationFrame(() => refreshFloatingFilterDropdowns());
+        }
         
         // Load values if not loaded yet
         if (!isVisible && valuesContainer.children.length === 0) {
@@ -577,6 +589,8 @@ async function loadDropdownValues(filterField, filterId, container, loadingMsg) 
             });
             updateFilterValue(filterId, filterField);
         }
+
+        requestAnimationFrame(() => refreshFloatingFilterDropdowns());
         
     } catch (error) {
         console.error('[Filters] Error loading dropdown values:', error);
@@ -645,7 +659,8 @@ function updateFilterValue(filterId, filterField) {
     const button = document.querySelector(`.filter-value-btn[data-filter-id="${filterId}"]`);
     if (button && button.querySelector('span')) {
         if (selectedValues.length === 0) {
-            button.querySelector('span').textContent = 'Select options';
+            button.querySelector('span').textContent =
+                filterField && filterField.type === 'BOOLEAN' ? 'Select option' : 'Select options';
         } else if (selectedValues.length === 1) {
             // Show the selected value name
             const checkbox = document.querySelector(`input[value="${selectedValues[0]}"][data-filter-id="${filterId}"]`);
@@ -838,6 +853,7 @@ function createPeopleValueSelector(filterField, filterId) {
         const query = e.target.value.trim();
         
         if (query.length < 2) {
+            resetFilterDropdownFloating(resultsDropdown);
             resultsDropdown.style.display = 'none';
             return;
         }
@@ -850,6 +866,7 @@ function createPeopleValueSelector(filterField, filterId) {
     // Close dropdown when clicking outside (use event delegation to avoid memory leaks)
     const closeHandler = (e) => {
         if (!container.contains(e.target)) {
+            resetFilterDropdownFloating(resultsDropdown);
             resultsDropdown.style.display = 'none';
         }
     };
@@ -882,6 +899,12 @@ async function searchPeople(query, filterId, resultsContainer) {
         if (!data || data.length === 0) {
             resultsContainer.innerHTML = '<div class="filter-no-results">No people found</div>';
             resultsContainer.style.display = 'block';
+            const inputEl = document.querySelector(`.filter-people-input[data-filter-id="${filterId}"]`);
+            if (inputEl) {
+                positionFilterDropdownFloating(resultsContainer, inputEl);
+                initFilterDropdownFloatingListeners();
+                requestAnimationFrame(() => refreshFloatingFilterDropdowns());
+            }
             return;
         }
         
@@ -892,12 +915,19 @@ async function searchPeople(query, filterId, resultsContainer) {
             item.setAttribute('data-person-id', person.ID || person.id);
             item.addEventListener('click', () => {
                 selectPerson(filterId, person);
+                resetFilterDropdownFloating(resultsContainer);
                 resultsContainer.style.display = 'none';
             });
             resultsContainer.appendChild(item);
         });
         
         resultsContainer.style.display = 'block';
+        const inputEl = document.querySelector(`.filter-people-input[data-filter-id="${filterId}"]`);
+        if (inputEl) {
+            positionFilterDropdownFloating(resultsContainer, inputEl);
+            initFilterDropdownFloatingListeners();
+            requestAnimationFrame(() => refreshFloatingFilterDropdowns());
+        }
         
     } catch (error) {
         console.error('[Filters] Error searching people:', error);
@@ -1019,7 +1049,16 @@ function createBooleanValueSelector(filterField, filterId) {
         checkbox.value = option.id;
         checkbox.setAttribute('data-filter-id', filterId);
         checkbox.addEventListener('change', () => {
+            // Single choice: Yes xor No (boolean is not multi-select)
+            if (checkbox.checked) {
+                dropdown.querySelectorAll(`input[type="checkbox"][data-filter-id="${filterId}"]`).forEach((cb) => {
+                    if (cb !== checkbox) cb.checked = false;
+                });
+            }
             updateFilterValue(filterId, filterField);
+            // Close immediately after picking a value (or clearing the only selection)
+            resetFilterDropdownFloating(dropdown);
+            dropdown.style.display = 'none';
         });
         
         const label = document.createElement('label');
@@ -1035,15 +1074,23 @@ function createBooleanValueSelector(filterField, filterId) {
     button.addEventListener('click', (e) => {
         e.stopPropagation();
         
-        // Close all other dropdowns (both values and options)
-        document.querySelectorAll('.filter-dropdown-values, .filter-dropdown-options').forEach(opt => {
+        document.querySelectorAll(FILTER_DROPDOWN_LAYER_SELECTOR).forEach((opt) => {
             if (opt !== dropdown) {
+                resetFilterDropdownFloating(opt);
                 opt.style.display = 'none';
             }
         });
         
         const isVisible = dropdown.style.display !== 'none';
-        dropdown.style.display = isVisible ? 'none' : 'block';
+        if (isVisible) {
+            resetFilterDropdownFloating(dropdown);
+            dropdown.style.display = 'none';
+        } else {
+            dropdown.style.display = 'block';
+            positionFilterDropdownFloating(dropdown, button);
+            initFilterDropdownFloatingListeners();
+            requestAnimationFrame(() => refreshFloatingFilterDropdowns());
+        }
     });
     
     container.appendChild(button);
@@ -1514,6 +1561,73 @@ function applyQuickFilter(quickFilter) {
     }
 }
 
+/**
+ * Dropdowns inside .filter-panel-content are clipped by overflow-y:auto.
+ * Float open layers with fixed positioning to the viewport (same pattern as popovers).
+ */
+function positionFilterDropdownFloating(dropdown, trigger) {
+    if (!dropdown || !trigger) return;
+    const rect = trigger.getBoundingClientRect();
+    const gap = 4;
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    let width = Math.max(rect.width, 220);
+    let left = rect.left;
+    if (left + width > vw - 8) left = Math.max(8, vw - 8 - width);
+    if (left < 8) left = 8;
+    const spaceBelow = vh - rect.bottom - gap;
+    const cs = window.getComputedStyle(dropdown);
+    const defaultMax = parseFloat(cs.maxHeight) || 300;
+    const maxH = Math.min(defaultMax, Math.max(120, spaceBelow - 8));
+
+    dropdown.style.position = 'fixed';
+    dropdown.style.top = (rect.bottom + gap) + 'px';
+    dropdown.style.left = left + 'px';
+    dropdown.style.width = width + 'px';
+    dropdown.style.right = 'auto';
+    dropdown.style.bottom = 'auto';
+    dropdown.style.maxHeight = maxH + 'px';
+    dropdown.style.zIndex = '10050';
+    dropdown.dataset.filterFloating = '1';
+    dropdown._filterFloatTrigger = trigger;
+}
+
+function resetFilterDropdownFloating(dropdown) {
+    if (!dropdown || dropdown.dataset.filterFloating !== '1') return;
+    dropdown.style.position = '';
+    dropdown.style.top = '';
+    dropdown.style.left = '';
+    dropdown.style.width = '';
+    dropdown.style.right = '';
+    dropdown.style.bottom = '';
+    dropdown.style.maxHeight = '';
+    dropdown.style.zIndex = '';
+    delete dropdown.dataset.filterFloating;
+    delete dropdown._filterFloatTrigger;
+}
+
+function refreshFloatingFilterDropdowns() {
+    document.querySelectorAll(
+        '.filter-dropdown-values[data-filter-floating="1"], .filter-dropdown-options[data-filter-floating="1"], .filter-people-results[data-filter-floating="1"]'
+    ).forEach((d) => {
+        if (d.style.display === 'none') return;
+        const t = d._filterFloatTrigger;
+        if (t && document.contains(t)) {
+            positionFilterDropdownFloating(d, t);
+        }
+    });
+}
+
+function initFilterDropdownFloatingListeners() {
+    if (window.__filterDropdownFloatListeners) return;
+    window.__filterDropdownFloatListeners = true;
+    const onMove = () => {
+        refreshFloatingFilterDropdowns();
+    };
+    window.addEventListener('scroll', onMove, true);
+    window.addEventListener('resize', onMove);
+}
+
 // Export functions for use in other modules
 if (typeof window !== 'undefined') {
     window.loadFilterFields = loadFilterFields;
@@ -1529,4 +1643,9 @@ if (typeof window !== 'undefined') {
     window.getActiveSearchFields = getActiveSearchFields;
     window.getEffectiveSearchFieldsForCategory = getEffectiveSearchFieldsForCategory;
     window.renderSearchFieldSelector = renderSearchFieldSelector;
+    window.FILTER_DROPDOWN_LAYER_SELECTOR = FILTER_DROPDOWN_LAYER_SELECTOR;
+    window.positionFilterDropdownFloating = positionFilterDropdownFloating;
+    window.resetFilterDropdownFloating = resetFilterDropdownFloating;
+    window.refreshFloatingFilterDropdowns = refreshFloatingFilterDropdowns;
+    window.initFilterDropdownFloatingListeners = initFilterDropdownFloatingListeners;
 }

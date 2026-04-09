@@ -10,6 +10,7 @@ import com.example.unisonsearch.repository.QueryBuilder;
 import com.example.unisonsearch.repository.TaskRepository;
 import com.example.unisonsearch.service.*;
 import com.example.unisonsearch.model.FacetResult;
+import com.example.unisonsearch.util.UnisonTrace;
 import com.google.gson.*;
 import com.google.gson.reflect.TypeToken;
 import com.google.gson.TypeAdapter;
@@ -203,7 +204,13 @@ public class UnisonSearchApiServlet extends HttpServlet {
             org.slf4j.MDC.put("user_id", String.valueOf(userId));
         }
 
+        final boolean traceFromHeader = "1".equalsIgnoreCase(request.getHeader("X-Unison-Trace"));
+        if (traceFromHeader) {
+            UnisonTrace.setRequestForceTrace(true);
+        }
+
         try {
+            final long apiStartMs = System.currentTimeMillis();
             // Parse request body
             StringBuilder requestBody = new StringBuilder();
             String line;
@@ -221,6 +228,25 @@ public class UnisonSearchApiServlet extends HttpServlet {
                         .error("Invalid request: searches array is required");
                 response.getWriter().write(gson.toJson(errorResponse));
                 return;
+            }
+
+            if (UnisonTrace.enabled()) {
+                UnisonTrace.log("API", "request.summary",
+                        "userId=" + userId + " bodyChars=" + jsonBody.length() + " searches=" + searchRequest.getSearches().size());
+                for (int si = 0; si < searchRequest.getSearches().size(); si++) {
+                    UnisonSearchRequest.SearchItem it = searchRequest.getSearches().get(si);
+                    if (it == null) {
+                        UnisonTrace.log("API", "request.clause." + si, "(null item)");
+                        continue;
+                    }
+                    String fk = it.getFilters() == null || it.getFilters().isEmpty() ? "{}"
+                            : it.getFilters().keySet().toString();
+                    UnisonTrace.log("API", "request.clause." + si,
+                            "op=" + it.getOperator() + " facet=" + it.getFacet()
+                                    + " keywordLen=" + (it.getKeyword() != null ? it.getKeyword().length() : -1)
+                                    + " filterKeys=" + fk
+                                    + " searchFields=" + (it.getSearchFields() != null ? it.getSearchFields().size() : 0));
+                }
             }
 
             // Get max depth from options (default 1 — same as UnisonSearchRequest.SearchOptions)
@@ -298,6 +324,20 @@ public class UnisonSearchApiServlet extends HttpServlet {
             response.setStatus(HttpServletResponse.SC_OK);
             response.getWriter().write(gson.toJson(searchResponse));
 
+            if (UnisonTrace.enabled()) {
+                Map<String, FacetResult> res = searchResponse != null ? searchResponse.getResults() : null;
+                StringBuilder sb = new StringBuilder();
+                sb.append("ms=").append(System.currentTimeMillis() - apiStartMs);
+                if (res != null) {
+                    sb.append(" facets=").append(res.size());
+                    res.forEach((k, v) -> {
+                        int n = (v != null && v.getIds() != null) ? v.getIds().size() : 0;
+                        sb.append(" ").append(k).append("=").append(n);
+                    });
+                }
+                UnisonTrace.log("API", "response.summary", sb.toString());
+            }
+
         } catch (SQLException e) {
             response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
             System.err.println("UnisonSearchApiServlet: Database error: " + e.getMessage());
@@ -310,6 +350,11 @@ public class UnisonSearchApiServlet extends HttpServlet {
             e.printStackTrace();
             UnisonSearchResponse errorResponse = UnisonSearchResponse.error("Unexpected error: " + e.getMessage());
             response.getWriter().write(gson.toJson(errorResponse));
+        } finally {
+            if (traceFromHeader) {
+                UnisonTrace.clearRequestTrace();
+            }
+            org.slf4j.MDC.remove("user_id");
         }
     }
 

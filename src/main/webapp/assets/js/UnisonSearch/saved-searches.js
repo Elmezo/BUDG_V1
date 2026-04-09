@@ -82,11 +82,14 @@ function initHistoryButton() {
     const historyBtn = document.querySelector('.history-btn');
     if (!historyBtn) return;
 
-    // Initialize My Searches dropdown
+    const historyWrap = historyBtn.closest('.history-dropdown');
+    // Only the panel inside .history-dropdown — not My Searches (also had .history-dropdown-content before)
+    let dropdown = historyWrap ? historyWrap.querySelector('.history-dropdown-content') : null;
+
+    // Initialize My Searches dropdown (after resolving History panel so IDs never clash)
     initMySearchesDropdown();
 
-    // Create dropdown container if it doesn't exist
-    let dropdown = document.querySelector('.history-dropdown-content');
+    // Create History dropdown container if it doesn't exist
     if (!dropdown) {
         dropdown = document.createElement('div');
         dropdown.className = 'history-dropdown-content history-dropdown-panel';
@@ -106,10 +109,9 @@ function initHistoryButton() {
         dropdown.appendChild(header);
         dropdown.appendChild(container);
 
-        const historyDropdown = historyBtn.closest('.history-dropdown');
-        if (historyDropdown) {
-            historyDropdown.style.position = 'relative';
-            historyDropdown.appendChild(dropdown);
+        if (historyWrap) {
+            historyWrap.style.position = 'relative';
+            historyWrap.appendChild(dropdown);
         }
 
         if (window.I18n && typeof window.I18n.applyTranslations === 'function') {
@@ -123,9 +125,13 @@ function initHistoryButton() {
         const isVisible = dropdown.style.display !== 'none';
 
         // Close all other dropdowns
-        document.querySelectorAll('.history-dropdown-content').forEach(dd => {
+        document.querySelectorAll('.history-dropdown-content, .my-searches-dropdown-content').forEach(dd => {
             if (dd !== dropdown) dd.style.display = 'none';
         });
+
+        if (!isVisible && typeof closeFilterPanel === 'function') {
+            closeFilterPanel();
+        }
 
         dropdown.style.display = isVisible ? 'none' : 'flex';
 
@@ -1341,9 +1347,9 @@ function initMySearchesDropdown() {
     const mySearchesText = t('label.mySearches', 'My searches');
     mySearchesBtn.innerHTML = `<i class="fas fa-bookmark"></i> ${mySearchesText} <i class="fas fa-chevron-down"></i>`;
 
-    // Same panel chrome as History (.history-dropdown-panel + .history-dropdown-content)
+    // Panel chrome matches History via CSS (.history-dropdown-panel on .my-searches-dropdown-content)
     const dropdown = document.createElement('div');
-    dropdown.className = 'my-searches-dropdown-content history-dropdown-content history-dropdown-panel';
+    dropdown.className = 'my-searches-dropdown-content history-dropdown-panel';
     dropdown.style.display = 'none';
     dropdown.setAttribute('role', 'menu');
     dropdown.setAttribute('aria-label', t('label.mySearches', 'My searches'));
@@ -1396,6 +1402,10 @@ function initMySearchesDropdown() {
         document.querySelectorAll('.history-dropdown-content, .my-searches-dropdown-content').forEach(dd => {
             if (dd !== dropdown) dd.style.display = 'none';
         });
+
+        if (!isVisible && typeof closeFilterPanel === 'function') {
+            closeFilterPanel();
+        }
 
         dropdown.style.display = isVisible ? 'none' : 'flex';
 

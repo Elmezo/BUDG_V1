@@ -240,156 +240,144 @@ function disableOperatorOptions() {
     });
 }
 
+/**
+ * One delegated listener on the sidebar — modules.js calls this after every re-render; previously
+ * each call stacked duplicate per-item listeners and one click fired loadCategoryData N times.
+ */
 function initOrgUnitTable() {
-    const categoryItems = document.querySelectorAll('.category-item');
-    const dataTable = tableContainer || document.querySelector('.data-table-wrapper');
+    if (window.__orgUnitTableDelegated) {
+        return;
+    }
+    const sidebarContainer = document.querySelector('.category-sidebar-container');
+    if (!sidebarContainer) {
+        return;
+    }
+    window.__orgUnitTableDelegated = true;
 
-    categoryItems.forEach(item => {
+    sidebarContainer.addEventListener('click', async (e) => {
+        const item = e.target.closest('.category-item');
+        if (!item || !sidebarContainer.contains(item)) {
+            return;
+        }
+        if (e.target.closest('.cat-remove-btn')) {
+            return;
+        }
         const category = item.getAttribute('data-category');
-        item.addEventListener('click', async () => {
-            categoryItems.forEach(i => i.classList.remove('active', 'current'));
-            item.classList.add('active');
+        if (!category) {
+            return;
+        }
 
-            // Preserve FIND query in search input when switching facets
-            // This allows users to add AND/OR/NOT conditions in the new facet
-            const searchInput = document.querySelector('.search-main-input');
-            if (searchInput && typeof searchConditions !== 'undefined' && searchConditions.length > 0) {
-                const activeConditions = searchConditions.filter(c => !c.muted);
-                const findCondition = activeConditions.find(c => c.operator === 'FIND');
+        const categoryItems = sidebarContainer.querySelectorAll('.category-item');
+        const dataTable = tableContainer || document.querySelector('.data-table-wrapper');
 
-                if (findCondition && findCondition.query) {
-                    // Preserve the FIND query in the input field
-                    // This allows the user to add AND/OR/NOT conditions in the new facet
-                    searchInput.value = findCondition.query;
-                }
+        categoryItems.forEach(i => i.classList.remove('active', 'current'));
+        item.classList.add('active');
+
+        // Preserve FIND query in search input when switching facets
+        const searchInput = document.querySelector('.search-main-input');
+        if (searchInput && typeof searchConditions !== 'undefined' && searchConditions.length > 0) {
+            const activeConditions = searchConditions.filter(c => !c.muted);
+            const findCondition = activeConditions.find(c => c.operator === 'FIND');
+
+            if (findCondition && findCondition.query) {
+                searchInput.value = findCondition.query;
             }
+        }
 
-            // Dashboard will be updated automatically in loadCategoryDataFromUnisonResults
-            // if dashboard view is active, so we don't need to reload it here
-            // This prevents showing all data instead of filtered data
-            if (typeof isMapViewActive === 'function' && isMapViewActive()) {
-                // Reload map for new category
-                if (typeof reloadMapIfActive === 'function') {
-                    reloadMapIfActive();
+        if (typeof isMapViewActive === 'function' && isMapViewActive()) {
+            if (typeof reloadMapIfActive === 'function') {
+                reloadMapIfActive();
+            }
+        } else if (isSearchExecuting) {
+            if (currentUnisonSearchResults &&
+                currentUnisonSearchResults.results &&
+                Object.keys(currentUnisonSearchResults.results).length > 0) {
+                if (dataTable) dataTable.style.display = 'block';
+                updateSearchCounter();
+                if (typeof searchConditions !== 'undefined' && searchConditions.length > 0) {
+                    enableOperatorOptions();
                 }
-            } else if (isSearchExecuting) {
-                // Search in progress: still switch facet if we already have Unison payload (loadCategoryDataFromUnisonResults resolves facet keys).
-                if (currentUnisonSearchResults &&
-                    currentUnisonSearchResults.results &&
-                    Object.keys(currentUnisonSearchResults.results).length > 0) {
-                    if (dataTable) dataTable.style.display = 'block';
+                await loadCategoryDataFromUnisonResults(category);
+            }
+        } else {
+            if (dataTable) dataTable.style.display = 'block';
+
+            if (currentUnisonSearchResults &&
+                currentUnisonSearchResults.results &&
+                Object.keys(currentUnisonSearchResults.results).length > 0) {
+
+                const catToFacetId = typeof categoryToFacetId === 'function' ? categoryToFacetId :
+                    (typeof window !== 'undefined' && typeof window.categoryToFacetId === 'function' ? window.categoryToFacetId : null);
+                let facetId = catToFacetId ? catToFacetId(category) : category.toUpperCase();
+
+                if (facetId === 'DATA-SETS' || facetId === 'DATA_SETS') {
+                    facetId = 'DATASET';
+                }
+
+                const facetResult = currentUnisonSearchResults.results[facetId];
+                const hasData = facetResult && (
+                    (facetResult.count !== undefined && facetResult.count > 0) ||
+                    (Array.isArray(facetResult.rows) && facetResult.rows.length > 0) ||
+                    (facetResult.ids && (Array.isArray(facetResult.ids) ? facetResult.ids.length > 0 : facetResult.ids.size > 0))
+                );
+
+                if (hasData) {
                     updateSearchCounter();
                     if (typeof searchConditions !== 'undefined' && searchConditions.length > 0) {
                         enableOperatorOptions();
                     }
                     await loadCategoryDataFromUnisonResults(category);
-                }
-            } else {
-                // Load table view
-                if (dataTable) dataTable.style.display = 'block';
-
-                // Check if we have Unison Search results - if yes, use filtered data
-                // IMPORTANT: Also check that results object is not empty AND that this category exists in results
-                if (currentUnisonSearchResults &&
-                    currentUnisonSearchResults.results &&
-                    Object.keys(currentUnisonSearchResults.results).length > 0) {
-
-                    // Check if this category exists in Unison Search results
-                    const catToFacetId = typeof categoryToFacetId === 'function' ? categoryToFacetId :
-                        (typeof window !== 'undefined' && typeof window.categoryToFacetId === 'function' ? window.categoryToFacetId : null);
-                    let facetId = catToFacetId ? catToFacetId(category) : category.toUpperCase();
-
-                    // Normalize: "DATA-SETS" -> "DATASET"
-                    if (facetId === 'DATA-SETS' || facetId === 'DATA_SETS') {
-                        facetId = 'DATASET';
-                    }
-
-                    const facetResult = currentUnisonSearchResults.results[facetId];
-                    const hasData = facetResult && (
-                        (facetResult.count !== undefined && facetResult.count > 0) ||
-                        (Array.isArray(facetResult.rows) && facetResult.rows.length > 0) ||
-                        (facetResult.ids && (Array.isArray(facetResult.ids) ? facetResult.ids.length > 0 : facetResult.ids.size > 0))
-                    );
-
-                    // Only use Unison results if this category has data in the results
-                    if (hasData) {
-                        // Update search counter and enable operators when switching facets with existing conditions
-                        updateSearchCounter();
-                        if (typeof searchConditions !== 'undefined' && searchConditions.length > 0) {
-                            enableOperatorOptions();
-                        }
-                        await loadCategoryDataFromUnisonResults(category);
-                    } else {
-                        // Category not in Unison results or has no data - load normally
-                        await loadCategoryData(category);
-                    }
-                } else if (typeof searchConditions !== 'undefined' && searchConditions.length > 0) {
-                    // If there are search conditions but no Unison results (they were cleared),
-                    // we need to re-execute the full multi-condition search to regenerate results
-                    const activeConditions = searchConditions.filter(c => !c.muted);
-
-                    // Update search counter and enable operators when switching facets with existing conditions
-                    updateSearchCounter();
-                    if (activeConditions.length > 0) {
-                        enableOperatorOptions();
-                    }
-
-                    if (activeConditions.length > 0) {
-
-                        // Check if we need Unison Search (multiple facets or FIND condition)
-                        const uniqueFacets = new Set(activeConditions.map(c => {
-                            const facetId = typeof categoryToFacetId === 'function' ? categoryToFacetId(c.category) : c.category.toUpperCase();
-                            return facetId;
-                        }));
-                        const hasFindCondition = activeConditions.some(c => c.operator === 'FIND');
-                        const shouldUseUnisonSearch = uniqueFacets.size > 1 || hasFindCondition;
-
-                        if (shouldUseUnisonSearch) {
-                            // Re-execute full Unison Search to get results for all facets
-                            await executeMultiConditionSearch();
-                        } else {
-                            // Single facet - just load conditions for this category
-                            const conditionsForCategory = activeConditions.filter(c => c.category === category);
-                            if (conditionsForCategory.length > 0) {
-                                await executeSearchWithConditions(category, conditionsForCategory);
-                            } else {
-                                await loadCategoryData(category);
-                            }
-                        }
-                    } else {
-                        // All conditions muted
-                        await loadCategoryData(category);
-                    }
                 } else {
-                    // No conditions, just load category data
                     await loadCategoryData(category);
                 }
-            }
+            } else if (typeof searchConditions !== 'undefined' && searchConditions.length > 0) {
+                const activeConditions = searchConditions.filter(c => !c.muted);
 
-            // Load filter fields for current facet
-            const facetId = typeof categoryToFacetId === 'function' ? categoryToFacetId(category) : category.toUpperCase();
-            if (typeof loadFilterFields === 'function') {
-                await loadFilterFields(facetId);
-            }
-            
-            // Update hierarchical filter visibility based on current facet
-            if (typeof updateHierarchicalFilterVisibility === 'function') {
-                updateHierarchicalFilterVisibility();
-            }
+                updateSearchCounter();
+                if (activeConditions.length > 0) {
+                    enableOperatorOptions();
+                }
 
-            // Update settings button to reflect current category (already called in loadCategoryData)
-            // No need to call again here
+                if (activeConditions.length > 0) {
+                    const uniqueFacets = new Set(activeConditions.map(c => {
+                        const fid = typeof categoryToFacetId === 'function' ? categoryToFacetId(c.category) : c.category.toUpperCase();
+                        return fid;
+                    }));
+                    const hasFindCondition = activeConditions.some(c => c.operator === 'FIND');
+                    const shouldUseUnisonSearch = uniqueFacets.size > 1 || hasFindCondition;
 
-            // Ensure facet indicators are updated after switching facets
-            // This preserves has-active-filter class for facets with active conditions
-            // Use the dedicated function that handles all cases
-            if (typeof updateAllFacetIndicatorsFromConditions === 'function') {
-                // Small delay to ensure data loading is complete
-                setTimeout(() => {
-                    updateAllFacetIndicatorsFromConditions();
-                }, 100);
+                    if (shouldUseUnisonSearch) {
+                        await executeMultiConditionSearch();
+                    } else {
+                        const conditionsForCategory = activeConditions.filter(c => c.category === category);
+                        if (conditionsForCategory.length > 0) {
+                            await executeSearchWithConditions(category, conditionsForCategory);
+                        } else {
+                            await loadCategoryData(category);
+                        }
+                    }
+                } else {
+                    await loadCategoryData(category);
+                }
+            } else {
+                await loadCategoryData(category);
             }
-        });
+        }
+
+        const facetIdForFilters = typeof categoryToFacetId === 'function' ? categoryToFacetId(category) : category.toUpperCase();
+        if (typeof loadFilterFields === 'function') {
+            await loadFilterFields(facetIdForFilters);
+        }
+
+        if (typeof updateHierarchicalFilterVisibility === 'function') {
+            updateHierarchicalFilterVisibility();
+        }
+
+        if (typeof updateAllFacetIndicatorsFromConditions === 'function') {
+            setTimeout(() => {
+                updateAllFacetIndicatorsFromConditions();
+            }, 100);
+        }
     });
 }
 
@@ -2818,6 +2806,21 @@ async function executeMultiConditionSearch() {
 
             // Always use depth 1 to keep only direct neighbors (avoid pulling second-hop systems/people).
             const maxDepth = 1;
+            if (typeof window !== 'undefined' && typeof window.unisonSearchDebugLog === 'function') {
+                window.unisonSearchDebugLog('ui.executeMultiConditions.unison', {
+                    category,
+                    userActiveCategory,
+                    uniqueFacets: Array.from(uniqueFacets),
+                    maxDepth,
+                    searchesSummary: searches.map((s) => ({
+                        op: s.operator,
+                        facet: s.facet,
+                        keywordLen: s.keyword != null ? String(s.keyword).length : 0,
+                        filterKeys: s.filters && typeof s.filters === 'object' ? Object.keys(s.filters) : [],
+                        indentLevel: s.indentLevel
+                    }))
+                });
+            }
             const searchToken = ++currentSearchToken;
             const unisonResult = await unisonSearchFn(searches, { maxDepth: maxDepth });
 
@@ -4746,6 +4749,110 @@ function initFilterActionButtons() {
 }
 
 /**
+ * Human-readable field + value for one activeFilters row (chips / query bar).
+ * @param {object} f - activeFilters entry
+ * @returns {{ fieldLabel: string, valueLabel: string }}
+ */
+function computeActiveFilterDisplayParts(f) {
+    const fieldLabel = f.fieldName || f.fieldId || '';
+    let valueLabel = '';
+    if (f.value !== null && f.value !== undefined) {
+        if (f.quickFilterLabel) {
+            valueLabel = f.quickFilterLabel;
+        } else if (typeof f.value === 'object' && !Array.isArray(f.value)) {
+            const parts = [];
+            if (f.value.from) parts.push('from ' + f.value.from);
+            if (f.value.to) parts.push('to ' + f.value.to);
+            valueLabel = parts.join(' ') || '';
+        } else if (Array.isArray(f.value)) {
+            if (f.fieldType === 'PEOPLE' && f.value.length > 0 && typeof f.value[0] === 'object') {
+                valueLabel = f.value.map(p => p.name || p.id).join(', ');
+            } else if (f.fieldType === 'BOOLEAN') {
+                const names = [];
+                for (const id of f.value) {
+                    const cb = document.querySelector(
+                        `input[type="checkbox"][data-filter-id="${f.id}"][value="${id}"]`);
+                    const lab = cb && cb.nextElementSibling
+                        ? cb.nextElementSibling.textContent.split(' (')[0].trim()
+                        : null;
+                    if (lab) {
+                        names.push(lab);
+                    } else if (id === 1 || id === '1') {
+                        names.push('Yes');
+                    } else if (id === 0 || id === '0') {
+                        names.push('No');
+                    } else {
+                        names.push(String(id));
+                    }
+                }
+                valueLabel = names.join(', ');
+            } else if (f.fieldType === 'DROPDOWN' && Array.isArray(f.dropdownLabels)
+                    && f.dropdownLabels.length === f.value.length) {
+                valueLabel = f.dropdownLabels.join(', ');
+            } else if (f.fieldType === 'DROPDOWN') {
+                const names = [];
+                for (const id of f.value) {
+                    const cb = document.querySelector(
+                        `input[type="checkbox"][data-filter-id="${f.id}"][value="${id}"]`);
+                    const lab = cb && cb.nextElementSibling
+                        ? cb.nextElementSibling.textContent.split(' (')[0].trim()
+                        : null;
+                    names.push(lab || String(id));
+                }
+                valueLabel = names.join(', ');
+            } else {
+                valueLabel = f.value.join(', ');
+            }
+        } else {
+            valueLabel = String(f.value);
+        }
+    }
+    return { fieldLabel, valueLabel };
+}
+
+/**
+ * Build query-bar text for all filter keys on a condition (after Apply updates filters).
+ */
+function buildDisplayQueryForConditionFilters(filters) {
+    if (!filters || typeof filters !== 'object' || Object.keys(filters).length === 0) {
+        return '';
+    }
+    const activeFilterMeta = typeof activeFilters !== 'undefined' ? activeFilters : [];
+    const parts = [];
+    Object.keys(filters).forEach((fieldId) => {
+        const f = activeFilterMeta.find(a => a.fieldId === fieldId);
+        if (f) {
+            const { fieldLabel, valueLabel } = computeActiveFilterDisplayParts(f);
+            parts.push(valueLabel ? `${fieldLabel}: ${valueLabel}` : fieldLabel);
+        } else {
+            const v = filters[fieldId];
+            parts.push(`${fieldId}: ${Array.isArray(v) ? v.join(', ') : String(v)}`);
+        }
+    });
+    return parts.join(' · ');
+}
+
+/**
+ * Refresh condition.displayQuery when panel filters change but searchConditions already exist.
+ */
+function syncDisplayQueriesAfterFilterMerge(category) {
+    if (!searchConditions || !Array.isArray(searchConditions)) return;
+    searchConditions.forEach((condition) => {
+        if (condition.category !== category || condition.muted) return;
+        if (!condition.filters || Object.keys(condition.filters).length === 0) return;
+        const filterPart = buildDisplayQueryForConditionFilters(condition.filters);
+        if (!filterPart) return;
+        const q = condition.query != null ? String(condition.query).trim() : '';
+        if (condition.isFilterCondition || !q || q === '*') {
+            condition.displayQuery = filterPart;
+        } else {
+            condition.displayQuery = `${q} · ${filterPart}`;
+        }
+    });
+    window.searchConditions = searchConditions;
+}
+
+/**
  * Apply filters and execute search
  */
 async function applyFiltersAndSearch() {
@@ -4782,46 +4889,8 @@ async function applyFiltersAndSearch() {
         const filterLabelMap = {};
         activeFilterMeta.forEach(f => {
             if (!f.fieldId) return;
-            let valueLabel = '';
-            if (f.value !== null && f.value !== undefined) {
-                if (f.quickFilterLabel) {
-                    // Quick filter: we have a pre-stored human-readable label
-                    valueLabel = f.quickFilterLabel;
-                } else if (typeof f.value === 'object' && !Array.isArray(f.value)) {
-                    // Date range
-                    const parts = [];
-                    if (f.value.from) parts.push('from ' + f.value.from);
-                    if (f.value.to)   parts.push('to '   + f.value.to);
-                    valueLabel = parts.join(' ') || '';
-                } else if (Array.isArray(f.value)) {
-                    if (f.fieldType === 'PEOPLE' && f.value.length > 0 && typeof f.value[0] === 'object') {
-                        valueLabel = f.value.map(p => p.name || p.id).join(', ');
-                    } else if (f.fieldType === 'DROPDOWN' && Array.isArray(f.dropdownLabels)
-                            && f.dropdownLabels.length === f.value.length) {
-                        valueLabel = f.dropdownLabels.join(', ');
-                    } else if (f.fieldType === 'DROPDOWN') {
-                        // Fallback: read labels from checkbox DOM if options were loaded
-                        const names = [];
-                        for (const id of f.value) {
-                            const cb = document.querySelector(
-                                `input[type="checkbox"][data-filter-id="${f.id}"][value="${id}"]`);
-                            const lab = cb && cb.nextElementSibling
-                                ? cb.nextElementSibling.textContent.split(' (')[0].trim()
-                                : null;
-                            names.push(lab || String(id));
-                        }
-                        valueLabel = names.join(', ');
-                    } else {
-                        valueLabel = f.value.join(', ');
-                    }
-                } else {
-                    valueLabel = String(f.value);
-                }
-            }
-            filterLabelMap[f.fieldId] = {
-                fieldLabel: f.fieldName || f.fieldId,
-                valueLabel
-            };
+            const { fieldLabel, valueLabel } = computeActiveFilterDisplayParts(f);
+            filterLabelMap[f.fieldId] = { fieldLabel, valueLabel };
         });
 
         filterEntries.forEach(([fieldId, value], index) => {
@@ -4860,6 +4929,13 @@ async function applyFiltersAndSearch() {
             }
         });
         window.searchConditions = searchConditions;
+        syncDisplayQueriesAfterFilterMerge(category);
+        if (typeof renderSearchConditions === 'function') {
+            renderSearchConditions();
+        }
+        if (typeof updateSearchCounter === 'function') {
+            updateSearchCounter();
+        }
     }
 
     // Always sync the current "Search in" selection onto matching conditions so
@@ -4895,6 +4971,15 @@ async function applyFiltersAndSearch() {
 }
 
 /**
+ * Close History + My searches toolbar menus (avoid stacking over the filter panel).
+ */
+function closeSearchToolbarDropdowns() {
+    document.querySelectorAll('.history-dropdown-content, .my-searches-dropdown-content').forEach((dd) => {
+        dd.style.display = 'none';
+    });
+}
+
+/**
  * Open the filter panel
  */
 async function openFilterPanel() {
@@ -4910,6 +4995,8 @@ async function openFilterPanel() {
         console.warn('[Filter] Filter button element not found');
         return;
     }
+
+    closeSearchToolbarDropdowns();
 
     // Load filter fields for current facet
     const category = getActiveCategoryWithFallback();
@@ -4932,6 +5019,14 @@ async function openFilterPanel() {
 function closeFilterPanel() {
     const filterPanel = document.getElementById('filterPanel');
     const filterBtn = document.querySelector('.filter-btn');
+
+    const layerSel = window.FILTER_DROPDOWN_LAYER_SELECTOR || '.filter-dropdown-values, .filter-dropdown-options, .filter-people-results';
+    document.querySelectorAll(layerSel).forEach((el) => {
+        if (typeof window.resetFilterDropdownFloating === 'function') {
+            window.resetFilterDropdownFloating(el);
+        }
+        el.style.display = 'none';
+    });
 
     if (filterPanel) {
         filterPanel.style.display = 'none';
@@ -4959,11 +5054,15 @@ function initFilterPanelDropdowns() {
             const isInsideDropdown = e.target.closest('.filter-dropdown-btn') || 
                                     e.target.closest('.filter-dropdown-options') ||
                                     e.target.closest('.filter-dropdown-values') ||
+                                    e.target.closest('.filter-people-results') ||
                                     e.target.closest('.filter-add-btn');
             
             if (!isInsideDropdown && !isInsideFilterPanel) {
-                // Close all dropdowns only if click is completely outside
-                document.querySelectorAll('.filter-dropdown-options').forEach(opt => {
+                const layerSel = window.FILTER_DROPDOWN_LAYER_SELECTOR || '.filter-dropdown-values, .filter-dropdown-options, .filter-people-results';
+                document.querySelectorAll(layerSel).forEach((opt) => {
+                    if (typeof window.resetFilterDropdownFloating === 'function') {
+                        window.resetFilterDropdownFloating(opt);
+                    }
                     opt.style.display = 'none';
                 });
             }
@@ -4986,15 +5085,36 @@ function initGeneralFilterDropdowns() {
             e.stopPropagation();
             e.preventDefault();
             
-            // Close all other dropdowns (both options and values)
-            document.querySelectorAll('.filter-dropdown-options, .filter-dropdown-values').forEach(opt => {
+            const layerSel = window.FILTER_DROPDOWN_LAYER_SELECTOR || '.filter-dropdown-values, .filter-dropdown-options, .filter-people-results';
+            document.querySelectorAll(layerSel).forEach((opt) => {
                 if (opt !== addNewOptions) {
+                    if (typeof window.resetFilterDropdownFloating === 'function') {
+                        window.resetFilterDropdownFloating(opt);
+                    }
                     opt.style.display = 'none';
                 }
             });
             
             const isVisible = addNewOptions.style.display !== 'none';
-            addNewOptions.style.display = isVisible ? 'none' : 'block';
+            if (isVisible) {
+                if (typeof window.resetFilterDropdownFloating === 'function') {
+                    window.resetFilterDropdownFloating(addNewOptions);
+                }
+                addNewOptions.style.display = 'none';
+            } else {
+                addNewOptions.style.display = 'block';
+                if (typeof window.positionFilterDropdownFloating === 'function') {
+                    window.positionFilterDropdownFloating(addNewOptions, addNewBtn);
+                }
+                if (typeof window.initFilterDropdownFloatingListeners === 'function') {
+                    window.initFilterDropdownFloatingListeners();
+                }
+                requestAnimationFrame(() => {
+                    if (typeof window.refreshFloatingFilterDropdowns === 'function') {
+                        window.refreshFloatingFilterDropdowns();
+                    }
+                });
+            }
         });
         
         addNewOptions.addEventListener('click', (e) => {
@@ -5009,14 +5129,18 @@ function initGeneralFilterDropdowns() {
             const clickedElement = e.target;
             const isInsideDropdown = clickedElement.closest('.filter-dropdown-options') || 
                                     clickedElement.closest('.filter-dropdown-values') ||
+                                    clickedElement.closest('.filter-people-results') ||
                                     clickedElement.closest('.filter-add-btn') ||
                                     clickedElement.closest('.filter-value-btn') ||
                                     clickedElement.closest('.filter-name-btn') ||
                                     clickedElement.closest('.filter-dropdown-btn');
             
             if (!isInsideDropdown) {
-                // Close all dropdowns
-                document.querySelectorAll('.filter-dropdown-options, .filter-dropdown-values').forEach(dropdown => {
+                const layerSel = window.FILTER_DROPDOWN_LAYER_SELECTOR || '.filter-dropdown-values, .filter-dropdown-options, .filter-people-results';
+                document.querySelectorAll(layerSel).forEach((dropdown) => {
+                    if (typeof window.resetFilterDropdownFloating === 'function') {
+                        window.resetFilterDropdownFloating(dropdown);
+                    }
                     dropdown.style.display = 'none';
                 });
             }
@@ -5041,16 +5165,36 @@ function initDropdown(button, optionsContainer, onSelect) {
     button.addEventListener('click', (e) => {
         e.stopPropagation();
         
-        // Close all other dropdowns first (both options and values)
-        document.querySelectorAll('.filter-dropdown-options, .filter-dropdown-values').forEach(opt => {
+        const layerSel = window.FILTER_DROPDOWN_LAYER_SELECTOR || '.filter-dropdown-values, .filter-dropdown-options, .filter-people-results';
+        document.querySelectorAll(layerSel).forEach((opt) => {
             if (opt !== optionsContainer) {
+                if (typeof window.resetFilterDropdownFloating === 'function') {
+                    window.resetFilterDropdownFloating(opt);
+                }
                 opt.style.display = 'none';
             }
         });
         
-        // Toggle this dropdown
         const isVisible = optionsContainer.style.display !== 'none';
-        optionsContainer.style.display = isVisible ? 'none' : 'block';
+        if (isVisible) {
+            if (typeof window.resetFilterDropdownFloating === 'function') {
+                window.resetFilterDropdownFloating(optionsContainer);
+            }
+            optionsContainer.style.display = 'none';
+        } else {
+            optionsContainer.style.display = 'block';
+            if (typeof window.positionFilterDropdownFloating === 'function') {
+                window.positionFilterDropdownFloating(optionsContainer, button);
+            }
+            if (typeof window.initFilterDropdownFloatingListeners === 'function') {
+                window.initFilterDropdownFloatingListeners();
+            }
+            requestAnimationFrame(() => {
+                if (typeof window.refreshFloatingFilterDropdowns === 'function') {
+                    window.refreshFloatingFilterDropdowns();
+                }
+            });
+        }
     });
     
     // Prevent clicks on the options container from propagating
@@ -5077,7 +5221,9 @@ function initDropdown(button, optionsContainer, onSelect) {
                 onSelect(value, text);
             }
             
-            // Hide dropdown
+            if (typeof window.resetFilterDropdownFloating === 'function') {
+                window.resetFilterDropdownFloating(optionsContainer);
+            }
             optionsContainer.style.display = 'none';
         });
     });

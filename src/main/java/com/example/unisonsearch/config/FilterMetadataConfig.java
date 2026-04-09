@@ -70,6 +70,7 @@ public class FilterMetadataConfig {
         systemFilters.add(new FilterField("status", "Status", FilterType.DROPDOWN, "status", "status"));
         systemFilters.add(new FilterField("type", "Type", FilterType.DROPDOWN, "system_type", "Type"));
         systemFilters.add(new FilterField("classification", "Classification", FilterType.DROPDOWN, "system_classification", "Classification"));
+        systemFilters.add(new FilterField("external", "External", FilterType.BOOLEAN, null, "External"));
         systemFilters.add(new FilterField("createdDate", "Created Date", FilterType.DATE_RANGE, null, "Created_Datetime"));
         systemFilters.add(new FilterField("lastUpdated", "Last Updated", FilterType.DATE_RANGE, null, "Last_Updated_Datetime"));
         systemFilters.add(new FilterField("createdBy", "Created By", FilterType.PEOPLE, null, "CreatedBy_ID"));

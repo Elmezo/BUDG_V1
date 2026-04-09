@@ -18,48 +18,33 @@ async function autoLoadFirstModule() {
         }
     }
 
-    if (firstItem) {
-        const categoryName = firstItem.getAttribute('data-category');
-
-        if (categoryName) {
-            // تعيين كفئة نشطة
-            document.querySelectorAll('.category-item').forEach(item => item.classList.remove('active', 'current'));
-            firstItem.classList.add('active');
-
-            try {
-                await loadCategoryData(categoryName);
-
-                const dataTable = document.querySelector('.data-table-wrapper');
-                if (dataTable) {
-                    dataTable.style.display = 'block';
-                    const noDataRow = dataTable.querySelector('.no-data-row');
-                    if (noDataRow) {
-                        noDataRow.style.display = 'none';
-                    }
-                }
-            } catch (error) {
-                // Silent fail
-            }
+    if (firstItem && firstItem.getAttribute('data-category')) {
+        // Programmatic click = same path as user: modules.js (current, lastSelected) + initOrgUnitTable (active, loadCategoryData)
+        try {
+            firstItem.click();
+        } catch (error) {
+            // Silent fail
         }
-    } else {
-        // Fallback to default categories (use first available)
-        const defaultCategories = ['dataset', 'attribute', 'people', 'system', 'glossary'];
-        for (const category of defaultCategories) {
-            try {
-                await loadCategoryData(category);
+        return;
+    }
 
-                const dataTable = document.querySelector('.data-table-wrapper');
-                if (dataTable) {
-                    dataTable.style.display = 'block';
-                    const noDataRow = dataTable.querySelector('.no-data-row');
-                    if (noDataRow) {
-                        noDataRow.style.display = 'none';
-                    }
+    // Sidebar empty (misconfiguration): try loading a known module directly
+    const defaultCategories = ['dataset', 'attribute', 'people', 'system', 'glossary'];
+    for (const category of defaultCategories) {
+        try {
+            await loadCategoryData(category);
+
+            const dataTable = document.querySelector('.data-table-wrapper');
+            if (dataTable) {
+                dataTable.style.display = 'block';
+                const noDataRow = dataTable.querySelector('.no-data-row');
+                if (noDataRow) {
+                    noDataRow.style.display = 'none';
                 }
-                break;
-            } catch (error) {
-                // Silent fail
             }
+            break;
+        } catch (error) {
+            // Silent fail
         }
     }
 }
@@ -147,10 +132,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         initQuickLinkButton();
     }
 
-    // Initialize filter button
-    if (typeof initFilterButton === 'function') {
-        initFilterButton();
-    }
+    // Filter UI is initialized inside initSearchFunctionality() (search-input.js); avoid duplicate init here.
 
     // Check if searchId parameter exists in URL
     const urlParams = new URLSearchParams(window.location.search);
@@ -161,11 +143,15 @@ document.addEventListener('DOMContentLoaded', async function() {
             runSavedSearch(parseInt(searchId));
         }
     } else {
-        // Auto-load first available module
-        setTimeout(() => {
-            console.log('[INIT] Auto-loading first module...');
-            autoLoadFirstModule();
-        }, 100);
+        // Wait for modules.js to render sidebar facets, then select + load the first one
+        try {
+            if (window.budgSearchModulesInitialized && typeof window.budgSearchModulesInitialized.then === 'function') {
+                await window.budgSearchModulesInitialized;
+            }
+        } catch (e) {
+            console.error('[INIT] budgSearchModulesInitialized:', e);
+        }
+        await autoLoadFirstModule();
     }
 
     // Preload common entity data for better performance

@@ -6,6 +6,7 @@ import com.example.unisonsearch.model.SearchParams;
 import com.example.unisonsearch.model.SegmentAccessContext;
 import com.example.unisonsearch.repository.DatabaseHelper;
 import com.example.unisonsearch.repository.QueryBuilder;
+import com.example.unisonsearch.util.UnisonTrace;
 import com.google.gson.JsonObject;
 
 import java.sql.SQLException;
@@ -91,6 +92,12 @@ public class SearchService {
         
         List<Map<String, Object>> results = databaseHelper.executeQuery(qr.sql, qr.parameters);
         enrichRowsWithActualSegment(results, module);
+        if (UnisonTrace.enabled()) {
+            UnisonTrace.log(null, "SearchService.rows",
+                    "module=" + module + " rows=" + (results != null ? results.size() : -1)
+                            + " sqlChars=" + (qr.sql != null ? qr.sql.length() : 0)
+                            + " params=" + (qr.parameters != null ? qr.parameters.size() : 0));
+        }
         
         return results;
     }
@@ -129,6 +136,12 @@ public class SearchService {
         
         List<Map<String, Object>> results = databaseHelper.executeQuery(qr.sql, qr.parameters);
         enrichRowsWithActualSegment(results, module);
+        if (UnisonTrace.enabled()) {
+            UnisonTrace.log(null, "SearchService.rows",
+                    "module=" + module + " rows=" + (results != null ? results.size() : -1)
+                            + " sqlChars=" + (qr.sql != null ? qr.sql.length() : 0)
+                            + " params=" + (qr.parameters != null ? qr.parameters.size() : 0));
+        }
         
         return results;
     }

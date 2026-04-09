@@ -2,6 +2,7 @@ package com.example.unisonsearch.service;
 
 import com.example.unisonsearch.model.*;
 import com.example.unisonsearch.config.FilterMetadataConfig;
+import com.example.unisonsearch.util.UnisonTrace;
 import com.example.budg_v2.dao.SegmentDAO;
 import com.example.budg_v2.service.SegmentAccessService;
 
@@ -166,6 +167,10 @@ public class UnisonSearchService {
             // Continue with null accessCtx (no segment filtering in traversal)
             this.accessCtx = null;
         }
+
+        UnisonTrace.log(correlationId, "start",
+                "nSearches=" + searches.size() + " maxDepth=" + maxDepth + " userId=" + userId
+                        + " accessCtx=" + (accessCtx != null));
         
         // Root scope: computed once after the first FIND, reused for all subsequent clauses
         TraversalScope rootScope = null;
@@ -300,7 +305,10 @@ public class UnisonSearchService {
                         seedIds = getObjectIdsWithRelationToFacet(rootIds, rootFacetId != null ? rootFacetId : search.getFacet(), search.getFacet());
                         usedRelationFilterForRoot = true;
                     } else if ("OR".equals(operator)) {
-                        seedIds = getAllIdsForFacet(search.getFacet());
+                        // Respect panel filters / search-in even when keyword is "*" (empty semantics)
+                        seedIds = searchDefinition != null
+                                ? executeSingleSearchWithDefinition(search.getFacet(), searchDefinition)
+                                : getAllIdsForFacet(search.getFacet());
                     } else {
                         seedIds = applyKeywordFilterToExisting(search, searchDefinition, existingIds, operator);
                     }
@@ -374,7 +382,13 @@ public class UnisonSearchService {
                 }
             } else {
                 if (isKeywordEmpty(search.getKeyword()) && ("FIND".equals(operator) || "OR".equals(operator))) {
-                    seedIds = getAllIdsForFacet(search.getFacet());
+                    // FIND/OR with "*" or blank means "all rows" only when there is no SQL definition.
+                    // If filters (e.g. External = Yes) or "Search in" built a definition, run QueryBuilder instead of raw getAllIdsForFacet.
+                    if (searchDefinition != null) {
+                        seedIds = executeSingleSearchWithDefinition(search.getFacet(), searchDefinition);
+                    } else {
+                        seedIds = getAllIdsForFacet(search.getFacet());
+                    }
                     if (accumulatedResults == null && !seedIds.isEmpty() && "FIND".equals(operator)) {
                         rootFacetId = search.getFacet();
                     }
@@ -392,6 +406,20 @@ public class UnisonSearchService {
             if (search.getHierarchicalOptions() != null && !search.getHierarchicalOptions().isEmpty()) {
                 seedIds = expandWithChildren(seedIds, search.getFacet(), 
                         search.getHierarchicalOptions(), search.getFilters());
+            }
+
+            if (UnisonTrace.enabled()) {
+                String fk = search.getFilters() == null || search.getFilters().isEmpty() ? "[]"
+                        : search.getFilters().keySet().toString();
+                String defSnip = "";
+                if (searchDefinition != null) {
+                    String d = searchDefinition.toString();
+                    defSnip = d.length() > 600 ? d.substring(0, 600) + "…" : d;
+                }
+                UnisonTrace.log(correlationId, "clause." + i + ".seeds",
+                        "op=" + operator + " facet=" + search.getFacet() + " kwEmpty=" + isKeywordEmpty(search.getKeyword())
+                                + " filterKeys=" + fk + " seedCount=" + seedIds.size() + " hasDef=" + (searchDefinition != null)
+                                + (defSnip.isEmpty() ? "" : " def=" + defSnip));
             }
 
             if (seedIds.isEmpty()) {
@@ -829,6 +857,16 @@ public class UnisonSearchService {
         response.setSearchCounter(searches.size());
         response.setExecutionTimeMs(executionTime);
         response.setRelatedObjects(enrichedRelatedObjects);
+
+        if (UnisonTrace.enabled() && accumulatedResults != null) {
+            StringBuilder sb = new StringBuilder();
+            for (Map.Entry<String, FacetResult> e : accumulatedResults.entrySet()) {
+                FacetResult fr = e.getValue();
+                int n = fr != null && fr.getIds() != null ? fr.getIds().size() : 0;
+                sb.append(e.getKey()).append('=').append(n).append(' ');
+            }
+            UnisonTrace.log(correlationId, "result.final", "ms=" + executionTime + " " + sb);
+        }
 
         return response;
     }
@@ -1401,8 +1439,10 @@ public class UnisonSearchService {
 
         JsonArray filterGroups = new JsonArray();
 
-        // Add keyword as a query filter (BUDG FIND behavior across searchable fields)
-        if (keyword != null && !keyword.trim().isEmpty()) {
+        // Add keyword as a query filter (BUDG FIND across searchable fields).
+        // Must match isKeywordEmpty(): "*" and blank mean "no text constraint" — do NOT pass "*" into
+        // QueryBuilder or LIKE runs on literal asterisk and AND with real filters returns zero rows.
+        if (keyword != null && !isKeywordEmpty(keyword)) {
             JsonObject qFilter = new JsonObject();
             qFilter.addProperty("query", keyword.trim());
             // Embed the user's "Search in" selection so QueryBuilder can restrict columns
