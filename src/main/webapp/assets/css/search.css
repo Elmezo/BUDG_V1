@@ -1348,6 +1348,158 @@ html[dir="rtl"] .th-content {
     border-color: #1f6f52;
 }
 
+/* History dropdown — panel + list styled like notification panel items */
+.history-dropdown {
+    position: relative;
+}
+
+.history-dropdown-panel.history-dropdown-content {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    left: auto;
+    z-index: 10050;
+    min-width: min(340px, calc(100vw - 2rem));
+    max-width: 400px;
+    max-height: min(420px, 70vh);
+    display: none;
+    flex-direction: column;
+    overflow: hidden;
+    background: var(--background-primary, #fff);
+    border: 1px solid var(--border-color, #e5e7eb);
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+.history-dropdown-panel.history-dropdown-content[style*="flex"] {
+    display: flex !important;
+}
+
+.history-dropdown-header {
+    flex-shrink: 0;
+    padding: 12px 16px;
+    margin: 0;
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    color: #fff;
+    background-color: #248567;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.recent-views-inner {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+.recent-views-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.recent-view-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.65rem;
+    width: 100%;
+    margin: 0;
+    padding: 14px 16px;
+    border: none;
+    border-bottom: 1px solid var(--border-color, #eee);
+    background: var(--background-primary, #fff);
+    color: var(--text-primary, #333);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.recent-view-item:last-child {
+    border-bottom: none;
+}
+
+.recent-view-item:hover {
+    background-color: rgba(36, 133, 103, 0.06);
+}
+
+.recent-view-item:focus {
+    outline: 2px solid #248567;
+    outline-offset: -2px;
+}
+
+.recent-view-icon {
+    flex-shrink: 0;
+    width: 2rem;
+    height: 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    background: rgba(36, 133, 103, 0.12);
+    color: #248567;
+    font-size: 0.9rem;
+}
+
+.recent-view-body {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.2rem;
+    min-width: 0;
+    flex: 1;
+}
+
+.recent-view-item .view-name {
+    font-weight: 600;
+    font-size: 0.9rem;
+    line-height: 1.3;
+    word-break: break-word;
+}
+
+.recent-view-item .view-date {
+    font-size: 0.78rem;
+    color: var(--text-secondary, #64748b);
+    line-height: 1.3;
+}
+
+.recent-views-empty {
+    margin: 0;
+    padding: 1.25rem 1rem;
+    text-align: center;
+    font-size: 0.85rem;
+    color: var(--text-secondary, #64748b);
+}
+
+html[dir="rtl"] .history-dropdown-panel.history-dropdown-content {
+    right: auto;
+    left: 0;
+}
+
+html[dir="rtl"] .recent-view-item {
+    text-align: right;
+}
+
+html[dir="rtl"] .recent-view-body {
+    align-items: flex-end;
+}
+
+[data-theme="dark"] .history-dropdown-panel.history-dropdown-content {
+    border-color: var(--border-color, #374151);
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
+}
+
+[data-theme="dark"] .recent-view-item {
+    border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+
+[data-theme="dark"] .recent-view-item:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
 .search-action-btn {
     background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
     border: 2px solid rgba(255, 255, 255, 0.8);
@@ -1559,6 +1711,14 @@ html[dir="rtl"] .th-content {
     overflow: visible;
 }
 
+/* Anchor for filter popover: positions under the Filter button (not left of full toolbar) */
+.filter-panel-anchor {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    align-self: center;
+}
+
 /* ===== Filter Panel Styles ===== */
 .filter-panel {
     position: absolute;
@@ -1582,6 +1742,11 @@ html[dir="rtl"] .th-content {
     /* Prevent the panel from growing taller than the visible viewport */
     max-height: calc(100vh - 12rem);
     box-sizing: border-box;
+}
+
+html[dir="rtl"] .filter-panel {
+    left: auto;
+    right: 0;
 }
 
 /* Open state: column flex so header + scroll body + action footer layout correctly */

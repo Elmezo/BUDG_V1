@@ -89,32 +89,31 @@ function initHistoryButton() {
     let dropdown = document.querySelector('.history-dropdown-content');
     if (!dropdown) {
         dropdown = document.createElement('div');
-        dropdown.className = 'history-dropdown-content';
+        dropdown.className = 'history-dropdown-content history-dropdown-panel';
         dropdown.style.display = 'none';
-        dropdown.style.position = 'absolute';
-        dropdown.style.top = '100%';
-        dropdown.style.right = '0';
-        dropdown.style.zIndex = '1000';
-        dropdown.style.background = 'var(--background-primary)';
-        dropdown.style.border = '1px solid var(--border-color)';
-        dropdown.style.borderRadius = '4px';
-        dropdown.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
-        dropdown.style.minWidth = '300px';
-        dropdown.style.maxHeight = '400px';
-        dropdown.style.overflowY = 'auto';
-        dropdown.style.marginTop = '4px';
+        dropdown.setAttribute('role', 'menu');
+        dropdown.setAttribute('aria-label', i18nSearch('search.recentHistoryTitle', 'Recent searches'));
 
-        // Create container for recent views
+        const header = document.createElement('div');
+        header.className = 'history-dropdown-header';
+        header.setAttribute('data-i18n', 'search.recentHistoryTitle');
+        header.textContent = i18nSearch('search.recentHistoryTitle', 'Recent searches');
+
         const container = document.createElement('div');
         container.id = 'recent-views-container';
-        container.style.padding = '8px';
+        container.className = 'recent-views-inner';
+
+        dropdown.appendChild(header);
         dropdown.appendChild(container);
 
-        // Append to history dropdown parent
         const historyDropdown = historyBtn.closest('.history-dropdown');
         if (historyDropdown) {
             historyDropdown.style.position = 'relative';
             historyDropdown.appendChild(dropdown);
+        }
+
+        if (window.I18n && typeof window.I18n.applyTranslations === 'function') {
+            window.I18n.applyTranslations(dropdown);
         }
     }
 
@@ -128,7 +127,7 @@ function initHistoryButton() {
             if (dd !== dropdown) dd.style.display = 'none';
         });
 
-        dropdown.style.display = isVisible ? 'none' : 'block';
+        dropdown.style.display = isVisible ? 'none' : 'flex';
 
         // Reload recent views when opening
         if (!isVisible) {
@@ -322,20 +321,26 @@ function renderRecentViews(searches) {
     if (!container) return;
 
     if (!searches || searches.length === 0) {
-        container.innerHTML = '<p style="padding: 16px; text-align: center; color: var(--text-secondary); font-size: 0.85rem;">No recent searches</p>';
+        container.innerHTML = `<p class="recent-views-empty" data-i18n="search.noRecentSearches">${escapeHtml(i18nSearch('search.noRecentSearches', 'No recent searches'))}</p>`;
+        if (window.I18n && typeof window.I18n.applyTranslations === 'function') {
+            window.I18n.applyTranslations(container);
+        }
         return;
     }
 
-    let html = '<div class="recent-views-list">';
+    let html = '<div class="recent-views-list" role="list">';
 
     searches.forEach(search => {
         const lastVisited = search.last_visited ? formatDate(search.last_visited) : 'Unknown';
 
         html += `
-            <div class="recent-view-item" onclick="runSavedSearch(${search.id})">
-                <div class="view-name">${escapeHtml(search.name || 'Untitled')}</div>
-                <div class="view-date">${lastVisited}</div>
-            </div>
+            <button type="button" class="recent-view-item" role="listitem" onclick="runSavedSearch(${search.id})">
+                <span class="recent-view-icon" aria-hidden="true"><i class="fas fa-search"></i></span>
+                <span class="recent-view-body">
+                    <span class="view-name">${escapeHtml(search.name || 'Untitled')}</span>
+                    <span class="view-date">${escapeHtml(lastVisited)}</span>
+                </span>
+            </button>
         `;
     });
 

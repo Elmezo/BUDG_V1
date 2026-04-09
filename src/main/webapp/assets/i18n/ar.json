@@ -780,7 +780,10 @@
         "duplicateConditionIgnored": "تم تجاهل شرط مكرر",
         "enterSearchValue": "أدخل قيمة للبحث",
         "selectCategoryFirst": "اختر تصنيفًا أولاً",
-        "manageSearchesLink": "إدارة عمليات البحث"
+        "manageSearchesLink": "إدارة عمليات البحث",
+        "recentHistoryTitle": "عمليات البحث الأخيرة",
+        "noRecentSearches": "لا توجد عمليات بحث حديثة",
+        "bulkNoSelection": "يرجى تحديد صف أو أكثر أولاً."
     },
     "tab": {
         "list": "القائمة",

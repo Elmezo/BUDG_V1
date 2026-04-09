@@ -17,6 +17,7 @@
     <link rel="stylesheet" href="assets/css/rtl.css" id="rtl-styles" disabled>
     <link rel="stylesheet" href="assets/css/segments-cube-panel.css">
     <link rel="stylesheet" href="assets/css/active-tasks.css">
+    <link rel="stylesheet" href="assets/css/toast.css">
     <link rel="icon" type="image/png" href="assets/images/avatars/icon.jpg">
     <script>
         // Apply theme immediately to prevent flash of unstyled content
@@ -89,26 +90,11 @@
                                 Unit</span> <i class="fas fa-chevron-down"></i></button>
                     </div>
 
+                    <div class="filter-panel-anchor">
                     <button class="filter-btn"><i class="fas fa-sliders-h"></i> <span
                             data-i18n="button.filter">Filter</span></button>
-                    <button class="search-action-btn">
-                        <i class="fas fa-search"></i> <span data-i18n="button.search">SEARCH</span>
-                    </button>
 
-                    <div class="history-dropdown">
-                        <button class="history-btn"><i class="fas fa-history"></i> <span
-                                data-i18n="button.history">History</span> <i class="fas fa-chevron-down"></i></button>
-                    </div>
-                </div>
-
-                <!-- Query Builder Area (shown when searchCounter is clicked) -->
-                <div class="query-builder-container" id="queryBuilderContainer" style="display: none;">
-                    <div class="query-builder-content" id="queryBuilderContent">
-                        <!-- Search conditions will be rendered here -->
-                    </div>
-                </div>
-
-                <!-- Filter Panel (shown when Filter button is clicked) -->
+                <!-- Filter Panel (anchored under Filter button via .filter-panel-anchor) -->
                 <div class="filter-panel" id="filterPanel" style="display: none;" data-i18n-aria="filter.panelAria" role="dialog" aria-modal="true">
                     <div class="filter-panel-header">
                         <span data-i18n="button.filter">Filter</span>
@@ -183,6 +169,24 @@
                             <i class="fas fa-check"></i>
                             <span data-i18n="filter.apply">Apply Filters</span>
                         </button>
+                    </div>
+                </div>
+                    </div>
+
+                    <button class="search-action-btn">
+                        <i class="fas fa-search"></i> <span data-i18n="button.search">SEARCH</span>
+                    </button>
+
+                    <div class="history-dropdown">
+                        <button class="history-btn"><i class="fas fa-history"></i> <span
+                                data-i18n="button.history">History</span> <i class="fas fa-chevron-down"></i></button>
+                    </div>
+                </div>
+
+                <!-- Query Builder Area (shown when searchCounter is clicked) -->
+                <div class="query-builder-container" id="queryBuilderContainer" style="display: none;">
+                    <div class="query-builder-content" id="queryBuilderContent">
+                        <!-- Search conditions will be rendered here -->
                     </div>
                 </div>
             </div>
