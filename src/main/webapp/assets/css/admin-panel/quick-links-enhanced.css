@@ -170,8 +170,9 @@
     font-size: 0.9rem;
 }
 
-/* Form Section */
-.card-content {
+/* Form Section — scoped to Quick Links cards only (global .card-content clashes with admin hub cards) */
+.quick-links-main-card .card-content,
+.current-quick-links-card .card-content {
     padding: 2rem;
 }
 

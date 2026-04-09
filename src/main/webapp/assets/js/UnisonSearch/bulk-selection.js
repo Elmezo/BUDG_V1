@@ -31,6 +31,15 @@
         migrate: ['role', 'change-request', 'changerequest', 'change-requests', 'active-task', 'activetask', 'active-tasks']
     };
 
+    /** i18n helper for keys under `search.*` */
+    function tSearch(key, fallback) {
+        if (window.I18n && typeof window.I18n.t === 'function') {
+            const s = window.I18n.t(key);
+            if (s && s !== key) return s;
+        }
+        return fallback;
+    }
+
     /**
      * Debounce function to limit how often a function can be called
      * @param {Function} func - Function to debounce
@@ -920,7 +929,7 @@
 
         // Validate selection
         if (selectedRows.length === 0) {
-            showMessage('No selected rows', 'error');
+            showMessage(tSearch('search.bulkNoSelection', 'Please select one or more rows first.'), 'error');
             return;
         }
 
@@ -954,7 +963,7 @@
 
         // Validate selection
         if (selectedRows.length === 0) {
-            showMessage('No selected rows', 'error');
+            showMessage(tSearch('search.bulkNoSelection', 'Please select one or more rows first.'), 'error');
             return;
         }
 
@@ -988,7 +997,7 @@
 
         // Validate selection
         if (selectedRows.length === 0) {
-            showMessage('No selected rows', 'error');
+            showMessage(tSearch('search.bulkNoSelection', 'Please select one or more rows first.'), 'error');
             return;
         }
 
@@ -1323,13 +1332,23 @@
      * Show message to user
      */
     function showMessage(message, type = 'info') {
-        // Try to use existing message functions
+        if (typeof window.showNotification === 'function') {
+            window.showNotification(message, type);
+            return;
+        }
+        if (typeof showToast === 'function') {
+            showToast(message, type);
+            return;
+        }
         if (type === 'error' && typeof showErrorMessage === 'function') {
             showErrorMessage(message);
-        } else if (type === 'success' && typeof showSuccessMessage === 'function') {
+            return;
+        }
+        if (type === 'success' && typeof showSuccessMessage === 'function') {
             showSuccessMessage(message);
-        } else {
-            // Fallback to alert
+            return;
+        }
+        if (typeof alert === 'function') {
             alert(message);
         }
     }

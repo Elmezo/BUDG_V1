@@ -780,7 +780,10 @@
         "duplicateConditionIgnored": "Duplicate condition ignored",
         "enterSearchValue": "Enter a value to search",
         "selectCategoryFirst": "Select a category first",
-        "manageSearchesLink": "Manage searches"
+        "manageSearchesLink": "Manage searches",
+        "recentHistoryTitle": "Recent searches",
+        "noRecentSearches": "No recent searches",
+        "bulkNoSelection": "Please select one or more rows first."
     },
     "tab": {
         "list": "List",
