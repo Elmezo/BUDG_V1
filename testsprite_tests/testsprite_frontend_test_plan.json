@@ -1,0 +1,466 @@
+[
+  {
+    "id": "TC001",
+    "title": "Run basic keyword search within a selected facet and browse results",
+    "description": "Verifies an authenticated user can select a facet, run a FIND keyword search, and see results that remain usable when sorting and paginating.",
+    "category": "Unison Search",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login.html"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the username field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Click the link to open the search page"
+      },
+      {
+        "type": "action",
+        "description": "Select a category from the sidebar"
+      },
+      {
+        "type": "action",
+        "description": "Select the FIND operator in the search type control"
+      },
+      {
+        "type": "action",
+        "description": "Fill a keyword into the main search input"
+      },
+      {
+        "type": "action",
+        "description": "Submit the search"
+      },
+      {
+        "type": "action",
+        "description": "Sort the results by a column header"
+      },
+      {
+        "type": "action",
+        "description": "Go to the next page of results using pagination controls"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the results table is displayed with rows"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify pagination indicates a different page of results is being shown"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC002",
+    "title": "Deep-link query auto-runs and updates correctly after facet change",
+    "description": "Verifies opening the search page with a URL query pre-fills and auto-runs the search, and switching facet refreshes results coherently.",
+    "category": "Unison Search",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login.html"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the username field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to /search.html?q=automation"
+      },
+      {
+        "type": "action",
+        "description": "Wait for the initial auto-triggered search to finish loading results"
+      },
+      {
+        "type": "action",
+        "description": "Select a different category from the sidebar"
+      },
+      {
+        "type": "action",
+        "description": "Wait for results to refresh for the newly selected category"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the main search input is prefilled with the URL query value"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the results table is displayed for the selected category"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC003",
+    "title": "Apply facet filter row and see results update",
+    "description": "Verifies a user can add a filter row for the selected facet, apply it, and see the results table update to reflect filtering.",
+    "category": "Unison Search",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login.html"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the username field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Click the link to open the search page"
+      },
+      {
+        "type": "action",
+        "description": "Select a category from the sidebar"
+      },
+      {
+        "type": "action",
+        "description": "Fill a keyword into the main search input"
+      },
+      {
+        "type": "action",
+        "description": "Submit the search"
+      },
+      {
+        "type": "action",
+        "description": "Open the filter panel"
+      },
+      {
+        "type": "action",
+        "description": "Add a filter row"
+      },
+      {
+        "type": "action",
+        "description": "Select a filter field for the new filter row"
+      },
+      {
+        "type": "action",
+        "description": "Select a valid filter operator for the new filter row"
+      },
+      {
+        "type": "action",
+        "description": "Fill a valid filter value into the filter value field"
+      },
+      {
+        "type": "action",
+        "description": "Apply filters"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the UI indicates filters are applied"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the results table updates after filters are applied"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC004",
+    "title": "Scope results by Org Unit and run search",
+    "description": "Verifies a user can choose an org unit, run a search, and see results scoped to that org unit.",
+    "category": "Unison Search",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login.html"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the username field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Click the link to open the search page"
+      },
+      {
+        "type": "action",
+        "description": "Select a category from the sidebar"
+      },
+      {
+        "type": "action",
+        "description": "Select an org unit in the org unit dropdown"
+      },
+      {
+        "type": "action",
+        "description": "Fill a keyword into the main search input"
+      },
+      {
+        "type": "action",
+        "description": "Submit the search"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the results table is displayed with rows"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the selected org unit remains selected after results load"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC005",
+    "title": "Build a compound query with multiple conditions and logical operators",
+    "description": "Verifies a user can use the query builder to create multiple conditions with AND/OR/NOT and run the compound search to produce results.",
+    "category": "Unison Search",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login.html"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the username field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Click the link to open the search page"
+      },
+      {
+        "type": "action",
+        "description": "Select a category from the sidebar"
+      },
+      {
+        "type": "action",
+        "description": "Open the query builder"
+      },
+      {
+        "type": "action",
+        "description": "Add conditions until the condition counter is visible"
+      },
+      {
+        "type": "action",
+        "description": "Choose AND as the logical operator between two conditions"
+      },
+      {
+        "type": "action",
+        "description": "Choose OR as the logical operator between two conditions"
+      },
+      {
+        "type": "action",
+        "description": "Choose NOT as the logical operator for a condition"
+      },
+      {
+        "type": "action",
+        "description": "Submit the search"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the condition counter indicates multiple conditions are included"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the results table is displayed for the compound query"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC006",
+    "title": "Load a prior query from History and rerun",
+    "description": "Verifies a repeat investigator can select a prior query from history, load it into the search input, and reproduce results after rerunning.",
+    "category": "Unison Search",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login.html"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the username field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Click the link to open the search page"
+      },
+      {
+        "type": "action",
+        "description": "Select a category from the sidebar"
+      },
+      {
+        "type": "action",
+        "description": "Fill a keyword into the main search input"
+      },
+      {
+        "type": "action",
+        "description": "Submit the search"
+      },
+      {
+        "type": "action",
+        "description": "Open the History dropdown"
+      },
+      {
+        "type": "action",
+        "description": "Select a prior query from history"
+      },
+      {
+        "type": "action",
+        "description": "Submit the search"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the main search input reflects the selected historical query"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the results table is displayed for the rerun query"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC007",
+    "title": "Switch from list view to dashboard view for the same result set",
+    "description": "Verifies a user can run a search and switch to dashboard view to see charts summarizing the same current results.",
+    "category": "Unison Search",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login.html"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the username field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Click the link to open the search page"
+      },
+      {
+        "type": "action",
+        "description": "Select a category from the sidebar"
+      },
+      {
+        "type": "action",
+        "description": "Fill a keyword into the main search input"
+      },
+      {
+        "type": "action",
+        "description": "Submit the search"
+      },
+      {
+        "type": "action",
+        "description": "Switch the results view to dashboard"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify dashboard charts summarizing the current results are displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the current facet and query context remain set after switching views"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC008",
+    "title": "Prompt shown when searching with no facet and empty query",
+    "description": "Verifies the app prevents searching with no category selected and an empty input by showing a user-facing prompt instead of results.",
+    "category": "Unison Search",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login.html"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the username field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Click the link to open the search page"
+      },
+      {
+        "type": "action",
+        "description": "Ensure no category is selected in the sidebar"
+      },
+      {
+        "type": "action",
+        "description": "Clear the main search input"
+      },
+      {
+        "type": "action",
+        "description": "Submit the search"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a message prompting the user to select a category before viewing results is visible"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the results table is not displayed"
+      }
+    ],
+    "priority": "Low"
+  }
+]

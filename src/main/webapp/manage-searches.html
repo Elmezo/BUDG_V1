@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Searches - BUDG</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="assets/css/main.css">
+    <link rel="stylesheet" href="assets/css/search.css">
+    <link rel="stylesheet" href="assets/css/rtl.css" id="rtl-styles" disabled>
+    <link rel="icon" type="image/png" href="assets/images/avatars/icon.jpg">
+    <script>
+        // Apply theme immediately
+        (function () {
+            const savedTheme = localStorage.getItem('budg-theme') || 'light';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+        })();
+    </script>
+    <script src="/assets/i18n/head-locale.js"></script>
+    <script src="assets/i18n/i18n.js"></script>
+</head>
+
+<body>
+    <!-- Header Navigation -->
+    <header class="header"></header>
+
+    <!-- Main Content -->
+    <main class="manage-searches-main">
+        <!-- Page Header -->
+        <div class="manage-searches-header">
+            <div class="manage-searches-header-left">
+                <i class="fas fa-search manage-searches-icon"></i>
+                <div>
+                    <h1 data-i18n="manageSearches.headerTitle">Manage Searches</h1>
+                    <p class="manage-searches-subtitle" data-i18n="manageSearches.headerSubtitle">Search</p>
+                </div>
+            </div>
+            <div class="manage-searches-header-actions">
+                <button class="manage-searches-btn manage-searches-btn-save" id="saveBtn" style="display: none;">
+                    <i class="fas fa-save"></i> <span data-i18n="button.save">Save</span>
+                </button>
+                <button class="manage-searches-btn manage-searches-btn-save" id="saveAndCloseBtn" style="display: none;">
+                    <i class="fas fa-save"></i> <span data-i18n="button.saveAndClose">Save & Close</span>
+                </button>
+                <button class="manage-searches-btn manage-searches-btn-close" id="closeBtn">
+                    <i class="fas fa-times"></i> <span data-i18n="button.close">Close</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="manage-searches-tabs">
+            <button class="manage-searches-tab active" data-tab="my-searches" onclick="switchTab('my-searches')" data-i18n="manageSearches.tabSaved">
+                SAVED SEARCHES
+            </button>
+            <button class="manage-searches-tab" data-tab="shared-searches" onclick="switchTab('shared-searches')" data-i18n="manageSearches.tabShared">
+                SEARCHES SHARED WITH ME
+            </button>
+        </div>
+
+        <!-- Content Area -->
+        <div class="manage-searches-content">
+            <!-- My Searches Tab -->
+            <div class="manage-searches-tab-content active" id="my-searches-content">
+                <div class="manage-searches-table-header">
+                    <h3 data-i18n="manageSearches.sectionSaved">SAVED SEARCHES</h3>
+                    <div class="manage-searches-table-actions">
+                        <button class="manage-searches-table-action-btn" onclick="refreshSearches()">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="manage-searches-table-container">
+                    <table class="manage-searches-table" id="my-searches-table">
+                        <thead>
+                            <tr>
+                                <th data-i18n="manageSearches.colName">Name</th>
+                                <th data-i18n="manageSearches.colDescription">Description</th>
+                                <th data-i18n="manageSearches.colSharing">Sharing</th>
+                                <th data-i18n="manageSearches.colSharedWith">Shared With</th>
+                                <th data-i18n="manageSearches.colCreatedDate">Created Date</th>
+                                <th data-i18n="manageSearches.colActions">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="my-searches-tbody">
+                            <tr>
+                                <td colspan="6" class="manage-searches-loading" data-i18n="manageSearches.loading">Loading...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="manage-searches-table-footer">
+                    <span id="my-searches-count" data-i18n="manageSearches.recordsZero">0 records</span>
+                </div>
+            </div>
+
+            <!-- Shared Searches Tab: includes searches explicitly shared with you and public saved searches -->
+            <div class="manage-searches-tab-content" id="shared-searches-content" style="display: none;">
+                <div class="manage-searches-table-header">
+                    <div>
+                        <h3 data-i18n="manageSearches.sectionShared">SEARCHES SHARED WITH ME</h3>
+                        <p class="manage-searches-tab-description" data-i18n="manageSearches.sharedDescription">Searches shared with you and public saved searches from other users.</p>
+                    </div>
+                    <div class="manage-searches-table-actions">
+                        <button class="manage-searches-table-action-btn" onclick="refreshSharedSearches()">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="manage-searches-table-container">
+                    <table class="manage-searches-table" id="shared-searches-table">
+                        <thead>
+                            <tr>
+                                <th data-i18n="manageSearches.colName">Name</th>
+                                <th data-i18n="manageSearches.colDescription">Description</th>
+                                <th data-i18n="manageSearches.colSharing">Sharing</th>
+                                <th data-i18n="manageSearches.colSharedBy">Shared By</th>
+                                <th data-i18n="manageSearches.colCreatedDate">Created Date</th>
+                                <th data-i18n="manageSearches.colActions">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="shared-searches-tbody">
+                            <tr>
+                                <td colspan="6" class="manage-searches-loading" data-i18n="manageSearches.loading">Loading...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="manage-searches-table-footer">
+                    <span id="shared-searches-count" data-i18n="manageSearches.recordsZero">0 records</span>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modify Sharing Modal -->
+    <div id="modify-sharing-modal" class="modify-sharing-modal-overlay" style="display: none;">
+        <div class="modify-sharing-modal-content">
+            <div class="modify-sharing-modal-header">
+                <h3 data-i18n="manageSearches.modifySharingTitle">Modify Sharing</h3>
+                <button class="modify-sharing-modal-close" onclick="closeModifySharingModal()">&times;</button>
+            </div>
+            <div class="modify-sharing-modal-body">
+                <div class="modify-sharing-option">
+                    <input type="radio" id="share-public" name="sharing-option" value="public">
+                    <label for="share-public">
+                        <strong data-i18n="manageSearches.sharePublicTitle">Share with public</strong>
+                        <p data-i18n="manageSearches.sharePublicDesc">Share the searches with all users in your organization.</p>
+                    </label>
+                </div>
+                <div class="modify-sharing-option">
+                    <input type="radio" id="share-selected" name="sharing-option" value="selected">
+                    <label for="share-selected">
+                        <strong data-i18n="manageSearches.shareSelectedTitle">Share with selected users</strong>
+                        <p data-i18n="manageSearches.shareSelectedDesc">Specify the users that you want to share the searches with.</p>
+                    </label>
+                </div>
+                <div class="modify-sharing-option">
+                    <input type="radio" id="stop-sharing" name="sharing-option" value="stop">
+                    <label for="stop-sharing">
+                        <strong data-i18n="manageSearches.stopSharingTitle">Stop sharing</strong>
+                        <p data-i18n="manageSearches.stopSharingDesc">Do not share. If the searches are already shared with some users, the searches will be removed from their view.</p>
+                    </label>
+                </div>
+                <div id="selected-users-container" style="display: none; margin-top: 20px;">
+                    <label class="form-label" style="margin-bottom: 8px;">
+                        <span data-i18n="manageSearches.shareWithLabel">Share With</span> <span style="color: red;">*</span>
+                    </label>
+                    <div class="user-selection-wrapper">
+                        <div class="selected-users-input-container" id="selected-users-input-container">
+                            <div class="selected-users-tags" id="selected-users-tags"></div>
+                            <input 
+                                type="text" 
+                                id="user-search-input" 
+                                class="user-search-input" 
+                                data-i18n-placeholder="manageSearches.userSearchPlaceholder"
+                                placeholder="Please enter 2 or more characters"
+                                autocomplete="off"
+                            />
+                        </div>
+                        <div class="user-suggestions" id="user-suggestions" style="display: none;"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="modify-sharing-modal-footer">
+                <button class="modify-sharing-btn-cancel" onclick="closeModifySharingModal()" data-i18n="button.cancel">Cancel</button>
+                <button class="modify-sharing-btn-save" onclick="saveSharingChanges()" data-i18n="button.save">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <!-- Load main.js first to inject header -->
+    <script src="assets/js/main.js"></script>
+    <!-- Load header.js after main.js -->
+    <script src="assets/js/header.js"></script>
+    <script src="assets/js/utils/role-utils.js"></script>
+    <script src="assets/js/UnisonSearch/saved-searches.js"></script>
+    <script src="assets/js/UnisonSearch/manage-searches.js"></script>
+</body>
+
+</html>
+

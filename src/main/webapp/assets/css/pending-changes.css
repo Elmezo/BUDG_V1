@@ -1,0 +1,280 @@
+/**
+ * Pending Changes Styles
+ * For the "View Original | View Changes" toggle and related UI
+ */
+
+/* Toggle Container */
+.revision-toggle-container {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: 16px;
+    font-size: 14px;
+}
+
+.revision-toggle-link {
+    color: var(--link-color, #0066cc);
+    text-decoration: none;
+    cursor: pointer;
+    transition: color 0.2s ease;
+}
+
+.revision-toggle-link:hover {
+    text-decoration: underline;
+}
+
+.revision-toggle-link.active {
+    color: var(--text-primary, #333);
+    font-weight: 500;
+    cursor: default;
+}
+
+.revision-toggle-link.active:hover {
+    text-decoration: none;
+}
+
+.revision-toggle-separator {
+    color: var(--text-muted, #888);
+}
+
+/* Under Revision Badge */
+.revision-badge {
+    display: inline-block;
+    background: #1a3a5c;
+    color: #fff;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 4px 8px;
+    border-radius: 3px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    margin-left: 8px;
+}
+
+/* Not Under Revision Status */
+.revision-toggle-container.not-under-revision {
+    background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+    border: 1px solid #81c784;
+    border-radius: 4px;
+    padding: 4px 12px;
+}
+
+.revision-status-text {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: #2e7d32;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.revision-status-text i {
+    font-size: 14px;
+}
+
+/* Under Revision Container */
+.revision-toggle-container.under-revision {
+    background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+    border: 1px solid #64b5f6;
+    border-radius: 4px;
+    padding: 4px 12px;
+}
+
+/* Pending Changes Indicator */
+.pending-changes-indicator {
+    background: linear-gradient(135deg, #e8f4fd 0%, #d1e8fa 100%);
+    border: 1px solid #4a90d9;
+    border-left: 4px solid #2171b5;
+    border-radius: 4px;
+    padding: 12px 16px;
+    margin: 16px 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.pending-changes-indicator i {
+    color: #2171b5;
+    font-size: 18px;
+}
+
+.pending-changes-indicator span {
+    color: #1a5490;
+    font-size: 14px;
+}
+
+.pending-changes-indicator.no-changes {
+    background: linear-gradient(135deg, #f5f5f5 0%, #ebebeb 100%);
+    border-color: #999;
+    border-left-color: #666;
+}
+
+.pending-changes-indicator.no-changes i {
+    color: #666;
+}
+
+.pending-changes-indicator.no-changes span {
+    color: #555;
+}
+
+/* Applied Change Styling - Enhanced Shadow Green */
+.pending-change-applied {
+    position: relative;
+    background-color: rgba(46, 125, 50, 0.1) !important;
+    border-left: 3px solid #2e7d32 !important;
+    padding-left: 8px;
+    box-shadow: 0 2px 8px rgba(46, 125, 50, 0.2) !important;
+    transition: all 0.3s ease;
+}
+
+.pending-change-applied::after {
+    content: '(pending)';
+    font-size: 10px;
+    color: #2e7d32;
+    margin-left: 8px;
+    font-style: italic;
+}
+
+/* Enhanced styling for changed rows in tables */
+.row-changed, .table-row-changed {
+    background-color: rgba(46, 125, 50, 0.08) !important;
+    border-left: 4px solid #2e7d32 !important;
+    box-shadow: 0 2px 6px rgba(46, 125, 50, 0.15) !important;
+    transition: all 0.3s ease;
+}
+
+/* Enhanced styling for changed form fields */
+.field-changed, .input-changed {
+    background-color: rgba(46, 125, 50, 0.05) !important;
+    border: 1px solid #4caf50 !important;
+    box-shadow: 0 0 0 2px rgba(46, 125, 50, 0.1), 0 2px 4px rgba(46, 125, 50, 0.1) !important;
+}
+
+/* Enhanced styling for changed content sections */
+.content-changed, .section-changed {
+    background: linear-gradient(135deg, rgba(46, 125, 50, 0.05) 0%, rgba(76, 175, 80, 0.03) 100%) !important;
+    border: 1px solid rgba(46, 125, 50, 0.2) !important;
+    border-radius: 6px;
+    padding: 12px;
+    box-shadow: 0 4px 12px rgba(46, 125, 50, 0.1) !important;
+    margin: 8px 0;
+}
+
+/* Enhanced styling for changed cards */
+.card-changed {
+    background: linear-gradient(135deg, rgba(46, 125, 50, 0.04) 0%, rgba(76, 175, 80, 0.02) 100%) !important;
+    border: 1px solid rgba(46, 125, 50, 0.15) !important;
+    box-shadow: 0 6px 16px rgba(46, 125, 50, 0.12) !important;
+    transform: translateY(-1px);
+    transition: all 0.3s ease;
+}
+
+/* Body class when viewing changes */
+.viewing-pending-changes .content-card {
+    border-color: #4a90d9;
+}
+
+/* Hide edit-only controls when viewing ORIGINAL (all facets) */
+.viewing-original .edit-only-changes {
+    display: none !important;
+}
+
+/* Dark Theme Support */
+[data-theme="dark"] .revision-toggle-link {
+    color: var(--link-color-dark, #6db3f2);
+}
+
+[data-theme="dark"] .revision-toggle-link.active {
+    color: var(--text-primary-dark, #e0e0e0);
+}
+
+[data-theme="dark"] .revision-toggle-separator {
+    color: var(--text-muted-dark, #888);
+}
+
+[data-theme="dark"] .revision-badge {
+    background: #2a5a8c;
+}
+
+[data-theme="dark"] .pending-changes-indicator {
+    background: linear-gradient(135deg, #1a3a5c 0%, #0d2a4a 100%);
+    border-color: #4a90d9;
+}
+
+[data-theme="dark"] .pending-changes-indicator i {
+    color: #6db3f2;
+}
+
+[data-theme="dark"] .pending-changes-indicator span {
+    color: #9cc5f0;
+}
+
+[data-theme="dark"] .pending-changes-indicator.no-changes {
+    background: linear-gradient(135deg, #2a2a2a 0%, #1f1f1f 100%);
+    border-color: #555;
+}
+
+[data-theme="dark"] .pending-change-applied {
+    background-color: rgba(76, 175, 80, 0.15) !important;
+    box-shadow: 0 2px 8px rgba(76, 175, 80, 0.25) !important;
+}
+
+[data-theme="dark"] .pending-change-applied::after {
+    color: #81c784;
+}
+
+/* Dark theme for enhanced change styling */
+[data-theme="dark"] .row-changed,
+[data-theme="dark"] .table-row-changed {
+    background-color: rgba(76, 175, 80, 0.12) !important;
+    border-left-color: #4caf50 !important;
+    box-shadow: 0 2px 6px rgba(76, 175, 80, 0.2) !important;
+}
+
+[data-theme="dark"] .field-changed,
+[data-theme="dark"] .input-changed {
+    background-color: rgba(76, 175, 80, 0.08) !important;
+    border-color: #66bb6a !important;
+    box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.15), 0 2px 4px rgba(76, 175, 80, 0.15) !important;
+}
+
+[data-theme="dark"] .content-changed,
+[data-theme="dark"] .section-changed {
+    background: linear-gradient(135deg, rgba(76, 175, 80, 0.08) 0%, rgba(102, 187, 106, 0.05) 100%) !important;
+    border-color: rgba(76, 175, 80, 0.25) !important;
+    box-shadow: 0 4px 12px rgba(76, 175, 80, 0.15) !important;
+}
+
+[data-theme="dark"] .card-changed {
+    background: linear-gradient(135deg, rgba(76, 175, 80, 0.06) 0%, rgba(102, 187, 106, 0.03) 100%) !important;
+    border-color: rgba(76, 175, 80, 0.2) !important;
+    box-shadow: 0 6px 16px rgba(76, 175, 80, 0.18) !important;
+}
+
+/* Dark theme for not under revision status */
+[data-theme="dark"] .revision-toggle-container.not-under-revision {
+    background: linear-gradient(135deg, #1b3d25 0%, #1a3a2a 100%);
+    border-color: #4caf50;
+}
+
+[data-theme="dark"] .revision-status-text {
+    color: #81c784;
+}
+
+[data-theme="dark"] .revision-toggle-container.under-revision {
+    background: linear-gradient(135deg, #1a3a5c 0%, #0d2a4a 100%);
+    border-color: #4a90d9;
+}
+

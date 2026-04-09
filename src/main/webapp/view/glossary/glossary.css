@@ -1,0 +1,1396 @@
+/* Glossary specific overrides (if needed) */
+
+/* Definition section: description block at top (visible above other fields) */
+.glossary-view-description {
+    margin-bottom: 1rem;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid var(--border-color, #e5e7eb);
+    color: var(--text-primary, #1e293b);
+    line-height: 1.5;
+    white-space: pre-wrap;
+    font-size: 1rem;
+}
+
+.glossary-view-description .empty {
+    font-style: italic;
+    color: var(--text-tertiary, #94a3b8);
+}
+
+/* Relationships tab styles */
+.view-badge {
+    display: inline-block;
+    background: var(--background-secondary, #f8f9fa);
+    color: var(--text-secondary, #6c757d);
+    border: 1px solid var(--border-color, #e9ecef);
+    border-radius: 4px;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+}
+
+.glossary-item {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+/* Match CIA rating visual style with system view */
+.glossary-page .cia-inline {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.glossary-page .cia-inline .cia-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.glossary-page .cia-inline .view-badge {
+    border-radius: 9999px;
+    padding: 0.2rem 0.6rem;
+    background: var(--chip-bg, #f3f4f6);
+    color: var(--text-muted, #374151);
+    border: 1px solid var(--border-color, #e5e7eb);
+    font-size: 0.78rem;
+    font-weight: 500;
+    margin-right: 0;
+}
+
+.glossary-item a {
+    color: var(--secondary-color, #248567);
+    text-decoration: none;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.glossary-item a:hover {
+    text-decoration: underline;
+    color: var(--primary-700, #1d4ed8);
+}
+
+.database-icon {
+    color: var(--secondary-color, #24856b);
+    font-size: 0.875rem;
+}
+
+.action-buttons {
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+    height: 100%;
+    padding: 0.5rem 0;
+}
+
+.btn-sm {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+    border-radius: 4px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.25rem;
+}
+
+.btn-danger {
+    background-color: #dc3545;
+    color: white;
+    border: none;
+}
+
+.btn-danger:hover {
+    background-color: #c82333;
+    transform: translateY(-1px);
+}
+
+.btn-secondary {
+    background-color: var(--background-secondary, #f8f9fa);
+    color: var(--text-primary, #1f2937);
+    border: 1px solid var(--border-color, #e9ecef);
+}
+
+.btn-secondary:hover {
+    background-color: var(--border-color, #e9ecef);
+    color: var(--text-primary, #1f2937);
+    transform: translateY(-1px);
+}
+
+/* Button base styles */
+.btn {
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.25rem;
+    text-decoration: none;
+    line-height: 1.5;
+}
+
+/* Data table wrapper for relationships sub-tab */
+.data-table-wrapper {
+    overflow-x: auto;
+    border-radius: 8px;
+    border: 1px solid var(--border-color, #e5e7eb);
+    background: var(--background-primary, #fff);
+    box-shadow: var(--shadow-light, 0 2px 10px rgba(0, 0, 0, 0.1));
+}
+
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    min-width: 600px;
+}
+
+.data-table th {
+    background: var(--background-secondary, #f8f9fa);
+    padding: 1rem 1.25rem;
+    text-align: left;
+    font-weight: 600;
+    color: var(--text-secondary, #6c757d);
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-bottom: 2px solid var(--border-color, #e9ecef);
+    white-space: nowrap;
+}
+
+.data-table td {
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--border-color, #f1f5f9);
+    vertical-align: top;
+    color: var(--text-primary, #2c3e50);
+}
+
+.data-table tr:hover {
+    background: var(--background-hover, #f8fafc);
+}
+
+/* Hierarchy table styling - matching system view exactly */
+.hierarchy-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    background: white;
+    table-layout: fixed;
+    font-size: 0.875rem;
+    min-width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+.hierarchy-table th {
+    background: linear-gradient(to bottom, #f8f9fa 0%, #f1f3f5 100%);
+    padding: 0.5rem 0.25rem;
+    text-align: left;
+    font-weight: 600;
+    color: #495057;
+    font-size: 0.5rem;
+    letter-spacing: 0.01em;
+    text-transform: uppercase;
+    border-bottom: 2px solid #dee2e6;
+    white-space: normal;
+    word-wrap: break-word;
+    line-height: 1.3;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    overflow: visible;
+    text-overflow: clip;
+    vertical-align: top;
+}
+
+.hierarchy-table th:nth-child(1),
+.hierarchy-table td:nth-child(1) {
+    width: 15.5%;
+    min-width: 115px;
+    max-width: 15.5%;
+}
+
+.hierarchy-table th:nth-child(2),
+.hierarchy-table td:nth-child(2) {
+    width: 7.5%;
+    min-width: 60px;
+    max-width: 7.5%;
+}
+
+.hierarchy-table th:nth-child(3),
+.hierarchy-table td:nth-child(3) {
+    width: 10.5%;
+    min-width: 95px;
+    max-width: 10.5%;
+}
+
+.hierarchy-table th:nth-child(4),
+.hierarchy-table td:nth-child(4) {
+    width: 16%;
+    min-width: 120px;
+    max-width: 16%;
+}
+
+.hierarchy-table th:nth-child(5),
+.hierarchy-table td:nth-child(5) {
+    width: 16%;
+    min-width: 120px;
+    max-width: 16%;
+}
+
+.hierarchy-table th:nth-child(6),
+.hierarchy-table td:nth-child(6) {
+    width: 5.5%;
+    min-width: 48px;
+    max-width: 5.5%;
+    text-align: center;
+}
+
+.hierarchy-table th:nth-child(7),
+.hierarchy-table td:nth-child(7) {
+    width: 7.5%;
+    min-width: 75px;
+    max-width: 7.5%;
+    text-align: center;
+}
+
+.hierarchy-table th:nth-child(7) {
+    white-space: nowrap;
+    font-size: 0.52rem;
+}
+
+.hierarchy-table th:nth-child(8),
+.hierarchy-table td:nth-child(8) {
+    width: 8.5%;
+    min-width: 95px;
+    max-width: 8.5%;
+    text-align: center;
+}
+
+.hierarchy-table td {
+    padding: 0.45rem 0.25rem;
+    border-bottom: 1px solid #f1f3f5;
+    color: #212529;
+    vertical-align: middle;
+    transition: background-color 0.2s ease;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    font-size: 0.78rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.hierarchy-table tbody tr {
+    transition: all 0.2s ease;
+    opacity: 1;
+    max-height: 1000px;
+    overflow: hidden;
+}
+
+.hierarchy-table tbody tr.collapsed {
+    display: none !important;
+}
+
+.hierarchy-table tbody tr:nth-child(even) {
+    background: #fafbfc;
+}
+
+.hierarchy-table tbody tr:hover {
+    background: #f0f4f8 !important;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+}
+
+.hierarchy-table tbody tr.current-row:hover {
+    background: #d4edda !important;
+}
+
+.hierarchy-table .table-footer {
+    padding: .65rem 1rem;
+    color: var(--text-secondary);
+    font-size: .85rem;
+    border-top: 1px solid var(--border-color);
+    background: var(--background-secondary);
+}
+
+/* Glossary icon styling */
+.glossary-icon {
+    color: var(--secondary-color, #24856b);
+    font-size: 0.875rem;
+    margin-right: 0.5rem;
+}
+
+/* Type badge styling - matching system view */
+.type-badge {
+    background: #248567;
+    color: white;
+    padding: 0.15rem 0.35rem;
+    border-radius: 3px;
+    font-size: 0.6rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    display: inline-block;
+    white-space: nowrap;
+}
+
+.type-badge.business {
+    background: #10b981;
+    color: white;
+}
+
+.type-badge.domain {
+    background: #f59e0b;
+    color: white;
+}
+
+.type-badge.technical {
+    background: #248567;
+    color: white;
+}
+
+/* Tree structure styling for glossary hierarchy (matching system/org unit) */
+.glossary-page .tree-cell { 
+    display: flex; 
+    align-items: center; 
+    gap: 0.2rem; 
+}
+
+.glossary-page .tree-indent { 
+    display: inline-block; 
+    width: 1rem; 
+    height: 1px; 
+}
+
+.glossary-page .tree-branch { 
+    display: inline-block; 
+    width: .75rem; 
+    height: 1px; 
+    background: var(--border-color); 
+    margin-right: .25rem; 
+}
+
+.glossary-page .glossary-name { 
+    font-weight: 600;
+    display: inline;
+}
+
+.glossary-page .glossary-name a {
+    display: inline;
+    background: none !important;
+    border: none !important;
+    border-radius: 0 !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+}
+
+.glossary-page .current-row { 
+    background: #e8f5e9 !important;
+    border-left: 3px solid #248567;
+    box-shadow: 0 2px 6px rgba(36, 133, 103, 0.15);
+}
+
+.glossary-page .current-row:hover {
+    background: #d4edda !important;
+    box-shadow: 0 3px 8px rgba(36, 133, 103, 0.2);
+}
+
+.glossary-page .tree-expander { 
+    width: 16px; 
+    height: 16px; 
+    border: 1px solid #d1d5db; 
+    border-radius: 3px; 
+    background: #ffffff; 
+    color: #6b7280; 
+    display: inline-flex; 
+    align-items: center; 
+    justify-content: center; 
+    cursor: pointer; 
+    margin-right: 0.2rem;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+.glossary-page .tree-expander:hover { 
+    background: #f3f4f6;
+    border-color: #9ca3af;
+    color: #374151;
+}
+
+.glossary-page .tree-expander i {
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    font-size: 0.7rem;
+}
+
+.glossary-page .tree-expander.collapsed i {
+    transform: rotate(-90deg);
+}
+
+.glossary-page .tree-placeholder { 
+    display: inline-block; 
+    width: 16px; 
+    height: 16px; 
+    margin-right: 0.2rem; 
+}
+
+.glossary-page .child-count { 
+    margin-left: .5rem; 
+    background: var(--chip-bg, #f3f4f6); 
+    color: var(--text-secondary); 
+    border: 1px solid var(--border-color); 
+    padding: 0 .4rem; 
+    border-radius: 10px; 
+    font-size: .75rem; 
+}
+
+.glossary-page .glossary-link { 
+    color: #248567;
+    text-decoration: none; 
+    font-weight: 600;
+    transition: all 0.2s ease;
+}
+
+.glossary-page .glossary-link:hover { 
+    text-decoration: underline; 
+    color: var(--primary-700, #1d4ed8);
+    transform: translateX(2px);
+}
+
+.glossary-page .glossary-link:focus {
+    outline: 2px solid var(--primary-500, #6366f1);
+    outline-offset: 2px;
+    border-radius: 4px;
+}
+
+/* Current glossary link - simple, no circle, no special styling */
+.glossary-page .current-glossary-link {
+    color: #248567;
+    font-weight: 700;
+    text-decoration: none;
+    transition: color 0.2s ease;
+    display: inline;
+    background: none;
+    border: none;
+    padding: 0;
+    border-radius: 0;
+}
+
+.glossary-page .current-glossary-link:hover {
+    color: #1d6b52 !important;
+    text-decoration: underline;
+}
+
+.glossary-page .item-icon {
+    color: var(--secondary-color, #248567);
+    margin-right: 0.2rem;
+    font-size: 0.75rem;
+}
+
+/* Hierarchy footer styling - matching system view */
+.hierarchy-footer {
+    padding: 0.75rem 1rem;
+    color: #6b7280;
+    font-size: 0.8rem;
+    border-top: 1px solid #e9ecef;
+    background: #f8f9fa;
+    font-weight: 500;
+    text-align: right;
+}
+
+/* Relationships hierarchy container */
+.relationships-hierarchy {
+    background: white;
+    border: 1px solid var(--border-color, #e9ecef);
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: var(--shadow-light, 0 2px 10px rgba(0, 0, 0, 0.1));
+    width: 100%;
+    margin: 0;
+    box-sizing: border-box;
+}
+
+/* Scrollable table wrapper - matching system view exactly */
+.relationships-hierarchy .hierarchy-table-wrapper {
+    background: #fff;
+    border: none;
+    border-radius: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    box-shadow: none;
+    max-height: calc(100vh - 260px);
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* Ensure table takes full width */
+.relationships-hierarchy .hierarchy-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    table-layout: fixed;
+    min-width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+.relationships-hierarchy .hierarchy-table thead {
+    position: sticky;
+    top: 0;
+    background: var(--background-secondary);
+    z-index: 1;
+}
+
+/* Custom scrollbar for table wrapper */
+.relationships-hierarchy .hierarchy-table-wrapper::-webkit-scrollbar {
+    height: 8px;
+}
+
+.relationships-hierarchy .hierarchy-table-wrapper::-webkit-scrollbar-track {
+    background: var(--background-secondary, #f8f9fa);
+    border-radius: 4px;
+}
+
+.relationships-hierarchy .hierarchy-table-wrapper::-webkit-scrollbar-thumb {
+    background: var(--secondary-color, #248567);
+    border-radius: 4px;
+}
+
+.relationships-hierarchy .hierarchy-table-wrapper::-webkit-scrollbar-thumb:hover {
+    background: var(--primary-color, #248567);
+}
+
+/* Ensure table cells take full height */
+.relationships-hierarchy .hierarchy-table td {
+    vertical-align: middle;
+    min-height: 40px;
+}
+
+/* Make sure the table container takes full width - remove duplicate */
+
+.hierarchy-header {
+    width: 100%;
+    background: white;
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--border-color, #e9ecef);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.hierarchy-title {
+    font-weight: 600;
+    color: var(--text-secondary, #6c757d);
+    letter-spacing: .04em;
+    font-size: .9rem;
+    background-color: var(--background-secondary, #f8f9fa); /* رمادي فاتح */
+    padding: 0.5rem 0.75rem;
+    border-radius: 6px;
+    border-left: 4px solid var(--secondary-color, #248567); /* الخط الجانبي */
+    text-transform: uppercase;
+    box-shadow: none;
+    display: inline-block;
+}
+
+.hierarchy-actions {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+}
+
+/* Sub-tab content styling */
+.sub-tab-content {
+    display: none;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.sub-tab-content.active {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* Sub-tabs styling */
+.relationships-sub-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border-color, #e9ecef);
+    background: var(--background-primary, #fff);
+}
+
+.sub-tab {
+    padding: 1rem 1.5rem;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--text-secondary, #6c757d);
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s ease;
+}
+
+.sub-tab:hover {
+    color: var(--text-primary, #1f2937);
+    background: var(--background-hover, #f8fafc);
+}
+
+.sub-tab.active {
+    color: var(--secondary-color, #24856b);
+    border-bottom-color: var(--secondary-color, #24856b);
+    background: var(--background-primary, #fff);
+}
+
+/* Relationships container */
+.relationships-container {
+    background: var(--background-primary, #fff);
+    border: 1px solid var(--border-color, #e9ecef);
+    border-radius: 1px;
+    overflow: hidden;
+    box-shadow: var(--shadow-light, 0 2px 10px rgba(0, 0, 0, 0.1));
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.relationships-content {
+    padding: 0;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* ============================================
+   GLOSSARY VIEW CONTAINER - STATIC LAYOUT
+   ============================================ */
+
+/* Main container - standardized layout */
+#glossaryViewContainer {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    align-items: stretch;
+}
+
+/* Ensure all direct children of glossaryViewContainer are properly styled */
+#glossaryViewContainer > * {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* Tab-specific containers */
+#glossaryViewContainer #glossaryChangeContainer,
+#glossaryViewContainer #glossaryHistoryContainer,
+#glossaryViewContainer #glossaryDataContainer,
+#glossaryViewContainer #glossaryStakeholdersContainer,
+#glossaryViewContainer #glossaryDataQualityContainer,
+#glossaryViewContainer #glossaryEnterpriseCatalogContainer,
+#glossaryViewContainer #impactContainer {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+/* Two-column grid layout for summary tab */
+#glossaryViewContainer .glossary-container {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 2rem;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+#glossaryViewContainer .left-column,
+#glossaryViewContainer .right-column {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* Legacy layout support (fallback) */
+#glossaryViewContainer .main-content {
+    flex: 2;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+#glossaryViewContainer .sidebar-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* ============================================
+   VIEW SECTION - STANDARDIZED STYLING
+   ============================================ */
+
+/* Standard view section - consistent across all tabs */
+.view-section {
+    background: var(--background-primary, #fff);
+    border: 1px solid var(--border-color, #e9ecef);
+    border-radius: 8px;
+    padding: 1.5rem;
+    box-shadow: var(--shadow-light, 0 2px 10px rgba(0, 0, 0, 0.1));
+    margin-bottom: 0;
+    overflow: hidden;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+}
+
+.view-section:last-child {
+    margin-bottom: 0;
+}
+
+/* Full-width sections (for tabs like change, history, data, etc.) */
+.view-section.full-width {
+    grid-column: 1 / -1;
+    width: 100%;
+    max-width: 100%;
+    margin-left: 0;
+    margin-right: 0;
+}
+
+/* Ensure full-width sections work correctly inside view-grid */
+.view-grid .view-section.full-width {
+    grid-column: 1 / -1 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    display: block !important;
+}
+
+/* Ensure full width for sections with grid-column style attribute */
+.view-section[style*="grid-column:1/-1"],
+.view-section[style*="grid-column: 1/-1"] {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    box-sizing: border-box !important;
+}
+
+/* Responsive design for glossary view */
+@media (max-width: 1024px) {
+    #glossaryViewContainer {
+        padding: 1rem;
+        gap: 1rem;
+    }
+    
+    #glossaryViewContainer .glossary-container {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+    }
+    
+    #glossaryViewContainer .left-column,
+    #glossaryViewContainer .right-column {
+        gap: 1rem;
+    }
+    
+    .sidebar-content {
+        order: -1;
+    }
+}
+
+/* Sidebar section styling */
+.sidebar-section {
+    background: var(--background-primary, #fff);
+    border: 1px solid var(--border-color, #e9ecef);
+    border-radius: 8px;
+    padding: 1.5rem;
+    box-shadow: var(--shadow-light, 0 2px 10px rgba(0, 0, 0, 0.1));
+    height: fit-content;
+    margin-bottom: 0;
+}
+
+/* Section title styling */
+.section-title {
+    font-weight: 600;
+    color: var(--text-primary, #2c3e50);
+    font-size: 0.9rem;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border-color, #e5e7eb);
+}
+
+/* Classifications styling */
+.classifications-group {
+    margin-bottom: 2rem;
+}
+
+.classifications-group:last-of-type {
+    margin-bottom: 1.5rem;
+}
+
+.group-title {
+    font-weight: 600;
+    color: var(--text-secondary, #6c757d);
+    font-size: 0.8rem;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border-color, #e5e7eb);
+}
+
+.classification-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid var(--border-light, #f3f4f6);
+}
+
+.classification-item:last-child {
+    border-bottom: none;
+}
+
+.classification-label {
+    font-weight: 500;
+    color: var(--text-primary, #2c3e50);
+    font-size: 0.9rem;
+    flex: 1;
+}
+
+.classification-value {
+    font-size: 0.9rem;
+    color: var(--text-secondary, #6c757d);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* Status dot styling */
+.status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: var(--text-tertiary, #adb5bd);
+}
+
+.status-dot.active {
+    background-color: #10b981;
+}
+
+/* Lifecycle badge styling */
+.lifecycle-badge {
+    background: var(--background-secondary, #f8f9fa);
+    color: var(--text-secondary, #6c757d);
+    padding: 0.25rem 0.75rem;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border: 1px solid var(--border-color, #e5e7eb);
+}
+
+/* Type badge styling */
+.type-badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.type-badge.domain {
+    background: #ff6b35;
+    color: white;
+}
+
+/* Data domain rules styling */
+.data-domain-rules {
+    background: var(--background-secondary, #f8f9fa);
+    border: 1px solid var(--border-color, #e5e7eb);
+    border-radius: 6px;
+    padding: 1rem;
+    margin-top: 1.5rem;
+}
+
+.rules-title {
+    font-weight: 600;
+    color: var(--text-primary, #2c3e50);
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+}
+
+.rules-text {
+    font-size: 0.85rem;
+    color: var(--text-secondary, #6c757d);
+    line-height: 1.4;
+}
+
+/* View item styling for definition section */
+.view-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--border-light, #f3f4f6);
+}
+
+.view-item:last-child {
+    border-bottom: none;
+}
+
+.view-label {
+    font-weight: 500;
+    color: var(--text-primary, #2c3e50);
+    font-size: 0.9rem;
+    flex: 0 0 40%;
+    margin-right: 1rem;
+}
+
+.view-value {
+    font-size: 0.9rem;
+    color: var(--text-secondary, #6c757d);
+    flex: 1;
+    text-align: left;
+}
+
+.view-value .empty {
+    color: var(--text-tertiary, #adb5bd);
+    font-style: italic;
+}
+
+/* Data table styling for strategic source */
+.data-table-wrapper {
+    background: var(--background-primary, #fff);
+    border: 1px solid var(--border-color, #e9ecef);
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: var(--shadow-light, 0 2px 10px rgba(0, 0, 0, 0.1));
+}
+
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: auto;
+    font-family: 'Inter', sans-serif;
+}
+
+.data-table thead {
+    background: var(--background-secondary, #f8f9fa);
+    border-bottom: 1px solid var(--border-color, #e9ecef);
+}
+
+.data-table th {
+    padding: 1rem 1rem;
+    text-align: center;
+    font-weight: 600;
+    color: var(--text-secondary, #6c757d);
+    font-size: .82rem;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+}
+
+.data-table td {
+    padding: .9rem 1rem;
+    border-top: 1px solid var(--border-color, #e9ecef);
+    color: var(--text-primary, #2c3e50);
+    text-align: center;
+    vertical-align: middle;
+}
+
+.data-table td i {
+    color: var(--secondary-color, #248567);
+    margin-right: 0.5rem;
+}
+
+/* Glossary hierarchy styling - Identical to PROJECT HIERARCHY */
+.relationships-hierarchy .hierarchy-item .glossary-icon {
+    color: var(--secondary-color, #248567);
+    font-size: .9rem;
+}
+
+.relationships-hierarchy .hierarchy-item .parent-name {
+    font-weight: 600;
+    color: var(--text-primary, #2c3e50);
+    background: var(--secondary-color, #248567);
+    color: var(--background-primary, #fff);
+    padding: .2rem .5rem;
+    border-radius: 6px;
+    border: 1px solid var(--secondary-color, #248567);
+}
+
+.relationships-hierarchy .hierarchy-item .child-name {
+    font-weight: 400;
+    color: var(--text-secondary, #6c757d);
+    padding-left: .5rem;
+}
+
+.relationships-hierarchy .hierarchy-item .relationship-label {
+    font-size: 0.8rem;
+    color: var(--text-muted, #6b7280);
+    font-weight: 400;
+    background: var(--background-secondary, #f8f9fa);
+    padding: 0.2rem 0.5rem;
+    border-radius: 12px;
+    border: 1px solid var(--border-color, #e5e7eb);
+    margin-left: 0.5rem;
+    font-style: italic;
+}
+
+.relationships-hierarchy .hierarchy-child {
+    background: var(--background-secondary, #f8f9fa);
+    padding-left: 2rem;
+}
+
+.relationships-hierarchy .hierarchy-footer {
+    padding: .75rem 1rem;
+    color: var(--text-secondary, #6c757d);
+    font-size: .85rem;
+    border-top: 1px solid var(--border-color, #e9ecef);
+    background: var(--background-secondary, #f8f9fa);
+}
+
+/* Current glossary styling */
+.relationships-hierarchy .current-glossary {
+    background: var(--primary-50, #eef2ff) !important;
+    border-left: 4px solid var(--primary-color, #248567);
+}
+
+.relationships-hierarchy .current-name {
+    font-weight: 700;
+    color: #248567;
+    background: #e5e7eb;
+    padding: 0.2rem 0.5rem;
+    border-radius: 50px; /* Circular shape */
+    border: 2px solid var(--primary-500, #248567);
+    text-decoration: none;
+    transition: all 0.2s ease;
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 2rem;
+    min-height: 2rem;
+}
+
+.relationships-hierarchy .current-name:hover {
+    background: var(--primary-100, #dbeafe);
+    color: var(--primary-800, #1e40af) !important;
+    border-color: var(--primary-600, #2563eb);
+    transform: translateY(-1px) scale(1.05);
+    box-shadow: 0 4px 8px rgba(29, 78, 216, 0.3);
+}
+
+/* Parent glossary styling */
+.relationships-hierarchy .parent-glossary {
+    background: var(--background-secondary, #f9fafb);
+    border-left: 2px solid var(--text-muted, #9ca3af);
+}
+
+.relationships-hierarchy .parent-name-style {
+    font-weight: 500;
+    color: var(--text-secondary, #6b7280);
+    background: var(--background-tertiary, #f3f4f6);
+    padding: .2rem .5rem;
+    border-radius: 6px;
+    border: 1px solid var(--border-color, #e5e7eb);
+}
+
+/* Hierarchy table row styling */
+.hierarchy-parent {
+    background-color: #e3f2fd !important;
+}
+
+.hierarchy-child {
+    background-color: white !important;
+}
+
+.hierarchy-child.collapsed {
+    display: none;
+}
+
+/* Loading and empty states */
+.loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem;
+    color: var(--text-secondary, #6b7280);
+    gap: 0.75rem;
+}
+
+.hierarchy-empty {
+    text-align: center;
+    padding: 3rem;
+    color: var(--text-secondary, #6b7280);
+}
+
+.hierarchy-empty i {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+}
+
+.hierarchy-empty p {
+    margin: 0;
+    font-size: 1rem;
+}
+
+.hierarchy-error {
+    text-align: center;
+    padding: 3rem;
+    color: var(--danger, #dc3545);
+}
+
+.hierarchy-error i {
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+    opacity: 0.7;
+}
+
+.hierarchy-error p {
+    margin: 0 0 1rem 0;
+    font-size: 1rem;
+}
+
+/* Glossary Impact Tab Styling - Match common style from system.css */
+.relationships-container {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+.relationships-sub-tabs {
+    display: flex;
+    gap: 0;
+    border-bottom: 1px solid var(--border-color, #e5e7eb);
+    background: var(--background-primary, #fff);
+}
+
+.sub-tab {
+    background: none;
+    border: none;
+    padding: 1rem 1.5rem;
+    font-size: .9rem;
+    font-weight: 500;
+    color: var(--text-muted, #6b7280);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border-bottom: 3px solid transparent;
+    position: relative;
+}
+
+.sub-tab:hover {
+    color: var(--text-primary, #111827);
+    background: var(--background-secondary, #f9fafb);
+}
+
+.sub-tab.active {
+    color: var(--text-primary, #111827);
+    border-bottom-color: var(--secondary-color, #248567);
+    background: var(--background-primary, #fff);
+}
+
+.relationships-content {
+    position: relative;
+}
+
+.sub-tab-content {
+    display: none;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.sub-tab-content.active {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* Relationships hierarchy styling */
+.relationships-hierarchy {
+    background: var(--background-primary, #fff);
+    border: 1px solid var(--border-color, #e9ecef);
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: var(--shadow-light, 0 2px 10px rgba(0, 0, 0, 0.1));
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.relationships-hierarchy .hierarchy-header {
+    background: var(--background-secondary, #f8f9fa);
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--border-color, #e9ecef);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.relationships-hierarchy .hierarchy-title {
+    font-weight: 600;
+    color: var(--text-secondary, #6c757d);
+    letter-spacing: .04em;
+    font-size: .9rem;
+    background-color: var(--background-secondary, #f8f9fa);
+    padding: 0.5rem 0.75rem;
+    border-radius: 6px;
+    border-left: 4px solid var(--secondary-color, #248567);
+    text-transform: uppercase;
+}
+
+.relationships-hierarchy .hierarchy-actions {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+}
+
+.relationships-hierarchy .hierarchy-footer {
+    padding: .65rem 1rem;
+    color: var(--text-secondary);
+    font-size: .85rem;
+    border-top: 1px solid var(--border-color);
+    background: var(--background-secondary);
+}
+
+/* Data table styling for relationships sub-tab */
+.relationships-container .data-table-wrapper {
+    background: var(--background-primary, #fff);
+    border: 1px solid var(--border-color, #e9ecef);
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: var(--shadow-light, 0 2px 10px rgba(0, 0, 0, 0.1));
+}
+
+.relationships-container .data-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.relationships-container .data-table th {
+    padding: 1rem 1rem;
+    text-align: center;
+    font-weight: 600;
+    color: var(--text-secondary, #6c757d);
+    font-size: .82rem;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    background: var(--background-secondary, #f8f9fa);
+    border-bottom: 1px solid var(--border-color, #e9ecef);
+    white-space: nowrap;
+}
+
+.relationships-container .data-table td {
+    padding: .9rem 1rem;
+    border-top: 1px solid var(--border-color, #e9ecef);
+    color: var(--text-primary, #2c3e50);
+    font-weight: 400;
+    text-transform: none;
+    text-align: center;
+    vertical-align: middle;
+}
+
+.relationships-container .data-table tbody tr:hover {
+    background: var(--background-hover, #f8fafc);
+}
+
+/* Action buttons in relationships table - neutral gray style */
+.relationships-container .action-buttons {
+    display: flex;
+    gap: 0.25rem;
+    align-items: center;
+    justify-content: center;
+}
+
+.relationships-container .action-buttons .btn {
+    padding: 0.3rem 0.5rem;
+    font-size: 0.75rem;
+    border-radius: 4px;
+    border: 1px solid var(--border-color, #e9ecef);
+    background: var(--background-primary, #fff);
+    color: var(--text-secondary, #6c757d);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.relationships-container .action-buttons .btn:hover {
+    background: var(--background-secondary, #f8f9fa);
+    color: var(--text-primary, #2c3e50);
+}
+
+/* Form controls in data table */
+.relationships-container .data-table .form-control {
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--border-color, #d1d5db);
+    border-radius: 6px;
+    font-size: 0.875rem;
+    background: var(--background-primary, #fff);
+    color: var(--text-primary, #111827);
+    transition: all 0.2s ease;
+}
+
+.relationships-container .data-table select.form-control {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236b7280' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    background-size: 12px;
+    padding-right: 2.5rem;
+}
+
+.relationships-container .data-table .form-control:focus {
+    outline: none;
+    border-color: var(--secondary-color, #248567);
+    box-shadow: 0 0 0 3px rgba(36, 133, 103, 0.1);
+}
+
+.relationships-container .data-table .form-control:hover {
+    border-color: var(--text-secondary, #9ca3af);
+}
+
+/* Th content for sort icons */
+.relationships-container .th-content {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.relationships-container .th-content i {
+    color: var(--text-muted, #9ca3af);
+    font-size: 0.75rem;
+    opacity: 0.6;
+}
+
+/* Entity links in view - green color */
+.entity-link {
+    color: var(--secondary-color, #248567) !important;
+    text-decoration: none;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.entity-link:hover {
+    color: var(--primary-700, #1d4ed8) !important;
+    text-decoration: underline;
+    transform: translateX(2px);
+}

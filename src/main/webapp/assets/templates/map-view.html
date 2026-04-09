@@ -1,0 +1,96 @@
+<div class="map-view-wrapper" data-map-wrapper>
+    <div class="map-toolbar">
+        <div class="map-control-group">
+            <label for="mapTypeSelect">Map Type</label>
+            <select id="mapTypeSelect">
+                <option value="system-lineage">System Lineage</option>
+                <option value="data-lineage">Data Lineage</option>
+                <option value="multi-node">Multi Node</option>
+            </select>
+        </div>
+        <div class="map-control-group">
+            <label for="mapLayoutSelect">Layout</label>
+            <select id="mapLayoutSelect">
+                <option value="left-to-right">Left to Right</option>
+                <option value="right-to-left">Right to Left</option>
+                <option value="top-to-bottom">Top Down</option>
+                <option value="force">Force Directed</option>
+            </select>
+        </div>
+        <div class="map-control-group">
+            <label for="mapOverlaySelect">Overlay</label>
+            <select id="mapOverlaySelect">
+                <option value="none">None</option>
+                <option value="status">Status</option>
+                <option value="lifecycle">Lifecycle</option>
+            </select>
+        </div>
+        <div class="map-control-group">
+            <label>&nbsp;</label>
+            <button id="mapRefreshBtn" type="button"><i class="fas fa-rotate"></i> Refresh</button>
+        </div>
+    </div>
+    <div class="map-toolbar">
+        <div class="map-control-group" style="flex:1;">
+            <label>Node Groups</label>
+            <div class="map-node-filters" id="mapNodeFilters">
+                <label class="map-toggle" data-group="dataset" data-active="true">
+                    <input type="checkbox" checked data-map-filter value="dataset">
+                    Datasets
+                </label>
+                <label class="map-toggle" data-group="system" data-active="true">
+                    <input type="checkbox" checked data-map-filter value="system">
+                    Systems
+                </label>
+                <label class="map-toggle" data-group="attribute" data-active="true">
+                    <input type="checkbox" checked data-map-filter value="attribute">
+                    Attributes
+                </label>
+                <label class="map-toggle" data-group="glossary" data-active="true">
+                    <input type="checkbox" checked data-map-filter value="glossary">
+                    Glossaries
+                </label>
+                <label class="map-toggle" data-group="interface" data-active="true">
+                    <input type="checkbox" checked data-map-filter value="interface">
+                    Interfaces
+                </label>
+                <label class="map-toggle" data-group="process" data-active="true">
+                    <input type="checkbox" checked data-map-filter value="process">
+                    Processes
+                </label>
+                <label class="map-toggle" data-group="policy" data-active="true">
+                    <input type="checkbox" checked data-map-filter value="policy">
+                    Policies
+                </label>
+                <label class="map-toggle" data-group="people" data-active="true">
+                    <input type="checkbox" checked data-map-filter value="people">
+                    People
+                </label>
+                <label class="map-toggle" data-group="other" data-active="true">
+                    <input type="checkbox" checked data-map-filter value="other">
+                    Other
+                </label>
+            </div>
+        </div>
+    </div>
+    <div class="map-body">
+        <div class="map-network-container">
+            <div class="map-loading-overlay" data-map-loading style="display:none;">
+                <i class="fas fa-spinner fa-spin"></i>
+                <span>Building insight map...</span>
+            </div>
+            <div id="mapNetworkCanvas" class="map-network-canvas"></div>
+        </div>
+        <div class="map-side-panel">
+            <h3><i class="fas fa-circle-info"></i> Selection</h3>
+            <div class="selection-placeholder" data-map-placeholder>
+                Select a node to see its details.
+            </div>
+            <div class="map-details-list" data-map-details></div>
+            <h3><i class="fas fa-layer-group"></i> Legend</h3>
+            <div class="map-legend" data-map-legend></div>
+            <div class="map-summary" data-map-summary></div>
+        </div>
+    </div>
+</div>
+

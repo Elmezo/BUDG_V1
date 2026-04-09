@@ -1,0 +1,742 @@
+/* ═══════════════════════════════════════════════════════
+   Advanced Rich Text Editor – Shared Styles
+   Mirrors dashboard → new widget → text editor
+   ═══════════════════════════════════════════════════════ */
+
+/* ── Container ── */
+.arté-container {
+    border: 1px solid var(--border-color, #e9ecef);
+    border-radius: 6px;
+    background: var(--background-primary, #ffffff);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    max-width: 100%;
+    margin-top: 0.5rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+/* ── Toolbar ── */
+.arté-toolbar {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    padding: 0.5rem;
+    border-bottom: 1px solid var(--border-color, #e9ecef);
+    background: var(--background-secondary, #f8f9fa);
+}
+
+.arté-toolbar-row {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    flex-wrap: wrap;
+}
+
+/* ── Toolbar buttons ── */
+.arté-btn {
+    background: transparent;
+    border: none;
+    padding: 0.5rem;
+    cursor: pointer;
+    color: var(--text-primary, #2c3e50);
+    border-radius: 4px;
+    transition: background-color 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    font-size: 0.875rem;
+    line-height: 1;
+}
+
+.arté-btn:hover {
+    background-color: var(--background-hover, #e9ecef);
+}
+
+.arté-btn.active {
+    background-color: #ffeb3b;
+    color: #000000;
+}
+
+.arté-btn.active:hover {
+    background-color: #fdd835;
+}
+
+.arté-btn i {
+    font-size: 0.875rem;
+}
+
+/* Caret icon inside buttons */
+.arté-caret {
+    font-size: 0.6rem !important;
+    margin-left: 2px;
+}
+
+/* Text color trigger */
+.arté-color-trigger {
+    font-weight: bold;
+    background-color: #ffeb3b;
+    color: #000000;
+}
+
+.arté-color-trigger:hover {
+    background-color: #fdd835;
+}
+
+/* ── Separator ── */
+.arté-separator {
+    width: 1px;
+    height: 24px;
+    background: var(--border-color, #e9ecef);
+    margin: 0 0.25rem;
+}
+
+/* ── Editor content area ── */
+.arté-editor-content {
+    flex: 1;
+    padding: 1rem;
+    outline: none;
+    color: var(--text-primary, #2c3e50);
+    font-size: 0.875rem;
+    line-height: 1.6;
+    overflow: auto;
+    min-height: 200px;
+    background: var(--background-primary, #fff);
+}
+
+.arté-editor-content:empty::before {
+    content: 'Enter text here...';
+    color: var(--text-tertiary, #adb5bd);
+}
+
+/* Formatting inside editor */
+.arté-editor-content b,
+.arté-editor-content strong {
+    font-weight: bold;
+}
+
+.arté-editor-content u {
+    text-decoration: underline;
+}
+
+.arté-editor-content table {
+    border-collapse: collapse;
+    width: auto;
+    max-width: 100%;
+    margin: 0.5rem 0;
+    display: table;
+    table-layout: auto;
+}
+
+.arté-editor-content table td,
+.arté-editor-content table th {
+    border: 1px solid var(--border-color, #dee2e6);
+    padding: 8px;
+    min-width: 50px;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    max-width: 300px;
+}
+
+.arté-editor-content table th {
+    background-color: var(--background-secondary, #f8f9fa);
+    font-weight: 600;
+}
+
+.arté-editor-content ul,
+.arté-editor-content ol {
+    margin: 0.5rem 0;
+    padding-left: 2rem;
+}
+
+.arté-editor-content a {
+    color: #248567;
+    text-decoration: underline;
+}
+
+.arté-editor-content img {
+    max-width: 100%;
+    height: auto;
+}
+
+/* ── Dropdown ── */
+.arté-dropdown {
+    position: relative;
+    display: inline-block;
+}
+
+.arté-dropdown-menu {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    z-index: 1000;
+    background: var(--background-primary, #ffffff);
+    border: 1px solid var(--border-color, #e9ecef);
+    border-radius: 4px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    margin-top: 2px;
+    min-width: 150px;
+    padding: 0.5rem 0;
+}
+
+.arté-dropdown.active .arté-dropdown-menu {
+    display: block;
+}
+
+.arté-dropdown-item {
+    display: block;
+    padding: 0.5rem 1rem;
+    color: var(--text-primary, #2c3e50);
+    text-decoration: none;
+    font-size: 0.875rem;
+    transition: background-color 0.2s ease;
+    cursor: pointer;
+}
+
+.arté-dropdown-item:hover {
+    background-color: var(--background-hover, #f8f9fa);
+}
+
+.arté-dropdown-item i {
+    margin-right: 0.5rem;
+    width: 16px;
+}
+
+/* ── Color picker ── */
+.arté-color-menu {
+    padding: 0.75rem;
+    min-width: 200px;
+}
+
+.arté-color-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.5rem;
+}
+
+.arté-color-option {
+    width: 32px;
+    height: 32px;
+    border-radius: 4px;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: all 0.2s ease;
+}
+
+.arté-color-option:hover {
+    border-color: var(--border-color, #e9ecef);
+    transform: scale(1.1);
+}
+
+/* ── Table grid selector ── */
+.arté-table-menu {
+    padding: 0.75rem;
+    min-width: 250px;
+}
+
+.arté-table-grid {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: 1px;
+    width: 160px;
+    height: 160px;
+    margin: 0 auto;
+}
+
+.arté-table-cell {
+    width: 19px;
+    height: 19px;
+    border: 1px solid #ddd;
+    background: #f8f9fa;
+    cursor: pointer;
+    transition: background-color 0.1s ease;
+}
+
+.arté-table-cell:hover,
+.arté-table-cell.highlighted {
+    background: #cfe2ff;
+    border-color: #cfe2ff;
+}
+
+.arté-table-dim {
+    text-align: center;
+    margin-top: 5px;
+    font-size: 14px;
+    color: #333;
+}
+
+/* ── Footer ── */
+.arté-footer {
+    padding: 0.5rem;
+    border-top: 1px solid var(--border-color, #e5e7eb);
+    display: flex;
+    justify-content: flex-end;
+    background: var(--background-secondary, #f8f9fa);
+    border-radius: 0 0 6px 6px;
+}
+
+.arté-hide-link {
+    color: #6b7280;
+    text-decoration: none;
+    font-size: 0.875rem;
+    cursor: pointer;
+}
+
+.arté-hide-link:hover {
+    color: #374151;
+    text-decoration: underline;
+}
+
+/* ── Fullscreen mode ── */
+.arté-fullscreen {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    max-width: 100vw !important;
+    z-index: 99999;
+    margin: 0 !important;
+    border-radius: 0 !important;
+}
+
+.arté-fullscreen .arté-editor-content {
+    flex: 1;
+    height: calc(100vh - 100px);
+    min-height: unset;
+}
+
+/* ── Show Editor button (shared) ── */
+.show-editor-btn,
+.editor-button {
+    margin-top: 0.5rem;
+    display: inline-block;
+}
+
+/* ── Preview div (replaces textarea when it has HTML content) ── */
+.arté-preview {
+    border: 1px solid var(--border-color, #e5e7eb);
+    border-radius: 6px;
+    background: var(--background-primary, #ffffff);
+    padding: 0.75rem;
+    min-height: 80px;
+    font-size: 0.95rem;
+    line-height: 1.6;
+    color: var(--text-primary, #2c3e50);
+    cursor: pointer;
+    width: 100%;
+    box-sizing: border-box;
+    overflow: auto;
+    transition: box-shadow 0.2s ease;
+}
+
+.arté-preview:hover {
+    box-shadow: 0 0 0 2px rgba(33, 150, 243, 0.2);
+}
+
+.arté-preview table {
+    border-collapse: collapse;
+    width: auto;
+    max-width: 100%;
+}
+
+.arté-preview table td,
+.arté-preview table th {
+    border: 1px solid var(--border-color, #dee2e6);
+    padding: 4px 8px;
+}
+
+.arté-preview img {
+    max-width: 100%;
+    height: auto;
+}
+
+.arté-preview ul,
+.arté-preview ol {
+    margin: 0.5rem 0;
+    padding-left: 2rem;
+}
+
+.arté-preview a {
+    color: #248567;
+    text-decoration: underline;
+}
+
+/* ═══════════════════════════════════════════════════════
+   Image toolbar  (appears when clicking an image)
+   ═══════════════════════════════════════════════════════ */
+.arté-image-toolbar,
+.arté-table-toolbar {
+    position: sticky;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: 1000;
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+    padding: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.arté-image-toolbar-info {
+    font-size: 0.8rem;
+    color: #6c757d;
+    margin-bottom: 4px;
+    width: 100%;
+}
+
+.arté-toolbar-section {
+    display: flex;
+    gap: 0.25rem;
+    align-items: center;
+}
+
+.arté-toolbar-action-btn {
+    background: #fff;
+    border: 1px solid #dee2e6;
+    padding: 4px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    color: #2c3e50;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    transition: background 0.15s ease;
+}
+
+.arté-toolbar-action-btn:hover {
+    background: #e9ecef;
+}
+
+.arté-toolbar-action-btn i {
+    font-size: 0.75rem;
+}
+
+/* ═══════════════════════════════════════════════════════
+   Image upload modal
+   ═══════════════════════════════════════════════════════ */
+.arté-image-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100001;
+}
+
+.arté-image-modal {
+    background-color: #fff;
+    border-radius: 4px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    width: 500px;
+    max-width: 90%;
+    display: flex;
+    flex-direction: column;
+}
+
+.arté-image-modal-header {
+    padding: 15px 20px;
+    border-bottom: 1px solid #e9ecef;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.arté-image-modal-header h2 {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 500;
+    color: #333;
+}
+
+.arté-image-modal-close {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    line-height: 1;
+    color: #6c757d;
+    cursor: pointer;
+}
+
+.arté-image-modal-body {
+    padding: 20px;
+}
+
+.arté-image-section {
+    margin-bottom: 20px;
+}
+
+.arté-image-section h3 {
+    font-size: 1rem;
+    font-weight: 500;
+    color: #333;
+    margin: 0 0 10px 0;
+}
+
+.arté-image-btn-container {
+    display: flex;
+    align-items: center;
+}
+
+.arté-image-file-btn {
+    position: relative;
+    background-color: #f8f9fa;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    padding: 8px 16px;
+    font-size: 0.9rem;
+    color: #333;
+    cursor: pointer;
+    overflow: hidden;
+    display: inline-block;
+}
+
+.arté-image-file-input {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    cursor: pointer;
+}
+
+.arté-image-url-input {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    box-sizing: border-box;
+}
+
+.arté-image-separator {
+    display: flex;
+    align-items: center;
+    margin: 20px 0;
+    text-align: center;
+}
+
+.arté-image-separator::before,
+.arté-image-separator::after {
+    content: '';
+    flex: 1;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.arté-image-separator span {
+    padding: 0 10px;
+    color: #6c757d;
+    font-size: 0.9rem;
+}
+
+.arté-image-preview-container {
+    margin-top: 15px;
+    padding: 10px;
+    background-color: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 4px;
+    text-align: center;
+}
+
+.arté-image-preview {
+    max-width: 100%;
+    max-height: 200px;
+    display: block;
+    margin: 0 auto;
+}
+
+.arté-image-modal-footer {
+    padding: 15px 20px;
+    border-top: 1px solid #e9ecef;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.arté-image-cancel-btn {
+    background-color: #f8f9fa;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    padding: 6px 12px;
+    font-size: 0.9rem;
+    color: #333;
+    cursor: pointer;
+}
+
+.arté-image-insert-btn {
+    background-color: #248567;
+    border: 1px solid #248567;
+    border-radius: 4px;
+    padding: 6px 12px;
+    font-size: 0.9rem;
+    color: #fff;
+    cursor: pointer;
+}
+
+/* ═══════════════════════════════════════════════════════
+   Dark-mode support
+   ═══════════════════════════════════════════════════════ */
+[data-theme="dark"] .arté-container {
+    background: var(--card-background, #2d2d2d);
+    border-color: #404040;
+}
+
+[data-theme="dark"] .arté-toolbar {
+    background: var(--background-secondary, #2d3748);
+    border-bottom-color: #404040;
+}
+
+[data-theme="dark"] .arté-btn {
+    color: var(--text-primary, #f7fafc);
+}
+
+[data-theme="dark"] .arté-btn:hover {
+    background-color: #404040;
+}
+
+[data-theme="dark"] .arté-color-trigger {
+    background-color: #ffeb3b;
+    color: #000;
+}
+
+[data-theme="dark"] .arté-separator {
+    background: #404040;
+}
+
+[data-theme="dark"] .arté-editor-content {
+    background: var(--card-background, #2d2d2d);
+    color: var(--text-primary, #f7fafc);
+}
+
+[data-theme="dark"] .arté-editor-content:empty::before {
+    color: var(--text-tertiary, #718096);
+}
+
+[data-theme="dark"] .arté-footer {
+    background: var(--background-secondary, #2d3748);
+    border-top-color: #404040;
+}
+
+[data-theme="dark"] .arté-hide-link {
+    color: #9ca3af;
+}
+
+[data-theme="dark"] .arté-preview {
+    background: var(--card-background, #2d2d2d);
+    border-color: #404040;
+    color: var(--text-primary, #f7fafc);
+}
+
+[data-theme="dark"] .arté-dropdown-menu {
+    background: var(--card-background, #2d2d2d);
+    border-color: #404040;
+}
+
+[data-theme="dark"] .arté-dropdown-item:hover {
+    background-color: #404040;
+}
+
+[data-theme="dark"] .arté-table-cell {
+    background: #3a3a3a;
+    border-color: #555;
+}
+
+[data-theme="dark"] .arté-table-cell:hover,
+[data-theme="dark"] .arté-table-cell.highlighted {
+    background: #4a6fa5;
+    border-color: #4a6fa5;
+}
+
+[data-theme="dark"] .arté-table-dim {
+    color: #ccc;
+}
+
+[data-theme="dark"] .arté-image-toolbar,
+[data-theme="dark"] .arté-table-toolbar {
+    background-color: #2d3748;
+    border-bottom-color: #404040;
+}
+
+[data-theme="dark"] .arté-toolbar-action-btn {
+    background: #3a3a3a;
+    border-color: #555;
+    color: #f7fafc;
+}
+
+[data-theme="dark"] .arté-toolbar-action-btn:hover {
+    background: #4a5568;
+}
+
+[data-theme="dark"] .arté-image-toolbar-info {
+    color: #a0aec0;
+}
+
+/* Dark theme — Image upload modal */
+[data-theme="dark"] .arté-image-modal {
+    background-color: #2d3748;
+    border-color: #4a5568;
+}
+
+[data-theme="dark"] .arté-image-modal-header {
+    border-color: #4a5568;
+}
+
+[data-theme="dark"] .arté-image-modal-header h2 {
+    color: #f7fafc;
+}
+
+[data-theme="dark"] .arté-image-modal-close {
+    color: #a0aec0;
+}
+
+[data-theme="dark"] .arté-image-section h3 {
+    color: #f7fafc;
+}
+
+[data-theme="dark"] .arté-image-file-btn {
+    background-color: #4a5568;
+    border-color: #2d3748;
+    color: #f7fafc;
+}
+
+[data-theme="dark"] .arté-image-url-input {
+    background-color: #4a5568;
+    border-color: #2d3748;
+    color: #f7fafc;
+}
+
+[data-theme="dark"] .arté-image-separator::before,
+[data-theme="dark"] .arté-image-separator::after {
+    border-color: #4a5568;
+}
+
+[data-theme="dark"] .arté-image-preview-container {
+    background-color: #4a5568;
+    border-color: #2d3748;
+}
+
+[data-theme="dark"] .arté-image-modal-footer {
+    border-color: #4a5568;
+}
+
+[data-theme="dark"] .arté-image-cancel-btn {
+    background-color: #4a5568;
+    border-color: #2d3748;
+    color: #f7fafc;
+}

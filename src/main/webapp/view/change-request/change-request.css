@@ -1,0 +1,1207 @@
+/* Change Request Page Styles - Matching Creation Page Style */
+
+/* Page Layout */
+.change-request-page .main-content {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 1rem 20px;
+    height: auto;
+    min-height: calc(100vh - 70px - 80px);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.change-request-page .content-card {
+    padding-bottom: 1rem;
+}
+
+/* Form Container */
+.change-request-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.25rem;
+}
+
+/* Form Sections - Card Style like creation pages */
+.change-request-page .form-section {
+    background: var(--card-bg, #fff);
+    border: 1px solid var(--border-color, #e5e7eb);
+    border-radius: 12px;
+    padding: 1.25rem;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+    margin-bottom: 1.25rem;
+}
+
+.change-request-page .form-section:last-child {
+    margin-bottom: 0;
+}
+
+/* Section Titles */
+.change-request-page .section-title {
+    font-weight: 600;
+    color: var(--text-muted, #6b7280);
+    margin-bottom: .9rem;
+    letter-spacing: .04em;
+    font-size: .9rem;
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+/* Gray title strip (from main.css .section-title) fills full card width */
+.change-request-page .form-section > .section-title,
+.change-request-page .view-section > .section-title {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    align-self: stretch;
+}
+
+.change-request-page .section-subtitle {
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--text-muted, #6b7280);
+    margin-bottom: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* Form Fields Container */
+.change-request-page .form-fields-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+/* Form Groups */
+.change-request-page .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.change-request-page .form-group.full-width {
+    grid-column: 1 / -1;
+}
+
+/* Form Labels */
+.change-request-page .form-label {
+    font-weight: 500;
+    color: var(--text-muted, #6b7280);
+    font-size: .9rem;
+    margin-bottom: 0.25rem;
+}
+
+.change-request-page .form-label.required::after {
+    content: " *";
+    color: #dc2626;
+}
+
+/* Form Inputs */
+.change-request-page .form-input,
+.change-request-page .form-textarea,
+.change-request-page .form-select {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid var(--border-color, #e5e7eb);
+    border-radius: 6px;
+    font-size: 0.875rem;
+    background: white;
+    color: var(--text-primary, #111827);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.change-request-page .form-input:focus,
+.change-request-page .form-textarea:focus,
+.change-request-page .form-select:focus {
+    outline: none;
+    border-color: var(--primary-500, #6366f1);
+    box-shadow: 0 0 0 3px var(--primary-100, #e0e7ff);
+}
+
+.change-request-page .form-select {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6,9 12,15 18,9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    background-size: 1rem;
+    padding-right: 2.5rem;
+}
+
+.change-request-page .form-textarea {
+    resize: vertical;
+    min-height: 100px;
+}
+
+/* Input Group Inline */
+.change-request-page .input-group-inline {
+    display: flex;
+    gap: 0.5rem;
+    align-items: stretch;
+}
+
+.change-request-page .input-group-inline .form-input {
+    flex: 1;
+}
+
+.change-request-page .input-group-inline .form-select {
+    flex-shrink: 0;
+    min-width: 120px;
+}
+
+/* Buttons */
+.change-request-page .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.change-request-page .btn-sm {
+    padding: 0.375rem 0.75rem;
+    font-size: 0.75rem;
+}
+
+.change-request-page .btn-primary {
+    background-color: #248567;
+    color: white;
+    border-color: #248567;
+}
+
+.change-request-page .btn-primary:hover {
+    background-color: #059669;
+    border-color: #059669;
+}
+
+.change-request-page .btn-success {
+    background-color: #248567;
+    color: white;
+    border-color: #248567;
+}
+
+.change-request-page .btn-success:hover {
+    background-color: #059669;
+    border-color: #059669;
+}
+
+.change-request-page .btn-secondary {
+    background-color: var(--gray-100, #f3f4f6);
+    color: var(--gray-700, #374151);
+    border-color: var(--gray-300, #d1d5db);
+}
+
+.change-request-page .btn-secondary:hover {
+    background-color: var(--gray-200, #e5e7eb);
+    border-color: var(--gray-400, #9ca3af);
+}
+
+/* Form Actions */
+.change-request-page .form-actions {
+    display: flex;
+    gap: 0.75rem;
+}
+
+.change-request-page .form-actions .btn {
+    min-width: 120px;
+}
+
+/* Grid Utilities */
+.grid {
+    display: grid;
+}
+
+.grid-cols-2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.gap-6 {
+    gap: 1.5rem;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+    .change-request-container {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    
+    .change-request-page .main-content {
+        padding: 1rem 15px;
+    }
+    
+    .change-request-page .form-section {
+        padding: 1rem;
+    }
+    
+    .change-request-page .form-actions {
+        flex-wrap: wrap;
+    }
+    
+    .change-request-page .form-actions .btn {
+        min-width: 100px;
+        flex: 1;
+    }
+}
+
+@media (max-width: 768px) {
+    .change-request-page .main-content {
+        padding: 0.75rem 10px;
+    }
+    
+    .change-request-page .form-section {
+        padding: 0.875rem;
+    }
+    
+    .change-request-page .input-group-inline {
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+    
+    .change-request-page .input-group-inline .form-select {
+        min-width: auto;
+    }
+}
+
+/* Tab Content */
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+/* Page Header */
+.change-request-page .page-header {
+    flex-shrink: 0;
+}
+
+/* Tab Container */
+.change-request-page .tab-container {
+    flex-shrink: 0;
+}
+
+/* Content Body */
+.change-request-page .content-body {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 1.5rem;
+}
+
+/* View Page Specific Styles */
+.change-request-page .view-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.25rem;
+}
+
+.change-request-page .view-section {
+    background: var(--card-bg, #fff);
+    border: 1px solid var(--border-color, #e5e7eb);
+    border-radius: 12px;
+    padding: 1.25rem;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+    margin-bottom: 1.25rem;
+}
+
+.change-request-page .view-section:last-child {
+    margin-bottom: 0;
+}
+
+.change-request-page .view-section .section-title {
+    font-weight: 600;
+    color: var(--text-muted, #6b7280);
+    margin-bottom: .9rem;
+    letter-spacing: .04em;
+    font-size: .9rem;
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+.change-request-page .section-subtitle {
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--text-muted, #6b7280);
+    margin-bottom: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.change-request-page .section-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.change-request-page .view-item {
+    display: grid;
+    grid-template-columns: 200px 1fr;
+    gap: .85rem;
+    padding: .65rem 0;
+    border-bottom: 1px dashed var(--border-color, #e5e7eb);
+}
+
+.change-request-page .view-item:last-child {
+    border-bottom: 0;
+}
+
+.change-request-page .view-label {
+    font-weight: 500;
+    color: var(--text-muted, #6b7280);
+    font-size: .9rem;
+}
+
+.change-request-page .view-value {
+    color: var(--text-primary, #1f2937);
+    font-size: .9rem;
+    word-break: break-word;
+}
+
+.change-request-page .view-value i {
+    margin-right: 0.5rem;
+    color: var(--text-muted, #6b7280);
+}
+
+.change-request-page .empty-state {
+    text-align: center;
+    padding: 2rem;
+    color: var(--text-muted, #6b7280);
+    font-style: italic;
+}
+
+.change-request-page .empty-state i {
+    font-size: 1.5rem;
+    margin-bottom: 0.5rem;
+    display: block;
+}
+
+.change-request-page .error-state {
+    text-align: center;
+    padding: 2rem;
+    color: #dc2626;
+}
+
+.change-request-page .error-state i {
+    font-size: 2rem;
+    margin-bottom: 1rem;
+    display: block;
+}
+
+.change-request-page .workflow-diagram {
+    min-height: 200px;
+    border: 1px dashed var(--border-color, #e5e7eb);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted, #6b7280);
+    font-style: italic;
+}
+
+.change-request-page .workflow-diagram::before {
+    content: "Workflow diagram will be displayed here";
+}
+
+/* Left and Right Columns */
+.change-request-page .left-column,
+.change-request-page .right-column {
+    display: flex;
+    flex-direction: column;
+}
+
+/* Analysis and Resolution Forms */
+.change-request-page .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.change-request-page .form-group .form-label {
+    font-weight: 500;
+    color: var(--text-primary, #374151);
+    font-size: 0.875rem;
+}
+
+.change-request-page .form-textarea,
+.change-request-page .form-select {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid var(--border-color, #d1d5db);
+    border-radius: 6px;
+    font-size: 0.875rem;
+    background: white;
+    color: var(--text-primary, #111827);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.change-request-page .form-textarea:focus,
+.change-request-page .form-select:focus {
+    outline: none;
+    border-color: var(--primary-500, #6366f1);
+    box-shadow: 0 0 0 3px var(--primary-100, #e0e7ff);
+}
+
+.change-request-page .form-textarea {
+    resize: vertical;
+    min-height: 100px;
+}
+
+.change-request-page .btn-sm {
+    padding: 0.375rem 0.75rem;
+    font-size: 0.75rem;
+    border-radius: 4px;
+    margin-right: 0.5rem;
+}
+
+/* Hyperlink styling */
+.change-request-page .view-value a {
+    color: #248567;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.change-request-page .view-value a:hover {
+    text-decoration: underline;
+}
+
+/* Responsive adjustments for view */
+@media (max-width: 1024px) {
+    .change-request-page .view-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .change-request-page .view-item {
+        grid-template-columns: 1fr;
+        gap: 0.5rem;
+    }
+    
+    .change-request-page .view-label {
+        font-weight: 600;
+    }
+}
+
+/* Edit Page Specific Styles */
+.change-request-page .affected-item-link {
+    color: #248567;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.change-request-page .affected-item-link:hover {
+    text-decoration: underline;
+}
+
+/* People Link */
+.change-request-page .people-link {
+    color: #248567;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.change-request-page .people-link:hover {
+    text-decoration: underline;
+}
+
+/* Empty state for spans */
+.change-request-page .empty {
+    color: var(--text-muted, #9ca3af);
+    font-style: italic;
+}
+
+/* Stakeholder Table Styles */
+.change-request-page .stakeholder-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.change-request-page .stakeholder-table th {
+    padding: 1rem 1rem;
+    text-align: left;
+    font-weight: 600;
+    color: var(--text-secondary, #6c757d);
+    font-size: .82rem;
+    letter-spacing: .025em;
+    text-transform: uppercase;
+    background: var(--background-secondary, #f8f9fa);
+    border-bottom: 1px solid var(--border-color, #e9ecef);
+    white-space: nowrap;
+}
+
+.change-request-page .stakeholder-table td {
+    padding: .9rem 1rem;
+    border-top: 1px solid var(--border-color, #e9ecef);
+    color: var(--text-primary, #2c3e50);
+    font-size: 0.875rem;
+}
+
+.change-request-page .stakeholder-table tbody tr:hover {
+    background: var(--background-hover, #f8fafc);
+}
+
+.change-request-page .stakeholder-table tbody tr:first-child td {
+    border-top: none;
+}
+
+.change-request-page .role-cell,
+.change-request-page .name-cell,
+.change-request-page .org-cell {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.change-request-page .role-cell i,
+.change-request-page .name-cell i,
+.change-request-page .org-cell i {
+    color: var(--text-tertiary, #adb5bd);
+    font-size: 0.875rem;
+}
+
+.change-request-page .name-cell a,
+.change-request-page .org-cell a {
+    color: #248567 !important;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.change-request-page .name-cell a:hover,
+.change-request-page .org-cell a:hover {
+    text-decoration: underline;
+}
+
+.change-request-page .section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.change-request-page .section-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.change-request-page .btn-icon {
+    background: none;
+    border: none;
+    padding: 0.5rem;
+    cursor: pointer;
+    color: var(--text-secondary, #6c757d);
+    border-radius: 4px;
+    transition: all 0.2s ease;
+}
+
+.change-request-page .btn-icon:hover {
+    background: var(--background-hover, #f3f4f6);
+    color: var(--text-primary, #374151);
+}
+
+.change-request-page .table-footer {
+    text-align: right;
+    padding: 0.75rem 1rem;
+    color: var(--text-tertiary, #adb5bd);
+    font-size: 0.8rem;
+    border-top: 1px solid var(--border-color, #e9ecef);
+    background: var(--background-secondary, #f8f9fa);
+}
+
+.change-request-page .loading-state {
+    text-align: center;
+    padding: 2rem;
+    color: var(--text-muted, #6b7280);
+}
+
+.change-request-page .loading-state i {
+    margin-right: 0.5rem;
+}
+
+/* Tab visibility classes - preserve grid layout when hiding/showing */
+.change-request-page .tab-hidden {
+    display: none !important;
+    visibility: hidden !important;
+}
+
+.change-request-page .tab-visible {
+    display: block;
+}
+
+/* Ensure view-grid maintains layout when visible - this is critical */
+.change-request-page .view-grid.tab-visible {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 1.25rem !important;
+}
+
+/* Relationships Tab Styles */
+.relationships-container {
+    padding: 1.5rem;
+}
+
+.relationships-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+
+.relationships-header .section-title {
+    margin-bottom: 0;
+}
+
+/* Full-width relationships layout for view page */
+.relationships-full-width {
+    width: 100%;
+    padding: 0;
+}
+
+.relationships-full-width .section-title {
+    font-weight: 600;
+    color: var(--text-muted, #6b7280);
+    margin-bottom: 1rem;
+    letter-spacing: 0.04em;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+}
+
+/* Ensure all tab containers are properly hidden when not active */
+#changeRequestViewContainer.tab-hidden,
+#changeRequestRelationshipsContainer.tab-hidden,
+#changeRequestStakeholdersContainer.tab-hidden,
+#changeRequestHistoryContainer.tab-hidden {
+    display: none !important;
+    visibility: hidden !important;
+    height: 0 !important;
+    overflow: hidden !important;
+}
+
+/* Override view-grid layout for relationships container - only when visible */
+#changeRequestRelationshipsContainer.view-grid.tab-visible {
+    display: block !important;
+    width: 100% !important;
+    visibility: visible !important;
+    height: auto !important;
+    overflow: visible !important;
+}
+
+/* Ensure summary container maintains grid layout when visible */
+#changeRequestViewContainer.view-grid.tab-visible {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 1.25rem !important;
+    visibility: visible !important;
+    height: auto !important;
+    overflow: visible !important;
+}
+
+/* Ensure stakeholders and history containers are visible when active */
+#changeRequestStakeholdersContainer.tab-visible,
+#changeRequestHistoryContainer.tab-visible {
+    display: block !important;
+    visibility: visible !important;
+    height: auto !important;
+    overflow: visible !important;
+}
+
+.relationships-table-container {
+    background: var(--card-bg, #fff);
+    border: 1px solid var(--border-color, #e5e7eb);
+    border-radius: 8px;
+    overflow: hidden;
+    width: 100%;
+}
+
+.relationships-table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: auto;
+    min-width: 100%;
+}
+
+.relationships-table th:first-child,
+.relationships-table td:first-child {
+    padding-left: 1.5rem;
+}
+
+.relationships-table th:last-child,
+.relationships-table td:last-child {
+    padding-right: 1.5rem;
+}
+
+.relationships-table th {
+    background: var(--table-header-bg, #f8fafc);
+    color: var(--text-muted, #6b7280);
+    font-weight: 600;
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 0.75rem 1rem;
+    text-align: left;
+    border-bottom: 1px solid var(--border-color, #e5e7eb);
+}
+
+.relationships-table td {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--border-color, #e5e7eb);
+    color: var(--text-primary, #1f2937);
+}
+
+.relationships-table tbody tr:hover {
+    background: var(--hover-bg, #f8fafc);
+}
+
+.relationships-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.empty-relationships {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: var(--text-muted, #6b7280);
+}
+
+.empty-relationships i {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+}
+
+.empty-relationships p {
+    font-size: 1.125rem;
+    margin: 0;
+}
+
+/* Add Relationship Form */
+.add-relationship-form {
+    background: var(--card-bg, #fff);
+    border: 1px solid var(--border-color, #e5e7eb);
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-top: 1.5rem;
+}
+
+.add-relationship-form .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.add-relationship-form .form-actions {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: flex-end;
+}
+
+/* Relationship Type Badge */
+.relationship-type-badge {
+    background: #e0f2f1;
+    color: #248567;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* Object Type Badge */
+.object-type-badge {
+    background: #f3f4f6;
+    color: #374151;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+/* Related CR Link */
+.related-cr-link {
+    color: #248567 !important;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.related-cr-link:hover {
+    text-decoration: underline;
+    color: #1e6b56 !important;
+}
+
+/* Action Buttons */
+.edit-relationship-btn {
+    background: none;
+    border: none;
+    color: #248567;
+    cursor: pointer;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+    font-size: 0.875rem;
+}
+
+.edit-relationship-btn:hover {
+    background: #e0f2f1;
+    color: #1e6b56;
+}
+
+.delete-relationship-btn {
+    background: none;
+    border: none;
+    color: #ef4444;
+    cursor: pointer;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+    font-size: 0.875rem;
+}
+
+.delete-relationship-btn:hover {
+    background: #fef2f2;
+    color: #dc2626;
+}
+
+/* Stakeholder Community Styles - With tabs like object stakeholder community */
+.stakeholder-community-tabs {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    border-bottom: 1px solid var(--border-color, #e5e7eb);
+    padding-bottom: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.stakeholder-community-tab {
+    background: none;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--text-muted, #6b7280);
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    white-space: nowrap;
+}
+
+.stakeholder-community-tab:hover {
+    background: var(--hover-bg, #f8fafc);
+    color: var(--text-primary, #1f2937);
+}
+
+.stakeholder-community-tab.active {
+    background: #248567;
+    color: white;
+}
+
+.stakeholder-community-tab .count {
+    background: rgba(255, 255, 255, 0.2);
+    padding: 0.125rem 0.375rem;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    min-width: 1.5rem;
+    text-align: center;
+}
+
+.stakeholder-community-tab:not(.active) .count {
+    background: var(--chip-bg, #f3f4f6);
+    color: var(--text-muted, #6b7280);
+}
+
+.stakeholder-community-content {
+    margin-top: 1rem;
+}
+
+.stakeholder-community-table .object-link,
+.stakeholder-community-table .person-link {
+    color: #248567 !important;
+    text-decoration: none;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.stakeholder-community-table .object-link:hover,
+.stakeholder-community-table .person-link:hover {
+    text-decoration: underline;
+    color: #1e6b56 !important;
+}
+
+/* Object type badge for stakeholder community */
+.object-type-badge {
+    display: inline-block;
+    background: #e0f2f1;
+    color: #248567;
+    padding: 0.125rem 0.5rem;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    margin-right: 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+}
+
+/* Style the object link in stakeholder community */
+.stakeholder-table .object-link {
+    color: #248567 !important;
+    text-decoration: none;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.stakeholder-table .object-link:hover {
+    text-decoration: underline;
+    color: #1e6b56 !important;
+}
+
+.stakeholder-table .person-link {
+    color: #248567 !important;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.stakeholder-table .person-link:hover {
+    text-decoration: underline;
+    color: #1e6b56 !important;
+}
+
+/* ===== CHANGES TO REVIEW SECTION ===== */
+.changes-table-container {
+    margin-top: 1rem;
+    border: 1px solid var(--border-color, #e5e7eb);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.changes-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+}
+
+.changes-table thead {
+    background: var(--table-header-bg, #f9fafb);
+}
+
+.changes-table th {
+    padding: 0.75rem 1rem;
+    text-align: left;
+    font-weight: 600;
+    color: var(--text-secondary, #6b7280);
+    border-bottom: 1px solid var(--border-color, #e5e7eb);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.changes-table td {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--border-color, #e5e7eb);
+    color: var(--text-primary, #111827);
+}
+
+.changes-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.changes-table tbody tr:hover {
+    background: var(--table-row-hover, #f3f4f6);
+}
+
+.changes-row {
+    background: #e8f5f1;
+}
+
+.changes-row:hover {
+    background: #d1ebe4 !important;
+}
+
+.details-link {
+    color: #248567;
+    text-decoration: none;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.details-link:hover {
+    text-decoration: underline;
+    color: #1e6b56;
+}
+
+.changes-count {
+    padding: 0.5rem 1rem;
+    text-align: right;
+    font-size: 0.75rem;
+    color: var(--text-muted, #9ca3af);
+    background: var(--table-header-bg, #f9fafb);
+    border-top: 1px solid var(--border-color, #e5e7eb);
+}
+
+/* ===== CHANGE DETAILS MODAL ===== */
+.change-details-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+}
+
+.change-details-modal {
+    background: var(--card-bg, white);
+    border-radius: 12px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    max-width: 700px;
+    width: 90%;
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.change-details-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid var(--border-color, #e5e7eb);
+    font-weight: 600;
+    font-size: 1.125rem;
+    color: var(--text-primary, #111827);
+}
+
+.change-details-close {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: var(--text-muted, #9ca3af);
+    padding: 0;
+    line-height: 1;
+}
+
+.change-details-close:hover {
+    color: var(--text-primary, #111827);
+}
+
+.change-details-body {
+    padding: 1.5rem;
+    overflow-y: auto;
+    flex: 1;
+}
+
+.change-details-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+}
+
+.change-details-table thead {
+    background: var(--table-header-bg, #f9fafb);
+}
+
+.change-details-table th {
+    padding: 0.75rem 1rem;
+    text-align: left;
+    font-weight: 600;
+    color: var(--text-secondary, #6b7280);
+    border: 1px solid var(--border-color, #e5e7eb);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+}
+
+.change-details-table td {
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--border-color, #e5e7eb);
+    color: var(--text-primary, #111827);
+    vertical-align: top;
+    word-break: break-word;
+}
+
+.change-details-table tbody tr:nth-child(even) {
+    background: var(--table-row-alt, #f9fafb);
+}
+
+.change-details-count {
+    margin-top: 1rem;
+    text-align: right;
+    font-size: 0.75rem;
+    color: var(--text-muted, #9ca3af);
+}
+
+.change-details-footer {
+    padding: 1rem 1.5rem;
+    border-top: 1px solid var(--border-color, #e5e7eb);
+    display: flex;
+    justify-content: flex-end;
+    background: var(--card-bg, white);
+}
+
+/* ===== BPMN WORKFLOW DIAGRAM TASK HIGHLIGHTING ===== */
+/* Active task highlighting - Green color like in the image */
+.djs-element.highlight-active .djs-visual > :first-child {
+    fill: #22c55e !important; /* Green fill for active tasks */
+    stroke: #16a34a !important; /* Darker green border */
+    stroke-width: 3px !important;
+    filter: drop-shadow(0 0 8px rgba(34, 197, 94, 0.5));
+}
+
+.djs-element.highlight-active .djs-visual > :first-child {
+    fill: #22c55e !important;
+}
+
+/* Completed task highlighting - Gray/Blue color */
+.djs-element.highlight-completed .djs-visual > :first-child {
+    fill: #94a3b8 !important; /* Gray fill for completed tasks */
+    stroke: #64748b !important; /* Darker gray border */
+    stroke-width: 2px !important;
+    opacity: 0.7;
+}
+
+/* Alternative approach using overlay for better visibility */
+.djs-overlay.highlight-active {
+    background: rgba(34, 197, 94, 0.2) !important;
+    border: 3px solid #22c55e !important;
+    border-radius: 4px;
+    pointer-events: none;
+}
+
+.djs-overlay.highlight-completed {
+    background: rgba(148, 163, 184, 0.15) !important;
+    border: 2px solid #94a3b8 !important;
+    border-radius: 4px;
+    pointer-events: none;
+}
+
+/* Ensure text remains visible on highlighted tasks */
+.djs-element.highlight-active .djs-label,
+.djs-element.highlight-completed .djs-label {
+    color: #1f2937 !important;
+    font-weight: 600;
+}

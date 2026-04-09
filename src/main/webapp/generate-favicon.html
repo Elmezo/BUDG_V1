@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generate Favicon</title>
+</head>
+<body>
+    <h1>Favicon Generator</h1>
+    <p>This page will help you create a favicon.ico file.</p>
+    <canvas id="faviconCanvas" width="32" height="32" style="border: 1px solid #ccc; display: block; margin: 20px 0;"></canvas>
+    <button onclick="downloadFavicon()" style="padding: 10px 20px; font-size: 16px; cursor: pointer;">Download favicon.ico</button>
+    
+    <script>
+        // Draw the favicon on canvas
+        const canvas = document.getElementById('faviconCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Draw stacked cylinders (database icon)
+        // Bottom cylinder
+        ctx.fillStyle = '#1a5c55';
+        ctx.fillRect(8, 20, 16, 4);
+        ctx.beginPath();
+        ctx.ellipse(16, 20, 8, 2, 0, 0, 2 * Math.PI);
+        ctx.fill();
+        
+        // Middle cylinder
+        ctx.fillStyle = '#2d8a80';
+        ctx.fillRect(8, 16, 16, 4);
+        ctx.beginPath();
+        ctx.ellipse(16, 16, 8, 2, 0, 0, 2 * Math.PI);
+        ctx.fill();
+        
+        // Top cylinder
+        ctx.fillStyle = '#20b2aa';
+        ctx.fillRect(8, 12, 16, 4);
+        ctx.beginPath();
+        ctx.ellipse(16, 12, 8, 2, 0, 0, 2 * Math.PI);
+        ctx.fill();
+        
+        function downloadFavicon() {
+            // Convert canvas to blob and download
+            canvas.toBlob(function(blob) {
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'favicon.ico';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                alert('Favicon downloaded! Please rename it to favicon.ico and place it in the webapp root directory.');
+            }, 'image/png');
+        }
+    </script>
+    
+    <p style="margin-top: 20px; color: #666;">
+        <strong>Instructions:</strong><br>
+        1. Click the "Download favicon.ico" button<br>
+        2. The file will download as a PNG<br>
+        3. Use an online converter (like <a href="https://convertio.co/png-ico/" target="_blank">convertio.co</a>) to convert PNG to ICO<br>
+        4. Place the converted favicon.ico file in: <code>src/main/webapp/favicon.ico</code>
+    </p>
+</body>
+</html>

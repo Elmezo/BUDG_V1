@@ -1,0 +1,413 @@
+================================================================================
+                    قائمة اختبار Dataset Values - Axon Alignment
+================================================================================
+
+تاريخ الإنشاء: 2025
+الغرض: التحقق من أن التنفيذ متوافق مع سلوك Axon
+
+================================================================================
+1. اختبار إدراج NULL للقيم المفقودة
+================================================================================
+
+السيناريو:
+----------
+- رفع ملف CSV يحتوي على 5 أعمدة (A, B, C, D, E)
+- صف 1: يحتوي على قيم لـ A, B, C فقط (D و E مفقودان)
+- صف 2: يحتوي على قيم لـ A, C, E فقط (B و D مفقودان)
+
+النتيجة المتوقعة:
+-----------------
+✅ يجب إدراج 5 صفوف في values_entry لكل صف من الملف (صف × عمود)
+✅ القيم المفقودة يجب أن تكون NULL صريح في value_text
+✅ row_count في values_entry_ref يجب أن يكون 2 (عدد الصفوف المرفوعة)
+
+التحقق:
+-------
+```sql
+-- التحقق من عدد القيم لكل صف
+SELECT row_index, COUNT(*) as value_count, 
+       SUM(CASE WHEN value_text IS NULL THEN 1 ELSE 0 END) as null_count
+FROM values_entry 
+WHERE entry_ref_id = [latest_entry_ref_id]
+GROUP BY row_index
+ORDER BY row_index;
+
+-- يجب أن يكون value_count = 5 (عدد الأعمدة) لكل row_index
+-- null_count يجب أن يكون 2 للصف الأول و 2 للصف الثاني
+```
+
+================================================================================
+2. اختبار منع الرفع عند غياب Data Type
+================================================================================
+
+السيناريو:
+----------
+- dataset يحتوي على 3 attributes: "Name", "Age", "Email"
+- "Name" و "Age" لهما data type محدد
+- "Email" بدون data type
+
+النتيجة المتوقعة:
+-----------------
+❌ يجب رفض الرفع مع رسالة خطأ واضحة
+❌ يجب عدم إدراج أي قيم في values_entry
+❌ يجب عدم إنشاء entry_ref
+
+رسالة الخطأ المتوقعة:
+---------------------
+"Cannot upload values: The following attributes are missing data type: Email. 
+Please specify data type for all attributes before uploading values."
+
+التحقق:
+-------
+- محاولة رفع ملف يجب أن ترجع HTTP 400 أو 500
+- يجب عدم وجود entry_ref جديد في قاعدة البيانات
+- يجب عدم وجود values_entry جديدة
+
+================================================================================
+3. اختبار التحقق الناعم من أنواع البيانات (Soft Validation)
+================================================================================
+
+3.1 Integer - قيم صحيحة
+-----------------------
+القيم المقبولة:
+- "123"
+- "-456"
+- "0"
+- " 789 " (مع مسافات - يتم trim)
+
+القيم المرفوضة:
+- "12.5" (عشري)
+- "abc" (نص)
+- "12a" (مختلط)
+
+3.2 Decimal/Float - قيم صحيحة
+------------------------------
+القيم المقبولة:
+- "123.45"
+- "-67.89"
+- "0.0"
+- "123" (رقم صحيح - يمكن تحويله)
+- " 45.67 " (مع مسافات)
+
+القيم المرفوضة:
+- "abc"
+- "12.34.56"
+- "not a number"
+
+3.3 Boolean - قيم صحيحة (مرنة)
+-------------------------------
+القيم المقبولة:
+- "true", "True", "TRUE"
+- "false", "False", "FALSE"
+- "1", "0"
+- "yes", "no"
+- "y", "n"
+
+القيم المرفوضة:
+- "maybe"
+- "2"
+- "tru" (ناقص)
+
+3.4 Date - قيم صحيحة (مرنة)
+---------------------------
+القيم المقبولة:
+- "2025-01-15" (ISO format)
+- "15/01/2025" (DD/MM/YYYY)
+- "01-15-2025" (MM-DD-YYYY)
+- "2025/01/15"
+- أي تنسيق يحتوي على أرقام وفواصل
+
+القيم المرفوضة:
+- "not a date"
+- "abc123"
+- "" (فارغ - لكن هذا NULL مسموح)
+
+التحقق:
+-------
+- رفع ملف يحتوي على قيم صحيحة يجب أن ينجح
+- رفع ملف يحتوي على قيم خاطئة يجب أن يفشل مع رسالة خطأ واضحة
+
+================================================================================
+4. اختبار Append vs Overwrite
+================================================================================
+
+4.1 Append (إضافة)
+------------------
+السيناريو:
+- dataset يحتوي على 2 صفوف موجودة (entry_ref_1)
+- رفع ملف جديد يحتوي على 3 صفوف (entry_ref_2) بنوع "append"
+
+النتيجة المتوقعة:
+-----------------
+✅ يجب إنشاء entry_ref جديد
+✅ يجب إضافة 3 صفوف جديدة (لا حذف القديمة)
+✅ يجب أن يكون هناك 5 صفوف إجمالاً (2 قديمة + 3 جديدة)
+✅ Audit: INSERT واحد فقط
+
+التحقق:
+-------
+```sql
+-- عدد entry_refs
+SELECT COUNT(*) FROM values_entry_ref WHERE datastore_id = [datastore_id];
+-- يجب أن يكون 2
+
+-- عدد الصفوف لكل entry_ref
+SELECT entry_ref_id, COUNT(DISTINCT row_index) as row_count
+FROM values_entry 
+WHERE entry_ref_id IN (
+    SELECT id FROM values_entry_ref WHERE datastore_id = [datastore_id]
+)
+GROUP BY entry_ref_id;
+-- يجب أن يكون entry_ref_1: 2 صفوف، entry_ref_2: 3 صفوف
+
+-- Audit entries
+SELECT action_type, details FROM values_audit 
+WHERE dataset_id = [dataset_id] 
+ORDER BY action_timestamp DESC 
+LIMIT 1;
+-- يجب أن يكون INSERT فقط
+```
+
+4.2 Overwrite (استبدال)
+------------------------
+السيناريو:
+- dataset يحتوي على 2 صفوف موجودة (entry_ref_1)
+- رفع ملف جديد يحتوي على 3 صفوف (entry_ref_2) بنوع "overwrite"
+
+النتيجة المتوقعة:
+-----------------
+✅ يجب حذف جميع values_entry المرتبطة بـ entry_ref_1
+✅ يجب حذف entry_ref_1
+✅ يجب إنشاء entry_ref_2 جديد
+✅ يجب إدراج 3 صفوف جديدة فقط
+✅ Audit: DELETE ثم INSERT
+
+التحقق:
+-------
+```sql
+-- عدد entry_refs (يجب أن يكون 1 فقط - الجديد)
+SELECT COUNT(*) FROM values_entry_ref WHERE datastore_id = [datastore_id];
+-- يجب أن يكون 1
+
+-- التحقق من حذف القديم
+SELECT COUNT(*) FROM values_entry_ref WHERE id = [old_entry_ref_id];
+-- يجب أن يكون 0
+
+-- عدد الصفوف (يجب أن يكون 3 فقط)
+SELECT COUNT(DISTINCT row_index) FROM values_entry 
+WHERE entry_ref_id = [new_entry_ref_id];
+-- يجب أن يكون 3
+
+-- Audit entries (يجب أن يكون DELETE ثم INSERT)
+SELECT action_type, details, action_timestamp 
+FROM values_audit 
+WHERE dataset_id = [dataset_id] 
+ORDER BY action_timestamp DESC 
+LIMIT 2;
+-- يجب أن يكون:
+-- 1. INSERT: "Uploaded 3 rows via overwrite"
+-- 2. DELETE: "Overwrite triggered"
+```
+
+================================================================================
+5. اختبار Audit Entries
+================================================================================
+
+5.1 Append - Audit
+------------------
+السيناريو: رفع ملف بـ append
+
+النتيجة المتوقعة:
+-----------------
+✅ يجب إدراج سجل واحد في values_audit:
+   - action_type: "INSERT"
+   - details: "Uploaded [N] rows via append"
+   - user_id: معرف المستخدم
+   - dataset_id: معرف الـ dataset
+
+5.2 Overwrite - Audit
+---------------------
+السيناريو: رفع ملف بـ overwrite
+
+النتيجة المتوقعة:
+-----------------
+✅ يجب إدراج سجلين في values_audit (بالترتيب):
+   1. action_type: "DELETE"
+      details: "Overwrite triggered"
+   2. action_type: "INSERT"
+      details: "Uploaded [N] rows via overwrite"
+
+التحقق:
+-------
+```sql
+-- آخر عمليتين audit
+SELECT action_type, details, action_timestamp, user_id
+FROM values_audit 
+WHERE dataset_id = [dataset_id]
+ORDER BY action_timestamp DESC
+LIMIT 2;
+```
+
+================================================================================
+6. اختبار Sample Set (Latest Entry Ref Only)
+================================================================================
+
+السيناريو:
+----------
+- dataset يحتوي على 3 عمليات رفع:
+  - entry_ref_1: 2 صفوف (الأقدم)
+  - entry_ref_2: 3 صفوف (الأوسط)
+  - entry_ref_3: 4 صفوف (الأحدث)
+
+النتيجة المتوقعة:
+-----------------
+✅ GET /api/dataset-values/{id}/sample يجب أن يعيد فقط صفوف entry_ref_3
+✅ يجب أن يكون عدد الصفوف 4 (أو أقل إذا كان > 500)
+✅ يجب عدم إرجاع صفوف من entry_ref_1 أو entry_ref_2
+
+التحقق:
+-------
+```sql
+-- التحقق من أن الاستعلام يستخدم latest entry_ref فقط
+SELECT entry_ref_id, COUNT(DISTINCT row_index) as row_count
+FROM values_entry 
+WHERE entry_ref_id IN (
+    SELECT id FROM values_entry_ref 
+    WHERE datastore_id = [datastore_id] 
+    ORDER BY id DESC LIMIT 1
+)
+GROUP BY entry_ref_id;
+-- يجب أن يكون entry_ref_id = [latest_id] و row_count = 4
+```
+
+API Test:
+---------
+```bash
+GET /api/dataset-values/{dataset_id}/sample
+
+# يجب أن يعيد JSON array يحتوي على 4 objects فقط
+# كل object يمثل صف من entry_ref_3
+```
+
+================================================================================
+7. اختبار Datastore Uniqueness
+================================================================================
+
+السيناريو:
+----------
+- محاولة إنشاء datastore ثاني لنفس dataset
+
+النتيجة المتوقعة:
+-----------------
+❌ يجب أن يفشل بسبب UNIQUE constraint
+❌ يجب استخدام datastore الموجود بدلاً من إنشاء جديد
+
+التحقق:
+-------
+```sql
+-- يجب أن يكون هناك datastore واحد فقط لكل dataset
+SELECT dataset_id, COUNT(*) as datastore_count
+FROM values_datastore
+GROUP BY dataset_id
+HAVING COUNT(*) > 1;
+-- يجب أن يكون النتيجة فارغة (لا datasets متعددة)
+```
+
+================================================================================
+8. اختبار Metadata Unchanged on Overwrite
+================================================================================
+
+السيناريو:
+----------
+1. تعيين metadata: frequency = "Daily", availability = "Via Application UI"
+2. رفع ملف بـ overwrite
+
+النتيجة المتوقعة:
+-----------------
+✅ metadata في values_datastore يجب أن يبقى كما هو
+✅ frequency و availability يجب أن تبقى "Daily" و "Via Application UI"
+✅ updated_at يجب أن يتحدث فقط إذا تم تحديث metadata مباشرة
+
+التحقق:
+-------
+```sql
+-- قبل overwrite
+SELECT frequency, availability, updated_at FROM values_datastore 
+WHERE dataset_id = [dataset_id];
+
+-- بعد overwrite (بدون تحديث metadata)
+SELECT frequency, availability, updated_at FROM values_datastore 
+WHERE dataset_id = [dataset_id];
+
+-- يجب أن تكون القيم متطابقة
+```
+
+================================================================================
+9. اختبار Reference Resolution
+================================================================================
+
+السيناريو:
+----------
+- رفع ملف يحتوي على عمود من نوع "System"
+- القيمة في الملف: "System Name" (اسم النظام)
+- النظام موجود في جدول system بـ ID = 5
+
+النتيجة المتوقعة:
+-----------------
+✅ عند الرفع: يجب تحويل "System Name" إلى "5" (ID)
+✅ عند العرض: يجب تحويل "5" إلى "System Name"
+
+التحقق:
+-------
+```sql
+-- في values_entry يجب أن تكون القيمة = "5" (ID)
+SELECT value_text FROM values_entry 
+WHERE field_id = [system_field_id] 
+AND entry_ref_id = [latest_entry_ref_id]
+LIMIT 1;
+-- يجب أن يكون "5"
+
+-- عند العرض عبر API، يجب أن يعيد "System Name"
+GET /api/dataset-values/{dataset_id}/sample
+-- يجب أن يحتوي على "System Name" وليس "5"
+```
+
+================================================================================
+10. اختبار Row Count Accuracy
+================================================================================
+
+السيناريو:
+----------
+- رفع ملف يحتوي على 10 صفوف (بعد header)
+
+النتيجة المتوقعة:
+-----------------
+✅ row_count في values_entry_ref يجب أن يكون 10
+✅ عدد row_index المميزة في values_entry يجب أن يكون 10
+
+التحقق:
+-------
+```sql
+SELECT 
+    ver.row_count as stored_count,
+    COUNT(DISTINCT ve.row_index) as actual_rows
+FROM values_entry_ref ver
+LEFT JOIN values_entry ve ON ver.id = ve.entry_ref_id
+WHERE ver.id = [entry_ref_id]
+GROUP BY ver.id, ver.row_count;
+-- يجب أن يكون stored_count = actual_rows = 10
+```
+
+================================================================================
+ملاحظات الاختبار
+================================================================================
+
+1. جميع الاختبارات يجب أن تتم داخل transaction
+2. في حالة فشل أي اختبار، يجب rollback جميع التغييرات
+3. يجب اختبار كل سيناريو بشكل منفصل
+4. يجب التحقق من audit trail بعد كل عملية
+5. يجب التحقق من أن metadata لا يتأثر بعمليات الرفع (ما لم يتم تحديثه صراحة)
+
+================================================================================
+نهاية قائمة الاختبار
+================================================================================

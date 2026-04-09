@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Redirecting…</title>
+    <script>
+        (function () {
+            var q = new URLSearchParams(window.location.search || '');
+            var id = q.get('mapState');
+            if (id) {
+                window.location.replace('/view/full_map/other/0?tb=' + encodeURIComponent(id));
+            }
+        })();
+    </script>
+</head>
+<body style="margin:0;padding:2rem;font-family:system-ui,sans-serif;color:#374151;">
+    <p>Missing <code>mapState</code> in the URL. Open the map from the application and use fullscreen again.</p>
+    <p style="font-size:0.875rem;color:#6b7280;">Old <code>/map-tab.html?mapState=…</code> links redirect to <code>/view/full_map/other/0?tb=…</code>.</p>
+</body>
+</html>

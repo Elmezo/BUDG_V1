@@ -1,0 +1,257 @@
+/* Geography View specific styles - matching system view design */
+
+#glossaryViewContainer.view-grid .glossary-container,
+#glossaryViewContainer .glossary-container {
+    display: grid;
+    grid-template-columns: 1.5fr 1fr;
+    gap: 1.5rem;
+    margin: 1rem 0 2rem 0;
+}
+
+#glossaryViewContainer .left-column,
+#glossaryViewContainer .right-column {
+    display: flex;
+    flex-direction: column;
+}
+
+
+.view-section {
+    background: var(--background-primary, #fff);
+    border: 1px solid var(--border-color, #e9ecef);
+    border-radius: 12px;
+    padding: 1.25rem 1.5rem;
+    box-shadow: var(--shadow-card, 0 1px 2px rgba(0,0,0,0.04));
+    margin-bottom: 1rem;
+}
+
+.section-title {
+    font-weight: 600;
+    color: var(--text-secondary, #6c757d);
+    font-size: 0.85rem;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    margin-bottom: .75rem;
+    padding-bottom: .5rem;
+    border-bottom: 1px solid var(--border-color, #e5e7eb);
+}
+
+.view-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid var(--border-light, #f3f4f6);
+}
+
+.view-item:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.view-item:first-child {
+    padding-top: 0;
+}
+
+.view-label {
+    font-weight: 500;
+    color: var(--text-secondary, #6c757d);
+    min-width: 120px;
+    flex-shrink: 0;
+}
+
+.view-value {
+    color: var(--text-primary, #1e293b);
+    text-align: left;
+    flex: 1;
+    word-break: break-word;
+}
+
+.view-value.empty {
+    color: var(--text-muted, #9ca3af);
+    font-style: italic;
+}
+
+/* Classifications sidebar */
+.sidebar-section {
+    background: var(--background-primary, #fff);
+}
+
+.classifications-group {
+    margin-bottom: 1.5rem;
+}
+
+.classifications-group:last-child {
+    margin-bottom: 0;
+}
+
+.group-title {
+    font-weight: 600;
+    color: var(--text-secondary, #6c757d);
+    font-size: 0.75rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border-light, #e5e7eb);
+}
+
+.classification-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.6rem 0;
+    border-bottom: 1px solid var(--border-light, #f3f4f6);
+}
+
+.classification-item:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.classification-label {
+    font-weight: 500;
+    color: var(--text-secondary, #6c757d);
+    font-size: 0.875rem;
+}
+
+.classification-value {
+    color: var(--text-primary, #1e293b);
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.status-dot.active {
+    background-color: var(--success, #10b981);
+}
+
+.status-dot.pending {
+    background-color: var(--warning, #f59e0b);
+}
+
+.status-dot.inactive {
+    background-color: var(--danger, #ef4444);
+}
+
+/* Empty state */
+.empty {
+    color: var(--text-muted, #9ca3af);
+    font-style: italic;
+}
+
+/* Links */
+.parent-geography-link {
+    color: var(--primary, #3b82f6);
+    text-decoration: none;
+}
+
+.parent-geography-link:hover {
+    text-decoration: underline;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    #glossaryViewContainer .glossary-container {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    
+    .view-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.25rem;
+    }
+    
+    .view-label {
+        min-width: auto;
+    }
+    
+    .view-value {
+        text-align: left;
+    }
+    
+    .classification-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.25rem;
+    }
+}
+
+
+/* Data tables for tabs */
+.data-table-wrapper {
+    overflow-x: auto;
+    margin-top: 1rem;
+}
+
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--background-primary, #fff);
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: var(--shadow-light, 0 1px 3px rgba(0,0,0,0.1));
+}
+
+.data-table th,
+.data-table td {
+    padding: 0.75rem 1rem;
+    text-align: left;
+    border-bottom: 1px solid var(--border-light, #f3f4f6);
+}
+
+.data-table th {
+    background: var(--background-secondary, #f8fafc);
+    font-weight: 600;
+    color: var(--text-secondary, #6c757d);
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+}
+
+.data-table tbody tr:hover {
+    background: var(--background-hover, #f9fafb);
+}
+
+.data-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+/* Tab content styling */
+.tab-content {
+    padding: 1.5rem 0;
+}
+
+/* Geography section specific */
+.geography-section .view-section {
+    background: var(--background-primary, #fff);
+}
+
+.geography-section .section-title {
+    color: var(--text-primary, #1e293b);
+    border-left: 4px solid var(--primary, #3b82f6);
+    padding-left: 1rem;
+    margin-left: -1rem;
+}
+
+/* No data state */
+.no-data-message {
+    text-align: center;
+    padding: 3rem 2rem;
+    color: var(--text-muted, #9ca3af);
+}
+
+.no-data-message i {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    display: block;
+    opacity: 0.5;
+}

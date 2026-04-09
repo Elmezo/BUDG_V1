@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BUDG - Regulator Edit</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../../assets/css/main.css">
+    <link rel="stylesheet" href="../../assets/css/people.css">
+    
+    <link rel="stylesheet" href="../../assets/css/policy.css">
+    <link rel="stylesheet" href="../../view/view.css">
+    <link rel="stylesheet" href="../../assets/css/system.css">
+    <link rel="stylesheet" href="../../view/regulator/regulator.css">
+    <link rel="stylesheet" href="../../view/regulator/regulator-edit.css">
+    <link rel="stylesheet" href="../../assets/css/custom-fields.css">
+    <link rel="stylesheet" href="../../assets/css/global-lock-ui.css">
+    <link rel="stylesheet" href="../../assets/css/advanced-rich-text-editor.css">
+    <!-- RTL styles for Arabic (disabled by default, enabled by i18n.js) -->
+    <link rel="stylesheet" href="../../assets/css/rtl.css" id="rtl-styles" disabled>
+    <script>(function(){const t=localStorage.getItem('budg-theme')||'light';document.documentElement.setAttribute('data-theme',t);})();</script>
+    <script src="/assets/i18n/head-locale.js"></script>
+    <script src="../../assets/i18n/i18n.js"></script>
+</head>
+<body class="system-page regulator-page regulator-edit-page" data-submenu="regulatory">
+<header class="header"></header>
+
+<div class="page-header">
+    <div class="page-header-container">
+        <div class="page-title">
+            <div class="page-icon"><i class="fas fa-landmark"></i></div>
+            <div class="page-title-text">
+                <div class="page-title-main" id="regulatorTitle">Regulator Name</div>
+                <div class="page-title-sub" data-i18n="regulator.page.title">Regulator</div>
+            </div>
+        </div>
+        <div class="form-actions">
+            <button type="button" class="btn btn-primary" id="saveBtn">
+                <i class="fas fa-save"></i> <span data-i18n="button.save">Save</span>
+            </button>
+            <button type="button" class="btn btn-success" id="saveAndCloseBtn">
+                <i class="fas fa-save"></i> <span data-i18n="button.saveAndClose">Save & Close</span>
+            </button>
+            <button type="button" class="btn btn-secondary" id="closeBtn">
+                <i class="fas fa-times"></i> <span data-i18n="button.close">Close</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+<main class="main-content">
+    <div class="content-card">
+        <div class="content-header">
+            <div class="tab-container">
+                <button class="tab active" data-tab="summary" data-i18n="regulator.tabs.summary">SUMMARY</button>
+            </div>
+        </div>
+        <div class="content-body">
+            <!-- Summary Tab -->
+            <div id="summaryContainer" class="tab-content active">
+                <div class="edit-form-container">
+                    <!-- Geography Section (Top) -->
+                    <div class="form-section geography-section-top">
+                        <div class="section-title" data-i18n="regulator.sections.geography">GEOGRAPHY</div>
+                        <div class="section-content">
+                            <div class="geography-table-container">
+                                <div class="table-wrapper">
+                                    <table class="data-table" id="geographyTable">
+                                        <thead>
+                                            <tr>
+                                                <th data-i18n="regulator.labels.geography">Geography</th>
+                                                <th data-i18n="regulator.labels.description">Description</th>
+                                                <th data-i18n="regulator.labels.action">Action</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="geographyTableBody">
+                                            <!-- Geography relationships will be loaded here -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Bottom Row with Two Columns -->
+                    <div class="regulator-container">
+                        <!-- Left Column - Definition -->
+                        <div class="left-column">
+                            <div class="form-section">
+                                <div class="section-title" data-i18n="regulator.sections.definition">DEFINITION</div>
+                                <div class="section-content">
+                                    <div class="form-group">
+                                        <label for="regulatorName" class="form-label required" data-i18n="regulator.labels.name">Name</label>
+                                        <input type="text" id="regulatorName" class="form-input" required>
+                                    </div>
+                                    
+                                    <div class="form-group">
+                                        <label for="regulatorShortName" class="form-label required" data-i18n="regulator.labels.shortName">Short Name</label>
+                                        <input type="text" id="regulatorShortName" class="form-input" required>
+                                    </div>
+                                    
+                                    <div class="subsection-title" data-i18n="regulatoryTheme.sections.optionalFields">OPTIONAL FIELDS</div>
+                                    
+                                    <div class="form-group">
+                                        <label for="regulatorDescription" class="form-label" data-i18n="regulator.labels.description">Description</label>
+                                        <textarea id="regulatorDescription" class="form-textarea" data-i18n-placeholder="regulator.placeholders.enterDescription" rows="4"></textarea>
+                                        <button type="button" class="btn btn-sm btn-outline editor-button" id="showEditorBtn">Show Editor</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Right Column - Classifications -->
+                        <div class="right-column">
+                            <div class="form-section">
+                                <div class="section-title" data-i18n="regulator.sections.classifications">CLASSIFICATIONS</div>
+                                <div class="section-content">
+                                    <div class="subsection-title">OTHER INFORMATION</div>
+
+                                    <!-- Segment Field -->
+                                    <div id="segmentFieldContainer" style="margin-top: 1rem;"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Custom Fields Section -->
+                    <div class="form-section" style="grid-column: 1/-1; margin-top: 2rem;">
+                        <div class="section-title">CUSTOM FIELDS</div>
+                        <div id="customFieldsContainer"></div>
+                    </div>
+                </div>
+            </div>
+            
+        </div>
+    </div>
+</main>
+
+<script src="../../assets/js/config.js"></script>
+<script src="../../assets/js/api-service.js"></script>
+<script src="../../assets/js/save-error-helper.js"></script>
+<script src="../../assets/js/lock-manager.js"></script>
+<script src="../../assets/js/lock-init-helper.js"></script>
+<script src="../../assets/js/global-lock-ui.js"></script>
+<script src="../../assets/js/main.js"></script>
+<script src="../../assets/js/initSearch.js"></script>
+
+<script src="../../assets/js/custom-fields.js"></script>
+<script src="../../assets/js/segment-field.js"></script>
+<script src="../../assets/js/advanced-rich-text-editor.js"></script>
+<script src="../../view/regulator/regulator-edit.js"></script>
+<script src="../../assets/js/header.js"></script>
+</body>
+</html>
+

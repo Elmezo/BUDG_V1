@@ -1,0 +1,264 @@
+package com.example.budg_v2.bulk.roles.handlers;
+
+import com.example.budg_v2.bulk.roles.base.RoleUploadHandler;
+import com.example.budg_v2.bulk.roles.util.RoleHandlerUtil;
+import com.example.budg_v2.bulk.common.BulkUploadUtil;
+import com.example.budg_v2.bulk.objects.BulkUploadCRValidationHelper;
+import com.example.budg_v2.dao.SystemDAO;
+import com.example.budg_v2.database.DatabaseConnection;
+import com.example.budg_v2.service.SegmentAccessService;
+import com.example.budg_v2.service.ObjectSegmentService;
+import com.example.budg_v2.service.SegmentValidationService;
+import com.example.budg_v2.util.DefaultStakeholderUtil;
+import com.google.gson.JsonObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * Handler for System Role bulk uploads
+ * Manages role assignments to systems through system_x_objectxpeople table
+ */
+public class SystemRoleHandler implements RoleUploadHandler {
+    
+    private static final Logger logger = LoggerFactory.getLogger(SystemRoleHandler.class);
+    private static final String ENTITY_NAME = "System";
+    private static final String LINKING_TABLE = "system_x_objectxpeople";
+    
+    @Override
+    public String getRoleType() {
+        return "System Role";
+    }
+    
+    @Override
+    public String getEntityName() {
+        return ENTITY_NAME;
+    }
+    
+    @Override
+    public String getLinkingTableName() {
+        return LINKING_TABLE;
+    }
+    
+    @Override
+    public void insert(Connection conn, JsonObject rowData, int userId) throws SQLException {
+        // Extract IDs from normalized row
+        Integer systemId = BulkUploadUtil.getInteger(rowData, "System_ID");
+        Integer personId = BulkUploadUtil.getInteger(rowData, "Person_ID");
+        Integer roleId = BulkUploadUtil.getInteger(rowData, "Role_ID");
+        
+        if (systemId == null) {
+            throw new IllegalArgumentException("System_ID is required but was not resolved");
+        }
+        if (personId == null) {
+            throw new IllegalArgumentException("Person_ID is required but was not resolved");
+        }
+        if (roleId == null) {
+            throw new IllegalArgumentException("Role_ID is required but was not resolved");
+        }
+        
+        logger.debug("Inserting role assignment: System={}, Person={}, Role={}", systemId, personId, roleId);
+        
+        try {
+            // Use SystemDAO for consistency with existing bulk upload logic
+            SystemDAO systemDAO = new SystemDAO();
+            
+            // Step 1: Check if object_x_people record already exists
+            Integer objectXPeopleId = RoleHandlerUtil.findObjectXPeopleId(conn, personId, roleId);
+            
+            if (objectXPeopleId == null) {
+                // Step 2: Create new object_x_people record if it doesn't exist
+                Map<String, Object> stakeholderData = new HashMap<>();
+                stakeholderData.put("userId", personId);
+                stakeholderData.put("roleId", roleId);
+                
+                objectXPeopleId = systemDAO.createObjectXPeople(conn, stakeholderData, userId);
+                logger.debug("Created new object_x_people with ID: {}", objectXPeopleId);
+            } else {
+                logger.debug("Using existing object_x_people with ID: {}", objectXPeopleId);
+            }
+            
+            // Step 3: Check if link already exists before attempting to link
+            RoleHandlerUtil.checkLinkNotExists(conn, LINKING_TABLE, "SystemID", systemId, "Object_x_ipid", objectXPeopleId, ENTITY_NAME);
+            
+            // Step 4: Link to system
+            systemDAO.linkStakeholderToSystem(conn, systemId, objectXPeopleId);
+            logger.debug("Linked stakeholder to system: System={}, ObjectXPeople={}", systemId, objectXPeopleId);
+            
+            // Step 3: Create audit records (optional but consistent with existing behavior)
+            try {
+                String userName = RoleHandlerUtil.getPersonName(conn, userId);
+                String userFullName = RoleHandlerUtil.getPersonName(conn, personId);
+                systemDAO.createStakeholderAuditRecords(systemId, userName, userFullName, roleId);
+                logger.debug("Created audit records for system stakeholder");
+            } catch (Exception auditEx) {
+                logger.warn("Failed to create audit records (non-fatal): {}", auditEx.getMessage());
+                // Don't fail the insert if audit fails
+            }
+            
+            logger.info("Successfully assigned role {} to person {} for system {}", roleId, personId, systemId);
+            
+        } catch (SQLException e) {
+            logger.error("Error inserting role assignment: {}", e.getMessage(), e);
+            throw e;
+        }
+    }
+    
+    @Override
+    public void delete(Connection conn, JsonObject rowData, int userId) throws SQLException {
+        // Extract IDs from normalized row
+        Integer systemId = BulkUploadUtil.getInteger(rowData, "System_ID");
+        Integer personId = BulkUploadUtil.getInteger(rowData, "Person_ID");
+        Integer roleId = BulkUploadUtil.getInteger(rowData, "Role_ID");
+        
+        if (systemId == null) {
+            throw new IllegalArgumentException("System_ID is required but was not resolved");
+        }
+        if (personId == null) {
+            throw new IllegalArgumentException("Person_ID is required but was not resolved");
+        }
+        if (roleId == null) {
+            throw new IllegalArgumentException("Role_ID is required but was not resolved");
+        }
+        
+        logger.debug("Deleting role assignment: System={}, Person={}, Role={}", systemId, personId, roleId);
+        
+        String findOxpSql = "SELECT ID FROM object_x_people WHERE ipid = ? AND RoleID = ?";
+        List<Integer> objectXPeopleIds = new ArrayList<>();
+        try (PreparedStatement ps = conn.prepareStatement(findOxpSql)) {
+            ps.setInt(1, personId);
+            ps.setInt(2, roleId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) objectXPeopleIds.add(rs.getInt("ID"));
+            }
+        }
+        if (objectXPeopleIds.isEmpty()) {
+            throw new SQLException("No role assignment found for this " + ENTITY_NAME + ". The person may not have this role assigned, or the role assignment may have already been removed.");
+        }
+        int totalRowsAffected = 0;
+        String deleteSql = "DELETE FROM " + LINKING_TABLE + " WHERE SystemID = ? AND Object_x_ipid = ?";
+        for (Integer objectXPeopleId : objectXPeopleIds) {
+            try (PreparedStatement ps = conn.prepareStatement(deleteSql)) {
+                ps.setInt(1, systemId);
+                ps.setInt(2, objectXPeopleId);
+                totalRowsAffected += ps.executeUpdate();
+            }
+        }
+        if (totalRowsAffected == 0) {
+            throw new SQLException("No role assignment found to delete for this " + ENTITY_NAME + ". The role assignment may have already been removed.");
+        }
+        logger.info("Successfully removed {} role assignment(s) from system: System={}, Person={}, Role={}",
+            totalRowsAffected, systemId, personId, roleId);
+    }
+    
+    @Override
+    public JsonObject validateRow(JsonObject rowData, String operation, int userId) {
+        // Validate basic IDs
+        JsonObject basicValidation = RoleHandlerUtil.validateBasicIds(rowData, "System_ID", "System");
+        if (basicValidation.has("error")) {
+            return basicValidation;
+        }
+        
+        Integer systemId = BulkUploadUtil.getInteger(rowData, "System_ID");
+        Integer personId = BulkUploadUtil.getInteger(rowData, "Person_ID");
+        Integer roleId = BulkUploadUtil.getInteger(rowData, "Role_ID");
+        if (systemId == null || personId == null || roleId == null) {
+            return BulkUploadUtil.createValidationError("System_ID, Person_ID, and Role_ID are required.");
+        }
+        final int systemIdVal = systemId.intValue();
+        final int personIdVal = personId.intValue();
+        final int roleIdVal = roleId.intValue();
+
+        // Deep validation with database connection
+        try (Connection conn = DatabaseConnection.getConnection()) {
+            // Segment access validation - check if user has access to this object
+            // Super Admin can access all objects, skip validation
+            if (!SegmentAccessService.isSuperAdmin(userId)) {
+                String segmentObjectType = RoleHandlerUtil.mapEntityNameToSegmentObjectType(ENTITY_NAME);
+                if (segmentObjectType != null && systemId != null) {
+                    if (!SegmentAccessService.canAccessObject(userId, systemId, segmentObjectType)) {
+                        return BulkUploadUtil.createValidationError(
+                            "You do not have access to modify roles for this " + ENTITY_NAME + ". Access is restricted based on segment assignments.");
+                    }
+                }
+            }
+            
+            // Check if role belongs to System module
+            if (!RoleHandlerUtil.isRoleInModule(conn, roleIdVal, "System")) {
+                return BulkUploadUtil.createValidationError("Role is not assigned to System module");
+            }
+            
+            // Role assignment validation - validate user is assigned to the role in template (for INSERT only)
+            if ("INSERT".equalsIgnoreCase(operation) && personId != null && roleId != null) {
+                try {
+                    DefaultStakeholderUtil.ValidationResult roleAssignmentValidation = 
+                        DefaultStakeholderUtil.validateStakeholderRoleAssignment(conn, personId, roleId);
+                    if (!roleAssignmentValidation.isValid()) {
+                        return BulkUploadUtil.createValidationError(roleAssignmentValidation.getWarningMessage());
+                    }
+                } catch (SQLException e) {
+                    logger.error("Error validating role assignment: {}", e.getMessage(), e);
+                    return BulkUploadUtil.createValidationError("Unable to verify role assignment; user not allowed.");
+                }
+            }
+            
+            // Segment access validation for stakeholders - check if stakeholder has access to object's segment
+            if ("INSERT".equalsIgnoreCase(operation) && personId != null && systemId != null) {
+                try {
+                    Long objectSegmentId = ObjectSegmentService.getObjectSegment((long) systemId, ENTITY_NAME);
+                    if (objectSegmentId != null && objectSegmentId > 1) {
+                        // Object is in a private segment (not Enterprise)
+                        boolean hasAccess = SegmentAccessService.hasSegmentAccess(personId, objectSegmentId.intValue());
+                        if (!hasAccess) {
+                            SegmentValidationService validator = new SegmentValidationService();
+                            String segmentName = validator.getSegmentName(objectSegmentId.intValue());
+                            String personName = RoleHandlerUtil.getPersonName(conn, personId);
+                            return BulkUploadUtil.createValidationError(
+                                String.format("Cannot add stakeholder '%s' to %s. The stakeholder does not have access to segment '%s'. All stakeholders must have access to the object's segment.",
+                                    personName != null ? personName : "User " + personId, ENTITY_NAME, segmentName != null ? segmentName : "Unknown"));
+                        }
+                    }
+                } catch (SQLException e) {
+                    logger.error("Error validating stakeholder segment access: {}", e.getMessage(), e);
+                    // Don't fail validation on error, but log it
+                }
+            }
+            
+            // Operation-specific validation
+            if ("INSERT".equalsIgnoreCase(operation)) {
+                if (RoleHandlerUtil.isDuplicateAssignment(conn, systemIdVal, personIdVal, roleIdVal,
+                        LINKING_TABLE, "SystemID", "Object_x_ipid", ENTITY_NAME)) {
+                    return BulkUploadUtil.createValidationError("This role assignment already exists for this System");
+                }
+            } else if ("DELETE".equalsIgnoreCase(operation)) {
+                String errorMessage = RoleHandlerUtil.checkAssignmentExistsWithDetails(
+                    conn, systemIdVal, personIdVal, roleIdVal,
+                    LINKING_TABLE, "SystemID", "Object_x_ipid", ENTITY_NAME,
+                    "system", "PrimaryName");
+                if (errorMessage != null) {
+                    return BulkUploadUtil.createValidationError(errorMessage);
+                }
+                try {
+                    new BulkUploadCRValidationHelper().validateStakeholderRemovalAllowed("system", systemIdVal);
+                } catch (BulkUploadCRValidationHelper.ValidationException e) {
+                    return BulkUploadUtil.createValidationError(e.getMessage());
+                }
+            }
+            
+        } catch (SQLException e) {
+            logger.error("Database error during validation: {}", e.getMessage(), e);
+            return BulkUploadUtil.createValidationError("Database error during validation: " + e.getMessage());
+        }
+        
+        return BulkUploadUtil.createValidationSuccess();
+    }
+}
+

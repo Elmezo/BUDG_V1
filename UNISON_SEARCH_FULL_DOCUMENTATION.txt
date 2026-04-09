@@ -1,0 +1,241 @@
+================================================================================
+UNISON SEARCH - COMPREHENSIVE TECHNICAL DOCUMENTATION
+================================================================================
+
+Version: 2.0
+Date: December 2025
+Scope: Full Stack (Frontend + Backend + DB)
+
+================================================================================
+1. SYSTEM ARCHITECTURE
+================================================================================
+
+1.1 HIGH-LEVEL OVERVIEW
+Unison Search is a federated, multi-facet search engine designed to discover relationships between disparate data modules (Datasets, People, Systems, etc.). Unlike traditional search engines that return isolated hits, Unison identifies "Connected Objects" using a graph traversal approach.
+
+1.2 COMPONENT INTERACTION FLOW
+
+[User Browser]
+      |
+      | (HTTP POST /api/unison/search)
+      v
+[UnisonSearchServlet]
+      |
+      | (Parses Request -> UnisonSearchRequest)
+      v
+[UnisonSearchService] <-- ORCHESTRATOR
+      |
+      +---> [1. Seed Search] via [SearchService]
+      |       (Finds initial objects matching "q" keywords)
+      |
+      +---> [2. Graph Traversal] via [GraphTraversalService]
+      |       (Explores relationships: Seed -> Children -> Grandchildren)
+      |       (Uses BFS algorithm with depth limit)
+      |
+      +---> [3. Compound Logic] via [CompoundQueryService]
+      |       (Applies AND / OR / NOT set operations on results)
+      |
+      +---> [4. Data Enrichment] via [SearchService]
+      |       (Hydrates ID lists into full Data Rows for UI)
+      |
+      v
+[Response Builder] --> Returns JSON { facets: { "DATASET": [...], "SYSTEM": [...] } }
+
+================================================================================
+2. DATA CONTRACTS (API)
+================================================================================
+
+2.1 REQUEST MODEL (UnisonSearchRequest)
+The frontend sends a JSON payload defining a list of operations.
+
+{
+  "searches": [
+    {
+      "operator": "FIND",     // The primary search
+      "facet": "DATASET",     // Target Module
+      "keyword": "Financial", // Search term
+      "filters": {            // Optional Attribute-level filters
+        "Status": "Active"
+      }
+    },
+    {
+      "operator": "AND",      // Logical Operator
+      "facet": "PEOPLE",
+      "keyword": "John Doe"
+      // Interpretation: Find Datasets matching "Financial" THAT ARE RELATED TO People matching "John Doe"
+    }
+  ],
+  "options": {
+    "maxDepth": 2,            // Max degrees of separation (default: 2)
+    "includeCounts": true     // Return Dashboard stats
+  }
+}
+
+2.2 RESPONSE MODEL (UnisonSearchResponse)
+The backend returns grouped results by Facet.
+
+{
+  "results": {
+    "DATASET": {
+      "ids": [101, 102, 550], // All matching IDs
+      "rows": [               // Hydrated Data for Table Display
+        { "ID": 101, "Name": "Financial Report 2023", "Status": "Active", ... },
+        { "ID": 102, "Name": "Finance Algo Source", "Status": "Draft", ... }
+      ],
+      "stats": {              // Dashboard Counts
+        "Status": { "Active": 1, "Draft": 1 },
+        "Lifecycle": { "Production": 1, "Dev": 1 }
+      },
+      "depthById": {          // Distance from Seed (0=Direct Match, 1=Related)
+        "101": 0,
+        "102": 0,
+        "550": 2
+      }
+    }
+  },
+  "metadata": {
+    "executionTimeMs": 450,
+    "totalHits": 3
+  }
+}
+
+================================================================================
+3. CORE SERVICES DEEP DIVE
+================================================================================
+
+3.1 GraphTraversalService (The Brain)
+- **Role**: Finds objects related to a "Seed Set". 
+- **Algorithm**: Breadth-First Search (BFS).
+- **Logic**:
+  1. Start with Seed IDs (e.g., IDs of Person "John Doe").
+  2. Queue = [(Facet: PEOPLE, IDs: [1], Depth: 0)]
+  3. While Queue is not empty and Depth < MaxDepth:
+     a. Dequeue current Node.
+     b. Look up `RelationshipManager` for outgoing links (e.g., Person -> Dataset via `dataset_x_people`).
+     c. Execute SQL to find connected IDs.
+     d. Add found IDs to Visited Set and Enqueue them (Depth + 1).
+- **Safety**:
+  - `MAX_SEED_LIMIT`: Limits seeds to 1000 to prevent explosion.
+  - `MAX_TOTAL_RESULTS`: Stops traversal if results exceed global limit (e.g., 10,000).
+
+3.2 CompoundQueryService (The Logic)
+- **Role**: Performs Set Theory operations on `FacetResult` maps.
+- **Operations**:
+  - `intersectResults (AND)`: Retains IDs present in BOTH sets.
+  - `unionResults (OR)`: Retains IDs present in EITHER set.
+  - `excludeResults (NOT)`: Removes IDs of Set B from Set A.
+- **Depth Handling**: When merging sets, the *minimum* depth is preserved (e.g., if ID 5 matches directly (depth 0) and via relation (depth 2), it keeps depth 0).
+
+3.3 FuzzySearchUtil (The Matchmaker)
+- **Role**: Generates robust SQL patterns to find non-exact matches.
+- **Strategy**:
+  1. `Exact`: "word"
+  2. `Phonetic`: "wurd" -> normalize -> "word"
+  3. `Transposition`: "wrod" (swapped chars)
+  4. `Wildcard`: "w_rd"
+- **Implementation**: Uses `Levenshtein Distance` logic and `Bitap` concepts, but translated into efficient SQL `LIKE` operator chains.
+
+================================================================================
+4. DATABASE & SQL PATTERNS
+================================================================================
+
+4.1 DYNAMIC SQL GENERATION (QueryBuilder)
+The system does not use an ORM. It builds optimized SQL strings.
+
+Example (Finding Datasets named 'Finance'):
+SELECT * FROM dataset 
+WHERE (
+  Name LIKE '%Finance%' OR           -- Standard Match
+  Name LIKE '%Fynance%' OR           -- Phonetic Match
+  Name LIKE '%Fiannce%'              -- Transposition Match
+)
+AND DeletedDatetime IS NULL          -- Soft Delete Check
+
+4.2 RELATIONSHIP DISCOVERY PATTERNS
+Graph traversal uses 4 specific SQL patterns to hop between tables:
+
+Type A: Direct FK
+"d.MasterSource = ?"
+Query: SELECT ID FROM system WHERE ID IN (SELECT MasterSource FROM dataset WHERE ID IN (?))
+
+Type B: Junction Table
+"s.id IN (SELECT System_ID FROM system_x_legal WHERE Legal_ID = ?)"
+Query: SELECT System_ID FROM system_x_legal WHERE Legal_ID IN (?)
+
+Type C: Subquery
+"d.ID IN (SELECT Dataset_ID FROM attribute WHERE ID = ?)"
+Query: SELECT Dataset_ID FROM attribute WHERE ID IN (?)
+
+Type D: Complex Nested
+(Used for multi-hop junction tables like `dataset_x_objectxpeople`)
+
+4.3 SOFT DELETES
+- Every query automatically appends `AND Deleted... IS NULL` (column name varies per table, e.g., `DeletedDatetime`, `Deleted_date`).
+- Logic is centralized in `GraphTraversalService.getDeletedColumnForTable`.
+- Junction tables are assumed to NOT have soft-delete columns (records are physically deleted).
+
+================================================================================
+5. FRONTEND SUBSYSTEMS (JavaScript)
+================================================================================
+
+5.1 SEARCH-FUZZY.JS (Client-Side Intelligence)
+Used for instant table filtering without server roundtrips.
+- **Levenshtein Distance**: Calculates edit operations needed to transform String A to String B.
+- **Phonetic Normalization**:
+  - Strips accents (á -> a).
+  - Normalizes common substitutions (ph -> f).
+  - Handles Arabic/Unicode chars.
+- **Highlighting**: Wraps matched substrings in `<mark>` tags.
+
+5.2 SEARCH-DASHBOARD.JS (Visualization)
+- Receives raw row data.
+- **Aggregator**: Loops through rows to count distinct values for configured dimensions (Status, Type, Lifecycle).
+- **Interaction**: Clicking a pie slice updates the global `activeFilters` state and re-renders the Table component immediately.
+
+5.3 SEARCH-TABLE.JS (Dynamic Grid)
+- **Helper**: `getVisibleColumnsHelper` determines which columns to show.
+  1. User Preference (Session/Local Storage).
+  2. Database Default (`UNISON_DEFAULTS` config).
+  3. Emergency Fallback (All columns).
+- **Rendering**: Generates HTML `<table>` from JSON array.
+- **Sorting**: Client-side sorting on click header.
+
+================================================================================
+6. CONFIGURATION
+================================================================================
+
+6.1 APP_CONFIG TABLE
+Key settings controlling behavior:
+
+| Config Key             | Default | Description                                      |
+|------------------------|---------|--------------------------------------------------|
+| Unison_Fuzzy_Default   | true    | Enable/Disable fuzzy pattern generation globally |
+| Unison_Max_Depth       | 2       | Default graph traversal depth                    |
+| Unison_Page_Size       | 100     | Max rows to return per facet (UI pagination)     |
+
+6.2 RELATIONSHIP DEFINITIONS (`RelationshipManager.java`)
+Relationships are Hardcoded in Java Map structures (for performance/safety over DB lookup).
+Map<String, Map<String, List<String>>> RELATIONSHIP_MAP;
+Format: SourceFacet -> TargetFacet -> [List of SQL SQL Conditions]
+
+================================================================================
+7. TROUBLESHOOTING GUIDE
+================================================================================
+
+Problem: "I search for 'Risk' but don't see related Systems."
+Checklist:
+1. Is the relationship defined in `RelationshipManager`?
+2. Is the System soft-deleted? (Check `Deleted_datetime` in DB).
+3. Is `maxDepth` sufficient? (If System is 3 hops away and maxDepth=2, it won't show).
+4. Do you have View Permissions on the System module?
+
+Problem: "Fuzzy search is too aggressive (finding irrelevant things)."
+Action:
+1. Check `FuzzySearchUtil`. Constraints are:
+   - Max 5 patterns.
+   - Max transposition length (usually short words aren't transposed).
+2. Disable temporarily via `app_config` to verify.
+
+================================================================================
+END OF DOCUMENTATION
+================================================================================

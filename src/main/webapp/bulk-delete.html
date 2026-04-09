@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bulk Delete - BUDG</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="assets/css/main.css">
+    <link rel="stylesheet" href="assets/css/segments-cube-panel.css">
+    <link rel="stylesheet" href="assets/css/bulk-delete.css">
+    <link rel="stylesheet" href="assets/css/rtl.css" id="rtl-styles" disabled>
+    <link rel="icon" type="image/png" href="assets/images/avatars/icon.jpg">
+    <script>
+        // Apply theme immediately to prevent flash of unstyled content
+        (function() {
+            const savedTheme = localStorage.getItem('budg-theme') || 'light';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+        })();
+    </script>
+    <script src="/assets/i18n/head-locale.js"></script>
+    <script src="assets/i18n/i18n.js"></script>
+</head>
+<body>
+    <!-- Main Application Header -->
+    <header class="header"></header>
+
+    <!-- Bulk Delete Header -->
+    <header class="bulk-delete-header">
+        <div class="header-left">
+            <i class="fas fa-trash-alt header-icon"></i>
+            <div class="header-title">
+                <h1 data-i18n="bulkDelete.headerTitle">Bulk Delete</h1>
+                <span class="header-subtitle" data-i18n="nav.search">Search</span>
+            </div>
+        </div>
+        <div class="header-right">
+            <button class="btn btn-primary" id="deleteBtn" disabled data-i18n="bulkDelete.delete">Delete</button>
+            <button class="btn btn-secondary" id="closeBtn" data-i18n="button.close">Close</button>
+        </div>
+    </header>
+
+    <!-- Tab Navigation -->
+    <nav class="bulk-delete-tabs">
+        <button class="tab active" data-tab="summary" data-i18n="bulkDelete.tabSummary">SUMMARY</button>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="bulk-delete-main">
+        <!-- Summary Tab Content -->
+        <section id="summary-tab" class="tab-content active">
+            <!-- Bulk Delete Items Card -->
+            <div class="card bulk-items-card">
+                <div class="card-header">
+                    <h2 data-i18n="bulkDelete.cardTitle">BULK DELETE ITEMS</h2>
+                    <div class="card-actions">
+                        <span class="items-count" id="itemsCount">0 items selected</span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <table class="items-table" id="itemsTable">
+                        <thead>
+                            <tr id="itemsTableHeader">
+                                <!-- Headers will be populated dynamically -->
+                            </tr>
+                        </thead>
+                        <tbody id="itemsTableBody">
+                            <!-- Rows will be populated dynamically -->
+                        </tbody>
+                    </table>
+                    <div class="no-items-message" id="noItemsMessage" style="display: none;">
+                        <i class="fas fa-info-circle"></i>
+                        <span data-i18n="bulkDelete.noItemsMessage">No items selected for bulk delete</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Confirmation Modal -->
+    <div class="modal-overlay" id="confirmModal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 data-i18n="bulkDelete.confirmTitle">Confirm Deletion</h3>
+                <button class="modal-close" id="modalCloseBtn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p data-i18n="bulkDelete.confirmBody">Are you sure you want to delete all these items?</p>
+                <p class="modal-warning" data-i18n="bulkDelete.confirmWarning">This action cannot be undone.</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="modalCancelBtn" data-i18n="button.no">No</button>
+                <button class="btn btn-primary" id="modalConfirmBtn" data-i18n="button.yes">Yes</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Message Toast -->
+    <div class="toast" id="toast" style="display: none;">
+        <span class="toast-message" id="toastMessage"></span>
+    </div>
+
+    <!-- Scripts -->
+    <script src="assets/js/config.js"></script>
+    <script src="assets/js/api-service.js"></script>
+    <!-- Load main.js first to inject header -->
+    <script src="assets/js/main.js"></script>
+    <!-- Load header.js after main.js -->
+    <script src="assets/js/header.js"></script>
+    <script src="assets/js/bulk-delete.js"></script>
+    <script src="assets/js/global-lock-ui.js"></script>
+    <script src="assets/js/segments-cube-panel.js"></script>
+    <script src="assets/js/segment-field.js"></script>
+</body>
+</html>
+
+

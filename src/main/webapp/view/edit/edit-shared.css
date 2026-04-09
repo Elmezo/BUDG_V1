@@ -1,0 +1,295 @@
+.edit-page .main-content,
+.client-edit-page .main-content,
+.legal-entity-page .main-content,
+.business-area-edit-page .main-content,
+.change-request-page .main-content,
+.geography-edit-page .main-content,
+.glossary-edit-page .main-content,
+.policy-page .main-content,
+.process-page .main-content,
+.product-page .main-content,
+.project-page .main-content,
+.regulation-edit-page .main-content,
+.regulatory-theme-edit-page .main-content {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 1.5rem 1.75rem 3rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.edit-page .content-card,
+.client-edit-page .content-card,
+.legal-entity-page .content-card,
+.business-area-edit-page .content-card,
+.change-request-page .content-card,
+.geography-edit-page .content-card,
+.glossary-edit-page .content-card,
+.policy-page .content-card,
+.process-page .content-card,
+.product-page .content-card,
+.project-page .content-card,
+.regulation-edit-page .content-card,
+.regulatory-theme-edit-page .content-card {
+    background: var(--background-primary, #ffffff);
+    border-radius: 18px;
+    box-shadow: var(--shadow-medium, 0 18px 40px rgba(15, 23, 42, 0.12));
+    border: 1px solid var(--border-color, #e2e8f0);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.edit-page .content-header,
+.client-edit-page .content-header,
+.legal-entity-page .content-header,
+.business-area-edit-page .content-header,
+.change-request-page .content-header,
+.geography-edit-page .content-header,
+.glossary-edit-page .content-header,
+.policy-page .content-header,
+.process-page .content-header,
+.product-page .content-header,
+.project-page .content-header,
+.regulation-edit-page .content-header,
+.regulatory-theme-edit-page .content-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.25rem 1.75rem;
+    background: var(--background-secondary, #f8fafc);
+    border-bottom: 1px solid var(--border-color, #e2e8f0);
+}
+
+.edit-page .content-body,
+.client-edit-page .content-body,
+.legal-entity-page .content-body,
+.business-area-edit-page .content-body,
+.change-request-page .content-body,
+.geography-edit-page .content-body,
+.glossary-edit-page .content-body,
+.policy-page .content-body,
+.process-page .content-body,
+.product-page .content-body,
+.project-page .content-body,
+.regulation-edit-page .content-body,
+.regulatory-theme-edit-page .content-body {
+    padding: 1.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.edit-page .form-grid,
+.client-edit-page .form-grid,
+.legal-entity-page .form-grid,
+.business-area-edit-page .form-grid,
+.change-request-page .form-grid,
+.geography-edit-page .form-grid,
+.glossary-edit-page .form-grid,
+.policy-page .form-grid,
+.process-page .form-grid,
+.product-page .form-grid,
+.project-page .form-grid,
+.regulation-edit-page .form-grid,
+.regulatory-theme-edit-page .form-grid {
+    display: grid;
+    gap: 1.5rem;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+
+.edit-page .form-section,
+.client-edit-page .form-section,
+.legal-entity-page .form-section,
+.business-area-edit-page .form-section,
+.change-request-page .form-section,
+.geography-edit-page .form-section,
+.glossary-edit-page .form-section,
+.policy-page .form-section,
+.process-page .form-section,
+.product-page .form-section,
+.project-page .form-section,
+.regulation-edit-page .form-section,
+.regulatory-theme-edit-page .form-section {
+    background: var(--background-primary, #ffffff);
+    border: 1px solid var(--border-color, #e2e8f0);
+    border-radius: 12px;
+    padding: 1.25rem 1.5rem;
+    box-shadow: var(--shadow-light, 0 8px 24px rgba(15, 23, 42, 0.08));
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.edit-page .form-section .section-title,
+.client-edit-page .form-section .section-title,
+.legal-entity-page .form-section .section-title,
+.business-area-edit-page .form-section .section-title,
+.change-request-page .form-section .section-title,
+.geography-edit-page .form-section .section-title,
+.glossary-edit-page .form-section .section-title,
+.policy-page .form-section .section-title,
+.process-page .form-section .section-title,
+.product-page .form-section .section-title,
+.project-page .form-section .section-title,
+.regulation-edit-page .form-section .section-title,
+.regulatory-theme-edit-page .form-section .section-title {
+    font-size: 0.82rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-secondary, #475569);
+    margin: 0;
+}
+
+.edit-page .section-actions,
+.client-edit-page .section-actions,
+.legal-entity-page .section-actions,
+.business-area-edit-page .section-actions,
+.change-request-page .section-actions,
+.geography-edit-page .section-actions,
+.glossary-edit-page .section-actions,
+.policy-page .section-actions,
+.process-page .section-actions,
+.product-page .section-actions,
+.project-page .section-actions,
+.regulation-edit-page .section-actions,
+.regulatory-theme-edit-page .section-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.edit-page .data-table-wrapper,
+.client-edit-page .data-table-wrapper,
+.legal-entity-page .data-table-wrapper,
+.business-area-edit-page .data-table-wrapper,
+.change-request-page .data-table-wrapper,
+.geography-edit-page .data-table-wrapper,
+.glossary-edit-page .data-table-wrapper,
+.policy-page .data-table-wrapper,
+.process-page .data-table-wrapper,
+.product-page .data-table-wrapper,
+.project-page .data-table-wrapper,
+.regulation-edit-page .data-table-wrapper,
+.regulatory-theme-edit-page .data-table-wrapper {
+    border: 1px solid var(--border-color, #e2e8f0);
+    border-radius: 12px;
+    overflow: hidden;
+    background: var(--background-primary, #ffffff);
+    box-shadow: var(--shadow-light, 0 8px 24px rgba(15, 23, 42, 0.08));
+}
+
+.edit-page table.data-table thead,
+.client-edit-page table.data-table thead,
+.legal-entity-page table.data-table thead,
+.business-area-edit-page table.data-table thead,
+.change-request-page table.data-table thead,
+.geography-edit-page table.data-table thead,
+.glossary-edit-page table.data-table thead,
+.policy-page table.data-table thead,
+.process-page table.data-table thead,
+.product-page table.data-table thead,
+.project-page table.data-table thead,
+.regulation-edit-page table.data-table thead,
+.regulatory-theme-edit-page table.data-table thead {
+    background: var(--background-secondary, #f8fafc);
+}
+
+.edit-page table.data-table th,
+.edit-page table.data-table td,
+.client-edit-page table.data-table th,
+.client-edit-page table.data-table td,
+.legal-entity-page table.data-table th,
+.legal-entity-page table.data-table td,
+.business-area-edit-page table.data-table th,
+.business-area-edit-page table.data-table td,
+.change-request-page table.data-table th,
+.change-request-page table.data-table td,
+.geography-edit-page table.data-table th,
+.geography-edit-page table.data-table td,
+.glossary-edit-page table.data-table th,
+.glossary-edit-page table.data-table td,
+.policy-page table.data-table th,
+.policy-page table.data-table td,
+.process-page table.data-table th,
+.process-page table.data-table td,
+.product-page table.data-table th,
+.product-page table.data-table td,
+.project-page table.data-table th,
+.project-page table.data-table td,
+.regulation-edit-page table.data-table th,
+.regulation-edit-page table.data-table td,
+.regulatory-theme-edit-page table.data-table th,
+.regulatory-theme-edit-page table.data-table td {
+    padding: 0.85rem 1rem;
+}
+
+.edit-page .action-buttons,
+.client-edit-page .action-buttons,
+.legal-entity-page .action-buttons,
+.business-area-edit-page .action-buttons,
+.change-request-page .action-buttons,
+.geography-edit-page .action-buttons,
+.glossary-edit-page .action-buttons,
+.policy-page .action-buttons,
+.process-page .action-buttons,
+.product-page .action-buttons,
+.project-page .action-buttons,
+.regulation-edit-page .action-buttons,
+.regulatory-theme-edit-page .action-buttons {
+    display: inline-flex;
+    gap: 0.5rem;
+}
+
+@media (max-width: 768px) {
+    .edit-page .main-content,
+    .client-edit-page .main-content,
+    .legal-entity-page .main-content,
+    .business-area-edit-page .main-content,
+    .change-request-page .main-content,
+    .geography-edit-page .main-content,
+    .glossary-edit-page .main-content,
+    .policy-page .main-content,
+    .process-page .main-content,
+    .product-page .main-content,
+    .project-page .main-content,
+    .regulation-edit-page .main-content,
+    .regulatory-theme-edit-page .main-content {
+        padding: 1rem 1.25rem 2rem;
+    }
+
+    .edit-page .content-body,
+    .client-edit-page .content-body,
+    .legal-entity-page .content-body,
+    .business-area-edit-page .content-body,
+    .change-request-page .content-body,
+    .geography-edit-page .content-body,
+    .glossary-edit-page .content-body,
+    .policy-page .content-body,
+    .process-page .content-body,
+    .product-page .content-body,
+    .project-page .content-body,
+    .regulation-edit-page .content-body,
+    .regulatory-theme-edit-page .content-body {
+        padding: 1.25rem;
+    }
+
+    .edit-page .form-section,
+    .client-edit-page .form-section,
+    .legal-entity-page .form-section,
+    .business-area-edit-page .form-section,
+    .change-request-page .form-section,
+    .geography-edit-page .form-section,
+    .glossary-edit-page .form-section,
+    .policy-page .form-section,
+    .process-page .form-section,
+    .product-page .form-section,
+    .project-page .form-section,
+    .regulation-edit-page .form-section,
+    .regulatory-theme-edit-page .form-section {
+        padding: 1.1rem;
+    }
+}

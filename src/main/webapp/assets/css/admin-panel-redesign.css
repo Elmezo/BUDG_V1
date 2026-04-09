@@ -1,0 +1,1090 @@
+/* ============================================================
+   Admin Panel Redesign — Visual Override Layer
+   Uses the project's own color palette (#248567 green teal).
+   Loads AFTER admin-panel.css to override appearance only.
+   No logic, no form names, no message text changed.
+   ============================================================ */
+
+.admin-panel-page {
+    --ap-primary: var(--primary-color, #248567);
+    --ap-primary-strong: var(--primary-hover, #1f6f57);
+    --ap-primary-dark: var(--primary-700, #195d48);
+    --ap-primary-light: var(--primary-light, #e7f5ed);
+    --ap-text: var(--text-primary, #2c3e50);
+    --ap-muted: var(--text-secondary, #6c757d);
+    --ap-bg: var(--background-secondary, #f8f9fa);
+    --ap-surface: var(--background-primary, #ffffff);
+    --ap-border: var(--border-color, #e9ecef);
+    --ap-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06);
+    --ap-shadow: var(--shadow-light, 0 2px 10px rgba(0, 0, 0, 0.1));
+    --ap-radius: 10px;
+    --ap-radius-sm: 6px;
+    --ap-header-gradient: linear-gradient(135deg, #1b5e4b 0%, #185445 45%, #0f3d2e 100%);
+    --ap-header-gradient-dark: linear-gradient(135deg, #0f2e22 0%, #0a1a14 100%);
+    --ap-header-border: rgba(255, 255, 255, 0.14);
+    background: var(--ap-bg);
+}
+
+/* ======================== LAYOUT ======================== */
+.admin-panel-page .admin-panel-content {
+    max-width: 100%;
+    padding: 6px 8px;
+    background: transparent;
+    min-height: calc(100vh - 70px);
+}
+
+.admin-panel-page .admin-layout {
+    display: grid;
+    grid-template-columns: 240px minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr);
+    gap: 6px;
+    align-items: start;
+    overflow-x: hidden;
+}
+
+/* ======================== SIDEBAR ======================== */
+.admin-panel-page .admin-sidebar {
+    grid-column: 1;
+    grid-row: 1;
+    position: sticky !important;
+    top: 6px;
+    left: auto !important;
+    right: auto !important;
+    max-height: calc(100vh - 82px);
+    overflow-y: auto;
+    border: none;
+    border-radius: var(--ap-radius);
+    background: linear-gradient(175deg, #1b5e4b 0%, #0f3d2e 100%);
+    box-shadow: var(--ap-shadow);
+    padding: 8px;
+    width: 100%;
+    min-width: 0;
+    z-index: 2;
+    box-sizing: border-box;
+}
+
+/* Dark theme sidebar */
+[data-theme="dark"] .admin-panel-page .admin-sidebar {
+    background: linear-gradient(175deg, #0f2e22 0%, #0a1a14 100%);
+}
+
+/* — User Profile Card — */
+.admin-panel-page .sidebar-user-profile {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: var(--ap-radius-sm);
+    background: rgba(255, 255, 255, 0.07);
+    padding: 8px;
+    margin-bottom: 6px;
+}
+
+.admin-panel-page .user-avatar-large {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.15);
+    color: #d1fae5;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 700;
+    margin-bottom: 0;
+}
+
+.admin-panel-page .user-avatar-large span {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+}
+
+.admin-panel-page .sidebar-user-profile .user-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0px;
+}
+
+.admin-panel-page .sidebar-user-profile .user-info .user-name {
+    color: #ffffff;
+    font-weight: 600;
+    font-size: 12.5px;
+    line-height: 1.3;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-shadow: none;
+    margin-bottom: 0;
+}
+
+.admin-panel-page .sidebar-user-profile .user-info .user-email {
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 10.5px;
+    line-height: 1.3;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.admin-panel-page .sidebar-user-profile .user-info .user-role {
+    color: #6ee7b7;
+    font-size: 10.5px;
+    font-weight: 500;
+    line-height: 1.3;
+    text-shadow: none;
+    margin-bottom: 0;
+}
+
+/* Hide legacy settings gear inside the user card */
+.admin-panel-page .sidebar-user-profile .user-settings {
+    display: none;
+}
+
+/* — Navigation Items — */
+.admin-panel-page .sidebar-navigation .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    border-radius: var(--ap-radius-sm);
+    border: 1px solid transparent;
+    color: rgba(255, 255, 255, 0.78);
+    margin: 1px 0;
+    padding: 7px 9px;
+    font-size: 12.5px;
+    transition: all 0.15s ease;
+}
+
+.admin-panel-page .sidebar-navigation .nav-item:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.1);
+    color: #fff;
+}
+
+.admin-panel-page .sidebar-navigation .nav-item.active,
+.admin-panel-page .nav-item-container.active > .nav-item {
+    background: rgba(255, 255, 255, 0.14);
+    border-color: rgba(255, 255, 255, 0.18);
+    color: #fff;
+}
+
+.admin-panel-page .sidebar-navigation .nav-item i {
+    font-size: 13px;
+    width: 16px;
+    text-align: center;
+}
+
+/* — Submenu — */
+.admin-panel-page .submenu {
+    list-style: none; /* remove default bullets */
+    margin-inline-start: 4px;
+    padding-inline-start: 12px; /* give text more breathing room */
+    border-inline-start: 1px dashed rgba(255, 255, 255, 0.2);
+}
+
+.admin-panel-page .submenu li {
+    list-style: none; /* ensure no bullets even if nested LIs exist */
+    list-style-position: outside;
+}
+
+.admin-panel-page .submenu-item {
+    display: block;
+    color: rgba(255, 255, 255, 0.65);
+    text-decoration: none;
+    padding: 5px 9px 5px 28px; /* stable left padding for bullet/icon space */
+    border-radius: 5px;
+    margin: 1px 0;
+    font-size: 12.5px;
+    transition: all 0.15s;
+    position: relative;
+}
+
+.admin-panel-page .submenu-item:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
+}
+
+.admin-panel-page .submenu-item.active {
+    background: rgba(255, 255, 255, 0.14);
+    color: #fff;
+    padding-left: 28px; /* keep same padding on active */
+}
+
+/* Remove legacy bullet marker that overlaps text */
+.sidebar-navigation .submenu-item::before {
+    content: none !important;
+    display: none !important;
+}
+
+/* Prevent legacy CSS from shifting padding on hover/active */
+.sidebar-navigation .submenu-item:hover,
+.sidebar-navigation .submenu-item.active {
+    padding-left: 28px !important;
+}
+
+/* ======================== MAIN CONTENT ======================== */
+/* Override legacy fixed-sidebar layout from admin-panel.css
+   that sets margin-left:280px, width:calc(100%-280px), etc.
+   We use CSS Grid now, so the main content must fill its grid cell. */
+.admin-panel-page .admin-main-content {
+    grid-column: 2;
+    grid-row: 1;
+    min-width: 0 !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    height: calc(100vh - 82px) !important;
+    max-height: calc(100vh - 82px) !important;
+    display: flex !important;
+    flex-direction: column !important;
+    flex: unset !important;
+    overflow: hidden !important;
+    overflow-x: hidden !important;
+    overflow-y: hidden !important;
+    position: relative;
+    box-sizing: border-box;
+}
+
+/* Override legacy flex layout on .admin-layout — use grid */
+.admin-panel-page .admin-layout {
+    display: grid !important;
+    grid-template-columns: 240px minmax(0, 1fr) !important;
+    grid-template-rows: minmax(0, 1fr) !important;
+    gap: 6px !important;
+    align-items: start !important;
+    overflow-x: hidden !important;
+}
+
+/* Override .admin-panel-content legacy constraints */
+.admin-panel-page .admin-panel-content {
+    display: block !important;
+    overflow: hidden !important;
+    max-height: calc(100vh - 70px) !important;
+}
+
+/* RTL — main column left, sidebar column right (same as LTR visual order mirrored) */
+[dir="rtl"] .admin-panel-page .admin-layout {
+    grid-template-columns: minmax(0, 1fr) 240px !important;
+}
+
+[dir="rtl"] .admin-panel-page .admin-sidebar {
+    grid-column: 2;
+    grid-row: 1;
+    left: auto !important;
+    right: auto !important;
+}
+
+[dir="rtl"] .admin-panel-page .admin-main-content {
+    grid-column: 1;
+    grid-row: 1;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    width: 100% !important;
+}
+
+/* Scrollbar on content-area only (header stays fixed above scroll) */
+.admin-panel-page .content-area::-webkit-scrollbar {
+    width: 7px;
+}
+
+.admin-panel-page .content-area::-webkit-scrollbar-track {
+    background: var(--ap-bg, #f8f9fa);
+    border-radius: 4px;
+}
+
+.admin-panel-page .content-area::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.18);
+    border-radius: 4px;
+}
+
+.admin-panel-page .content-area::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.3);
+}
+
+/* — Header Bar (matches sidebar teal palette; z-index below facet dropdowns ~10000) — */
+.admin-panel-page .admin-header-bar {
+    flex-shrink: 0 !important;
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    margin-left: 0;
+    margin-right: 0;
+    border: 1px solid var(--ap-header-border);
+    border-radius: var(--ap-radius);
+    background: var(--ap-header-gradient);
+    box-shadow: var(--ap-shadow-sm);
+    padding: 8px 12px;
+    margin-bottom: 6px;
+}
+
+[data-theme="dark"] .admin-panel-page .admin-header-bar {
+    background: var(--ap-header-gradient-dark);
+    border-color: rgba(255, 255, 255, 0.08);
+}
+
+.admin-panel-page .admin-header-bar .system-title {
+    margin: 0;
+    color: #ffffff;
+    font-size: 1rem;
+    font-weight: 700;
+    line-height: 1.3;
+}
+
+.admin-panel-page .admin-header-bar .system-status {
+    color: rgba(255, 255, 255, 0.82);
+    font-size: 0.8rem;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.admin-panel-page .admin-header-bar .status-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 999px;
+    background: #6ee7b7;
+    display: inline-block;
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.2);
+}
+
+.admin-panel-page .admin-header-bar .back-button {
+    width: 30px;
+    height: 30px;
+    flex-shrink: 0;
+    border: 1px solid rgba(255, 255, 255, 0.28);
+    background: rgba(255, 255, 255, 0.14);
+    border-radius: 6px;
+    color: #ffffff;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.admin-panel-page .admin-header-bar .back-button:hover {
+    background: rgba(255, 255, 255, 0.24);
+    border-color: rgba(255, 255, 255, 0.4);
+    color: #ffffff;
+}
+
+/* — Content Area — */
+.admin-panel-page .content-area {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    border: 1px solid rgba(36, 133, 103, 0.14);
+    border-radius: var(--ap-radius);
+    background: linear-gradient(180deg, var(--ap-surface) 0%, #f7fbf9 100%);
+    box-shadow: var(--ap-shadow-sm);
+    padding: 12px;
+}
+
+[data-theme="dark"] .admin-panel-page .content-area {
+    border-color: rgba(255, 255, 255, 0.08);
+    background: var(--ap-surface);
+}
+
+/* — Welcome Card — */
+.admin-panel-page .welcome-message,
+.admin-panel-page .welcome-content {
+    border: 1px dashed var(--ap-border);
+    background: var(--ap-bg);
+    border-radius: var(--ap-radius-sm);
+    padding: 16px 12px;
+    text-align: center;
+}
+
+.admin-panel-page .welcome-message h2,
+.admin-panel-page .welcome-content h2 {
+    color: var(--ap-text);
+    margin: 0 0 4px;
+    font-size: 1.05rem;
+}
+
+.admin-panel-page .welcome-message p,
+.admin-panel-page .welcome-content p {
+    color: var(--ap-muted);
+    margin: 0;
+    font-size: 0.88rem;
+}
+
+/* ======================== SECTION HEADERS ======================== */
+/* Mint banner aligned with outer sidebar/header greens (not flat grey) */
+.admin-panel-page .operating-model-header {
+    background: linear-gradient(135deg, #e8f5ef 0%, #d8efe4 45%, #d1e7dd 100%);
+    border: 1px solid rgba(27, 94, 75, 0.22);
+    box-shadow: 0 2px 12px rgba(15, 61, 46, 0.07);
+    border-radius: var(--ap-radius);
+    padding: 1.1rem 1rem;
+    margin-bottom: 12px;
+    text-align: center;
+}
+
+.admin-panel-page .operating-model-header h2 {
+    margin: 0 0 2px;
+    color: #1b4332;
+    font-weight: 700;
+    font-size: 1.05rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.admin-panel-page .dashboard-content > h2,
+.admin-panel-page .activity-logs-content > h2 {
+    margin: 0 0 2px;
+    color: #1b4332;
+    font-weight: 700;
+    font-size: 1.05rem;
+}
+
+.admin-panel-page .operating-model-header p,
+.admin-panel-page .dashboard-content > p,
+.admin-panel-page .activity-logs-content > p {
+    color: #2d6a4f;
+    margin: 0 0 10px;
+    font-size: 0.85rem;
+    opacity: 0.95;
+}
+
+/* ======================== CARD GRIDS ======================== */
+.admin-panel-page .operating-model-grid,
+.admin-panel-page .dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+    gap: 8px;
+}
+
+.admin-panel-page .operating-model-card,
+.admin-panel-page .dashboard-card {
+    border: 1px solid var(--ap-border);
+    border-radius: var(--ap-radius-sm);
+    background: var(--ap-surface);
+    padding: 10px;
+    box-shadow: var(--ap-shadow-sm);
+    transition: box-shadow 0.15s, border-color 0.15s;
+}
+
+.admin-panel-page .operating-model-card:hover,
+.admin-panel-page .dashboard-card:hover {
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+    border-color: var(--ap-primary);
+}
+
+/* Card hubs (Operational, Customize & Configure, DG Operating Model, Meta-Model): row layout + green chrome; overrides legacy orange icons & blue hover in admin-panel.css */
+.admin-panel-page .operating-model-card {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 12px;
+    border-left: 2px solid transparent;
+}
+
+.admin-panel-page .operating-model-card:hover {
+    border-left-color: var(--ap-primary);
+    border-color: rgba(36, 133, 103, 0.32);
+    box-shadow: 0 8px 24px rgba(15, 61, 46, 0.1);
+    background: linear-gradient(135deg, #ffffff 0%, #f7fbf9 100%);
+    transform: translateY(-2px);
+}
+
+.admin-panel-page .operating-model-card .card-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.admin-panel-page .operating-model-card .card-action {
+    margin-top: 0;
+    align-self: center;
+    flex-shrink: 0;
+}
+
+.admin-panel-page .card-icon {
+    width: 34px;
+    height: 34px;
+    border-radius: 7px;
+    background: var(--ap-primary-light);
+    color: var(--ap-primary);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+}
+
+.admin-panel-page .operating-model-card .card-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    flex-shrink: 0;
+    background: linear-gradient(145deg, rgba(36, 133, 103, 0.22) 0%, rgba(27, 94, 75, 0.12) 100%);
+    box-shadow: 0 2px 10px rgba(15, 61, 46, 0.12);
+    color: #1b5e4b;
+}
+
+.admin-panel-page .operating-model-card:hover .card-icon {
+    box-shadow: 0 4px 16px rgba(15, 61, 46, 0.2);
+    transform: scale(1.06);
+}
+
+.admin-panel-page .operating-model-card .card-icon i {
+    color: #1b5e4b;
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+.admin-panel-page .operating-model-card h3,
+.admin-panel-page .dashboard-card h3 {
+    margin: 0 0 2px;
+    font-size: 0.88rem;
+    color: #1b4332;
+}
+
+.admin-panel-page .operating-model-card p,
+.admin-panel-page .dashboard-card p {
+    margin: 0;
+    color: var(--ap-muted);
+    font-size: 0.8rem;
+    line-height: 1.4;
+}
+
+/* — Dashboard Stats — */
+.admin-panel-page .dashboard-card {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.admin-panel-page .dashboard-card > i {
+    width: 36px;
+    height: 36px;
+    border-radius: 7px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--ap-primary-light);
+    color: var(--ap-primary);
+    font-size: 15px;
+}
+
+.admin-panel-page .card-number {
+    color: var(--ap-primary-strong);
+    font-size: 1.05rem;
+    font-weight: 700;
+}
+
+/* ======================== DASHBOARD KPI 2×2 FULL-HEIGHT ======================== */
+.admin-panel-page .admin-dashboard-kpi {
+    display: flex;
+    flex-direction: column;
+    min-height: calc(100vh - 140px);
+    padding: 8px 16px 44px; /* extra bottom space */
+}
+
+/* Dashboard title — centered */
+.admin-panel-page .admin-dashboard-kpi > h2 {
+    text-align: center;
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--ap-text);
+    margin: 8px 0 14px;
+}
+
+.admin-panel-page .admin-dashboard-modern > h2 {
+    display: none;
+}
+
+.admin-panel-page .dashboard-hero {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    border: 1px solid rgba(36, 133, 103, 0.18);
+    border-radius: 14px;
+    background: linear-gradient(135deg, rgba(36, 133, 103, 0.14) 0%, rgba(255, 255, 255, 0.95) 80%);
+    padding: 14px 16px;
+    margin: 6px 2px 14px;
+}
+
+.admin-panel-page .dashboard-hero h2 {
+    margin: 0 0 2px;
+    font-size: 1.35rem;
+    font-weight: 800;
+    color: var(--ap-text);
+}
+
+.admin-panel-page .dashboard-hero p {
+    margin: 0;
+    color: var(--ap-muted);
+    font-size: 0.88rem;
+}
+
+.admin-panel-page .hero-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    background: rgba(36, 133, 103, 0.12);
+    color: var(--ap-primary-dark);
+    border: 1px solid rgba(36, 133, 103, 0.22);
+    padding: 6px 10px;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 700;
+}
+
+.admin-panel-page .dashboard-grid.dashboard-grid--kpi {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    grid-template-rows: repeat(2, 1fr);
+    gap: 8px;
+    flex: 1;
+    min-height: 0;
+    margin-bottom: 16px; /* spacing under last row to prevent border clipping */
+}
+
+.admin-panel-page .dashboard-card.dashboard-card--kpi {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    gap: 10px;
+    height: 100%;
+    border: 1px solid rgba(36, 133, 103, 0.18);
+    border-radius: var(--ap-radius);
+    background: linear-gradient(180deg, #ffffff 0%, #f8fbf9 100%);
+    box-shadow: 0 6px 20px rgba(15, 61, 46, 0.08);
+    padding: 14px 12px;
+    transition: box-shadow 0.2s, border-color 0.2s, transform 0.2s;
+    cursor: default;
+    position: relative;
+    overflow: hidden;
+}
+
+.admin-panel-page .dashboard-card.dashboard-card--kpi::after {
+    content: "";
+    position: absolute;
+    inset: 0 auto auto 0;
+    width: 100%;
+    height: 3px;
+    background: linear-gradient(90deg, var(--ap-primary) 0%, #5db79d 100%);
+    opacity: 0.85;
+}
+
+.admin-panel-page .dashboard-card.dashboard-card--kpi:hover {
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.09);
+    border-color: var(--ap-primary);
+    transform: translateY(-2px);
+}
+
+.admin-panel-page .dashboard-card--kpi .kpi-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    background: var(--ap-primary-light);
+    color: var(--ap-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    box-shadow: inset 0 0 0 1px rgba(36, 133, 103, 0.12);
+}
+
+.admin-panel-page .dashboard-card--kpi .kpi-icon--warn {
+    background: #fef3c7;
+    color: #d97706;
+}
+
+.admin-panel-page .dashboard-card--kpi .card-content {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.admin-panel-page .dashboard-card--kpi .card-content h3 {
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: var(--ap-text);
+    margin: 0;
+}
+
+.admin-panel-page .dashboard-card--kpi .card-number {
+    font-size: 1.65rem;
+    font-weight: 700;
+    color: var(--ap-primary-strong);
+    margin: 0;
+    line-height: 1.2;
+    letter-spacing: 0.3px;
+}
+
+.admin-panel-page .dashboard-card--kpi .kpi-icon--warn + .card-content .card-number {
+    color: #d97706;
+}
+
+/* ===== Dashboard Sections ===== */
+.admin-panel-page .dashboard-section {
+    margin-top: 18px;
+}
+
+.admin-panel-page .section-header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 8px;
+}
+
+.admin-panel-page .section-title {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--ap-text);
+    opacity: 0.75;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+}
+
+/* Quick Actions */
+.admin-panel-page .quick-actions {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(140px, 1fr));
+    gap: 12px;
+}
+
+.admin-panel-page .qa-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border: 1px solid rgba(36, 133, 103, 0.2);
+    background: linear-gradient(180deg, #ffffff 0%, #f7fbf9 100%);
+    border-radius: 12px;
+    padding: 10px 12px;
+    color: var(--ap-text);
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform .15s ease, box-shadow .15s ease, border-color .15s;
+    box-shadow: 0 4px 12px rgba(15, 61, 46, 0.08);
+}
+
+.admin-panel-page .qa-btn i {
+    width: 28px;
+    height: 28px;
+    border-radius: 7px;
+    background: var(--ap-primary-light);
+    color: var(--ap-primary);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+}
+
+.admin-panel-page .qa-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 20px rgba(15, 61, 46, .12);
+    border-color: var(--ap-primary);
+}
+
+/* ======================== BUTTONS ======================== */
+.admin-panel-page .action-btn,
+.admin-panel-page .btn,
+.admin-panel-page button.btn {
+    border: 1px solid var(--ap-primary);
+    border-radius: 6px;
+    background: var(--ap-primary);
+    color: #fff;
+    font-weight: 600;
+    font-size: 12.5px;
+    padding: 6px 12px;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.admin-panel-page .action-btn:hover,
+.admin-panel-page .btn:hover,
+.admin-panel-page button.btn:hover {
+    background: var(--ap-primary-strong);
+    border-color: var(--ap-primary-strong);
+}
+
+/* ======================== TABLES ======================== */
+.admin-panel-page .data-table-container,
+.admin-panel-page .table-responsive,
+.admin-panel-page .logs-table {
+    border: 1px solid var(--ap-border);
+    border-radius: var(--ap-radius-sm);
+    overflow: auto;
+    background: var(--ap-surface);
+}
+
+.admin-panel-page table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.admin-panel-page th,
+.admin-panel-page td {
+    border-bottom: 1px solid var(--ap-border);
+    padding: 7px 8px;
+    text-align: start;
+    color: var(--ap-text);
+    font-size: 0.85rem;
+}
+
+.admin-panel-page th {
+    background: var(--ap-bg);
+    color: var(--ap-text);
+    font-weight: 600;
+    font-size: 0.8rem;
+}
+
+/* ======================== FORM CONTROLS ======================== */
+.admin-panel-page input,
+.admin-panel-page select,
+.admin-panel-page textarea {
+    border: 1px solid var(--ap-border);
+    border-radius: 5px;
+    background: var(--ap-surface);
+    color: var(--ap-text);
+    padding: 6px 8px;
+    font-size: 0.85rem;
+}
+
+.admin-panel-page input:focus,
+.admin-panel-page select:focus,
+.admin-panel-page textarea:focus {
+    outline: none;
+    border-color: var(--ap-primary);
+    box-shadow: 0 0 0 2px rgba(36, 133, 103, 0.15);
+}
+
+/* ======================== LOADING ======================== */
+.admin-panel-page .loading-row,
+.admin-panel-page .loading-spinner {
+    color: var(--ap-muted);
+    font-size: 0.85rem;
+}
+
+/* ======================== DCR HEADER BANNER ======================== */
+.admin-panel-page .dcr-header-banner,
+.admin-panel-page .default-cr-header {
+    border-radius: var(--ap-radius-sm) !important;
+    padding: 12px 14px !important;
+}
+
+/* ======================== QUICK LINKS (admin panel scope) ======================== */
+.admin-panel-page .quick-links-container {
+    background: transparent;
+    min-height: auto;
+    padding: 0.5rem 0.25rem;
+}
+
+.admin-panel-page .quick-links-banner-modern {
+    background: linear-gradient(135deg, #1b5e4b 0%, #248567 42%, #0f3d2e 100%);
+    color: #ffffff;
+    box-shadow: 0 6px 22px rgba(15, 61, 46, 0.18);
+}
+
+.admin-panel-page .quick-links-main-card,
+.admin-panel-page .current-quick-links-card {
+    border-color: rgba(36, 133, 103, 0.16);
+}
+
+.admin-panel-page .quick-links-main-card > .card-header,
+.admin-panel-page .current-quick-links-card > .card-header {
+    background: rgba(36, 133, 103, 0.07);
+    border-bottom-color: rgba(36, 133, 103, 0.12);
+}
+
+.admin-panel-page .quick-links-main-card .card-header h3,
+.admin-panel-page .current-quick-links-card .card-header h3 {
+    color: var(--ap-text);
+}
+
+.admin-panel-page .quick-links-container .header-badge {
+    background: rgba(36, 133, 103, 0.12);
+    color: var(--ap-primary-dark);
+}
+
+.admin-panel-page .quick-links-container .badge-count {
+    background: var(--ap-primary);
+    color: #ffffff;
+}
+
+/* ======================== APP SETTINGS BANNER (admin panel scope) ======================== */
+.admin-panel-page .app-settings-banner {
+    background: linear-gradient(135deg, rgba(27, 94, 75, 0.14) 0%, rgba(36, 133, 103, 0.09) 100%);
+    border-bottom: 1px solid rgba(36, 133, 103, 0.2);
+}
+
+.admin-panel-page .app-settings-banner h2 {
+    color: var(--ap-primary-dark);
+}
+
+.admin-panel-page .app-settings-banner .banner-right {
+    color: var(--ap-primary);
+}
+
+[data-theme="dark"] .admin-panel-page .app-settings-banner {
+    background: linear-gradient(135deg, rgba(15, 46, 34, 0.9) 0%, rgba(10, 26, 20, 0.95) 100%);
+    border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+
+[data-theme="dark"] .admin-panel-page .app-settings-banner h2,
+[data-theme="dark"] .admin-panel-page .app-settings-banner .banner-right {
+    color: #6ee7b7;
+}
+
+/* ======================== RESPONSIVE ======================== */
+@media (max-width: 1024px) {
+    /* Stack sidebar → header → content; cap sidebar height so main area stays visible */
+    .admin-panel-page .admin-layout {
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 8px !important;
+        min-height: 0;
+        grid-template-columns: unset !important;
+        grid-template-rows: unset !important;
+    }
+
+    [dir="rtl"] .admin-panel-page .admin-layout {
+        display: flex !important;
+        flex-direction: column !important;
+    }
+
+    .admin-panel-page .admin-sidebar {
+        grid-column: unset !important;
+        grid-row: unset !important;
+        position: static !important;
+        top: auto !important;
+        left: auto !important;
+        right: auto !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        max-height: min(42vh, 300px) !important;
+        min-height: 0 !important;
+        height: auto !important;
+        flex-shrink: 0;
+        overflow-y: auto !important;
+        overflow-x: hidden !important;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    [dir="rtl"] .admin-panel-page .admin-sidebar {
+        grid-column: unset !important;
+    }
+
+    .admin-panel-page .sidebar-navigation {
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow-y: auto;
+    }
+
+    .admin-panel-page .admin-main-content {
+        grid-column: unset !important;
+        grid-row: unset !important;
+        flex: 1 1 auto !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        height: auto !important;
+        max-height: none !important;
+        min-height: min(52vh, 480px) !important;
+        overflow: hidden !important;
+        display: flex !important;
+        flex-direction: column !important;
+    }
+
+    [dir="rtl"] .admin-panel-page .admin-main-content {
+        grid-column: unset !important;
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+    }
+
+    .admin-panel-page .admin-panel-content {
+        max-height: none !important;
+        overflow: visible !important;
+        min-height: 0 !important;
+    }
+
+    .admin-panel-page .admin-header-bar {
+        position: static !important;
+        flex-wrap: wrap !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        row-gap: 8px !important;
+    }
+
+    .admin-panel-page .admin-header-bar .header-center {
+        flex: 1 1 100%;
+        order: 3;
+        text-align: center;
+        padding: 0 4px;
+    }
+
+    .admin-panel-page .admin-header-bar .header-left {
+        order: 1;
+    }
+
+    .admin-panel-page .admin-header-bar .header-right {
+        order: 2;
+        margin-inline-start: auto;
+    }
+
+    .admin-panel-page .content-area {
+        flex: 1 1 auto !important;
+        min-height: 200px !important;
+        max-height: none !important;
+    }
+}
+
+@media (max-width: 768px) {
+    .admin-panel-page .admin-sidebar {
+        max-height: min(36vh, 260px) !important;
+    }
+
+    .admin-panel-page .admin-main-content {
+        min-height: min(48vh, 420px) !important;
+    }
+
+    .admin-panel-page .admin-header-bar .system-title {
+        font-size: 0.95rem !important;
+    }
+}
+
+@media (max-width: 640px) {
+    .admin-panel-page .admin-panel-content {
+        padding: 4px;
+    }
+
+    .admin-panel-page .operating-model-grid,
+    .admin-panel-page .dashboard-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .admin-panel-page .dashboard-grid.dashboard-grid--kpi {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto;
+        min-height: auto;
+    }
+
+    .admin-panel-page .dashboard-hero {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .admin-panel-page .quick-actions {
+        grid-template-columns: 1fr 1fr;
+    }
+}

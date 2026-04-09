@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Regulatory Theme - BUDG</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../../assets/css/main.css">
+    <link rel="stylesheet" href="../../view/view.css">
+    <link rel="stylesheet" href="../../view/regulatory-theme/regulatory-theme.css">
+    <link rel="stylesheet" href="../../view/edit/edit-shared.css">
+    <link rel="stylesheet" href="../../view/regulatory-theme/regulatory-theme-edit.css">
+    <link rel="stylesheet" href="../../assets/css/custom-fields.css">
+    <link rel="stylesheet" href="../../assets/css/global-lock-ui.css">
+    <link rel="stylesheet" href="../../assets/css/advanced-rich-text-editor.css">
+    <!-- RTL styles for Arabic (disabled by default, enabled by i18n.js) -->
+    <link rel="stylesheet" href="../../assets/css/rtl.css" id="rtl-styles" disabled>
+    <script>(function(){const t=localStorage.getItem('budg-theme')||'light';document.documentElement.setAttribute('data-theme',t);})();</script>
+    <script src="/assets/i18n/head-locale.js"></script>
+    <script src="../../assets/i18n/i18n.js"></script>
+</head>
+<body class="regulatory-theme-edit-page" data-submenu="regulatory">
+    <div class="app-container">
+        <!-- Header -->
+        <header class="header"></header>
+
+        <div class="page-header">
+            <div class="page-header-container">
+                <div class="page-title">
+                    <div class="page-icon"><i class="fas fa-file-contract"></i></div>
+                    <div class="page-title-text">
+                        <div class="page-title-main" id="regulatoryThemeTitle">test theme</div>
+                        <div class="page-title-sub" data-i18n="regulatoryTheme.page.titleSub">Regulatory Theme</div>
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-primary" id="saveBtn">
+                        <i class="fas fa-save"></i> <span data-i18n="regulatoryTheme.buttons.save">Save</span>
+                    </button>
+                    <button type="button" class="btn btn-success" id="saveAndCloseBtn">
+                        <i class="fas fa-save"></i> <span data-i18n="regulatoryTheme.buttons.saveAndClose">Save & Close</span>
+                    </button>
+                    <button type="button" class="btn btn-secondary" id="closeBtn">
+                        <i class="fas fa-times"></i> <span data-i18n="regulatoryTheme.buttons.close">Close</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <main class="main-content">
+            <div class="content-card">
+                <div class="content-header">
+                    <div class="tab-container">
+                        <button class="tab active" data-tab="summary" data-i18n="regulatoryTheme.tabs.summary">SUMMARY</button>
+                        <button class="tab" data-tab="regulations" data-i18n="regulatoryTheme.tabs.regulations">REGULATIONS</button>
+                    </div>
+                </div>
+                <div class="content-body">
+                    <!-- Summary Tab -->
+                    <div id="summaryContainer" class="tab-content active">
+                        <div class="edit-form-container">
+                            <div class="regulatory-theme-container">
+                                <!-- Left Column -->
+                                <div class="left-column">
+                                    <!-- Definition Section -->
+                                    <div class="form-section">
+                                        <div class="section-title" data-i18n="regulatoryTheme.sections.definition">DEFINITION</div>
+                                        
+                                        <div class="form-group">
+                                            <label for="regulatoryThemeName" class="form-label required" data-i18n="regulatoryTheme.labels.name">Name</label>
+                                            <input type="text" id="regulatoryThemeName" class="form-input" required>
+                                        </div>
+                                        
+                                        <div class="form-group">
+                                            <label for="parentName" class="form-label" data-i18n="regulatoryTheme.labels.parent">Parent</label>
+                                            <div class="input-group">
+                                                <input type="text" id="parentName" class="form-input" data-i18n-placeholder="regulatoryTheme.placeholders.parent" readonly>
+                                                <button type="button" class="btn btn-sm btn-secondary" id="selectParentBtn">
+                                                    <i class="fas fa-pencil-alt"></i>
+                                                </button>
+                                                <button type="button" class="btn btn-sm btn-outline" id="clearParentBtn" data-i18n-title="regulatoryTheme.buttons.clearParent">
+                                                    <i class="fas fa-times"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="form-group">
+                                            <label for="regulatoryThemeDescription" class="form-label required" data-i18n="regulatoryTheme.labels.description">Description</label>
+                                            <textarea id="regulatoryThemeDescription" class="form-textarea" rows="4" required></textarea>
+                                            <button type="button" class="btn btn-sm btn-outline show-editor-btn" id="showEditorBtn" data-i18n="regulatoryTheme.buttons.showEditor">
+                                                Show Editor
+                                            </button>
+                                        </div>
+                                        
+                                        <div class="form-group">
+                                            <label for="regulatoryThemeRef" class="form-label" data-i18n="regulatoryTheme.labels.ref">Ref.</label>
+                                            <input type="text" id="regulatoryThemeRef" class="form-input" placeholder="REGTH-1">
+                                        </div>
+                                        
+                                        <div class="subsection-title" data-i18n="regulatoryTheme.sections.optionalFields">OPTIONAL FIELDS</div>
+                                        
+                                        <div class="form-group">
+                                            <label for="regulatoryThemeShortName" class="form-label" data-i18n="regulatoryTheme.labels.shortName">Short Name</label>
+                                            <input type="text" id="regulatoryThemeShortName" class="form-input" placeholder="sn">
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Right Column -->
+                                <div class="right-column">
+                                    <!-- Classifications Section -->
+                                    <div class="form-section">
+                                        <div class="section-title" data-i18n="regulatoryTheme.sections.classifications">CLASSIFICATIONS</div>
+                                        
+                                        <div class="subsection-title">BASIC CLASSIFICATIONS</div>
+                                        
+                <div class="form-group">
+                    <label for="budgStatus" class="form-label required" data-i18n="regulatoryTheme.labels.budgStatus">BUDG Status</label>
+                    <select id="budgStatus" class="form-select" required>
+                        <option value="" data-i18n="regulatoryTheme.placeholders.selectStatus">Select Status</option>
+                    </select>
+                </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Custom Fields Section -->
+                            <!-- Segment Field Container -->
+                            <div id="segmentFieldContainer" style="grid-column: 1/-1; margin-top: 1rem;"></div>
+                            
+                            <div class="form-section" style="grid-column: 1/-1; margin-top: 2rem;">
+                                <div class="section-title" data-i18n="regulatoryTheme.sections.customFields">CUSTOM FIELDS</div>
+                                <div id="customFieldsContainer"></div>
+                            </div>
+                        </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Regulations Tab -->
+                    <div id="regulationsContainer" class="tab-content">
+                        <div class="regulations-section">
+                            <div class="section-title" data-i18n="regulatoryTheme.sections.regulations">REGULATIONS</div>
+                            <div class="regulations-table-container">
+                                <div class="table-wrapper">
+                                    <table class="data-table" id="regulationsTable">
+                                        <thead>
+                                            <tr>
+                                                <th data-i18n="regulatoryTheme.labels.relationshipType">Relationship Type</th>
+                                                <th data-i18n="regulatoryTheme.labels.regulation">Regulation</th>
+                                                <th data-i18n="regulatoryTheme.labels.action">Action</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="regulationsTableBody">
+                                            <!-- Regulation relationships will be loaded here -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Parent Selection Modal -->
+    <div id="parentSelectionModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 data-i18n="regulatoryTheme.modal.selectParentTheme">Select Parent Regulatory Theme</h3>
+                <button type="button" class="modal-close" id="closeParentModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="search-container">
+                    <input type="text" id="parentSearchInput" class="form-input" data-i18n-placeholder="regulatoryTheme.placeholders.searchThemes" placeholder="Search regulatory themes...">
+                </div>
+                <div class="regulatory-theme-list" id="regulatoryThemeList">
+                    <!-- Regulatory themes will be loaded here -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" id="cancelParentSelection" data-i18n="regulatoryTheme.modal.cancel">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="../../assets/js/config.js"></script>
+    <script src="../../assets/js/api-service.js"></script>
+    <script src="../../assets/js/lock-manager.js"></script>
+    <script src="../../assets/js/lock-init-helper.js"></script>
+    <script src="../../assets/js/global-lock-ui.js"></script>
+    <script src="../../assets/js/main.js"></script>
+    <script src="../../assets/js/initSearch.js"></script>
+    
+    <script src="../../assets/js/custom-fields.js"></script>
+    <script src="../../assets/js/segment-field.js"></script>
+    <script src="../../assets/js/header.js"></script>
+    <script src="../../assets/js/advanced-rich-text-editor.js"></script>
+    <script src="../../view/regulatory-theme/regulatory-theme-edit.js"></script>
+</body>
+</html>
+

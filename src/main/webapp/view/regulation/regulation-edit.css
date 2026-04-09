@@ -1,0 +1,846 @@
+/* Regulation Edit Page Styles - Matching other edit pages */
+
+.regulation-edit-page {
+    background: var(--background-primary, #f8fafc);
+}
+
+.regulation-edit-page .main-content {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 1.5rem 1.75rem 3rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.regulation-edit-page .content-card {
+    background: var(--background-primary, #ffffff);
+    border-radius: 18px;
+    box-shadow: var(--shadow-medium, 0 18px 40px rgba(15, 23, 42, 0.12));
+    border: 1px solid var(--border-color, #e2e8f0);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.regulation-edit-page .content-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.25rem 1.75rem;
+    background: var(--background-secondary, #f8fafc);
+    border-bottom: 1px solid var(--border-color, #e2e8f0);
+}
+
+.regulation-edit-page .content-body {
+    padding: 1.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+/* Tab content */
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+/* Form Container */
+.edit-form-container {
+    padding: 0;
+}
+
+/* Two-column grid layout */
+.regulation-container {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 2rem;
+    margin-bottom: 2rem;
+}
+
+.left-column,
+.right-column {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+/* Form Section - Matching edit-shared.css */
+.form-section {
+    background: var(--background-primary, #ffffff);
+    border: 1px solid var(--border-color, #e2e8f0);
+    border-radius: 12px;
+    padding: 1.25rem 1.5rem;
+    box-shadow: var(--shadow-light, 0 8px 24px rgba(15, 23, 42, 0.08));
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+/* Section Title - Matching edit-shared.css */
+.section-title {
+    font-size: 0.82rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-secondary, #475569);
+    margin: 0;
+    padding: 0;
+    border: none;
+}
+
+.subsection-title {
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-secondary, #64748b);
+    margin: 1.5rem 0 1rem 0;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border-color, #e2e8f0);
+}
+
+/* Form Groups */
+.form-group {
+    margin-bottom: 1.25rem;
+}
+
+.form-group:last-child {
+    margin-bottom: 0;
+}
+
+.form-label {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--text-primary, #111827);
+    margin-bottom: 0.5rem;
+}
+
+.form-label.required::after {
+    content: ' *';
+    color: var(--danger, #ef4444);
+}
+
+.form-input,
+.form-select,
+.form-textarea {
+    width: 100%;
+    padding: 0.625rem 0.875rem;
+    border: 1px solid var(--border-color, #d1d5db);
+    border-radius: 6px;
+    font-size: 0.875rem;
+    color: var(--text-primary, #111827);
+    background: var(--input-background, #ffffff);
+    transition: all 0.2s ease;
+}
+
+.form-input:focus,
+.form-select:focus,
+.form-textarea:focus {
+    outline: none;
+    border-color: var(--primary, #4f46e5);
+    box-shadow: 0 0 0 3px var(--primary-10, rgba(79, 70, 229, 0.1));
+}
+
+.form-input:read-only {
+    background: var(--background-secondary, #f3f4f6);
+    cursor: not-allowed;
+}
+
+.form-textarea {
+    resize: vertical;
+    min-height: 80px;
+}
+
+/* Input Group */
+.input-group {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.input-group .form-input {
+    flex: 1;
+}
+
+.input-group .btn {
+    flex-shrink: 0;
+}
+
+/* Tables */
+.data-table-wrapper {
+    overflow-x: auto;
+    margin-top: 1rem;
+}
+
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+}
+
+.data-table thead {
+    background: var(--background-secondary, #f9fafb);
+    border-bottom: 2px solid var(--border-color, #e5e7eb);
+}
+
+.data-table th {
+    padding: 0.75rem 1rem;
+    text-align: left;
+    font-weight: 600;
+    color: var(--text-secondary, #6b7280);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.data-table td {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--border-color, #e5e7eb);
+}
+
+.data-table tbody tr:hover {
+    background: var(--background-hover, #f9fafb);
+}
+
+.data-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.data-table .form-select {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.813rem;
+}
+
+.data-table .form-input {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.813rem;
+}
+
+.action-column {
+    width: 100px;
+    text-align: center;
+}
+
+.action-column .btn {
+    margin: 0 0.25rem;
+}
+
+/* Buttons */
+.btn {
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.btn-primary {
+    background: var(--primary, #4f46e5);
+    color: white;
+}
+
+.btn-primary:hover {
+    background: var(--primary-hover, #4338ca);
+}
+
+.btn-success {
+    background: var(--success, #10b981);
+    color: white;
+}
+
+.btn-success:hover {
+    background: var(--success-hover, #059669);
+}
+
+.btn-secondary {
+    background: var(--secondary, #6b7280);
+    color: white;
+}
+
+.btn-secondary:hover {
+    background: var(--secondary-hover, #4b5563);
+}
+
+.btn-danger {
+    background: var(--danger, #ef4444);
+    color: white;
+}
+
+.btn-danger:hover {
+    background: var(--danger-hover, #dc2626);
+}
+
+.btn-outline {
+    background: transparent;
+    color: var(--text-secondary, #6b7280);
+    border: 1px solid var(--border-color, #d1d5db);
+}
+
+.btn-outline:hover {
+    background: var(--background-hover, #f3f4f6);
+}
+
+.btn-sm {
+    padding: 0.375rem 0.75rem;
+    font-size: 0.813rem;
+}
+
+/* Modal */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background: var(--card-background, #ffffff);
+    border-radius: 8px;
+    width: 90%;
+    max-width: 600px;
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.modal-header {
+    padding: 1.5rem;
+    border-bottom: 1px solid var(--border-color, #e5e7eb);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-header h3 {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--text-primary, #111827);
+    margin: 0;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    color: var(--text-secondary, #6b7280);
+    cursor: pointer;
+    padding: 0;
+    width: 2rem;
+    height: 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-close:hover {
+    color: var(--text-primary, #111827);
+}
+
+.modal-body {
+    padding: 1.5rem;
+    overflow-y: auto;
+    flex: 1;
+}
+
+.modal-footer {
+    padding: 1.5rem;
+    border-top: 1px solid var(--border-color, #e5e7eb);
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+}
+
+.search-container {
+    margin-bottom: 1rem;
+}
+
+.regulation-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.regulation-item {
+    padding: 1rem;
+    border: 1px solid var(--border-color, #e5e7eb);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.regulation-item:hover {
+    background: var(--background-hover, #f9fafb);
+    border-color: var(--primary, #4f46e5);
+}
+
+.regulation-item-name {
+    font-weight: 500;
+    color: var(--text-primary, #111827);
+    margin-bottom: 0.25rem;
+}
+
+.regulation-item-ref {
+    font-size: 0.813rem;
+    color: var(--text-secondary, #6b7280);
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+    .regulation-container {
+        grid-template-columns: 1fr;
+    }
+    
+    .right-column {
+        position: static;
+    }
+}
+
+@media (max-width: 768px) {
+    .regulation-container {
+        padding: 1rem;
+    }
+    
+    .form-section {
+        padding: 1rem;
+    }
+}
+
+/* Dark Mode */
+[data-theme="dark"] {
+    --background-primary: #111827;
+    --background-secondary: #1f2937;
+    --card-background: #1f2937;
+    --text-primary: #f9fafb;
+    --text-secondary: #d1d5db;
+    --text-muted: #9ca3af;
+    --border-color: #374151;
+    --input-background: #111827;
+    --background-hover: #374151;
+}
+
+[data-theme="dark"] .data-table thead {
+    background: #111827;
+}
+
+[data-theme="dark"] .form-input:read-only {
+    background: #111827;
+}
+
+/* Hierarchy table styles - EXACT COPY from regulation view page */
+.regulation-edit-page .hierarchy-table-wrapper {
+    background: var(--background-primary, #fff);
+    border: 1px solid var(--border-color, #e9ecef);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.regulation-edit-page .hierarchy-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+}
+
+.regulation-edit-page .hierarchy-table thead {
+    background: var(--background-secondary, #f8f9fa);
+}
+
+.regulation-edit-page .hierarchy-table th {
+    padding: 0.75rem 1rem;
+    text-align: left;
+    font-weight: 600;
+    color: var(--text-primary, #1e293b);
+    border-bottom: 1px solid var(--border-color, #e9ecef);
+}
+
+.regulation-edit-page .hierarchy-table td {
+    padding: 0.5rem 1rem;
+    border-bottom: 1px solid var(--border-color, #e9ecef);
+    vertical-align: top;
+}
+
+/* Ref column specific styling to prevent text wrapping */
+.regulation-edit-page .hierarchy-table td:first-child {
+    white-space: nowrap;
+    min-width: 80px;
+    width: auto;
+}
+
+.regulation-edit-page .hierarchy-table tbody tr:hover {
+    background: var(--background-hover, #f8f9fa);
+}
+
+.regulation-edit-page .tree-cell {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.regulation-edit-page .tree-indent {
+    width: 1.5rem;
+    height: 1rem;
+    display: inline-block;
+}
+
+.regulation-edit-page .tree-branch {
+    width: 1rem;
+    height: 1rem;
+    border-left: 1px solid var(--border-color, #e9ecef);
+    border-bottom: 1px solid var(--border-color, #e9ecef);
+    display: inline-block;
+    margin-right: 0.25rem;
+}
+
+.regulation-edit-page .tree-expander {
+    background: none;
+    border: none;
+    padding: 0.25rem;
+    cursor: pointer;
+    color: var(--text-secondary, #64748b);
+    font-size: 0.75rem;
+    border-radius: 4px;
+    background: var(--background-primary, #fff);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+}
+
+.regulation-edit-page .tree-expander:hover {
+    color: var(--secondary-color, #248567);
+    background: var(--background-hover, #f8f9fa);
+}
+
+.regulation-edit-page .tree-placeholder {
+    display: inline-block;
+    width: 22px;
+    height: 22px;
+}
+
+.regulation-edit-page .item-icon {
+    color: var(--secondary-color, #248567);
+    margin-right: 0.5rem;
+    font-size: 0.875rem;
+}
+
+.regulation-edit-page .regulation-name {
+    font-weight: 500;
+}
+
+.regulation-edit-page .regulation-link {
+    color: var(--text-primary, #1e293b);
+    text-decoration: none;
+    transition: color 0.15s ease;
+}
+
+.regulation-edit-page .regulation-link:hover {
+    color: var(--secondary-color, #248567);
+    text-decoration: underline;
+}
+
+.regulation-edit-page .current-regulation-link {
+    color: var(--secondary-color, #248567);
+    font-weight: 600;
+}
+
+.regulation-edit-page .regulation-ref {
+    font-size: 0.875rem;
+    color: var(--text-secondary, #64748b);
+    margin-left: 0.5rem;
+}
+
+.regulation-edit-page .child-count {
+    background: var(--secondary-color, #248567);
+    color: white;
+    font-size: 0.75rem;
+    padding: 0.125rem 0.375rem;
+    border-radius: 0.75rem;
+    margin-left: 0.5rem;
+    font-weight: 500;
+}
+
+.regulation-edit-page .current-row {
+    background: var(--success-100, #d1fae5);
+}
+
+.regulation-edit-page .current-row td:first-child {
+    border-left: 3px solid var(--secondary-color, #248567);
+}
+
+.regulation-edit-page .table-footer {
+    padding: 0.75rem 1rem;
+    background: var(--background-secondary, #f8f9fa);
+    border-top: 1px solid var(--border-color, #e9ecef);
+    font-size: 0.875rem;
+    color: var(--text-secondary, #64748b);
+    text-align: right;
+}
+
+.regulation-edit-page .ref-number {
+    font-family: 'Courier New', monospace;
+    font-size: 0.875rem;
+    color: var(--text-secondary, #64748b);
+    background: var(--background-secondary, #f8f9fa);
+    padding: 0.125rem 0.375rem;
+    border-radius: 0.25rem;
+    white-space: nowrap;
+    display: inline-block;
+}
+
+/* Table Actions - Isolated Save Buttons */
+.table-actions {
+    display: flex;
+    justify-content: flex-end;
+    padding: 1rem;
+    background: var(--background-secondary, #f8fafc);
+    border-top: 1px solid var(--border-color, #e2e8f0);
+    margin-top: 0;
+}
+
+.btn-save-table {
+    font-size: 0.875rem;
+    padding: 0.5rem 1rem;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.2s ease;
+}
+
+.btn-save-table:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.btn-save-table i {
+    font-size: 0.875rem;
+}
+
+/* ===========================================
+   REGULATION IMPACT TAB STYLES
+   Match common style from policy-edit.css
+   =========================================== */
+
+/* Relationships Container */
+.relationships-container {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+/* Sub-tabs styling */
+.relationships-sub-tabs {
+    display: flex;
+    gap: 0;
+    border-bottom: 1px solid var(--border-color, #e5e7eb);
+    background: var(--background-primary, #fff);
+}
+
+.sub-tab {
+    background: none;
+    border: none;
+    padding: 1rem 1.5rem;
+    font-size: .9rem;
+    font-weight: 500;
+    color: var(--text-muted, #6b7280);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border-bottom: 3px solid transparent;
+    position: relative;
+}
+
+.sub-tab:hover {
+    color: var(--text-primary, #111827);
+    background: var(--background-secondary, #f9fafb);
+}
+
+.sub-tab.active {
+    color: var(--text-primary, #111827);
+    border-bottom-color: var(--secondary-color, #248567);
+    background: var(--background-primary, #fff);
+}
+
+.relationships-content {
+    position: relative;
+}
+
+.sub-tab-content {
+    display: none;
+}
+
+.sub-tab-content.active {
+    display: block;
+}
+
+/* Relationships Hierarchy */
+.relationships-hierarchy {
+    background: var(--background-primary, #fff);
+    border: 1px solid var(--border-color, #e9ecef);
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: var(--shadow-light, 0 2px 10px rgba(0, 0, 0, 0.1));
+}
+
+.relationships-hierarchy .hierarchy-header {
+    background: var(--background-secondary, #f8f9fa);
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--border-color, #e9ecef);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.relationships-hierarchy .hierarchy-title {
+    font-weight: 600;
+    color: var(--text-secondary, #6c757d);
+    letter-spacing: .04em;
+    font-size: .9rem;
+    background-color: var(--background-secondary, #f8f9fa);
+    padding: 0.5rem 0.75rem;
+    border-radius: 6px;
+    border-left: 4px solid var(--secondary-color, #248567);
+    text-transform: uppercase;
+}
+
+.relationships-hierarchy .hierarchy-actions {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+}
+
+.relationships-hierarchy .hierarchy-footer {
+    padding: .65rem 1rem;
+    color: var(--text-secondary);
+    font-size: .85rem;
+    border-top: 1px solid var(--border-color);
+    background: var(--background-secondary);
+}
+
+/* Data table wrapper */
+.relationships-hierarchy .data-table-wrapper {
+    overflow-x: auto;
+}
+
+.relationships-hierarchy .data-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.relationships-hierarchy .data-table thead {
+    background: var(--background-secondary, #f8f9fa);
+    border-bottom: 1px solid var(--border-color, #e9ecef);
+}
+
+.relationships-hierarchy .data-table th {
+    padding: 1rem 1rem;
+    text-align: left;
+    font-weight: 600;
+    color: var(--text-secondary, #6c757d);
+    font-size: .82rem;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    background: var(--background-secondary, #f8f9fa);
+    border-bottom: 1px solid var(--border-color, #e9ecef);
+}
+
+.relationships-hierarchy .data-table th.actions {
+    text-align: center;
+    width: 100px;
+}
+
+.relationships-hierarchy .data-table .th-content {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.relationships-hierarchy .data-table .th-content span {
+    flex: none;
+    text-align: center;
+}
+
+.relationships-hierarchy .data-table td {
+    padding: .9rem 1rem;
+    border-top: 1px solid var(--border-color, #e9ecef);
+    color: var(--text-primary, #2c3e50);
+    vertical-align: middle;
+}
+
+.relationships-hierarchy .data-table td:last-child {
+    text-align: center;
+    width: 100px;
+}
+
+/* Center table cells under centered headers */
+/* Product, Policy, Project tables: Ref (3rd), Owner (4th), Action (5th) */
+#impactProductContent .data-table th:nth-child(3),
+#impactProductContent .data-table th:nth-child(4),
+#impactProductContent .data-table td:nth-child(3),
+#impactProductContent .data-table td:nth-child(4),
+#impactPolicyContent .data-table th:nth-child(3),
+#impactPolicyContent .data-table th:nth-child(4),
+#impactPolicyContent .data-table td:nth-child(3),
+#impactPolicyContent .data-table td:nth-child(4),
+#impactProjectContent .data-table th:nth-child(3),
+#impactProjectContent .data-table th:nth-child(4),
+#impactProjectContent .data-table td:nth-child(3),
+#impactProjectContent .data-table td:nth-child(4) {
+    text-align: center;
+}
+
+#impactProductContent .data-table th:nth-child(3) .th-content,
+#impactProductContent .data-table th:nth-child(4) .th-content,
+#impactPolicyContent .data-table th:nth-child(3) .th-content,
+#impactPolicyContent .data-table th:nth-child(4) .th-content,
+#impactProjectContent .data-table th:nth-child(3) .th-content,
+#impactProjectContent .data-table th:nth-child(4) .th-content {
+    justify-content: center;
+}
+
+.relationships-hierarchy .data-table tbody tr:hover {
+    background: var(--background-hover, #f8fafc);
+}
+
+/* Action buttons */
+.relationships-hierarchy .data-table .action-buttons {
+    display: flex;
+    gap: 0.25rem;
+    align-items: center;
+    justify-content: center;
+}
+
+.relationships-hierarchy .data-table .action-buttons .btn {
+    padding: 0.3rem 0.5rem;
+    font-size: 0.75rem;
+    border-radius: 4px;
+    border: 1px solid var(--border-color, #e9ecef);
+    background: var(--background-primary, #fff);
+    color: var(--text-secondary, #6c757d);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.relationships-hierarchy .data-table .action-buttons .btn:hover {
+    background: var(--background-secondary, #f8f9fa);
+    color: var(--text-primary, #2c3e50);
+}
+

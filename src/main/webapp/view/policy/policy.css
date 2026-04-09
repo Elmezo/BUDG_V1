@@ -1,0 +1,318 @@
+.policy-page .page-icon i {
+    color: var(--accent-color);
+}
+
+/* Policy-specific icons and styling */
+.policy-icon {
+    color: var(--primary-color, #248567);
+    margin-right: 0.5rem;
+}
+
+.policy-item {
+    display: flex;
+    align-items: center;
+}
+
+.description-text {
+    color: var(--text-muted, #6b7280);
+    font-style: italic;
+    font-size: 0.9rem;
+}
+
+.current-policy {
+    background-color: var(--primary-50, #eff6ff);
+    border-left: 3px solid var(--primary-color, #248567);
+}
+
+.parent-policy {
+    background-color: var(--gray-50, #f9fafb);
+}
+
+.current-name {
+    font-weight: 600;
+    color: var(--primary-color, #248567);
+}
+
+.parent-name-style {
+    font-style: italic;
+    color: var(--text-secondary, #6b7280);
+}
+
+.child-name {
+    color: var(--text-primary, #111827);
+}
+
+.relationship-label {
+    font-size: 0.75rem;
+    color: var(--text-tertiary, #9ca3af);
+    margin-left: 0.5rem;
+}
+
+.policy-page .content-card .section-title {
+    letter-spacing: .5px;
+}
+
+.policy-page .form-hint {
+    font-size: 12px;
+    color: var(--muted-text-color);
+}
+
+/* Narrow split-button toggle for Policy view header */
+#editDropdownToggle {
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+    min-width: 36px;
+    width: 36px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Keep content under fixed header and match shared layout */
+.policy-page .main-content,
+.policy-edit-page .main-content {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 1rem 20px;
+    height: auto;
+    min-height: calc(100vh - 70px - 80px);
+    display: flex;
+    flex-direction: column;
+    overflow: visible;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.policy-page .content-card,
+.policy-edit-page .content-card { 
+    flex: 1; 
+    max-width: 100%;
+    width: 100%;
+    box-sizing: border-box;
+    overflow: visible;
+}
+
+/* Ensure view-grid and content-body show all content */
+.policy-page .content-body {
+    overflow: visible !important;
+    min-height: auto !important;
+}
+
+.policy-page .view-grid {
+    overflow: visible !important;
+    min-height: auto !important;
+}
+
+/* Ensure sections can expand to show all content */
+.policy-page .view-section {
+    overflow: visible !important;
+    min-height: auto !important;
+    word-wrap: break-word;
+    word-break: break-word;
+}
+
+.policy-page .view-value {
+    word-wrap: break-word;
+    word-break: break-word;
+    overflow-wrap: break-word;
+    min-width: 0;
+}
+
+.policy-page .rich-html-content {
+    max-width: 100%;
+    overflow-x: auto;
+}
+
+.policy-page .rich-html-content img,
+.policy-page .rich-html-content video,
+.policy-page .rich-html-content iframe {
+    max-width: 100%;
+    height: auto;
+}
+
+.policy-page .rich-html-content table {
+    width: 100%;
+    max-width: 100%;
+    table-layout: fixed;
+    border-collapse: collapse;
+}
+
+.policy-page .rich-html-content td,
+.policy-page .rich-html-content th {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
+/* Fix form grid width issues */
+.policy-page .form-grid,
+.policy-edit-page .form-grid { 
+    display: grid !important; 
+    grid-template-columns: 1fr 1fr !important; 
+    gap: 2rem !important; 
+    max-width: 100% !important; 
+    width: 100% !important;
+}
+
+.policy-page .form-section,
+.policy-edit-page .form-section { 
+    max-width: 100% !important; 
+    width: 100% !important;
+    box-sizing: border-box !important;
+}
+
+.policy-page .form-group,
+.policy-edit-page .form-group { 
+    max-width: 100% !important; 
+    width: 100% !important;
+    box-sizing: border-box !important;
+}
+
+.policy-page .form-input,
+.policy-edit-page .form-input,
+.policy-page .form-select,
+.policy-edit-page .form-select,
+.policy-page .form-textarea,
+.policy-edit-page .form-textarea { 
+    max-width: 100% !important; 
+    width: 100% !important;
+    box-sizing: border-box !important;
+}
+
+/* Policy specific overrides (if needed) */
+.policy-page .relationships-hierarchy .hierarchy-item .policy-icon {
+    color: var(--secondary-color, #248567);
+    font-size: .9rem;
+}
+
+/* All hierarchy, tab, and connector styles are now handled by facets.shared.css */
+
+/* Tree structure styling for policy hierarchy (matching glossary) */
+.policy-page .tree-cell { 
+    display: flex; 
+    align-items: center; 
+    gap: 0.2rem; 
+}
+
+.policy-page .tree-indent { 
+    display: inline-block; 
+    width: 1rem; 
+    height: 1px; 
+}
+
+.policy-page .tree-branch { 
+    display: inline-block; 
+    width: .75rem; 
+    height: 1px; 
+    background: var(--border-color); 
+    margin-right: .25rem; 
+}
+
+.policy-page .policy-name { 
+    font-weight: 600;
+    display: inline;
+}
+
+.policy-page .policy-name a {
+    display: inline;
+    background: none !important;
+    border: none !important;
+    border-radius: 0 !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+}
+
+.policy-page .current-row { 
+    background: #e8f5e9 !important;
+    border-left: 3px solid #248567;
+    box-shadow: 0 2px 6px rgba(36, 133, 103, 0.15);
+}
+
+.policy-page .current-row:hover {
+    background: #d4edda !important;
+    box-shadow: 0 3px 8px rgba(36, 133, 103, 0.2);
+}
+
+.policy-page .tree-expander { 
+    width: 16px; 
+    height: 16px; 
+    border: 1px solid #d1d5db; 
+    border-radius: 3px; 
+    background: #ffffff; 
+    color: #6b7280; 
+    display: inline-flex; 
+    align-items: center; 
+    justify-content: center; 
+    cursor: pointer; 
+    margin-right: 0.2rem;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+.policy-page .tree-expander:hover { 
+    background: #f3f4f6;
+    border-color: #9ca3af;
+    color: #374151;
+}
+
+.policy-page .tree-expander i {
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    font-size: 0.7rem;
+}
+
+.policy-page .tree-expander.collapsed i {
+    transform: rotate(-90deg);
+}
+
+.policy-page .tree-placeholder { 
+    display: inline-block; 
+    width: 16px; 
+    height: 16px; 
+    margin-right: 0.2rem; 
+}
+
+.policy-page .child-count { 
+    margin-left: .5rem; 
+    background: var(--chip-bg, #f3f4f6); 
+    color: var(--text-secondary); 
+    border: 1px solid var(--border-color); 
+    padding: 0 .4rem; 
+    border-radius: 10px; 
+    font-size: .75rem; 
+}
+
+.policy-page .policy-link { 
+    color: #248567;
+    text-decoration: none; 
+    font-weight: 600;
+    transition: all 0.2s ease;
+}
+
+.policy-page .policy-link:hover { 
+    color: #1a5f47;
+    text-decoration: underline;
+}
+
+.policy-page .current-policy-link { 
+    color: #248567;
+    font-weight: 700;
+}
+
+.policy-page .item-icon {
+    color: var(--secondary-color, #248567);
+    margin-right: 0.5rem;
+    font-size: 0.875rem;
+}
+
+/* Responsive design for policy page */
+@media (max-width: 768px) {
+    .policy-page .form-grid,
+    .policy-edit-page .form-grid {
+        grid-template-columns: 1fr !important;
+        gap: 1rem !important;
+    }
+    
+    .policy-page .main-content,
+    .policy-edit-page .main-content {
+        padding: 1rem 16px;
+    }
+}

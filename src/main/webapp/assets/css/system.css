@@ -1,0 +1,1157 @@
+/* Status badges for stakeholders */
+.status-badge {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.status-active {
+    background-color: #d1fae5;
+    color: #065f46;
+    border: 1px solid #a7f3d0;
+}
+
+.status-inactive {
+    background-color: #fee2e2;
+    color: #991b1b;
+    border: 1px solid #fca5a5;
+}
+
+.status-pending {
+    background-color: #fef3c7;
+    color: #92400e;
+    border: 1px solid #fde68a;
+}
+
+.system-page .page-icon i {
+    color: var(--accent-color);
+}
+.system-page .content-card .section-title {
+    letter-spacing: .5px;
+}
+.system-page .form-hint {
+    font-size: 12px;
+    color: var(--muted-text-color);
+}
+/* Narrow split-button toggle for Org Unit view header */
+#editDropdownToggle {
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+    min-width: 36px;
+    width: 36px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+/* System creation and edit page card-based layout */
+.system-page .system-container,
+.system-edit-page .system-container {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 2rem;
+    align-items: start;
+}
+
+/* Form Card Styling */
+.system-page .form-card,
+.system-edit-page .form-card {
+    background: var(--background-primary, #fff);
+    border: 1px solid var(--border-color, #e5e7eb);
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+    transition: box-shadow 0.2s ease;
+}
+
+.system-page .form-card:hover,
+.system-edit-page .form-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.system-page .card-header,
+.system-edit-page .card-header {
+    background: var(--background-secondary, #f8f9fa);
+    border-bottom: 1px solid var(--border-color, #e5e7eb);
+    padding: 1rem 1.5rem;
+}
+
+.system-page .card-title,
+.system-edit-page .card-title {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-primary, #111827);
+    margin: 0;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.system-page .card-body,
+.system-edit-page .card-body {
+    /* fix overflow to allow dropdowns/popups */
+    overflow: visible !important;
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Left column wrapper in view page */
+.system-page .system-left-column {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+/* Description card specific styling (view page) */
+.system-page .description-card {
+    min-height: auto;
+    overflow: visible;
+}
+
+/* Description text block at top of DESCRIPTION card */
+.system-page .description-text {
+    font-size: 0.95rem;
+    color: var(--text-primary, #111827);
+    line-height: 1.6;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--border-color, #e5e7eb);
+    margin-bottom: 0.25rem;
+    word-break: break-word;
+}
+
+/* Section subtitle inside cards (e.g. BASIC CLASSIFICATIONS, OTHER INFORMATION) */
+.system-page .section-subtitle {
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--text-muted, #6b7280);
+    margin-bottom: 0.25rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Definition card specific styling (edit page) */
+.system-edit-page .definition-card {
+    min-height: 600px;
+}
+
+.system-edit-page .form-card.definition-card {
+    min-height: 750px;
+    overflow: visible;
+}
+
+/* Classifications card specific styling */
+.system-page .classifications-card,
+.system-edit-page .classifications-card {
+    min-height: 500px;
+}
+
+.system-page .form-card.classifications-card,
+.system-edit-page .form-card.classifications-card {
+    width: 100%;
+    min-width: 0;
+    align-self: start;
+    overflow: hidden;
+}
+
+/* Documents card specific styling */
+.system-page .form-card.documents-card,
+.system-edit-page .form-card.documents-card {
+    width: 100%;
+    display: block;
+    grid-column: 1 / -1;
+}
+
+
+/* Responsive design for system creation and edit */
+@media (max-width: 768px) {
+    .system-page .system-container,
+    .system-edit-page .system-container {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+    }
+
+    .system-page .form-card,
+    .system-edit-page .form-card {
+        min-height: auto;
+    }
+
+    .system-page .card-body,
+    .system-edit-page .card-body {
+        padding: 1rem;
+        gap: 1rem;
+    }
+
+    .system-page .card-header,
+    .system-edit-page .card-header {
+        padding: 0.75rem 1rem;
+    }
+}
+
+/* Keep content under fixed header and match shared layout */
+.system-page .main-content,
+.system-edit-page .main-content {
+    margin: 0 auto;
+    padding: 20px 80px 2px 80px;
+    height: auto;
+    min-height: calc(100vh - 70px - 80px);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.system-page .content-card,
+.system-edit-page .content-card {
+    flex: 1;
+    max-width: 100%;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* Fix form grid width issues */
+.system-page .form-grid,
+.system-edit-page .form-grid {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 2rem !important;
+    max-width: 100% !important;
+    width: 100% !important;
+}
+
+.system-page .form-section,
+.system-edit-page .form-section {
+    overflow-x: auto;
+    max-width: 100% !important;
+    width: 100% !important;
+}
+
+.system-page .form-section .form-input,
+.system-page .form-section .form-textarea,
+.system-page .form-section .form-select,
+.system-edit-page .form-section .form-input,
+.system-edit-page .form-section .form-textarea,
+.system-edit-page .form-section .form-select {
+    max-width: 100% !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+}
+
+/* Fix container widths */
+.system-page .view-grid,
+.system-edit-page .view-grid { max-width: 100% !important; }
+.system-page .view-section,
+.system-edit-page .view-section { 
+    max-width: 100% !important; 
+    overflow: visible !important;
+}
+
+/* Ensure content-body allows full expansion for definition card */
+.system-edit-page .content-body {
+    overflow: visible !important;
+    min-height: auto !important;
+}
+
+/* Responsive adjustments */
+@media (max-width: 1024px) {
+    .system-page .form-grid,
+    .system-edit-page .form-grid {
+        grid-template-columns: 1fr !important;
+        gap: 1.5rem !important;
+    }
+}
+
+/* Minor tweaks for system form */
+.system-page .editor-button {
+    align-self: flex-start;
+    margin-top: -0.25rem;
+    background: transparent;
+    color: #248567;
+    border: 1px solid #248567;
+    border-radius: 6px;
+    padding: 6px 10px;
+    cursor: pointer;
+}
+
+.system-page .editor-button:hover {
+    background: rgba(36, 133, 103, 0.08);
+}
+
+.system-page .field-error { display: block; }
+
+/* CIA inline layout */
+.system-page .cia-inline {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.system-page .cia-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.system-page .cia-caption {
+    color: var(--text-primary);
+    font-weight: 600;
+    width: 14px;
+}
+
+/* Interfaces table styling */
+.interfaces-table-wrapper { background: var(--card-bg, #fff); border: 1px solid var(--border-color, #e5e7eb); border-radius: 12px; overflow: auto; box-shadow: 0 1px 2px rgba(0,0,0,0.04); max-height: calc(100vh - 260px); }
+.interfaces-table { width: 100%; border-collapse: collapse; table-layout: auto; font-family: 'Inter', sans-serif; }
+.interfaces-table thead { position: sticky; top: 0; background: var(--background-secondary, #f9fafb); z-index: 1; }
+.interfaces-table th { padding: 0.9rem 1rem; text-align: left; font-weight: 700; color: var(--text-secondary, #6b7280); font-size: .8rem; letter-spacing: .05em; text-transform: uppercase; border-bottom: 1px solid var(--border-color, #e5e7eb); }
+.interfaces-table td { padding: .9rem 1rem; border-top: 1px solid var(--border-color, #e5e7eb); color: var(--text-primary, #111827); vertical-align: middle; }
+.interfaces-table tbody tr:nth-child(odd) { background: rgba(0,0,0,0.015); }
+.interfaces-table tbody tr:hover { background: var(--background-secondary, #f3f4f6); }
+/* Line type indicator for interfaces table */
+.interfaces-table .line-type-indicator { display: inline-block; margin-right: 0.5rem; font-size: 0.75rem; vertical-align: middle; }
+.interfaces-table .line-type-indicator.solid { color: #64748b; font-weight: bold; }
+.interfaces-table .line-type-indicator.dotted { color: #94a3b8; opacity: 0.7; }
+.interfaces-name { display: inline-flex; align-items: center; gap: .5rem; color: #248567;text-decoration: none; font-weight: 600; }
+.interfaces-name i { color: var(--primary-500, #248567); }
+.interfaces-meta { display:flex; align-items:center; gap:.5rem; color: var(--text-secondary, #6b7280); font-size: .85rem; }
+.interfaces-cap { display:inline-flex; align-items:center; gap:.35rem; background: var(--chip-bg, #f3f4f6); color: var(--text-secondary, #6b7280); border: 1px solid var(--border-color, #e5e7eb); padding: .15rem .45rem; border-radius: 9999px; font-size: .75rem; }
+.interfaces-table .table-footer { padding: .65rem 1rem; color: var(--text-secondary); font-size: .85rem; border-top: 1px solid var(--border-color); background: var(--background-secondary); }
+
+@media (max-width: 1000px) {
+  .interfaces-table th:nth-child(4), .interfaces-table td:nth-child(4) { display: none; }
+  .interfaces-table th:nth-child(8), .interfaces-table td:nth-child(8) { display: none; }
+  .interfaces-table th:nth-child(9), .interfaces-table td:nth-child(9) { display: none; }
+  .interfaces-table th:nth-child(10), .interfaces-table td:nth-child(10) { display: none; }
+}
+
+/* Glossary searchable dropdown (used in Data Content Summary edit) */
+.system-page .select-dropdown-container { position: relative; width: 100%; }
+.system-page .select-dropdown-input { display: inline-flex; align-items: center; gap: .5rem; width: 100%; padding: 8px 10px; border: 1px solid var(--border-color, #e5e7eb); border-radius: 8px; background: var(--background-primary, #fff); cursor: pointer; }
+.system-page .select-dropdown-display { flex: 1; border: none; outline: none; background: transparent; color: var(--text-primary, #111827); font: inherit; padding: 0; min-height: 22px; }
+.system-page .select-dropdown-arrow { color: var(--text-secondary, #6b7280); }
+.system-page .select-dropdown-menu { position: absolute; left: 0; right: 0; top: calc(100% + 6px); background: var(--bg-elevated, #fff); border: 1px solid var(--border-color, #e5e7eb); border-radius: 8px; box-shadow: 0 10px 20px rgba(0,0,0,0.08); z-index: 100; display: none; }
+.system-page .select-dropdown-menu.portal { position: fixed; left: 0; top: 0; width: auto; z-index: 2000; }
+.system-page .select-dropdown-menu.show { display: block; }
+.system-page .select-dropdown-search { display: flex; align-items: center; gap: .5rem; padding: 8px 10px; border-bottom: 1px solid var(--border-color, #e5e7eb); color: var(--text-secondary, #6b7280); }
+.system-page .select-dropdown-search input { flex: 1; border: none; outline: none; background: transparent; color: inherit; font: inherit; }
+.system-page .select-dropdown-items { max-height: 260px; overflow: auto; }
+.system-page .dropdown-row { padding: 8px 10px; cursor: pointer; }
+.system-page .dropdown-row:hover { background: var(--background-secondary, #f9fafb); }
+.system-page .dropdown-row.empty { color: var(--text-secondary, #6b7280); cursor: default; }
+
+/* Impact section styling - aligned with app design */
+.system-page .impact-section {
+    background: var(--background-primary, #fff);
+    border: 1px solid var(--border-color, #e9ecef);
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: var(--shadow-light, 0 2px 10px rgba(0, 0, 0, 0.1));
+}
+
+.system-page .impact-header {
+    background: var(--background-secondary, #f8f9fa);
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--border-color, #e9ecef);
+}
+
+.system-page .impact-title {
+    font-weight: 600;
+    color: var(--text-primary, #2c3e50);
+    font-size: 0.875rem;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    background-color: var(--background-secondary, #f8f9fa);
+    padding: 0.5rem 0.75rem;
+    border-radius: 6px;
+    border-left: 4px solid var(--secondary-color, #248567);
+    margin: 0;
+}
+
+.system-page .impact-content {
+    padding: 1.5rem;
+}
+
+.system-page .impact-empty {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    color: var(--text-secondary, #6c757d);
+    font-size: 0.9rem;
+    padding: 1rem 0;
+    background: var(--background-primary, #fff);
+    border-radius: 6px;
+}
+
+.system-page .impact-empty i {
+    font-size: 1.1rem;
+    color: var(--text-primary, #2c3e50);
+    background: var(--text-primary, #2c3e50);
+    color: var(--background-primary, #fff);
+    border-radius: 50%;
+    width: 1.5rem;
+    height: 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    font-weight: 600;
+    flex-shrink: 0;
+}
+
+/* Impact items styling */
+.system-page .impact-item {
+    background: var(--background-primary, #fff);
+    border: 1px solid var(--border-color, #e9ecef);
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    overflow: hidden;
+    box-shadow: var(--shadow-light, 0 1px 3px rgba(0, 0, 0, 0.1));
+}
+
+.system-page .impact-item:last-child {
+    margin-bottom: 0;
+}
+
+.system-page .impact-item-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 1.25rem;
+    background: var(--background-secondary, #f8f9fa);
+    border-bottom: 1px solid var(--border-color, #e9ecef);
+}
+
+.system-page .impact-item-header h4 {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary, #2c3e50);
+}
+
+.system-page .impact-severity {
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.system-page .impact-severity.high {
+    background: #fee2e2;
+    color: #dc2626;
+    border: 1px solid #fecaca;
+}
+
+.system-page .impact-severity.medium {
+    background: #fef3c7;
+    color: #d97706;
+    border: 1px solid #fed7aa;
+}
+
+.system-page .impact-severity.low {
+    background: #d1fae5;
+    color: #059669;
+    border: 1px solid #a7f3d0;
+}
+
+.system-page .impact-item-content {
+    padding: 1.25rem;
+}
+
+.system-page .impact-item-content p {
+    margin: 0 0 1rem 0;
+    color: var(--text-secondary, #6c757d);
+    line-height: 1.5;
+}
+
+.system-page .impact-metrics {
+    display: flex;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+}
+
+.system-page .impact-metrics .metric {
+    font-size: 0.875rem;
+    color: var(--text-secondary, #6c757d);
+    background: var(--background-secondary, #f8f9fa);
+    padding: 0.5rem 0.75rem;
+    border-radius: 6px;
+    border: 1px solid var(--border-color, #e9ecef);
+}
+
+/* System hierarchy styling - matching glossary hierarchy */
+.relationships-container {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+.relationships-sub-tabs {
+    display: flex;
+    gap: 0;
+    border-bottom: 1px solid var(--border-color, #e5e7eb);
+    background: var(--background-primary, #fff);
+}
+
+.sub-tab {
+    background: none;
+    border: none;
+    padding: 1rem 1.5rem;
+    font-size: .9rem;
+    font-weight: 500;
+    color: var(--text-muted, #6b7280);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border-bottom: 3px solid transparent;
+    position: relative;
+}
+
+.sub-tab:hover {
+    color: var(--text-primary, #111827);
+    background: var(--background-secondary, #f9fafb);
+}
+
+.sub-tab.active {
+    color: var(--text-primary, #111827);
+    border-bottom-color: var(--secondary-color, #248567);
+    background: var(--background-primary, #fff);
+}
+
+.relationships-content {
+    position: relative;
+}
+
+.sub-tab-content {
+    display: none;
+}
+
+.sub-tab-content.active {
+    display: block;
+}
+
+/* System hierarchy styling - same as glossary hierarchy */
+.relationships-hierarchy {
+    background: var(--background-primary, #fff);
+    border: 1px solid var(--border-color, #e9ecef);
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: var(--shadow-light, 0 2px 10px rgba(0, 0, 0, 0.1));
+}
+
+.relationships-hierarchy .hierarchy-header {
+    background: var(--background-secondary, #f8f9fa);
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--border-color, #e9ecef);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.relationships-hierarchy .hierarchy-title {
+    font-weight: 600;
+    color: var(--text-secondary, #6c757d);
+    letter-spacing: .04em;
+    font-size: .9rem;
+    background-color: var(--background-secondary, #f8f9fa);
+    padding: 0.5rem 0.75rem;
+    border-radius: 6px;
+    border-left: 4px solid var(--secondary-color, #248567);
+    text-transform: uppercase;
+}
+
+.relationships-hierarchy .hierarchy-actions {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+}
+
+.relationships-hierarchy .hierarchy-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.relationships-hierarchy .hierarchy-table th {
+    padding: 1rem 1rem;
+    text-align: left;
+    font-weight: 600;
+    color: var(--text-secondary, #6c757d);
+    font-size: .82rem;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    background: var(--background-secondary, #f8f9fa);
+    border-bottom: 1px solid var(--border-color, #e9ecef);
+    white-space: nowrap;
+}
+
+.relationships-hierarchy .hierarchy-table th:nth-child(1) {
+    width: 20%;
+}
+
+.relationships-hierarchy .hierarchy-table th:nth-child(2) {
+    width: 25%;
+}
+
+.relationships-hierarchy .hierarchy-table th:nth-child(3) {
+    width: 20%;
+}
+
+.relationships-hierarchy .hierarchy-table th:nth-child(4) {
+    width: 20%;
+}
+
+.relationships-hierarchy .hierarchy-table th:nth-child(5) {
+    width: 15%;
+}
+
+.relationships-hierarchy .hierarchy-table td {
+    padding: .9rem 1rem;
+    border-top: 1px solid var(--border-color, #e9ecef);
+    color: var(--text-primary, #2c3e50);
+}
+
+/* Ensure text visibility in all cells */
+.relationships-hierarchy .hierarchy-table td:first-child {
+    color: var(--text-primary, #2c3e50) !important;
+}
+
+.relationships-hierarchy .hierarchy-table td:first-child * {
+    color: inherit !important;
+}
+
+.relationships-hierarchy .hierarchy-table .empty {
+    color: var(--text-muted, #9ca3af);
+    font-style: italic;
+}
+
+.relationships-hierarchy .hierarchy-item {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+}
+
+.relationships-hierarchy .hierarchy-item .expand-icon {
+    color: var(--text-tertiary, #adb5bd);
+    font-size: .8rem;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+    user-select: none;
+}
+
+.relationships-hierarchy .hierarchy-item .expand-icon:hover {
+    color: var(--text-primary, #2c3e50);
+    transform: scale(1.1);
+}
+
+.relationships-hierarchy .hierarchy-item .expand-icon.expanded {
+    transform: rotate(90deg);
+}
+
+.relationships-hierarchy .hierarchy-item .expand-icon.collapsed {
+    transform: rotate(0deg);
+}
+
+.relationships-hierarchy .hierarchy-row.collapsed {
+    display: none;
+}
+
+.relationships-hierarchy .hierarchy-item .database-icon {
+    color: var(--secondary-color, #248567);
+    font-size: .9rem;
+}
+
+.relationships-hierarchy .hierarchy-item .item-name {
+    font-weight: 500;
+    color: var(--text-primary, #2c3e50) !important;
+}
+
+/* Ensure all system names are visible */
+.relationships-hierarchy .hierarchy-item .parent-name,
+.relationships-hierarchy .hierarchy-item .child-name {
+    color: var(--text-primary, #2c3e50) !important;
+    font-weight: 500;
+    text-shadow: 0 1px 1px rgba(0, 0, 0, 0.05);
+}
+
+/* Force visibility for all text in first column */
+.relationships-hierarchy .hierarchy-table td:first-child span {
+    color: var(--text-primary, #2c3e50) !important;
+    font-weight: 500;
+}
+
+/* Database icon styling */
+.relationships-hierarchy .hierarchy-item .database-icon {
+    color: var(--secondary-color, #248567) !important;
+    font-size: .9rem;
+    margin-right: 0.5rem;
+}
+
+.relationships-hierarchy .hierarchy-parent:hover {
+    background: var(--background-hover, #f8fafc);
+}
+
+.relationships-hierarchy .hierarchy-child:hover {
+    background: var(--background-hover, #f1f5f9);
+}
+
+/* Hierarchy connector styling */
+.relationships-hierarchy .hierarchy-connector {
+    position: relative;
+    display: flex;
+    align-items: center;
+    margin-right: 0.5rem;
+}
+
+.relationships-hierarchy .connector-line {
+    position: absolute;
+    left: 0.75rem;
+    top: -0.9rem;
+    width: 1px;
+    height: 0.9rem;
+    border-left: 2px dashed var(--text-tertiary, #adb5bd);
+    opacity: 0.7;
+    z-index: 1;
+}
+
+.relationships-hierarchy .connector-line.last-child {
+    height: 0.45rem;
+}
+
+.relationships-hierarchy .connector-l-shape {
+    position: absolute;
+    left: 0.75rem;
+    top: 0.45rem;
+    width: 0.75rem;
+    height: 1px;
+    border-top: 2px dashed var(--text-tertiary, #adb5bd);
+    opacity: 0.7;
+    z-index: 1;
+}
+
+/* Improve connector visibility */
+.relationships-hierarchy .hierarchy-connector {
+    width: 1.5rem;
+    height: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.relationships-hierarchy .hierarchy-child .hierarchy-item {
+    position: relative;
+}
+
+.relationships-hierarchy .hierarchy-child .database-icon {
+    margin-left: 1.5rem;
+}
+
+/* Current system styling */
+.relationships-hierarchy .current-system {
+    background: var(--primary-50, #e7f5ed) !important;
+    border-left: 4px solid var(--primary-color, #248567);
+}
+
+.relationships-hierarchy .current-system td:first-child {
+    background: var(--primary-50, #e7f5ed) !important;
+}
+
+.relationships-hierarchy .current-name {
+    font-weight: 700;
+    color: #248567;
+    background: var(--primary-100, #d2ebde);
+    padding: .3rem .6rem;
+    border-radius: 8px;
+    border: 2px solid var(--primary-300, #9ad1ba);
+    display: inline-block;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+/* Parent system styling */
+.relationships-hierarchy .parent-system {
+    background: var(--background-secondary, #f9fafb);
+    border-left: 2px solid var(--text-muted, #9ca3af);
+}
+
+.relationships-hierarchy .parent-system td:first-child {
+    background: var(--background-secondary, #f9fafb) !important;
+}
+
+.relationships-hierarchy .parent-name-style {
+    font-weight: 600;
+    color: var(--text-primary, #2c3e50) !important;
+    background: var(--background-secondary, #f8f9fa);
+    padding: .2rem .5rem;
+    border-radius: 6px;
+    border: 1px solid var(--border-color, #e5e7eb);
+    display: inline-block;
+    text-shadow: 0 1px 1px rgba(0, 0, 0, 0.05);
+}
+
+/* Child system styling */
+.relationships-hierarchy .child-name {
+    font-weight: 500;
+    color: var(--text-primary, #2c3e50) !important;
+    display: inline-block;
+    text-shadow: 0 1px 1px rgba(0, 0, 0, 0.05);
+}
+
+/* Remove duplicate parent system styling - already defined above */
+
+.relationships-hierarchy .relationship-label {
+    font-size: .75rem;
+    color: var(--text-muted, #9ca3af);
+    font-style: italic;
+    margin-left: .5rem;
+}
+
+.relationships-hierarchy .hierarchy-footer {
+    padding: .65rem 1rem;
+    color: var(--text-secondary);
+    font-size: .85rem;
+    border-top: 1px solid var(--border-color);
+    background: var(--background-secondary);
+}
+
+/* Data table styling for relationships sub-tab */
+.relationships-container .data-table-wrapper {
+    background: var(--background-primary, #fff);
+    border: 1px solid var(--border-color, #e9ecef);
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: var(--shadow-light, 0 2px 10px rgba(0, 0, 0, 0.1));
+}
+
+.relationships-container .data-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.relationships-container .data-table thead {
+    background: var(--background-secondary, #f8f9fa);
+    border-bottom: 1px solid var(--border-color, #e9ecef);
+}
+
+.relationships-container .data-table th,
+.relationships-container .data-table td {
+    padding: 1rem 1rem;
+    text-align: left;
+    font-weight: 600;
+    color: var(--text-secondary, #6c757d);
+    font-size: .82rem;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--border-color, #e9ecef);
+}
+
+.relationships-container .data-table td {
+    font-weight: 400;
+    color: var(--text-primary, #2c3e50);
+    text-transform: none;
+}
+
+.relationships-container .data-table tbody tr:hover {
+    background: var(--background-hover, #f8fafc);
+}
+
+/* Action buttons in relationships table */
+.relationships-container .action-buttons {
+    display: flex;
+    gap: 0.25rem;
+    align-items: center;
+}
+
+.relationships-container .action-buttons .btn {
+    padding: 0.3rem 0.5rem;
+    font-size: 0.75rem;
+    border-radius: 4px;
+    border: 1px solid var(--border-color, #e9ecef);
+    background: var(--background-primary, #fff);
+    color: var(--text-secondary, #6c757d);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.relationships-container .action-buttons .btn:hover {
+    background: var(--background-secondary, #f8f9fa);
+    color: var(--text-primary, #2c3e50);
+}
+
+/* System edit page specific styling */
+.system-edit-page .relationships-hierarchy {
+    margin-top: 1rem;
+}
+
+.system-edit-page .hierarchy-header {
+    background: var(--background-secondary, #f8f9fa);
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--border-color, #e9ecef);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-radius: 8px 8px 0 0;
+}
+
+.system-edit-page .hierarchy-title {
+    font-weight: 600;
+    color: var(--text-secondary, #6c757d);
+    letter-spacing: .04em;
+    font-size: .9rem;
+    background-color: var(--background-secondary, #f8f9fa);
+    padding: 0.5rem 0.75rem;
+    border-radius: 6px;
+    border-left: 4px solid var(--secondary-color, #248567);
+    text-transform: uppercase;
+}
+
+.system-edit-page .hierarchy-actions {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+}
+
+.system-edit-page .hierarchy-footer {
+    padding: .65rem 1rem;
+    color: var(--text-secondary);
+    font-size: .85rem;
+    border-top: 1px solid var(--border-color);
+    background: var(--background-secondary);
+    border-radius: 0 0 8px 8px;
+}
+
+/* Summary hierarchy section title with left accent bar */
+.system-page #summaryHierarchyContainer .section-title {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--text-primary, #1e293b);
+    letter-spacing: 0.04em;
+    padding: 0.75rem 1.25rem;
+    border-left: 4px solid var(--secondary-color, #48bb78);
+    background: var(--background-primary, #fff);
+    border-bottom: 1px solid var(--border-color, #e9ecef);
+    margin-bottom: 0;
+}
+
+/* Summary hierarchy card wrapper */
+.system-page #summaryHierarchyContainer .view-section {
+    background: var(--background-primary, #fff);
+    border: 1px solid var(--border-color, #e9ecef);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.system-page #summaryHierarchyContainer .hierarchy-table-wrapper {
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    max-height: none;
+}
+
+/* Tree structure styling for system hierarchy (similar to org unit) */
+.system-page .tree-cell {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+}
+
+.system-page .tree-indent {
+    display: inline-block;
+    width: 1rem;
+    height: 1px;
+}
+
+.system-page .tree-branch {
+    display: inline-block;
+    width: .75rem;
+    height: 1px;
+    background: var(--border-color);
+    margin-right: .25rem;
+}
+
+.system-page .system-name {
+    font-weight: 600;
+}
+
+.system-page .current-row {
+    background: rgba(79,70,229,0.06);
+}
+
+.system-page .tree-expander {
+    width: 22px;
+    height: 22px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background: var(--background-primary);
+    color: var(--text-secondary);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    margin-right: .25rem;
+}
+
+.system-page .tree-expander:hover {
+    background: var(--background-secondary);
+}
+
+.system-page .tree-placeholder {
+    display: inline-block;
+    width: 22px;
+    height: 22px;
+    margin-right: .25rem;
+}
+
+.system-page .child-count {
+    margin-left: .5rem;
+    background: var(--chip-bg, #f3f4f6);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-color);
+    padding: 0 .4rem;
+    border-radius: 10px;
+    font-size: .75rem;
+}
+
+.system-page .system-link {
+    color: #248567;
+    text-decoration: none;
+    font-weight: 600;
+    transition: all 0.2s ease;
+}
+
+.system-page .system-link:hover {
+    text-decoration: underline;
+    color: var(--primary-700, #195d48);
+    transform: translateX(2px);
+}
+
+.system-page .system-link:focus {
+    outline: 2px solid var(--primary-500, #248567);
+    outline-offset: 2px;
+    border-radius: 4px;
+}
+
+.system-page .current-system-link {
+    color: #248567;
+    font-weight: 700;
+    background: #e5e7eb;
+    padding: 0.2rem 0.5rem;
+    border-radius: 6px;
+    border: 1px solid var(--background-primary);
+}
+
+.system-page .current-system-link:hover {
+    background: var(--primary-100, #d2ebde);
+    color: var(--primary-800, #144034) !important;
+}
+
+.system-page .item-icon {
+    color: var(--secondary-color, #248567);
+    margin-right: 0.5rem;
+}
+
+/* Ensure tree structure is properly styled */
+.system-page .hierarchy-table-wrapper {
+    background: var(--card-bg, #fff);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    overflow: auto;
+    box-shadow: var(--shadow-light);
+    max-height: calc(100vh - 260px);
+}
+
+.system-page .hierarchy-table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: auto;
+}
+
+.system-page .hierarchy-table thead {
+    position: sticky;
+    top: 0;
+    background: var(--background-secondary);
+    z-index: 1;
+}
+
+.system-page .hierarchy-table th {
+    padding: 0.85rem 1rem;
+    text-align: left;
+    font-weight: 600;
+    color: var(--text-secondary);
+    font-size: .82rem;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.system-page .hierarchy-table td {
+    padding: .85rem 1rem;
+    border-top: 1px solid var(--border-color);
+    color: var(--text-primary);
+    vertical-align: middle;
+}
+
+.system-page .hierarchy-table tbody tr:nth-child(odd) {
+    background: rgba(0,0,0,0.015);
+}
+
+.system-page .hierarchy-table tbody tr:hover {
+    background: var(--background-secondary);
+}
+
+.system-page .table-footer {
+    padding: .65rem 1rem;
+    color: var(--text-secondary);
+    font-size: .85rem;
+    border-top: 1px solid var(--border-color);
+    background: var(--background-secondary);
+}
+
+.parent-picker-panel {
+    position: absolute;
+    z-index: 3000; /* عالي لضمان الظهور فوق كل شيء */
+    background: #fff;
+    box-shadow: 0 6px 24px rgba(0,0,0,.28);
+    margin-top: 2px;
+    border-radius: 10px;
+    padding: 10px;
+}
+
+/* Hierarchy path with arrows in DESCRIPTION card */
+.system-page .hierarchy-path {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    line-height: 1.8;
+}
+
+.system-page .hierarchy-path .hierarchy-link {
+    color: var(--primary-color, #4f46e5);
+    text-decoration: none;
+    font-weight: 500;
+    font-size: 0.9rem;
+    transition: color 0.2s;
+}
+
+.system-page .hierarchy-path .hierarchy-link:hover {
+    color: var(--primary-700, #4338ca);
+    text-decoration: underline;
+}
+
+.system-page .hierarchy-path .hierarchy-arrow {
+    color: var(--text-muted, #9ca3af);
+    font-size: 0.65rem;
+    margin: 0 0.2rem;
+    display: inline-flex;
+    align-items: center;
+}
+
+.system-page .hierarchy-path .hierarchy-current {
+    color: var(--secondary-color, #48bb78);
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+

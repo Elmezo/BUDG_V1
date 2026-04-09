@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<web-app xmlns="https://jakarta.ee/xml/ns/jakartaee"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="https://jakarta.ee/xml/ns/jakartaee https://jakarta.ee/xml/ns/jakartaee/web-app_6_0.xsd"
+         version="6.0"
+         metadata-complete="false">
+    
+    <!-- Application Display Name -->
+    <display-name>BUDG Organization Management System</display-name>
+    <description>Organization Units Management System</description>
+    
+    <!-- Session Configuration -->
+    <session-config>
+        <session-timeout>30</session-timeout>
+    </session-config>
+    
+    <!-- Welcome, File -->
+    <welcome-file-list>
+        <welcome-file>index.html</welcome-file>
+    </welcome-file-list>
+    
+    <!-- MIME Type Mappings -->
+    <mime-mapping>
+        <extension>json</extension>
+        <mime-type>application/json</mime-type>
+    </mime-mapping>
+    
+    <mime-mapping>
+        <extension>css</extension>
+        <mime-type>text/css</mime-type>
+    </mime-mapping>
+    
+    <mime-mapping>
+        <extension>js</extension>
+        <mime-type>application/javascript</mime-type>
+    </mime-mapping>
+    
+    <!-- Search API is handled by SearchServlet with @WebServlet annotation -->
+
+    <!-- Context Parameters -->
+    <context-param>
+        <param-name>applicationName</param-name>
+        <param-value>BUDG Platform</param-value>
+    </context-param>
+    
+    <context-param>
+        <param-name>version</param-name>
+        <param-value>1.0.0</param-value>
+    </context-param>
+    
+    <!-- All servlets are registered via @WebServlet annotations in code -->
+    
+    <!-- Authentication Servlets are registered via @WebServlet annotations -->
+<!--    <filter>-->
+<!--        <filter-name>NoCacheFilter</filter-name>-->
+<!--        <filter-class>com.example.budg_v2.filter.NoCacheFilter</filter-class>-->
+<!--    </filter>-->
+<!--    <filter-mapping>-->
+<!--        <filter-name>NoCacheFilter</filter-name>-->
+<!--        <url-pattern>/*</url-pattern>-->
+<!--    </filter-mapping>-->
+    <!-- Correlation ID Filter - Must run first to set correlation_id in MDC -->
+    <filter>
+        <filter-name>CorrelationIdFilter</filter-name>
+        <filter-class>com.example.budg_v2.filter.CorrelationIdFilter</filter-class>
+    </filter>
+    
+    <filter-mapping>
+        <filter-name>CorrelationIdFilter</filter-name>
+        <url-pattern>/*</url-pattern>
+    </filter-mapping>
+    
+    <!-- Security Headers Filter -->
+    <filter>
+        <filter-name>SecurityHeadersFilter</filter-name>
+        <filter-class>com.example.budg_v2.filter.SecurityHeadersFilter</filter-class>
+    </filter>
+
+    <filter-mapping>
+        <filter-name>SecurityHeadersFilter</filter-name>
+        <url-pattern>/*</url-pattern>
+    </filter-mapping>
+
+    <!-- Authentication Filter -->
+    <filter>
+        <filter-name>AuthFilter</filter-name>
+        <filter-class>com.example.budg_v2.filter.AuthFilter</filter-class>
+    </filter>
+
+    <filter-mapping>
+        <filter-name>AuthFilter</filter-name>
+        <url-pattern>/api/*</url-pattern>
+    </filter-mapping>
+    
+    <!-- Ensure auth endpoints are filtered so /auth/validate sees user attributes -->
+    <filter-mapping>
+        <filter-name>AuthFilter</filter-name>
+        <url-pattern>/auth/*</url-pattern>
+    </filter-mapping>
+    <!-- Admin APIs require super admin authentication -->
+    <filter-mapping>
+        <filter-name>AuthFilter</filter-name>
+        <url-pattern>/admin/*</url-pattern>
+    </filter-mapping>
+
+    <!-- Global Exception Filter — must be AFTER AuthFilter so user_id is already in MDC -->
+    <filter>
+        <filter-name>GlobalExceptionFilter</filter-name>
+        <filter-class>com.example.budg_v2.filter.GlobalExceptionFilter</filter-class>
+    </filter>
+
+    <filter-mapping>
+        <filter-name>GlobalExceptionFilter</filter-name>
+        <url-pattern>/*</url-pattern>
+    </filter-mapping>
+
+    <!-- LDAP Sync Scheduler -->
+    <listener>
+        <listener-class>com.example.budg_v2.util.LdapSyncScheduler</listener-class>
+    </listener>
+
+</web-app>

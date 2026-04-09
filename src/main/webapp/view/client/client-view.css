@@ -1,0 +1,128 @@
+/* Client View Page - aligned with capability view layout (content-card, view-grid, view-section) */
+
+/* Match capability-page .main-content */
+.client-page.client-view-page .main-content {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 1rem 20px;
+    height: auto;
+    min-height: calc(100vh - 70px - 80px);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.client-page.client-view-page .page-header-container {
+    padding-bottom: 8px;
+}
+
+.client-page.client-view-page .content-card {
+    padding-bottom: 1rem;
+    overflow: hidden;
+}
+
+.client-page.client-view-page .content-body {
+    padding: 1.5rem;
+    flex: 1;
+    overflow-y: auto;
+    min-height: 0;
+}
+
+/* Same grid as capability-page .view-grid */
+.client-page.client-view-page .view-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.25rem;
+    width: 100%;
+}
+
+/* Summary column stacks (definition left, classifications right) */
+.client-page.client-view-page .client-summary-column {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    min-width: 0;
+}
+
+/* Match capability-page .view-section */
+.client-page.client-view-page .view-section {
+    background: var(--card-bg, #fff);
+    border: 1px solid var(--border-color, #e5e7eb);
+    border-radius: 12px;
+    padding: 1.25rem;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+    overflow: visible;
+}
+
+.client-page.client-view-page .view-section .section-title {
+    font-weight: 600;
+    color: var(--text-muted, #6b7280);
+    margin-bottom: 0.9rem;
+    letter-spacing: 0.04em;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+}
+
+.client-page.client-view-page .section-subtitle {
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--text-muted, #6b7280);
+    margin-bottom: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.client-page.client-view-page .view-item {
+    display: grid;
+    grid-template-columns: 200px 1fr;
+    gap: 0.85rem;
+    padding: 0.65rem 0;
+    border-bottom: 1px dashed var(--border-color, #e5e7eb);
+}
+
+.client-page.client-view-page .view-item:last-child {
+    border-bottom: 0;
+}
+
+.client-page.client-view-page .view-label {
+    font-weight: 500;
+    color: var(--text-muted, #6b7280);
+    font-size: 0.9rem;
+}
+
+.client-page.client-view-page .view-value {
+    color: var(--text-primary, #1f2937);
+    font-size: 0.9rem;
+    word-break: break-word;
+}
+
+/* Full-width custom fields section after the two summary columns */
+.client-page.client-view-page #clientViewContainer .custom-fields-view-section {
+    grid-column: 1 / -1;
+}
+
+@media (max-width: 1200px) {
+    .client-page.client-view-page .main-content {
+        max-width: 100%;
+        padding: 1rem 16px;
+    }
+}
+
+@media (max-width: 768px) {
+    .client-page.client-view-page .main-content {
+        padding: 0.5rem 1rem 1rem 1rem;
+    }
+
+    .client-page.client-view-page .content-body {
+        padding: 1rem;
+    }
+
+    .client-page.client-view-page .view-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .client-page.client-view-page .view-item {
+        grid-template-columns: 1fr;
+    }
+}

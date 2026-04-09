@@ -1,0 +1,96 @@
+/**
+ * Segment Dropdown Component Styles
+ * For the reusable segment dropdown across all facets
+ */
+
+.segment-dropdown-container {
+    margin-bottom: 1rem;
+}
+
+.segment-dropdown-container .form-label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: var(--text-primary);
+    font-size: 0.9rem;
+}
+
+.segment-dropdown-container .required-star {
+    color: #dc3545;
+    margin-left: 0.25rem;
+}
+
+.segment-dropdown-container .segment-select {
+    width: 100%;
+    padding: 0.6rem 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    background-color: var(--background-primary);
+    color: var(--text-primary);
+    font-size: 0.95rem;
+    transition: all 0.2s;
+    cursor: pointer;
+}
+
+.segment-dropdown-container .segment-select:focus {
+    outline: none;
+    border-color: var(--primary-color, #248567);
+    box-shadow: 0 0 0 3px rgba(36, 133, 103, 0.1);
+}
+
+.segment-dropdown-container .segment-select:disabled {
+    background-color: var(--background-secondary);
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.segment-dropdown-container .segment-description {
+    display: block;
+    margin-top: 0.4rem;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    font-style: italic;
+}
+
+/* Dark theme support */
+[data-theme="dark"] .segment-dropdown-container .segment-select {
+    background-color: var(--background-secondary-dark);
+    border-color: var(--border-color-dark);
+    color: var(--text-primary-dark);
+}
+
+[data-theme="dark"] .segment-dropdown-container .segment-select:focus {
+    border-color: #2ea67e;
+    box-shadow: 0 0 0 3px rgba(46, 166, 126, 0.2);
+}
+
+[data-theme="dark"] .segment-dropdown-container .segment-description {
+    color: var(--text-secondary-dark);
+}
+
+/* Integration with existing forms */
+.form-row .segment-dropdown-container {
+    flex: 1;
+    min-width: 250px;
+}
+
+/* Compact variant */
+.segment-dropdown-container.compact {
+    margin-bottom: 0.5rem;
+}
+
+.segment-dropdown-container.compact .form-label {
+    font-size: 0.85rem;
+    margin-bottom: 0.3rem;
+}
+
+.segment-dropdown-container.compact .segment-select {
+    padding: 0.4rem 0.6rem;
+    font-size: 0.875rem;
+}
+
+.segment-dropdown-container.compact .segment-description {
+    font-size: 0.75rem;
+    margin-top: 0.25rem;
+}
+

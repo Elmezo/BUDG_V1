@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title data-i18n="systemInterface.pageTitleEdit">BUDG - Edit Interface</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../../assets/css/main.css">
+    <link rel="stylesheet" href="../../view/view.css">
+    <link rel="stylesheet" href="../../assets/css/system-interface.css">
+    <link rel="stylesheet" href="../../view/system-interface/system-interface.css">
+    <link rel="stylesheet" href="../../view/edit/edit-shared.css">
+    <link rel="stylesheet" href="../../assets/css/custom-fields.css">
+    <link rel="stylesheet" href="../../assets/css/global-lock-ui.css">
+    <link rel="stylesheet" href="../../assets/css/advanced-rich-text-editor.css">
+    <!-- RTL styles for Arabic (disabled by default, enabled by i18n.js) -->
+    <link rel="stylesheet" href="../../assets/css/rtl.css" id="rtl-styles" disabled>
+    <link rel="stylesheet" href="../../view/components/document-upload-component.css">
+    <script>(function(){const t=localStorage.getItem('budg-theme')||'light';document.documentElement.setAttribute('data-theme',t);})();</script>
+    <script src="/assets/i18n/head-locale.js"></script>
+    <script src="../../assets/i18n/i18n.js"></script>
+</head>
+<body class="system-interface-page edit-page" data-submenu="data">
+<header class="header"></header>
+
+<!-- Page Header -->
+<div class="page-header">
+    <div class="page-header-container">
+        <div class="page-title">
+            <div class="page-icon">
+                <div class="double-arrow-icon">
+                    <i class="fas fa-arrow-right"></i>
+                    <i class="fas fa-arrow-left"></i>
+                </div>
+            </div>
+            <div class="page-title-text">
+                <div class="page-title-main" id="interfaceTitle" data-i18n="systemInterface.editTitlePlaceholder">From CRM To CRM</div>
+                <div class="page-title-sub" id="interfaceBreadcrumb" data-i18n="systemInterface.breadcrumb">Interface</div>
+            </div>
+        </div>
+        <div class="form-actions">
+            <button type="button" class="btn btn-primary" id="saveBtn">
+                <i class="fas fa-save"></i> <span data-i18n="button.save">Save</span>
+            </button>
+            <button type="button" class="btn btn-success" id="saveCloseBtn">
+                <i class="fas fa-save"></i> <span data-i18n="button.saveAndClose">Save & Close</span>
+            </button>
+            <button type="button" class="btn btn-secondary" id="closeBtn">
+                <i class="fas fa-times"></i> <span data-i18n="button.close">Close</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Main Content -->
+<main class="main-content">
+    <div class="content-card">
+        <!-- Tab Navigation -->
+        <div class="content-header">
+            <div class="tab-container">
+                <button class="tab active" data-tab="summary" data-i18n="tab.summary">SUMMARY</button>
+                <button class="tab" data-tab="stakeholders" data-i18n="tab.stakeholders">STAKEHOLDERS</button>
+                <button class="tab" data-tab="impact" data-i18n="tab.impact">IMPACT</button>
+            </div>
+        </div>
+
+        <!-- Form Content -->
+        <div class="content-body">
+            <form id="interfaceEditForm" class="interface-edit-form">
+                <div class="interface-container grid grid-cols-2 gap-6">
+                    <!-- Left Column: Definition + Optional Fields -->
+                    <div class="left-column">
+                        <!-- DEFINITION Card -->
+                        <div class="form-section">
+                            <h3 class="section-title definition" data-i18n="systemInterface.sections.definition">DEFINITION</h3>
+                            
+                            <div class="form-group">
+                                <label for="interfaceName" class="form-label"><span data-i18n="systemInterface.labels.name">Name</span> <span class="required">*</span></label>
+                                <input type="text" id="interfaceName" name="Name" class="form-input" required>
+                                <span class="field-error" id="interfaceNameError" style="display:none"></span>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="interfaceRef" class="form-label" data-i18n="systemInterface.labels.ref">Ref.</label>
+                                <input type="text" id="interfaceRef" name="Ref_number" class="form-input">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="sourceShortName" class="form-label"><span data-i18n="systemInterface.labels.sourceSystemShortName">Source System Short Name</span> <span class="required">*</span></label>
+                                <input type="text" id="sourceShortName" name="Source_systemID" class="form-input" data-i18n-placeholder="systemInterface.placeholders.searchSystems" placeholder="Search systems..." required>
+                                <select id="sourceSystem" style="display: none;">
+                                    <option value="">Please select</option>
+                                </select>
+                                <span class="field-error" id="sourceShortNameError" style="display:none"></span>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="targetShortName" class="form-label"><span data-i18n="systemInterface.labels.targetSystemShortName">Target System Short Name</span> <span class="required">*</span></label>
+                                <input type="text" id="targetShortName" name="Target_systemID" class="form-input" data-i18n-placeholder="systemInterface.placeholders.searchSystems" placeholder="Search systems..." required>
+                                <select id="targetSystem" style="display: none;">
+                                    <option value="">Please select</option>
+                                </select>
+                                <span class="field-error" id="targetShortNameError" style="display:none"></span>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="interfaceDescription" class="form-label"><span data-i18n="systemInterface.labels.description">Description</span> <span class="required">*</span></label>
+                                <textarea id="interfaceDescription" name="Description" class="form-input form-textarea" rows="4" required></textarea>
+                                <button type="button" class="editor-button" data-i18n="button.showEditor">Show Editor</button>
+                                <span class="field-error" id="interfaceDescriptionError" style="display:none"></span>
+                            </div>
+                        </div>
+
+                        <!-- OPTIONAL FIELDS Card -->
+                        <div class="form-section">
+                            <h3 class="section-title optional-fields" data-i18n="systemInterface.sections.optionalFields">OPTIONAL FIELDS</h3>
+                            
+                            <div class="form-group">
+                                <label for="syncControl" class="form-label" data-i18n="systemInterface.labels.synchronisationControl">Synchronisation Control</label>
+                                <input type="text" id="syncControl" name="Synchronisation_Control" class="form-input" data-i18n-placeholder="systemInterface.placeholders.enterSynchronisationControl" placeholder="Enter Synchronisation Control">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right Column: Classifications + Other Information -->
+                    <div class="right-column">
+                        <!-- CLASSIFICATIONS Card -->
+                        <div class="form-section">
+                            <h3 class="section-title classifications" data-i18n="systemInterface.sections.classifications">CLASSIFICATIONS</h3>
+                            
+                            <div class="form-group">
+                                <label for="BUDGStatus" class="form-label"><span data-i18n="systemInterface.labels.budgStatus">BUDG Status</span> <span class="required">*</span></label>
+                                <select id="BUDGStatus" name="status_id" class="form-select" required>
+                                    <option value="" data-i18n="systemInterface.placeholders.pleaseSelect">Please select</option>
+                                    <option value="1" selected data-i18n="systemInterface.options.active">Active</option>
+                                    <option value="2" data-i18n="systemInterface.options.inactive">Inactive</option>
+                                    <option value="3" data-i18n="systemInterface.options.pending">Pending</option>
+                                </select>
+                                <span class="field-error" id="BUDGStatusError" style="display:none"></span>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="BUDGViewing" class="form-label"><span data-i18n="systemInterface.labels.budgViewing">BUDG Viewing</span> <span class="required">*</span></label>
+                                <select id="BUDGViewing" name="is_public" class="form-select" required>
+                                    <option value="" data-i18n="systemInterface.placeholders.pleaseSelect">Please select</option>
+                                    <option value="1" selected data-i18n="systemInterface.options.public">Public</option>
+                                    <option value="0" data-i18n="systemInterface.options.private">Private</option>
+                                </select>
+                                <span class="field-error" id="BUDGViewingError" style="display:none"></span>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="lifecycle" class="form-label"><span data-i18n="systemInterface.labels.lifecycle">Lifecycle</span> <span class="required">*</span></label>
+                                <select id="lifecycle" name="Lifecycle_id" class="form-select" required>
+                                    <option value="" data-i18n="systemInterface.placeholders.pleaseSelect">Please select</option>
+                                    <option value="1" data-i18n="systemInterface.options.development">Development</option>
+                                    <option value="2" data-i18n="systemInterface.options.testing">Testing</option>
+                                    <option value="3" selected data-i18n="systemInterface.options.inProduction">In Production</option>
+                                    <option value="4" data-i18n="systemInterface.options.maintenance">Maintenance</option>
+                                    <option value="5" data-i18n="systemInterface.options.deprecated">Deprecated</option>
+                                </select>
+                                <span class="field-error" id="lifecycleError" style="display:none"></span>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="automation" class="form-label"><span data-i18n="systemInterface.labels.automation">Automation</span> <span class="required">*</span></label>
+                                <select id="automation" name="Automation_ID" class="form-select" required>
+                                    <option value="" data-i18n="systemInterface.placeholders.pleaseSelect">Please select</option>
+                                    <option value="1" selected data-i18n="systemInterface.options.fullyAutomated">Fully Automated</option>
+                                    <option value="2" data-i18n="systemInterface.options.semiAutomated">Semi-Automated</option>
+                                    <option value="3" data-i18n="systemInterface.options.manual">Manual</option>
+                                    <option value="4" data-i18n="systemInterface.options.scheduled">Scheduled</option>
+                                    <option value="5" data-i18n="systemInterface.options.eventDriven">Event-Driven</option>
+                                </select>
+                                <span class="field-error" id="automationError" style="display:none"></span>
+                            </div>
+                        </div>
+
+                        <!-- OTHER INFORMATION Card -->
+                        <div class="form-section">
+                            <h3 class="section-title classifications" data-i18n="systemInterface.sections.otherInformation">OTHER INFORMATION</h3>
+                            
+                            <div class="form-group">
+                                <label for="frequency" class="form-label" data-i18n="systemInterface.labels.frequency">Frequency</label>
+                                <select id="frequency" name="Frequency_ID" class="form-select">
+                                    <option value="" data-i18n="systemInterface.placeholders.pleaseSelect">Please select</option>
+                                    <option value="1" data-i18n="systemInterface.options.realTime">Real-time</option>
+                                    <option value="2" data-i18n="systemInterface.options.hourly">Hourly</option>
+                                    <option value="3" data-i18n="systemInterface.options.daily">Daily</option>
+                                    <option value="4" data-i18n="systemInterface.options.weekly">Weekly</option>
+                                    <option value="5" data-i18n="systemInterface.options.monthly">Monthly</option>
+                                </select>
+                            </div>
+
+                            <!-- Segment Field -->
+                            <div id="segmentFieldContainer" style="margin-top: 1rem;"></div>
+                            
+                            <div class="form-group">
+                                <label for="assetId" class="form-label" data-i18n="systemInterface.labels.assetId">Asset ID</label>
+                                <input type="text" id="assetId" name="Asset_ID" class="form-input" data-i18n-placeholder="systemInterface.placeholders.enterAssetId" placeholder="Enter Asset ID">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="transferMethod" class="form-label" data-i18n="systemInterface.labels.transferMethod">Transfer Method</label>
+                                <select id="transferMethod" name="Transfer_Method_ID" class="form-select">
+                                    <option value="" data-i18n="systemInterface.placeholders.pleaseSelect">Please select</option>
+                                    <option value="1" data-i18n="systemInterface.options.api">API</option>
+                                    <option value="2" data-i18n="systemInterface.options.ftp">FTP</option>
+                                    <option value="3" data-i18n="systemInterface.options.sftp">SFTP</option>
+                                    <option value="4" data-i18n="systemInterface.options.http">HTTP</option>
+                                    <option value="5" data-i18n="systemInterface.options.mq">MQ</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="transferFormat" class="form-label" data-i18n="systemInterface.labels.transferFormat">Transfer Format</label>
+                                <select id="transferFormat" name="Transfer_Format_ID" class="form-select">
+                                    <option value="" data-i18n="systemInterface.placeholders.pleaseSelect">Please select</option>
+                                    <option value="1" data-i18n="systemInterface.options.json">JSON</option>
+                                    <option value="2" data-i18n="systemInterface.options.xml">XML</option>
+                                    <option value="3" data-i18n="systemInterface.options.csv">CSV</option>
+                                    <option value="4" data-i18n="systemInterface.options.fixedWidth">Fixed Width</option>
+                                    <option value="5" data-i18n="systemInterface.options.binary">Binary</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="interfaceClassification" class="form-label" data-i18n="systemInterface.labels.interfaceClassification">Interface Classification</label>
+                                <select id="interfaceClassification" name="Classification_id" class="form-select">
+                                    <option value="" data-i18n="systemInterface.placeholders.pleaseSelect">Please select</option>
+                                    <option value="1" data-i18n="systemInterface.options.internal">Internal</option>
+                                    <option value="2" data-i18n="systemInterface.options.external">External</option>
+                                    <option value="3" data-i18n="systemInterface.options.partner">Partner</option>
+                                    <option value="4" data-i18n="systemInterface.options.customer">Customer</option>
+                                    <option value="5" data-i18n="systemInterface.options.regulatory">Regulatory</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+
+                <!-- Full Width Sections at Bottom -->
+                <div class="full-width-sections">
+                    <!-- DATA CONTENT SUMMARY Section -->
+                    <div class="data-summary-section full-width">
+                        <div class="data-summary-header">
+                            <div class="data-summary-title">
+                                <i class="fas fa-cog"></i>
+                                <span data-i18n="card.dataContentSummary">DATA CONTENT SUMMARY</span>
+                                <i class="fas fa-chevron-down"></i>
+                            </div>
+                        </div>
+                        <div class="data-summary-content">
+                            <table class="data-table editable-table" id="glossaryTable">
+                                <thead>
+                                    <tr>
+                                        <th data-i18n="systemInterface.table.relationshipType">Relationship Type</th>
+                                        <th data-i18n="systemInterface.table.glossary">Glossary</th>
+                                        <th data-i18n="systemInterface.table.definition">Definition</th>
+                                        <th data-i18n="systemInterface.table.relationshipStatus">Relationship Status</th>
+                                        <th data-i18n="systemInterface.table.action">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="glossaryTableBody">
+                                    <!-- Data will be loaded here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- DOCUMENTS Section -->
+                    <div class="form-section full-width">
+                        <div class="section-header">
+                            <h3 class="section-title" data-i18n="card.documents">DOCUMENTS</h3>
+                        </div>
+                        <div class="section-content">
+                            <div class="documents-upload">
+                                <div class="upload-option">
+                                    <i class="fas fa-folder-plus"></i>
+                                    <span data-i18n="systemInterface.upload.addFiles">Add files from computer</span>
+                                </div>
+                                <div class="upload-option">
+                                    <i class="fas fa-hand-paper"></i>
+                                    <span data-i18n="systemInterface.upload.dragFiles">Drag files to upload</span>
+                                </div>
+                                <div class="upload-option">
+                                    <i class="fas fa-code"></i>
+                                    <span data-i18n="systemInterface.upload.enterUrl">Enter file URL</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Custom Fields Section -->
+                <div class="form-section" style="grid-column: 1/-1; margin-top: 2rem;">
+                    <h3 class="section-title" data-i18n="regulatoryTheme.sections.customFields">CUSTOM FIELDS</h3>
+                    <div id="customFieldsContainer"></div>
+                </div>
+
+                <!-- DOCUMENTS Section - Full Width -->
+                <div class="view-section" style="grid-column: 1/-1; margin-top: 2rem;">
+                    <div class="form-card documents-card">
+                        <div class="card-header">
+                            <h3 class="card-title" data-i18n="card.documents">DOCUMENTS</h3>
+                        </div>
+                        <div class="card-body">
+                            <div id="documentUploadContainer"></div>
+                            <div id="documentTableContainer" style="margin-top: 20px;"></div>
+                        </div>
+                    </div>
+                </div>
+            </form>
+            
+            <!-- Stakeholders Container -->
+            <div id="interfaceStakeholdersContainer" class="interface-stakeholders-container" style="display: none;">
+                <!-- Stakeholders content will be loaded here -->
+            </div>
+            
+            <!-- Impact Tab -->
+            <div id="impactTab" class="tab-content" style="display: none;">
+                <div id="impact" class="relationships-container">
+                    <div class="relationships-sub-tabs">
+                        <button class="sub-tab active" data-sub-tab="process" data-i18n="systemInterface.impact.process">Process</button>
+                    </div>
+                    <div class="relationships-content">
+                        <div id="impactProcessContent" class="sub-tab-content active">
+                            <div class="relationships-hierarchy">
+                                <div class="hierarchy-header">
+                                    <div class="hierarchy-title" data-i18n="systemInterface.impact.process">PROCESS</div>
+                                    <div class="hierarchy-actions">
+                                        <button type="button" class="btn btn-secondary">
+                                            <i class="fas fa-list"></i> <span data-i18n="tab.list">List</span>
+                                        </button>
+                                        <button type="button" class="btn btn-secondary">
+                                            <i class="fas fa-search-plus"></i> <span data-i18n="systemInterface.buttons.searchAndAdd">Search and Add</span>
+                                        </button>
+                                        <button type="button" class="btn btn-secondary">
+                                            <i class="fas fa-cog"></i><i class="fas fa-chevron-down"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="data-table-wrapper">
+                                    <table class="data-table">
+                                        <thead>
+                                            <tr>
+                                                <th>
+                                                    <div class="th-content">
+                                                        <span data-i18n="systemInterface.table.relationshipType">Relationship Type</span>
+                                                        <i class="fas fa-sort"></i>
+                                                    </div>
+                                                </th>
+                                                <th>
+                                                    <div class="th-content">
+                                                        <span data-i18n="systemInterface.impact.process">Process</span>
+                                                        <i class="fas fa-sort"></i>
+                                                    </div>
+                                                </th>
+                                                <th>
+                                                    <div class="th-content" style="justify-content: center;">
+                                                        <span data-i18n="systemInterface.table.action">Action</span>
+                                                    </div>
+                                                </th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="processImpactTableBody">
+                                            <tr><td colspan="3" style="text-align:center;padding:2rem;color:var(--text-muted,#6b7280);" data-i18n="message.loading">Loading...</td></tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div class="hierarchy-footer" id="processImpactFooter" data-i18n="message.zeroRecords">0 records</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<script src="../../assets/js/config.js"></script>
+<script src="../../assets/js/api-service.js"></script>
+<script src="../../assets/js/lock-manager.js"></script>
+<script src="../../assets/js/lock-init-helper.js"></script>
+<script src="../../assets/js/global-lock-ui.js"></script>
+<script src="../../assets/js/main.js"></script>
+<script src="../../assets/js/initSearch.js"></script>
+
+<script src="../../assets/js/custom-fields.js"></script>
+<script src="../../view/components/document-upload-component.js"></script>
+<script src="../../view/components/document-table-component.js"></script>
+<script src="../../view/system-interface/system-interface-documents-init.js"></script>
+<script src="../../assets/js/advanced-rich-text-editor.js"></script>
+<script src="../../view/system-interface/system-interface-edit.js"></script>
+<script src="../../view/system-interface/interface-stakeholder-edit.js"></script>
+<script src="../../view/system-interface/interface-impact-edit.js"></script>
+<script src="../../assets/js/header.js"></script>
+</body>
+</html>
+

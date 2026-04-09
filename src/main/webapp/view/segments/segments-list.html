@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<div class="segments-page">
+    <!-- Segments List View -->
+    <div class="segments-list-view" id="segmentsListView">
+        <div class="segments-table-header">
+            <h3>SEGMENTS</h3>
+            <div class="table-actions">
+                <i class="fas fa-cog"></i>
+            </div>
+        </div>
+        
+        <!-- Filter Inputs -->
+        <div class="segments-input-section">
+            <div class="segment-input-group">
+                <label>Name</label>
+                <input type="text" id="filterSegmentName" placeholder="Filter by name" class="segment-input">
+            </div>
+            <div class="segment-input-group">
+                <label>Description</label>
+                <input type="text" id="filterSegmentDescription" placeholder="Filter by description" class="segment-input">
+            </div>
+        </div>
+        
+        <div class="segments-table-container">
+            <table class="segments-table">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Description</th>
+                    </tr>
+                </thead>
+                <tbody id="segmentsTableBody">
+                    <tr class="loading-row">
+                        <td colspan="2"><i class="fas fa-spinner fa-spin"></i> Loading segments...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="segments-record-count" id="segmentsRecordCount">0 records</div>
+    </div>
+</div>
+

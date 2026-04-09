@@ -1,0 +1,572 @@
+[
+    {
+        "File Name":"business-area-role.xlsx",
+        "Header Name":"Business Area Name",
+        "Note Text":"Required.\n\nName of the business area."
+    },
+    {
+        "File Name":"business-area-role.xlsx",
+        "Header Name":"Business Area Parent Name",
+        "Note Text":"Optional.\n\nName of the parent business area if the business area belongs to a hierarchy."
+    },
+    {
+        "File Name":"business-area-role.xlsx",
+        "Header Name":"User Email",
+        "Note Text":"Optional.\n\nUnique email address of the user.\n\nBUDG sends emails to this email address.\n\nEnsure that you enter a value in the User Email or User Lan ID or User First Name and User Last Name column though the columns are optional.\n\nEnsure that you enter a value in the User Email or User Lan ID or User First Name and User Last Name column though the columns are optional."
+    },
+    {
+        "File Name":"business-area-role.xlsx",
+        "Header Name":"User First Name",
+        "Note Text":"Optional.\n\nFirst name of the user.\n\nSpecify the name as it is recorded in the LDAP directory server of your organization.\n\nEnsure that you enter a value in the User Email or User Lan ID or User First Name and User Last Name column though the columns are optional.\n\nEnsure that you enter a value in the User Email or User Lan ID or User First Name and User Last Name column though the columns are optional."
+    },
+    {
+        "File Name":"business-area-role.xlsx",
+        "Header Name":"User Last Name",
+        "Note Text":"Optional.\n\nLast name of the user.\n\nSpecify the name as it is recorded in the LDAP directory server of your organization.\n\nEnsure that you enter a value in the User Email or User Lan ID or User First Name and User Last Name column though the columns are optional.\n\nEnsure that you enter a value in the User Email or User Lan ID or User First Name and User Last Name column though the columns are optional."
+    },
+    {
+        "File Name":"business-area-role.xlsx",
+        "Header Name":"User Lan ID",
+        "Note Text":"nal.\n\nNetwork ID of the user.\n\nEnsure that you enter a value in the User Email or User Lan ID or User First Name and User Last Name column though the columns are optional.\n\nEnsure that you enter a value in the User Email or User Lan ID or User First Name and User Last Name column though the columns are optional."
+    },
+    {
+        "File Name":"business-area-role.xlsx",
+        "Header Name":"Governance Role",
+        "Note Text":"Required.\n\nThe role of the user.\n\nYou can select the Business Area Head role."
+    },
+    {
+        "File Name":"capability-role.xlsx",
+        "Header Name":"Capability Ref.",
+        "Note Text":"Optional.\n\nA unique reference identifier for the capability.\n\nEnsure that you enter a value in the Capability Ref. or Capability Name column though both the columns are optional."
+    },
+    {
+        "File Name":"capability-role.xlsx",
+        "Header Name":"Capability Name",
+        "Note Text":"Optional.\n\nName of the capability.\n\nEnsure that you enter a value in the Capability Ref. or Capability Name column though both the columns are optional."
+    },
+    {
+        "File Name":"capability-role.xlsx",
+        "Header Name":"Parent Capability Name",
+        "Note Text":"Optional.\n\nParent name of the capability if the capability belongs to a hierarchy."
+    },
+    {
+        "File Name":"capability-role.xlsx",
+        "Header Name":"User Email",
+        "Note Text":"Optional.\n\nUnique email address of the user.\n\nBUDG sends emails to this email address.\n\nEnsure that you enter a value in the User Email or User Lan ID or User First Name and User Last Name column though the columns are optional."
+    },
+    {
+        "File Name":"capability-role.xlsx",
+        "Header Name":"User First Name",
+        "Note Text":"Optional.\n\nFirst name of the user.\n\nSpecify the name as it is recorded in the LDAP directory server of your organization.\n\nEnsure that you enter a value in the User Email or User Lan ID or User First Name and User Last Name column though the columns are optional."
+    },
+    {
+        "File Name":"capability-role.xlsx",
+        "Header Name":"User Last Name",
+        "Note Text":"Optional.\n\nLast name of the user.\n\nSpecify the name as it is recorded in the LDAP directory server of your organization.\n\nEnsure that you enter a value in the User Email or User Lan ID or User First Name and User Last Name column though the columns are optional."
+    },
+    {
+        "File Name":"capability-role.xlsx",
+        "Header Name":"User Lan ID",
+        "Note Text":"nal.\n\nNetwork ID of the user.\n\nEnsure that you enter a value in the User Email or User Lan ID or User First Name and User Last Name column though the columns are optional."
+    },
+    {
+        "File Name":"capability-role.xlsx",
+        "Header Name":"Governance Role",
+        "Note Text":"Required.\n\nThe role of the user.\n\nYou can select the Capability Owner role."
+    },
+    {
+        "File Name":"client-role.xlsx",
+        "Header Name":"Client Name",
+        "Note Text":"Required.\n\nShort name of the client.\n\nEnter a name that users can recognize easily."
+    },
+    {
+        "File Name":"client-role.xlsx",
+        "Header Name":"Client Parent Name",
+        "Note Text":"Optional.\n\nParent name of the client that you want to create."
+    },
+    {
+        "File Name":"client-role.xlsx",
+        "Header Name":"User Email",
+        "Note Text":"Optional.\n\nUnique email address of the user.\n\nBUDG sends emails to this email address.\n\nEnsure that you enter a value in the User Email or User Lan ID or User First Name and User Last Name column though the columns are optional."
+    },
+    {
+        "File Name":"client-role.xlsx",
+        "Header Name":"User First Name",
+        "Note Text":"Optional.\n\nFirst name of the user.\n\nSpecify the name as it is recorded in the LDAP directory server of your organization.\n\nEnsure that you enter a value in the User Email or User Lan ID or User First Name and User Last Name column though the columns are optional."
+    },
+    {
+        "File Name":"client-role.xlsx",
+        "Header Name":"User Last Name",
+        "Note Text":"Optional.\n\nLast name of the user.\n\nSpecify the name as it is recorded in the LDAP directory server of your organization.\n\nEnsure that you enter a value in the User Email or User Lan ID or User First Name and User Last Name column though the columns are optional."
+    },
+    {
+        "File Name":"client-role.xlsx",
+        "Header Name":"User Lan ID",
+        "Note Text":"nal.\n\nNetwork ID of the user.\n\nEnsure that you enter a value in the User Email or User Lan ID or User First Name and User Last Name column though the columns are optional."
+    },
+    {
+        "File Name":"client-role.xlsx",
+        "Header Name":"Governance Role",
+        "Note Text":"Required.\n\nThe role of the user.\n\nYou can select the Client Segmentation Owner role."
+    },
+    {
+        "File Name":"committee-role.xlsx",
+        "Header Name":"Committee Ref.",
+        "Note Text":"Optional.\n\nA unique reference identifier for the committee.\n\nEnsure that you enter a value in the Committee Ref. or Committee Name column though both the columns are optional."
+    },
+    {
+        "File Name":"committee-role.xlsx",
+        "Header Name":"Committee Name",
+        "Note Text":"Optional.\n\nName of the committee.\n\nEnter a name that users can recognize easily.\n\nEnsure that you enter a value in the Committee Ref. or Committee Name column though both the columns are optional."
+    },
+    {
+        "File Name":"committee-role.xlsx",
+        "Header Name":"Committee Parent Name",
+        "Note Text":"Optional.\n\nParent name of the committee that you want to create."
+    },
+    {
+        "File Name":"committee-role.xlsx",
+        "Header Name":"User Email",
+        "Note Text":"Optional.\n\nUnique email address of the user.\n\nBUDG sends emails to this email address.\n\nEnsure that you enter a value in the User Email or User Lan ID or User First Name and User Last Name column though the columns are optional."
+    },
+    {
+        "File Name":"committee-role.xlsx",
+        "Header Name":"User First Name",
+        "Note Text":"Optional.\n\nFirst name of the user.\n\nSpecify the name as it is recorded in the LDAP directory server of your organization.\n\nEnsure that you enter a value in the User Email or User Lan ID or User First Name and User Last Name column though the columns are optional."
+    },
+    {
+        "File Name":"committee-role.xlsx",
+        "Header Name":"User Last Name",
+        "Note Text":"Optional.\n\nLast name of the user.\n\nSpecify the name as it is recorded in the LDAP directory server of your organization.\n\nEnsure that you enter a value in the User Email or User Lan ID or User First Name and User Last Name column though the columns are optional."
+    },
+    {
+        "File Name":"committee-role.xlsx",
+        "Header Name":"User Lan ID",
+        "Note Text":"nal.\n\nNetwork ID of the user.\n\nEnsure that you enter a value in the User Email or User Lan ID or User First Name and User Last Name column though the columns are optional."
+    },
+    {
+        "File Name":"committee-role.xlsx",
+        "Header Name":"Governance Role",
+        "Note Text":"Required.\n\nThe role of the user.\n\nYou can select the Committee Chair role."
+    },
+    {
+        "File Name":"data-quality-role.xlsx",
+        "Header Name":"Ref.",
+        "Note Text":"Optional.\n\nA unique reference number for a data quality rule.\n\nBased on this reference number, BUDG loads the scores in the Data Quality report.\n\nEnsure that you enter a value in the Ref. or Rule Name column though both the columns are optional."
+    },
+    {
+        "File Name":"data-quality-role.xlsx",
+        "Header Name":"Rule Name",
+        "Note Text":"Optional.\n\nName of the rule.\n\nBulk upload fails if rules with the same names exist for different data sets or attributes.\n\nEnsure that you enter a value in the Ref. or Rule Name column though both the columns are optional."
+    },
+    {
+        "File Name":"data-quality-role.xlsx",
+        "Header Name":"User Email",
+        "Note Text":"Optional.\n\nEnter an unique email address.\n\nBUDG sends emails to this email address.\n\nEnsure that you enter a value in the User Email or User Lan ID or User First Name and User Last Name column though the columns are optional."
+    },
+    {
+        "File Name":"data-quality-role.xlsx",
+        "Header Name":"User First Name",
+        "Note Text":"Optional.\n\nFirst name of the user.\n\nSpecify the name as it is recorded in the LDAP directory of your organization.\n\nEnsure that you enter a value in the User Email or User Lan ID or User First Name and User Last Name column though the columns are optional."
+    },
+    {
+        "File Name":"data-quality-role.xlsx",
+        "Header Name":"User Last Name",
+        "Note Text":"Optional.\n\nLast Name of the user.\n\nSpecify the name as it is recorded in the LDAP directory of your organization.\n\nEnsure that you enter a value in the User Email or User Lan ID or User First Name and User Last Name column though the columns are optional."
+    },
+    {
+        "File Name":"data-quality-role.xlsx",
+        "Header Name":"User Lan ID",
+        "Note Text":"nal.\n\nNetwork ID of the user.\n\nEnsure that you enter a value in the User Email or User Lan ID or User First Name and User Last Name column though the columns are optional."
+    },
+    {
+        "File Name":"data-quality-role.xlsx",
+        "Header Name":"Governance Role",
+        "Note Text":"Required.\n\nThe role of the user.\n\nYou can select the following role:\n-DQ Steward\n-Custom roles as defined in the Admin Panel"
+    },
+    {
+        "File Name":"data-set-role.xlsx",
+        "Header Name":"Ref.",
+        "Note Text":"Optional.\n\nA unique reference identifier for the data set.\n\nEnsure that you enter a value in the Ref. or Name column though both the columns are optional."
+    },
+    {
+        "File Name":"data-set-role.xlsx",
+        "Header Name":"Name",
+        "Note Text":"Optional.\n\nName of the data set.\n\nEnsure that you enter a value in the Ref. or Name column though both the columns are optional."
+    },
+    {
+        "File Name":"data-set-role.xlsx",
+        "Header Name":"System Short Name",
+        "Note Text":"Optional.\n\nName of the system that the data set belongs to."
+    },
+    {
+        "File Name":"data-set-role.xlsx",
+        "Header Name":"User Email",
+        "Note Text":"Optional.\n\nUnique email address of the user.\n\nBUDG sends emails to this email address.\n\nEnsure that you enter a value in the User Email or User Lan ID or User First Name and User Last Name column though the columns are optional."
+    },
+    {
+        "File Name":"data-set-role.xlsx",
+        "Header Name":"User First Name",
+        "Note Text":"Optional.\n\nFirst name of the user.\n\nSpecify the name as it is recorded in the LDAP directory server of your organization.\n\nEnsure that you enter a value in the User Email or User Lan ID or User First Name and User Last Name column though the columns are optional."
+    },
+    {
+        "File Name":"data-set-role.xlsx",
+        "Header Name":"User Last Name",
+        "Note Text":"Optional.\n\nLast name of the user.\n\nSpecify the name as it is recorded in the LDAP directory server of your organization.\n\nEnsure that you enter a value in the User Email or User Lan ID or User First Name and User Last Name column though the columns are optional."
+    },
+    {
+        "File Name":"data-set-role.xlsx",
+        "Header Name":"User Lan ID",
+        "Note Text":"nal.\n\nNetwork ID of the user.\n\nEnsure that you enter a value in the User Email or User Lan ID or User First Name and User Last Name column though the columns are optional."
+    },
+    {
+        "File Name":"data-set-role.xlsx",
+        "Header Name":"Governance Role",
+        "Note Text":"Required.\n\nThe role of the user.\n\nYou can select the following roles:\n-Data Steward\n-Data Owner"
+    },
+    {
+        "File Name":"glossary-role.xlsx",
+        "Header Name":"Ref.",
+        "Note Text":"Optional.\n\nA unique reference identifier for the glossary.\n\nEnsure that you enter a value in the Ref. or Name column though both the columns are optional."
+    },
+    {
+        "File Name":"glossary-role.xlsx",
+        "Header Name":"Name",
+        "Note Text":"Optional.\n\nName of the glossary.\n\nEnsure that you enter a value in the Ref. or Name column though both the columns are optional."
+    },
+    {
+        "File Name":"glossary-role.xlsx",
+        "Header Name":"Parent Name",
+        "Note Text":"Optional.\n\nParent name of the glossary term.\n\nThe glossary parent name must exist in BUDG."
+    },
+    {
+        "File Name":"glossary-role.xlsx",
+        "Header Name":"User Email",
+        "Note Text":"Optional.\n\nUnique email address of the user.\n\nBUDG sends emails to this email address.\n\nEnsure that you enter a value in the User Email or User Lan ID or User First Name and User Last Name column though the columns are optional."
+    },
+    {
+        "File Name":"glossary-role.xlsx",
+        "Header Name":"User First Name",
+        "Note Text":"Optional.\n\nFirst name of the user.\n\nSpecify the name as it is recorded in the LDAP directory server of your organization.\n\nEnsure that you enter a value in the User Email or User Lan ID or User First Name and User Last Name column though the columns are optional."
+    },
+    {
+        "File Name":"glossary-role.xlsx",
+        "Header Name":"User Last Name",
+        "Note Text":"Optional.\n\nLast name of the user.\n\nSpecify the name as it is recorded in the LDAP directory server of your organization.\n\nEnsure that you enter a value in the User Email or User Lan ID or User First Name and User Last Name column though the columns are optional."
+    },
+    {
+        "File Name":"glossary-role.xlsx",
+        "Header Name":"User Lan ID",
+        "Note Text":"nal.\n\nNetwork ID of the user.\n\nEnsure that you enter a value in the User Email or User Lan ID or User First Name and User Last Name column though the columns are optional."
+    },
+    {
+        "File Name":"glossary-role.xlsx",
+        "Header Name":"Governance Role",
+        "Note Text":"Required.\n\nThe role of the user.\n\nYou can select the following roles:\n-Glossary Definition Owner\n-Glossary Steward"
+    },
+    {
+        "File Name":"interface-role.xlsx",
+        "Header Name":"Interface Ref.",
+        "Note Text":"Optional.\n\nA unique reference identifier for the system interface.\n\nEnsure that you enter a value in the Interface Ref. or Interface Name or Interface Source System Short Name and Interface Target System Short Name column though the columns are optional."
+    },
+    {
+        "File Name":"interface-role.xlsx",
+        "Header Name":"Interface Name",
+        "Note Text":"Optional.\n\nName of the system interface.\n\nEnsure that you enter a value in the Interface Ref. or Interface Name or Interface Source System Short Name and Interface Target System Short Name column though the columns are optional."
+    },
+    {
+        "File Name":"interface-role.xlsx",
+        "Header Name":"Interface Source System Short Name",
+        "Note Text":"Optional.\n\nSystem from which the information flows out.\n\nEnsure that you enter a value in the Interface Ref. or Interface Name or Interface Source System Short Name and Interface Target System Short Name column though the columns are optional."
+    },
+    {
+        "File Name":"interface-role.xlsx",
+        "Header Name":"Interface Target System Short Name",
+        "Note Text":"Optional.\n\nSystem to which the information flows in.\n\nEnsure that you enter a value in the Interface Ref. or Interface Name or Interface Source System Short Name and Interface Target System Short Name column though the columns are optional."
+    },
+    {
+        "File Name":"interface-role.xlsx",
+        "Header Name":"User Email",
+        "Note Text":"Optional.\n\nUnique email address of the user.\n\nBUDG sends emails to this email address.\n\nEnsure that you enter a value in the User Email or User Lan ID or User First Name and User Last Name column though the columns are optional."
+    },
+    {
+        "File Name":"interface-role.xlsx",
+        "Header Name":"User First Name",
+        "Note Text":"Optional.\n\nFirst name of the user.\n\nSpecify the name as it is recorded in the LDAP directory server of your organization.\n\nEnsure that you enter a value in the User Email or User Lan ID or User First Name and User Last Name column though the columns are optional."
+    },
+    {
+        "File Name":"interface-role.xlsx",
+        "Header Name":"User Last Name",
+        "Note Text":"Optional.\n\nLast name of the user.\n\nSpecify the name as it is recorded in the LDAP directory server of your organization.\n\nEnsure that you enter a value in the User Email or User Lan ID or User First Name and User Last Name column though the columns are optional."
+    },
+    {
+        "File Name":"interface-role.xlsx",
+        "Header Name":"User Lan ID",
+        "Note Text":"nal.\n\nNetwork ID of the user.\n\nEnsure that you enter a value in the User Email or User Lan ID or User First Name and User Last Name column though the columns are optional."
+    },
+    {
+        "File Name":"interface-role.xlsx",
+        "Header Name":"Governance Role",
+        "Note Text":"Required.\n\nThe role of the user.\n\nYou can select the following roles.\n-Interface Owner\n-Interface Steward"
+    },
+    {
+        "File Name":"legal-entity-role.xlsx",
+        "Header Name":"Legal Entity Name",
+        "Note Text":"Required.\n\nShort name of the legal entity.\n\nEnter a name that other BUDG users can recognize easily."
+    },
+    {
+        "File Name":"legal-entity-role.xlsx",
+        "Header Name":"Legal Entity Parent Name",
+        "Note Text":"Optional.\n\nParent name of the legal entity that you want to create."
+    },
+    {
+        "File Name":"legal-entity-role.xlsx",
+        "Header Name":"User Email",
+        "Note Text":"Optional.\n\nUnique email address of the user.\n\nBUDG sends emails to this email address.\n\nEnsure that you enter a value in the User Email or User Lan ID or User First Name and User Last Name column though the columns are optional."
+    },
+    {
+        "File Name":"legal-entity-role.xlsx",
+        "Header Name":"User First Name",
+        "Note Text":"Optional.\n\nFirst name of the user.\n\nSpecify the name as it is recorded in the LDAP directory server of your organization.\n\nEnsure that you enter a value in the User Email or User Lan ID or User First Name and User Last Name column though the columns are optional."
+    },
+    {
+        "File Name":"legal-entity-role.xlsx",
+        "Header Name":"User Last Name",
+        "Note Text":"Optional.\n\nLast name of the user.\n\nSpecify the name as it is recorded in the LDAP directory server of your organization.\n\nEnsure that you enter a value in the User Email or User Lan ID or User First Name and User Last Name column though the columns are optional."
+    },
+    {
+        "File Name":"legal-entity-role.xlsx",
+        "Header Name":"User Lan ID",
+        "Note Text":"nal.\n\nNetwork ID of the user.\n\nEnsure that you enter a value in the User Email or User Lan ID or User First Name and User Last Name column though the columns are optional."
+    },
+    {
+        "File Name":"legal-entity-role.xlsx",
+        "Header Name":"Governance Role",
+        "Note Text":"Required.\n\nThe role of the user.\n\nYou can select the Legal Entity Owner role."
+    },
+    {
+        "File Name":"policy-role.xlsx",
+        "Header Name":"Ref.",
+        "Note Text":"Optional.\n\nA unique reference identifier for the policy.\n\nEnsure that you enter a value in the Ref. or Name column though both the columns are optional."
+    },
+    {
+        "File Name":"policy-role.xlsx",
+        "Header Name":"Name",
+        "Note Text":"Optional.\n\nShort name of the policy.\n\nEnter a name that users can recognize easily.\n\nEnsure that you enter a value in the Ref. or Name column though both the columns are optional."
+    },
+    {
+        "File Name":"policy-role.xlsx",
+        "Header Name":"Parent Name",
+        "Note Text":"Optional.\n\nParent name of the policy that you want to create."
+    },
+    {
+        "File Name":"policy-role.xlsx",
+        "Header Name":"User Email",
+        "Note Text":"Optional.\n\nUnique email address of the user.\n\nBUDG sends emails to this email address.\n\nEnsure that you enter a value in the User Email or User Lan ID or User First Name and User Last Name column though the columns are optional."
+    },
+    {
+        "File Name":"policy-role.xlsx",
+        "Header Name":"User First Name",
+        "Note Text":"Optional.\n\nFirst name of the user.\n\nSpecify the name as it is recorded in the LDAP directory server of your organization.\n\nEnsure that you enter a value in the User Email or User Lan ID or User First Name and User Last Name column though the columns are optional."
+    },
+    {
+        "File Name":"policy-role.xlsx",
+        "Header Name":"User Last Name",
+        "Note Text":"Optional.\n\nLast name of the user.\n\nSpecify the name as it is recorded in the LDAP directory server of your organization.\n\nEnsure that you enter a value in the User Email or User Lan ID or User First Name and User Last Name column though the columns are optional."
+    },
+    {
+        "File Name":"policy-role.xlsx",
+        "Header Name":"User Lan ID",
+        "Note Text":"nal.\n\nNetwork ID of the user.\n\nEnsure that you enter a value in the User Email or User Lan ID or User First Name and User Last Name column though the columns are optional."
+    },
+    {
+        "File Name":"policy-role.xlsx",
+        "Header Name":"Governance Role",
+        "Note Text":"Required.\n\nThe role of the user.\n\nYou can select the following roles:\n-Policy Owner\n-Policy Steward"
+    },
+    {
+        "File Name":"process-role.xlsx",
+        "Header Name":"Ref.",
+        "Note Text":"Optional.\n\nA unique reference identifier for the process.\n\nEnsure that you enter a value in the Ref. or Name column though both the columns are optional."
+    },
+    {
+        "File Name":"process-role.xlsx",
+        "Header Name":"Name",
+        "Note Text":"Optional.\n\nName of the process.\n\nEnsure that you enter a value in the Ref. or Name column though both the columns are optional."
+    },
+    {
+        "File Name":"process-role.xlsx",
+        "Header Name":"Parent Name",
+        "Note Text":"Optional.\n\nParent name of the process."
+    },
+    {
+        "File Name":"process-role.xlsx",
+        "Header Name":"User Email",
+        "Note Text":"Optional.\n\nUnique email address of the user.\n\nBUDG sends emails to this email address.\n\nEnsure that you enter a value in the User Email or User Lan ID or User First Name and User Last Name column though the columns are optional."
+    },
+    {
+        "File Name":"process-role.xlsx",
+        "Header Name":"User First Name",
+        "Note Text":"Optional.\n\nFirst name of the user.\n\nSpecify the name as it is recorded in the LDAP directory server of your organization.\n\nEnsure that you enter a value in the User Email or User Lan ID or User First Name and User Last Name column though the columns are optional."
+    },
+    {
+        "File Name":"process-role.xlsx",
+        "Header Name":"User Last Name",
+        "Note Text":"Optional.\n\nLast name of the user.\n\nSpecify the name as it is recorded in the LDAP directory server of your organization.\n\nEnsure that you enter a value in the User Email or User Lan ID or User First Name and User Last Name column though the columns are optional."
+    },
+    {
+        "File Name":"process-role.xlsx",
+        "Header Name":"User Lan ID",
+        "Note Text":"nal.\n\nNetwork ID of the user.\n\nEnsure that you enter a value in the User Email or User Lan ID or User First Name and User Last Name column though the columns are optional."
+    },
+    {
+        "File Name":"process-role.xlsx",
+        "Header Name":"Governance Role",
+        "Note Text":"Required.\n\nThe role of the user.\n\nYou can select one the following roles:\n-Process Owner\n-Process Steward"
+    },
+    {
+        "File Name":"product-role.xlsx",
+        "Header Name":"Product Name",
+        "Note Text":"Required.\n\nShort name of the product.\n\nEnter a name that users can recognize easily."
+    },
+    {
+        "File Name":"product-role.xlsx",
+        "Header Name":"Product Parent Name",
+        "Note Text":"Optional.\n\nParent name of the product if the product belongs to a hierarchy."
+    },
+    {
+        "File Name":"product-role.xlsx",
+        "Header Name":"User Email",
+        "Note Text":"Optional.\n\nUnique email address of the user.\n\nBUDG sends emails to this email address.\n\nEnsure that you enter a value in the User Email or User Lan ID or User First Name and User Last Name column though the columns are optional."
+    },
+    {
+        "File Name":"product-role.xlsx",
+        "Header Name":"User First Name",
+        "Note Text":"Optional.\n\nFirst name of the user.\n\nSpecify the name as it is recorded in the LDAP directory server of your organization.\n\nEnsure that you enter a value in the User Email or User Lan ID or User First Name and User Last Name column though the columns are optional."
+    },
+    {
+        "File Name":"product-role.xlsx",
+        "Header Name":"User Last Name",
+        "Note Text":"Optional.\n\nLast name of the user.\n\nSpecify the name as it is recorded in the LDAP directory server of your organization.\n\nEnsure that you enter a value in the User Email or User Lan ID or User First Name and User Last Name column though the columns are optional."
+    },
+    {
+        "File Name":"product-role.xlsx",
+        "Header Name":"User Lan ID",
+        "Note Text":"nal.\n\nNetwork ID of the user.\n\nEnsure that you enter a value in the User Email or User Lan ID or User First Name and User Last Name column though the columns are optional."
+    },
+    {
+        "File Name":"product-role.xlsx",
+        "Header Name":"Governance Role",
+        "Note Text":"Required.\n\nThe role of the user.\n\nYou can select the following roles:\n-Product Owner\n-Product Steward"
+    },
+    {
+        "File Name":"project-role.xlsx",
+        "Header Name":"Project Ref.",
+        "Note Text":"Optional.\n\nA unique reference identifier for the project.\n\nEnsure that you enter a value in the Project Ref. or Project Name column though both the columns are optional."
+    },
+    {
+        "File Name":"project-role.xlsx",
+        "Header Name":"Project Name",
+        "Note Text":"Optional.\n\nName of the project.\n\nEnter a name that other BUDG users can recognize easily.\n\nEnsure that you enter a value in the Project Ref. or Project Name column though both the columns are optional."
+    },
+    {
+        "File Name":"project-role.xlsx",
+        "Header Name":"Project Parent Name",
+        "Note Text":"Optional.\n\nParent name of the project that you want to create."
+    },
+    {
+        "File Name":"project-role.xlsx",
+        "Header Name":"User Email",
+        "Note Text":"Optional.\n\nUnique email address of the user.\n\nBUDG sends emails to this email address.\n\nEnsure that you enter a value in the User Email or User Lan ID or User First Name and User Last Name column though the columns are optional."
+    },
+    {
+        "File Name":"project-role.xlsx",
+        "Header Name":"User First Name",
+        "Note Text":"Optional.\n\nFirst name of the user.\n\nSpecify the name as it is recorded in the LDAP directory server of your organization.\n\nEnsure that you enter a value in the User Email or User Lan ID or User First Name and User Last Name column though the columns are optional."
+    },
+    {
+        "File Name":"project-role.xlsx",
+        "Header Name":"User Last Name",
+        "Note Text":"Optional.\n\nLast name of the user.\n\nSpecify the name as it is recorded in the LDAP directory server of your organization.\n\nEnsure that you enter a value in the User Email or User Lan ID or User First Name and User Last Name column though the columns are optional."
+    },
+    {
+        "File Name":"project-role.xlsx",
+        "Header Name":"User Lan ID",
+        "Note Text":"nal.\n\nNetwork ID of the user.\n\nEnsure that you enter a value in the User Email or User Lan ID or User First Name and User Last Name column though the columns are optional."
+    },
+    {
+        "File Name":"project-role.xlsx",
+        "Header Name":"Governance Role",
+        "Note Text":"Required.\n\nThe role of the user.\n\nYou can select the following roles:\n-Project Manager\n -Project Steward"
+    },
+    {
+        "File Name":"regulation-role.xlsx",
+        "Header Name":"Regulation Ref.",
+        "Note Text":"Optional.\n\nA unique reference identifier for the regulation.\n\nEnsure that you enter a value in the Regulation Ref. or Regulation Name column though both the columns are optional."
+    },
+    {
+        "File Name":"regulation-role.xlsx",
+        "Header Name":"Regulation Name",
+        "Note Text":"Optional.\n\nShort name for the regulation.\n\nThe most commonly used name or an acronym for the regulation, such as GDPR.\n\nEnter a name that users can recognize easily.\n\nEnsure that you enter a value in the Regulation Ref. or Regulation Name column though both the columns are optional."
+    },
+    {
+        "File Name":"regulation-role.xlsx",
+        "Header Name":"Parent Regulation Name",
+        "Note Text":"Optional.\n\nParent name of the regulation that you want to create."
+    },
+    {
+        "File Name":"regulation-role.xlsx",
+        "Header Name":"User Email",
+        "Note Text":"Optional.\n\nUnique email address of the user.\n\nBUDG sends emails to this email address.\n\nEnsure that you enter a value in the User Email or User Lan ID or User First Name and User Last Name column though the columns are optional."
+    },
+    {
+        "File Name":"regulation-role.xlsx",
+        "Header Name":"User First Name",
+        "Note Text":"Optional.\n\nFirst name of the user.\n\nSpecify the name as it is recorded in the LDAP directory server of your organization.\n\nEnsure that you enter a value in the User Email or User Lan ID or User First Name and User Last Name column though the columns are optional."
+    },
+    {
+        "File Name":"regulation-role.xlsx",
+        "Header Name":"User Last Name",
+        "Note Text":"Optional.\n\nLast name of the user.\n\nSpecify the name as it is recorded in the LDAP directory server of your organization.\n\nEnsure that you enter a value in the User Email or User Lan ID or User First Name and User Last Name column though the columns are optional."
+    },
+    {
+        "File Name":"regulation-role.xlsx",
+        "Header Name":"User Lan ID",
+        "Note Text":"nal.\n\nNetwork ID of the user.\n\nEnsure that you enter a value in the User Email or User Lan ID or User First Name and User Last Name column though the columns are optional."
+    },
+    {
+        "File Name":"regulation-role.xlsx",
+        "Header Name":"Governance Role",
+        "Note Text":"Required.\n\nThe role of the user.\n\nYou can select the following roles:\n-Regulation Owner\n-Regulation SME"
+    },
+    {
+        "File Name":"system-role.xlsx",
+        "Header Name":"Short Name",
+        "Note Text":"Required.\n\nShort name of a system that other BUDG users can recognize easily."
+    },
+    {
+        "File Name":"system-role.xlsx",
+        "Header Name":"User Email",
+        "Note Text":"Optional.\n\nUnique email address of the user.\n\nBUDG sends emails to this email address.\n\nEnsure that you enter a value in the User Email or User Lan ID or User First Name and User Last Name column though the columns are optional."
+    },
+    {
+        "File Name":"system-role.xlsx",
+        "Header Name":"User First Name",
+        "Note Text":"Optional.\n\nFirst name of the user.\n\nSpecify the name as it is recorded in the LDAP directory server of your organization.\n\nEnsure that you enter a value in the User Email or User Lan ID or User First Name and User Last Name column though the columns are optional."
+    },
+    {
+        "File Name":"system-role.xlsx",
+        "Header Name":"User Last Name",
+        "Note Text":"Optional.\n\nLast name of the user.\n\nSpecify the name as it is recorded in the LDAP directory server of your organization.\n\nEnsure that you enter a value in the User Email or User Lan ID or User First Name and User Last Name column though the columns are optional."
+    },
+    {
+        "File Name":"system-role.xlsx",
+        "Header Name":"User Lan ID",
+        "Note Text":"nal.\n\nNetwork ID of the user.\n\nEnsure that you enter a value in the User Email or User Lan ID or User First Name and User Last Name column though the columns are optional."
+    },
+    {
+        "File Name":"system-role.xlsx",
+        "Header Name":"Governance Role",
+        "Note Text":"Required.\n\nThe role of the user.\n\nYou can select the following roles:\n-System Business Owner\n-System Steward"
+    }
+]

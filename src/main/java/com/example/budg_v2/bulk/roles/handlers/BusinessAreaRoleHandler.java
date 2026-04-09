@@ -1,0 +1,228 @@
+package com.example.budg_v2.bulk.roles.handlers;
+
+import com.example.budg_v2.bulk.roles.base.RoleUploadHandler;
+import com.example.budg_v2.bulk.roles.util.RoleHandlerUtil;
+import com.example.budg_v2.bulk.common.BulkUploadUtil;
+import com.example.budg_v2.dao.BusinessAreaDAO;
+import com.example.budg_v2.database.DatabaseConnection;
+import com.example.budg_v2.service.SegmentAccessService;
+import com.example.budg_v2.service.ObjectSegmentService;
+import com.example.budg_v2.service.SegmentValidationService;
+import com.example.budg_v2.util.DefaultStakeholderUtil;
+import com.google.gson.JsonObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * Handler for Business Area Role bulk uploads
+ * Manages role assignments to business areas through businessarea_x_objectxpeople table
+ */
+public class BusinessAreaRoleHandler implements RoleUploadHandler {
+    
+    private static final Logger logger = LoggerFactory.getLogger(BusinessAreaRoleHandler.class);
+    private static final String ENTITY_NAME = "Business Area";
+    private static final String LINKING_TABLE = "businessarea_x_objectxpeople";
+    
+    @Override
+    public String getRoleType() {
+        return "Business Area Role";
+    }
+    
+    @Override
+    public String getEntityName() {
+        return ENTITY_NAME;
+    }
+    
+    @Override
+    public String getLinkingTableName() {
+        return LINKING_TABLE;
+    }
+    
+    @Override
+    public void insert(Connection conn, JsonObject rowData, int userId) throws SQLException {
+        Integer businessAreaId = BulkUploadUtil.getInteger(rowData, "BusinessArea_ID");
+        Integer personId = BulkUploadUtil.getInteger(rowData, "Person_ID");
+        Integer roleId = BulkUploadUtil.getInteger(rowData, "Role_ID");
+        
+        if (businessAreaId == null || personId == null || roleId == null) {
+            throw new IllegalArgumentException("Required IDs are missing");
+        }
+        
+        logger.debug("Inserting role assignment: BusinessArea={}, Person={}, Role={}", businessAreaId, personId, roleId);
+        
+        try {
+            BusinessAreaDAO businessAreaDAO = new BusinessAreaDAO();
+            
+            // Step 1: Check if object_x_people record already exists
+            Integer objectXPeopleId = RoleHandlerUtil.findObjectXPeopleId(conn, personId, roleId);
+            
+            if (objectXPeopleId == null) {
+                // Step 2: Create new object_x_people record if it doesn't exist
+                Map<String, Object> stakeholderData = new HashMap<>();
+                stakeholderData.put("userId", personId);
+                stakeholderData.put("roleId", roleId);
+                
+                objectXPeopleId = businessAreaDAO.createObjectXPeople(conn, stakeholderData, userId);
+                logger.debug("Created new object_x_people with ID: {}", objectXPeopleId);
+            } else {
+                logger.debug("Using existing object_x_people with ID: {}", objectXPeopleId);
+            }
+            
+            // Step 3: Check if link already exists before attempting to link
+            RoleHandlerUtil.checkLinkNotExists(conn, LINKING_TABLE, "BusinessAreaID", businessAreaId, "Object_x_ipid", objectXPeopleId, ENTITY_NAME);
+            
+            // Step 4: Link to business area
+            businessAreaDAO.linkStakeholderToBusinessArea(conn, businessAreaId, objectXPeopleId, userId);
+            logger.debug("Linked stakeholder to business area: BusinessArea={}, ObjectXPeople={}", businessAreaId, objectXPeopleId);
+            
+            logger.info("Successfully assigned role {} to person {} for business area {}", roleId, personId, businessAreaId);
+            
+        } catch (SQLException e) {
+            logger.error("Error inserting role assignment: {}", e.getMessage(), e);
+            throw e;
+        }
+    }
+    
+    @Override
+    public void delete(Connection conn, JsonObject rowData, int userId) throws SQLException {
+        Integer businessAreaId = BulkUploadUtil.getInteger(rowData, "BusinessArea_ID");
+        Integer personId = BulkUploadUtil.getInteger(rowData, "Person_ID");
+        Integer roleId = BulkUploadUtil.getInteger(rowData, "Role_ID");
+        
+        if (businessAreaId == null || personId == null || roleId == null) {
+            throw new IllegalArgumentException("Required IDs are missing");
+        }
+        
+        logger.debug("Deleting role assignment: BusinessArea={}, Person={}, Role={}", businessAreaId, personId, roleId);
+        
+        String findOxpSql = "SELECT ID FROM object_x_people WHERE ipid = ? AND RoleID = ?";
+        List<Integer> objectXPeopleIds = new ArrayList<>();
+        try (PreparedStatement ps = conn.prepareStatement(findOxpSql)) {
+            ps.setInt(1, personId);
+            ps.setInt(2, roleId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) objectXPeopleIds.add(rs.getInt("ID"));
+            }
+        }
+        if (objectXPeopleIds.isEmpty()) {
+            throw new SQLException("No role assignment found for this " + ENTITY_NAME + ". The person may not have this role assigned, or the role assignment may have already been removed.");
+        }
+        int totalRowsAffected = 0;
+        String deleteSql = "DELETE FROM " + LINKING_TABLE + " WHERE BusinessAreaID = ? AND Object_x_ipid = ?";
+        for (Integer objectXPeopleId : objectXPeopleIds) {
+            try (PreparedStatement ps = conn.prepareStatement(deleteSql)) {
+                ps.setInt(1, businessAreaId);
+                ps.setInt(2, objectXPeopleId);
+                totalRowsAffected += ps.executeUpdate();
+            }
+        }
+        if (totalRowsAffected == 0) {
+            throw new SQLException("No role assignment found to delete for this " + ENTITY_NAME + ". The role assignment may have already been removed.");
+        }
+        logger.info("Successfully removed {} role assignment(s) from business area: BusinessArea={}, Person={}, Role={}",
+            totalRowsAffected, businessAreaId, personId, roleId);
+    }
+    
+    @Override
+    public JsonObject validateRow(JsonObject rowData, String operation, int userId) {
+        JsonObject basicValidation = RoleHandlerUtil.validateBasicIds(rowData, "BusinessArea_ID", ENTITY_NAME);
+        if (basicValidation.has("error")) {
+            return basicValidation;
+        }
+        
+        Integer businessAreaId = BulkUploadUtil.getInteger(rowData, "BusinessArea_ID");
+        Integer personId = BulkUploadUtil.getInteger(rowData, "Person_ID");
+        Integer roleId = BulkUploadUtil.getInteger(rowData, "Role_ID");
+        if (businessAreaId == null || personId == null || roleId == null) {
+            return BulkUploadUtil.createValidationError("BusinessArea_ID, Person_ID, and Role_ID are required.");
+        }
+        final int entityId = businessAreaId.intValue();
+        final int personIdVal = personId.intValue();
+        final int roleIdVal = roleId.intValue();
+
+        try (Connection conn = DatabaseConnection.getConnection()) {
+            // Segment access validation - check if user has access to this object
+            // Super Admin can access all objects, skip validation
+            if (!SegmentAccessService.isSuperAdmin(userId)) {
+                String segmentObjectType = RoleHandlerUtil.mapEntityNameToSegmentObjectType(ENTITY_NAME);
+                if (segmentObjectType != null && businessAreaId != null) {
+                    if (!SegmentAccessService.canAccessObject(userId, businessAreaId, segmentObjectType)) {
+                        return BulkUploadUtil.createValidationError(
+                            "You do not have access to modify roles for this " + ENTITY_NAME + ". Access is restricted based on segment assignments.");
+                    }
+                }
+            }
+            
+            if (!RoleHandlerUtil.isRoleInModule(conn, roleId, ENTITY_NAME)) {
+                return BulkUploadUtil.createValidationError("Role is not assigned to " + ENTITY_NAME + " module");
+            }
+            
+            // Role assignment validation - validate user is assigned to the role in template (for INSERT only)
+            if ("INSERT".equalsIgnoreCase(operation) && personId != null && roleId != null) {
+                try {
+                    DefaultStakeholderUtil.ValidationResult roleAssignmentValidation = 
+                        DefaultStakeholderUtil.validateStakeholderRoleAssignment(conn, personId, roleId);
+                    if (!roleAssignmentValidation.isValid()) {
+                        return BulkUploadUtil.createValidationError(roleAssignmentValidation.getWarningMessage());
+                    }
+                } catch (SQLException e) {
+                    logger.error("Error validating role assignment: {}", e.getMessage(), e);
+                    return BulkUploadUtil.createValidationError("Unable to verify role assignment; user not allowed.");
+                }
+            }
+            
+            // Segment access validation for stakeholders - check if stakeholder has access to object's segment
+            if ("INSERT".equalsIgnoreCase(operation) && personId != null && businessAreaId != null) {
+                try {
+                    Long objectSegmentId = ObjectSegmentService.getObjectSegment((long) businessAreaId, "Business Area");
+                    if (objectSegmentId != null && objectSegmentId > 1) {
+                        // Object is in a private segment (not Enterprise)
+                        boolean hasAccess = SegmentAccessService.hasSegmentAccess(personId, objectSegmentId.intValue());
+                        if (!hasAccess) {
+                            SegmentValidationService validator = new SegmentValidationService();
+                            String segmentName = validator.getSegmentName(objectSegmentId.intValue());
+                            String personName = RoleHandlerUtil.getPersonName(conn, personId);
+                            return BulkUploadUtil.createValidationError(
+                                String.format("Cannot add stakeholder '%s' to %s. The stakeholder does not have access to segment '%s'. All stakeholders must have access to the object's segment.",
+                                    personName != null ? personName : "User " + personId, ENTITY_NAME, segmentName != null ? segmentName : "Unknown"));
+                        }
+                    }
+                } catch (SQLException e) {
+                    logger.error("Error validating stakeholder segment access: {}", e.getMessage(), e);
+                    // Don't fail validation on error, but log it
+                }
+            }
+            
+            if ("INSERT".equalsIgnoreCase(operation)) {
+                if (RoleHandlerUtil.isDuplicateAssignment(conn, entityId, personIdVal, roleIdVal,
+                        LINKING_TABLE, "BusinessAreaID", "Object_x_ipid", ENTITY_NAME)) {
+                    return BulkUploadUtil.createValidationError("This role assignment already exists for this " + ENTITY_NAME);
+                }
+            } else if ("DELETE".equalsIgnoreCase(operation)) {
+                String errorMessage = RoleHandlerUtil.checkAssignmentExistsWithDetails(
+                    conn, entityId, personIdVal, roleIdVal,
+                    LINKING_TABLE, "BusinessAreaID", "Object_x_ipid", ENTITY_NAME,
+                    "business_area", "PrimaryName");
+                if (errorMessage != null) {
+                    return BulkUploadUtil.createValidationError(errorMessage);
+                }
+            }
+            
+        } catch (SQLException e) {
+            logger.error("Database error during validation: {}", e.getMessage(), e);
+            return BulkUploadUtil.createValidationError("Database error during validation: " + e.getMessage());
+        }
+        
+        return BulkUploadUtil.createValidationSuccess();
+    }
+}
+

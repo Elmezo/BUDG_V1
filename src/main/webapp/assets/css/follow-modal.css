@@ -1,0 +1,498 @@
+﻿/* Follow Modal Styles - Scoped to avoid conflicts */
+.follow-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    backdrop-filter: blur(2px);
+}
+
+.follow-modal-content {
+    background: var(--background, #ffffff);
+    border-radius: 12px;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    max-width: 500px;
+    width: 90%;
+    max-height: 90vh;
+    overflow-y: auto;
+    border: 1px solid var(--border, #e5e7eb);
+}
+
+.follow-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.5rem 1.5rem 0 1.5rem;
+    border-bottom: 1px solid var(--border, #e5e7eb);
+    margin-bottom: 1.5rem;
+}
+
+.follow-modal-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--text-primary, #111827);
+    margin: 0;
+}
+
+.follow-modal-close {
+    background: none;
+    border: none;
+    font-size: 1.25rem;
+    color: var(--text-muted, #6b7280);
+    cursor: pointer;
+    padding: 0.5rem;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+}
+
+.follow-modal-close:hover {
+    background-color: var(--background-hover, #f3f4f6);
+    color: var(--text-primary, #111827);
+}
+
+.follow-modal-body {
+    padding: 0 1.5rem;
+}
+
+.follow-modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    padding: 1.5rem;
+    border-top: 1px solid var(--border, #e5e7eb);
+    margin-top: 1.5rem;
+}
+
+/* Form Styles - Scoped to follow modal */
+.follow-modal .follow-form-group {
+    margin-bottom: 1.5rem;
+}
+
+.follow-modal .follow-form-group label {
+    display: block;
+    font-weight: 500;
+    color: var(--text-primary, #111827);
+    margin-bottom: 0.5rem;
+    font-size: 0.875rem;
+}
+
+.follow-modal .follow-form-control {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid var(--border, #d1d5db);
+    border-radius: 8px;
+    font-size: 0.875rem;
+    background-color: var(--background, #ffffff);
+    color: var(--text-primary, #111827);
+    transition: all 0.2s ease;
+}
+
+.follow-modal .follow-form-control:focus {
+    outline: none;
+    border-color: var(--primary-color, #248567);
+    box-shadow: 0 0 0 3px rgba(36, 133, 103, 0.15);
+}
+
+.follow-modal .follow-form-control::placeholder {
+    color: var(--text-muted, #9ca3af);
+}
+
+/* Select dropdown styles */
+.follow-modal select.follow-form-control {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+    background-position: right 0.5rem center;
+    background-repeat: no-repeat;
+    background-size: 1.5em 1.5em;
+    padding-right: 2.5rem;
+}
+
+/* Textarea styles */
+.follow-modal textarea.follow-form-control {
+    resize: vertical;
+    min-height: 80px;
+}
+
+/* Button Styles - Scoped to follow modal and button */
+.follow-modal .follow-btn,
+.follow-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.follow-modal .follow-btn:disabled,
+.follow-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.follow-modal .follow-btn-primary,
+.follow-btn-primary {
+    background-color: #248567;
+    color: white;
+    border-color: #248567;
+}
+
+.follow-modal .follow-btn-primary:hover:not(:disabled),
+.follow-btn-primary:hover:not(:disabled) {
+    background-color: #1d6b52;
+    border-color: #1d6b52;
+}
+
+.follow-modal .follow-btn-secondary,
+.follow-btn-secondary {
+    background-color: var(--background, #ffffff);
+    color: var(--text-primary, #374151);
+    border-color: var(--border, #d1d5db);
+}
+
+.follow-modal .follow-btn-secondary:hover:not(:disabled),
+.follow-btn-secondary:hover:not(:disabled) {
+    background-color: var(--background-hover, #f9fafb);
+    border-color: var(--border-hover, #9ca3af);
+}
+
+.follow-modal .follow-btn-success,
+.follow-btn-success {
+    background-color: #248567;
+    color: white;
+    border-color: #248567;
+}
+
+.follow-modal .follow-btn-success:hover:not(:disabled),
+.follow-btn-success:hover:not(:disabled) {
+    background-color:  var(--success, #10b981);
+    border-color:  var(--success, #10b981);
+}
+
+.follow-modal .follow-btn-outline-primary,
+.follow-btn-outline-primary {
+    background-color: transparent;
+    color: var(--primary-color, #248567);
+    border-color: var(--primary-color, #248567);
+}
+
+.follow-modal .follow-btn-outline-primary:hover:not(:disabled),
+.follow-btn-outline-primary:hover:not(:disabled) {
+    background-color: var(--primary-color, #248567);
+    color: white;
+    border-color: var(--primary-color, #248567);
+}
+
+.follow-modal .follow-btn-sm,
+.follow-btn-sm {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.75rem;
+}
+
+.follow-modal .follow-btn-danger,
+.follow-btn-danger {
+    background-color: #dc2626;
+    color: white;
+    border-color: #dc2626;
+}
+
+.follow-modal .follow-btn-danger:hover:not(:disabled),
+.follow-btn-danger:hover:not(:disabled) {
+    background-color: #b91c1c;
+    border-color: #b91c1c;
+}
+
+/* Follow Button Styles */
+#followBtn {
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+#followBtn i {
+    transition: transform 0.2s ease;
+}
+
+#followBtn:hover i {
+    transform: scale(1.1);
+}
+
+/* Add dropdown arrow to follow button */
+#followBtn::after {
+    content: '\f078';
+    font-family: 'Font Awesome 6 Free';
+    font-weight: 900;
+    font-size: 0.75rem;
+    opacity: 0.7;
+    transition: transform 0.2s ease;
+    margin-left: 0.25rem;
+}
+
+#followBtn:hover::after {
+    transform: translateY(1px);
+}
+
+/* Notification Styles - Scoped to follow notifications */
+.follow-notification {
+    position: fixed;
+    top: 1rem;
+    right: 1rem;
+    background: var(--background, #ffffff);
+    border: 1px solid var(--border, #e5e7eb);
+    border-radius: 8px;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    padding: 1rem;
+    z-index: 1001;
+    transform: translateX(100%);
+    transition: transform 0.3s ease;
+    max-width: 400px;
+}
+
+.follow-notification.show {
+    transform: translateX(0);
+}
+
+.follow-notification-content {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.follow-notification-success {
+    border-left: 4px solid var(--success, #10b981);
+}
+
+.follow-notification-success .follow-notification-content i {
+    color: var(--success, #10b981);
+}
+
+.follow-notification-error {
+    border-left: 4px solid #dc2626;
+}
+
+.follow-notification-error .follow-notification-content i {
+    color: #dc2626;
+}
+
+.follow-notification-info {
+    border-left: 4px solid var(--info, #248567);
+}
+
+.follow-notification-info .follow-notification-content i {
+    color: var(--info, #248567);
+}
+
+/* Dark theme support */
+[data-theme="dark"] .follow-modal-content {
+    background: var(--background-dark, #1f2937);
+    border-color: var(--border-dark, #374151);
+}
+
+[data-theme="dark"] .follow-modal-title {
+    color: var(--text-primary-dark, #f9fafb);
+}
+
+[data-theme="dark"] .follow-modal-close {
+    color: var(--text-muted-dark, #9ca3af);
+}
+
+[data-theme="dark"] .follow-modal-close:hover {
+    background-color: var(--background-hover-dark, #374151);
+    color: var(--text-primary-dark, #f9fafb);
+}
+
+[data-theme="dark"] .follow-modal .follow-form-group label {
+    color: var(--text-primary-dark, #f9fafb);
+}
+
+[data-theme="dark"] .follow-modal .follow-form-control {
+    background-color: var(--background-dark, #1f2937);
+    border-color: var(--border-dark, #374151);
+    color: var(--text-primary-dark, #f9fafb);
+}
+
+[data-theme="dark"] .follow-modal .follow-form-control:focus {
+    border-color: #248567;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+}
+
+[data-theme="dark"] .follow-modal .follow-btn-secondary,
+[data-theme="dark"] .follow-btn-secondary {
+    background-color: var(--background-dark, #1f2937);
+    color: var(--text-primary-dark, #f9fafb);
+    border-color: var(--border-dark, #374151);
+}
+
+[data-theme="dark"] .follow-modal .follow-btn-secondary:hover:not(:disabled),
+[data-theme="dark"] .follow-btn-secondary:hover:not(:disabled) {
+    background-color: var(--background-hover-dark, #374151);
+    border-color: var(--border-hover-dark, #6b7280);
+}
+
+[data-theme="dark"] .follow-notification {
+    background: var(--background-dark, #1f2937);
+    border-color: var(--border-dark, #374151);
+    color: var(--text-primary-dark, #f9fafb);
+}
+
+/* Following through parent message styles */
+.following-through-parent-message {
+    margin-bottom: 1.5rem;
+}
+
+.following-message-box {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 1rem;
+    background-color: var(--primary-light, #e7f5ed);
+    border: 1px solid #b0ddc9;
+    border-radius: 8px;
+    color: var(--primary-700, #195d48);
+}
+
+.following-message-box i {
+    color: var(--primary-color, #248567);
+    font-size: 1.25rem;
+    margin-top: 0.125rem;
+    flex-shrink: 0;
+}
+
+.following-message-content {
+    flex: 1;
+}
+
+.following-message-content strong {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+}
+
+.following-message-content p {
+    margin: 0;
+    font-size: 0.875rem;
+    opacity: 0.9;
+}
+
+[data-theme="dark"] .following-message-box {
+    background-color: rgba(36, 133, 103, 0.22);
+    border-color: var(--primary-color, #48bb78);
+    color: #d7f2e5;
+}
+
+[data-theme="dark"] .following-message-box i {
+    color: var(--primary-color, #48bb78);
+}
+
+/* Disabled form styles */
+.follow-modal .follow-form-control:disabled {
+    background-color: var(--background-secondary, #f3f4f6);
+    color: var(--text-muted, #6b7280);
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+[data-theme="dark"] .follow-modal .follow-form-control:disabled {
+    background-color: var(--background-secondary-dark, #374151);
+    color: var(--text-muted-dark, #9ca3af);
+}
+
+/* Parent Follow Message Styles */
+.parent-follow-message {
+    margin-top: 0.75rem;
+    animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.parent-follow-message-box {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    background-color: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 4px;
+    color: var(--text-primary, #1e293b);
+}
+
+.parent-follow-message-box i {
+    color: #6b7280;
+    font-size: 1rem;
+    margin-top: 0.125rem;
+    flex-shrink: 0;
+}
+
+.parent-follow-message-content {
+    flex: 1;
+}
+
+.parent-follow-message-content strong {
+    font-weight: 500;
+    font-size: 0.875rem;
+    line-height: 1.5;
+}
+
+[data-theme="dark"] .parent-follow-message-box {
+    background-color: var(--background-dark, #1f2937);
+    border-color: var(--border-dark, #374151);
+    color: var(--text-primary-dark, #f9fafb);
+}
+
+[data-theme="dark"] .parent-follow-message-box i {
+    color: var(--text-muted-dark, #9ca3af);
+}
+
+/* Responsive design */
+@media (max-width: 640px) {
+    .follow-modal-content {
+        width: 95%;
+        margin: 1rem;
+    }
+
+    .follow-modal-header,
+    .follow-modal-body,
+    .follow-modal-footer {
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+
+    .follow-modal-footer {
+        flex-direction: column;
+    }
+
+    .follow-modal-footer .follow-btn {
+        width: 100%;
+    }
+    
+    .follow-notification {
+        right: 0.5rem;
+        left: 0.5rem;
+        max-width: none;
+    }
+}
+

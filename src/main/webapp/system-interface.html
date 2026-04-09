@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BUDG - New System Interface</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="assets/css/main.css">
+    <link rel="stylesheet" href="assets/css/system-interface.css">
+    <link rel="stylesheet" href="assets/css/custom-fields.css">
+    <link rel="stylesheet" href="assets/css/toast.css">
+    <link rel="stylesheet" href="assets/css/advanced-rich-text-editor.css">
+    <link rel="icon" type="image/png" href="assets/images/avatars/icon.jpg">
+    
+    <script>
+        (function() {
+            const savedTheme = localStorage.getItem('budg-theme') || 'light';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+        })();
+    </script>
+    <script src="/assets/i18n/head-locale.js"></script>
+    <script src="assets/i18n/i18n.js"></script>
+</head>
+<body class="system-interface-page" data-submenu="data">
+<header class="header"></header>
+
+<div class="page-header">
+    <div class="page-header-container">
+        <div class="page-title">
+            <div class="page-icon">
+                <i class="fas fa-plug"></i>
+            </div>
+            <div class="page-title-text">
+                <div class="page-title-main" data-i18n="createPage.title.newSystemInterface">New System Interface</div>
+                <div class="page-title-sub" data-i18n="label.group.dataTechnology">Data & Technology</div>
+            </div>
+        </div>
+        <div class="form-actions">
+            <button type="button" class="btn btn-secondary" id="closeBtn" data-i18n="button.close">Close</button>
+            <button type="button" class="btn btn-primary" id="saveBtn" data-i18n="button.save">Save</button>
+            <button type="button" class="btn btn-success" id="saveAndCloseBtn" data-i18n="button.saveAndClose">Save & Close</button>
+        </div>
+    </div>
+</div>
+
+<main class="main-content">
+    <div class="content-card">
+        <div class="content-header">
+            <div class="tab-container">
+                <button class="tab active" data-i18n="tab.summary">SUMMARY</button>
+            </div>
+        </div>
+        <div class="content-body">
+            <form id="interfaceForm">
+                <div class="interface-container grid grid-cols-2 gap-6">
+                    <!-- Left Column: Definition + Optional Fields -->
+                    <div class="left-column">
+                        <!-- DEFINITION Card -->
+                        <div class="form-section">
+                            <h3 class="section-title definition">DEFINITION</h3>
+                            
+                            <div class="form-group">
+                                <label class="form-label">Name <span class="required">*</span></label>
+                                <input type="text" class="form-input" id="ifName" placeholder="Enter Name">
+                                <span class="field-error" id="ifNameError" style="display:none"></span>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Ref.</label>
+                                <input type="text" class="form-input" id="ifRef" placeholder="Enter Reference">
+                                <span class="field-error" id="ifRefError" style="display:none"></span>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Source System Short Name <span class="required">*</span></label>
+                                <input type="text" class="form-input" id="sourceShortName" placeholder="CRM">
+                                <span class="field-error" id="sourceShortNameError" style="display:none"></span>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Target System Short Name <span class="required">*</span></label>
+                                <input type="text" class="form-input" id="targetShortName" placeholder="CRM2">
+                                <span class="field-error" id="targetShortNameError" style="display:none"></span>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Description <span class="required">*</span></label>
+                                <textarea class="form-input form-textarea" id="ifDescription" placeholder="Enter Description"></textarea>
+                                <button type="button" class="editor-button" id="showDescriptionEditorBtn">Show Editor</button>
+                                <span class="field-error" id="ifDescriptionError" style="display:none"></span>
+                            </div>
+                        </div>
+
+                        <!-- OPTIONAL FIELDS Card -->
+                        <div class="form-section">
+                            <h3 class="section-title optional-fields">OPTIONAL FIELDS</h3>
+                            
+                            <div class="form-group">
+                                <label class="form-label">Synchronisation Control</label>
+                                <input type="text" class="form-input" id="syncControl" placeholder="Enter Synchronisation Control">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right Column: Classifications + Other Information -->
+                    <div class="right-column">
+                        <!-- CLASSIFICATIONS Card -->
+                        <div class="form-section">
+                            <h3 class="section-title classifications">CLASSIFICATIONS</h3>
+                            
+                            <div class="form-group">
+                                <label class="form-label">BUDG Status <span class="required">*</span></label>
+                                <select class="form-select" id="BUDGStatus"></select>
+                                <span class="field-error" id="BUDGStatusError" style="display:none"></span>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">BUDG Viewing <span class="required">*</span></label>
+                                <select class="form-select" id="BUDGViewing"></select>
+                                <span class="field-error" id="BUDGViewingError" style="display:none"></span>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Lifecycle <span class="required">*</span></label>
+                                <select class="form-select" id="lifecycle"></select>
+                                <span class="field-error" id="lifecycleError" style="display:none"></span>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Automation <span class="required">*</span></label>
+                                <select class="form-select" id="automation"></select>
+                                <span class="field-error" id="automationError" style="display:none"></span>
+                            </div>
+                        </div>
+
+                        <!-- OTHER INFORMATION Card -->
+                        <div class="form-section">
+                            <h3 class="section-title classifications">OTHER INFORMATION</h3>
+                            
+                            <div class="form-group">
+                                <label class="form-label">Frequency</label>
+                                <select class="form-select" id="frequency"></select>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Asset ID</label>
+                                <input type="text" class="form-input" id="assetId" placeholder="Enter Asset ID">
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Transfer Method</label>
+                                <select class="form-select" id="transferMethod"></select>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Transfer Format</label>
+                                <select class="form-select" id="transferFormat"></select>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Interface Classification</label>
+                                <select class="form-select" id="interfaceClassification"></select>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Custom Fields Section -->
+                <div class="form-section" style="grid-column: 1/-1; margin-top: 2rem;">
+                    <h3 class="section-title">CUSTOM FIELDS</h3>
+                    <div id="customFieldsContainer"></div>
+                </div>
+
+            </form>
+        </div>
+    </div>
+</main>
+
+<script src="assets/js/config.js"></script>
+<script src="assets/js/api-service.js"></script>
+<script src="assets/js/admin-panel/admin-notifications.js"></script>
+<script src="assets/js/main.js"></script>
+<script src="assets/js/initSearch.js"></script>
+
+    <script src="assets/js/custom-fields.js"></script>
+    <script src="assets/js/segment-field.js"></script>
+    <script src="assets/js/advanced-rich-text-editor.js"></script>
+    <script src="assets/js/system-interface.js"></script>
+    <script src="assets/js/header.js"></script>
+
+</body>
+</html>

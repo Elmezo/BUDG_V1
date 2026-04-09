@@ -1,0 +1,35 @@
+{
+  "entities": {
+    "System": {
+      "errorHandling": "Continue on Error",
+      "retryOnError": true,
+      "maxRetries": 3
+    },
+    "Dataset": {
+      "errorHandling": "Continue on Error",
+      "retryOnError": true,
+      "maxRetries": 3
+    },
+    "Glossary": {
+      "errorHandling": "Continue on Error",
+      "retryOnError": true,
+      "maxRetries": 3
+    },
+    "Attribute": {
+      "errorHandling": "Continue on Error",
+      "retryOnError": true,
+      "maxRetries": 3
+    },
+    "Interface": {
+      "errorHandling": "Continue on Error",
+      "retryOnError": true,
+      "maxRetries": 3
+    }
+  },
+  "defaults": {
+    "errorHandling": "Continue on Error",
+    "retryOnError": false,
+    "maxRetries": 0
+  }
+}
+

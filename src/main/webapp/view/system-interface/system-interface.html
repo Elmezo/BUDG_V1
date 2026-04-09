@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title data-i18n="systemInterface.pageTitleView">BUDG - System Interface View</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../../assets/css/main.css">
+    <link rel="stylesheet" href="../../view/view.css">
+    <link rel="stylesheet" href="../../assets/css/system-interface.css">
+    <link rel="stylesheet" href="../../view/system-interface/system-interface.css">
+
+    <link rel="stylesheet" href="../../view/history.css">
+    <link rel="stylesheet" href="../../assets/css/follow-modal.css">
+    <link rel="stylesheet" href="../../assets/css/custom-fields.css">
+    <link rel="stylesheet" href="../../assets/css/edit-dropdown.css">
+    <link rel="stylesheet" href="../../view/components/document-upload-component.css">
+    <link rel="stylesheet" href="../../assets/css/global-lock-ui.css">
+    <!-- RTL styles for Arabic (disabled by default, enabled by i18n.js) -->
+    <link rel="stylesheet" href="../../assets/css/rtl.css" id="rtl-styles" disabled>
+    <script>(function () { const t = localStorage.getItem('budg-theme') || 'light'; document.documentElement.setAttribute('data-theme', t); })();</script>
+    <script src="/assets/i18n/head-locale.js"></script>
+    <script src="../../assets/i18n/i18n.js"></script>
+</head>
+
+<body class="system-interface-page" data-submenu="data">
+    <header class="header"></header>
+
+    <div class="page-header">
+        <div class="page-header-container">
+            <div class="page-title">
+                <div class="page-icon">
+                    <div class="double-arrow-icon">
+                        <i class="fas fa-arrow-right"></i>
+                        <i class="fas fa-arrow-left"></i>
+                    </div>
+                </div>
+                <div class="page-title-text">
+                    <div class="page-title-main" id="interfaceTitle" data-i18n="systemInterface.pageTitleMain">System Interface</div>
+                    <div class="page-title-sub" id="interfaceBreadcrumb">
+                        <span data-i18n="systemInterface.breadcrumb">Interface</span>
+                        <span class="separator">|</span>
+                        <span class="source-system">CRM</span>
+                        <i class="fas fa-arrow-right breadcrumb-arrow"></i>
+                        <span class="target-system">CRM</span>
+                    </div>
+                </div>
+            </div>
+            <div class="form-actions">
+                <button type="button" class="btn btn-secondary" id="backBtn" data-i18n="button.back">Back</button>
+            </div>
+        </div>
+    </div>
+
+    <main class="main-content">
+        <div class="content-card">
+            <div class="content-header">
+                <div class="tab-container">
+                    <button class="tab active" data-tab="summary" data-i18n="tab.summary">SUMMARY</button>
+                    <button class="tab" data-tab="stakeholders" data-i18n="tab.stakeholders">STAKEHOLDERS</button>
+                    <button class="tab" data-tab="impact" data-i18n="tab.impact">IMPACT</button>
+                    <button class="tab" data-tab="data" data-i18n="tab.data">DATA</button>
+                    <button class="tab" data-tab="history" data-i18n="tab.history">HISTORY</button>
+                    <button class="tab" data-tab="change" data-i18n="tab.change">CHANGE</button>
+                </div>
+                <div class="tab-actions">
+                    <!-- Edit dropdown will be inserted here by JavaScript -->
+                </div>
+            </div>
+            <div class="content-body">
+                <div id="interfaceViewContainer" class="interface-container grid grid-cols-2 gap-6">
+                    <!-- Content will be loaded here -->
+                </div>
+
+                <!-- Stakeholders Container -->
+                <div id="interfaceStakeholdersContainer" class="interface-stakeholders-container"
+                    style="display: none;">
+                    <!-- Stakeholders content will be loaded here -->
+                </div>
+
+                <!-- Impact Container -->
+                <div id="interfaceImpactContainer" style="display: none; grid-column:1/-1;">
+                    <!-- Impact content will be loaded here -->
+                </div>
+
+                <!-- Change Container -->
+                <div id="interfaceChangeContainer" class="view-grid" style="display:none;"></div>
+            </div>
+        </div>
+    </main>
+
+    <script src="../../assets/js/config.js"></script>
+    <script src="../../assets/js/api-service.js"></script>
+    <script src="../../assets/js/view-lock-helper.js"></script>
+    <script src="../../assets/js/main.js"></script>
+    <script src="../../assets/js/initSearch.js"></script>
+    <script src="../../assets/js/edit-dropdown.js"></script>
+    <script src="../../assets/js/delete-handler.js"></script>
+
+    <script src="../../assets/js/custom-fields.js"></script>
+    <script src="../../view/components/document-table-component.js"></script>
+    <script src="../../view/system-interface/system-interface.js"></script>
+    <script src="../../view/system-interface/interface-impact.js"></script>
+    <script src="../../assets/js/follow-modal.js"></script>
+    <script src="../../assets/js/follow-button.js"></script>
+    <script src="../../view/system-interface/interface-stakeholder.js"></script>
+    <script src="../../assets/js/header.js"></script>
+    <script src="../../view/history-component.js"></script>
+    <!-- BPMN Viewer for Workflow View -->
+    <link rel="stylesheet" href="../../assets/js/libs/bpmn-js/assets/bpmn-font/css/bpmn.css">
+    <link rel="stylesheet" href="../../assets/js/libs/bpmn-js/assets/bpmn-js.css">
+    <link rel="stylesheet" href="../../assets/js/libs/bpmn-js/assets/diagram-js.css">
+    <script src="../../assets/js/libs/bpmn-js/bpmn-viewer.production.min.js"></script>
+    <script src="../../view/workflow-view.js"></script>
+    <script src="../../view/change-tab-component.js"></script>
+    <script src="../../assets/js/global-lock-ui.js"></script>
+</body>
+
+</html>

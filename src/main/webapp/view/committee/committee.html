@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title data-i18n="committee.pageTitleView">BUDG - Committee View</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../../assets/css/main.css">
+    <link rel="stylesheet" href="../../assets/css/committee.css">
+    <link rel="stylesheet" href="../../view/view.css">
+    <link rel="stylesheet" href="../../view/committee/committee.css">
+    <link rel="stylesheet" href="../../assets/css/stakeholder.css">
+    <link rel="stylesheet" href="../../assets/css/follow-modal.css">
+    <link rel="stylesheet" href="../../assets/css/custom-fields.css">
+    <link rel="stylesheet" href="../../assets/css/edit-dropdown.css">
+    <!-- RTL styles for Arabic (disabled by default, enabled by i18n.js) -->
+    <link rel="stylesheet" href="../../assets/css/rtl.css" id="rtl-styles" disabled>
+    <link rel="stylesheet" href="../../view/history.css">
+    <script>(function(){const t=localStorage.getItem('budg-theme')||'light';document.documentElement.setAttribute('data-theme',t);})();</script>
+    <script src="/assets/i18n/head-locale.js"></script>
+    <script src="../../assets/i18n/i18n.js"></script>
+</head>
+<body class="committee-page" data-submenu="business">
+<header class="header"></header>
+
+<div class="page-header">
+    <div class="page-header-container">
+        <div class="page-title">
+            <div class="page-icon"><i class="fas fa-users"></i></div>
+            <div class="page-title-text">
+                <div class="page-title-main" id="committeeName">Committee</div>
+                <div class="page-title-sub" data-i18n="committee.title">Committee</div>
+            </div>
+        </div>
+        <div class="form-actions">
+            <button type="button" class="btn btn-secondary" id="backBtn" data-i18n="committee.back">Back</button>
+        </div>
+    </div>
+</div>
+
+<main class="main-content">
+    <div class="content-card">
+        <div class="content-header">
+            <div class="tab-container">
+                <button class="tab active" data-tab="summary" data-i18n="committee.summary">SUMMARY</button>
+                <button class="tab" data-tab="relationships" data-i18n="tab.relationships">RELATIONSHIPS</button>
+                <button class="tab" data-tab="stakeholders" data-i18n="tab.stakeholders">STAKEHOLDERS</button>
+                <button class="tab" data-tab="impact" data-i18n="tab.impact">IMPACT</button>
+                <button class="tab" data-tab="history" data-i18n="tab.history">HISTORY</button>
+                <button class="tab" data-tab="change" data-i18n="tab.change">CHANGE</button>
+            </div>
+            <div class="tab-actions">
+                <!-- Edit dropdown will be inserted here by JavaScript -->
+            </div>
+        </div>
+        <div class="content-body">
+            <div id="committeeViewContainer" class="view-grid"></div>
+            <div id="committeeRelationshipsContainer" class="view-grid" style="display:none;"></div>
+            <div id="committeeStakeholdersContainer" class="view-grid" style="display:none;"></div>
+            <div id="committeeImpactContainer" class="view-grid" style="display:none;"></div>
+            <div id="committeeHistoryContainer" class="view-grid" style="display:none;"></div>
+            <div id="committeeChangeContainer" class="view-grid" style="display:none;"></div>
+        </div>
+    </div>
+</main>
+
+<script src="../../assets/js/config.js"></script>
+<script src="../../assets/js/api-service.js"></script>
+<script src="../../assets/js/view-lock-helper.js"></script>
+<script src="../../assets/js/lock-manager.js"></script>
+<script src="../../assets/js/global-lock-ui.js"></script>
+<script src="../../assets/js/main.js"></script>
+<script src="../../assets/js/initSearch.js"></script>
+<script src="../../assets/js/edit-dropdown.js"></script>
+<script src="../../assets/js/delete-handler.js"></script>
+
+    <script src="../../view/committee/committee-stakeholder.js"></script>
+    <script src="../../view/committee/committee-impact.js"></script>
+    <script src="../../view/history-component.js"></script>
+    <!-- BPMN Viewer for Workflow View -->
+    <link rel="stylesheet" href="../../assets/js/libs/bpmn-js/assets/bpmn-font/css/bpmn.css">
+    <link rel="stylesheet" href="../../assets/js/libs/bpmn-js/assets/bpmn-js.css">
+    <link rel="stylesheet" href="../../assets/js/libs/bpmn-js/assets/diagram-js.css">
+    <script src="../../assets/js/libs/bpmn-js/bpmn-viewer.production.min.js"></script>
+    <script src="../../view/workflow-view.js"></script>
+    <script src="../../view/change-tab-component.js"></script>
+    <script src="../../assets/js/follow-modal.js"></script>
+    <script src="../../assets/js/follow-button.js"></script>
+    <script src="../../assets/js/custom-fields.js"></script>
+    <script src="../../view/committee/committee.js"></script>
+    <script src="../../assets/js/header.js"></script>
+</body>
+</html>
+

@@ -1,0 +1,245 @@
+/**
+ * Admin-panel-style toast notifications for use on system and other view pages.
+ * Matches DOM from admin-notifications.js: .notification.notification-{type}.show.admin-panel-toast
+ */
+.notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 10000;
+    max-width: 400px;
+    min-width: 300px;
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    padding: 1rem 1.5rem;
+    transform: translateX(100%);
+    transition: transform 0.3s ease;
+    animation: slideInRight 0.3s ease-out;
+}
+
+.notification.show {
+    transform: translateX(0);
+}
+
+.notification-content {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0;
+}
+
+.notification-content i {
+    font-size: 1.2rem;
+    flex-shrink: 0;
+}
+
+.notification-success {
+    border-left: 4px solid #248567;
+}
+
+.notification-success .notification-content i {
+    color: #248567;
+}
+
+.notification-error {
+    border-left: 4px solid #e74c3c;
+    background-color: #ffebee;
+}
+
+.notification-error .notification-content i {
+    color: #e74c3c;
+}
+
+.notification-warning {
+    border-left: 4px solid #f59e0b;
+}
+
+.notification-warning .notification-content i {
+    color: #f59e0b;
+}
+
+.notification-info {
+    border-left: 4px solid #248567;
+}
+
+.notification-info .notification-content i {
+    color: #248567;
+}
+
+.notification-close {
+    background: none;
+    border: none;
+    font-size: 20px;
+    font-weight: bold;
+    color: inherit;
+    cursor: pointer;
+    padding: 0;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: background-color 0.2s ease;
+    margin-left: auto;
+}
+
+.notification-close:hover {
+    background-color: rgba(0, 0, 0, 0.1);
+}
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* Dark theme */
+[data-theme="dark"] .notification {
+    background: var(--background-secondary, #1f2937);
+    border-color: var(--border-color, #374151);
+}
+
+[data-theme="dark"] .notification-success,
+[data-theme="dark"] .notification-success .notification-content i {
+    border-left-color: #248567;
+    color: inherit;
+}
+
+[data-theme="dark"] .notification-success .notification-content i {
+    color: #34d399;
+}
+
+[data-theme="dark"] .notification-error .notification-content i {
+    color: #f87171;
+}
+
+[data-theme="dark"] .notification-warning .notification-content i {
+    color: #fbbf24;
+}
+
+[data-theme="dark"] .notification-info .notification-content i {
+    color: #34d399;
+}
+
+[data-theme="dark"] .notification-close:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.admin-confirm-overlay {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(15, 23, 42, 0.45);
+    z-index: 11000;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.15s ease;
+}
+
+.admin-confirm-overlay.show {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.admin-confirm-modal {
+    width: min(520px, calc(100vw - 2rem));
+    background: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 18px 45px rgba(2, 6, 23, 0.25);
+    border-top: 4px solid #248567;
+    padding: 1.1rem 1.2rem;
+    transform: translateY(8px);
+    transition: transform 0.15s ease;
+}
+
+.admin-confirm-overlay.show .admin-confirm-modal {
+    transform: translateY(0);
+}
+
+.admin-confirm-modal.notification-error {
+    border-top-color: #e74c3c;
+}
+
+.admin-confirm-modal.notification-warning {
+    border-top-color: #f59e0b;
+}
+
+.admin-confirm-modal.notification-info {
+    border-top-color: #248567;
+}
+
+.admin-confirm-title {
+    margin: 0 0 0.6rem;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #1f2937;
+}
+
+.admin-confirm-message {
+    margin: 0;
+    color: #334155;
+    white-space: pre-line;
+    line-height: 1.45;
+}
+
+.admin-confirm-actions {
+    margin-top: 1rem;
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.6rem;
+}
+
+.admin-confirm-btn {
+    border: 1px solid #cbd5e1;
+    background: #ffffff;
+    color: #0f172a;
+    border-radius: 8px;
+    padding: 0.5rem 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.admin-confirm-primary {
+    border-color: #248567;
+    background: #248567;
+    color: #ffffff;
+}
+
+html[dir="rtl"] .admin-confirm-actions,
+body.rtl .admin-confirm-actions {
+    justify-content: flex-start;
+}
+
+[data-theme="dark"] .admin-confirm-modal {
+    background: #1f2937;
+    border-color: #248567;
+}
+
+[data-theme="dark"] .admin-confirm-title {
+    color: #f9fafb;
+}
+
+[data-theme="dark"] .admin-confirm-message {
+    color: #d1d5db;
+}
+
+[data-theme="dark"] .admin-confirm-btn {
+    background: #111827;
+    border-color: #4b5563;
+    color: #f9fafb;
+}
+
+[data-theme="dark"] .admin-confirm-primary {
+    background: #248567;
+    border-color: #248567;
+}

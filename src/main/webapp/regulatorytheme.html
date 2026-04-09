@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BUDG - New Regulatory Theme</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="assets/css/main.css">
+    <link rel="stylesheet" href="assets/css/people.css">
+    <link rel="stylesheet" href="assets/css/custom-fields.css">
+    <link rel="stylesheet" href="assets/css/toast.css">
+    <link rel="stylesheet" href="assets/css/advanced-rich-text-editor.css">
+    <link rel="stylesheet" href="assets/css/policy.css">
+    <link rel="icon" type="image/png" href="assets/images/avatars/icon.jpg">
+    <script>
+        (function() {
+            const savedTheme = localStorage.getItem('budg-theme') || 'light';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+        })();
+    </script>
+    <style>
+        /* Enhanced title styling for better visual hierarchy */
+        .page-title-main {
+            font-size: 1.5rem !important;
+            font-weight: 700 !important;
+            color: var(--text-primary) !important;
+            margin-bottom: 0.25rem;
+        }
+        
+        .page-title-sub {
+            font-size: 0.9rem !important;
+            font-weight: 500 !important;
+            color: var(--text-secondary) !important;
+            opacity: 0.8;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Searchable Dropdown Styles */
+        .searchable-dropdown-container {
+            position: relative;
+            width: 100%;
+        }
+
+        .searchable-dropdown {
+            position: relative;
+            width: 100%;
+        }
+
+        .searchable-dropdown input[type="text"] {
+            width: 100%;
+            padding: 0.75rem 2.5rem 0.75rem 0.75rem;
+            border: 1px solid var(--border-color);
+            border-radius: 0.375rem;
+            background-color: white;
+            color: var(--text-primary);
+            font-size: 0.875rem;
+            cursor: pointer;
+            opacity: 1;
+        }
+
+        .searchable-dropdown input[type="text"]:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+            background: white;
+        }
+
+        .searchable-dropdown input[type="text"]:hover {
+            background: white;
+            border-color: #d1d5db;
+        }
+
+        .searchable-dropdown-toggle {
+            position: absolute;
+            right: 0.75rem;
+            top: 50%;
+            transform: translateY(-50%);
+            cursor: pointer;
+            color: var(--text-secondary);
+            transition: color 0.2s ease;
+        }
+
+        .searchable-dropdown-toggle:hover {
+            color: var(--primary-color);
+        }
+
+        .searchable-dropdown.open .searchable-dropdown-toggle i {
+            transform: rotate(180deg);
+        }
+
+        .searchable-dropdown-menu {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background-color: white;
+            border: 1px solid var(--border-color);
+            border-radius: 0.375rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+            max-height: 200px;
+            overflow-y: auto;
+            opacity: 1;
+        }
+
+        .searchable-dropdown-search {
+            padding: 0.75rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .searchable-dropdown-search input {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid var(--border-color);
+            border-radius: 0.25rem;
+            background-color: white;
+            color: var(--text-primary);
+            font-size: 0.875rem;
+            opacity: 1;
+        }
+
+        .searchable-dropdown-search input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+
+        .searchable-dropdown-list {
+            max-height: 150px;
+            overflow-y: auto;
+        }
+
+        .searchable-dropdown-item {
+            padding: 0.75rem;
+            cursor: pointer;
+            border-bottom: 1px solid var(--border-light);
+            transition: background-color 0.2s ease;
+            background-color: white;
+            opacity: 1;
+        }
+
+        .searchable-dropdown-item:last-child {
+            border-bottom: none;
+        }
+
+        .searchable-dropdown-item:hover {
+            background-color: #f3f4f6;
+            opacity: 1;
+        }
+
+        .searchable-dropdown-item-name {
+            font-weight: 500;
+            color: var(--text-primary);
+            margin-bottom: 0.25rem;
+        }
+
+        .searchable-dropdown-item-description {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+    </style>
+    <script src="/assets/i18n/head-locale.js"></script>
+    <script src="assets/i18n/i18n.js"></script>
+</head>
+<body class="regulatory-theme-page" data-submenu="regulatory">
+    <header class="header"></header>
+
+    <div class="page-header">
+        <div class="page-header-container">
+            <div class="page-title">
+                <div class="page-icon">
+                    <i class="fas fa-file-contract"></i>
+                </div>
+                <div class="page-title-text">
+                    <div class="page-title-main" data-i18n="createPage.title.newRegulatoryTheme">New Regulatory Theme</div>
+                    <div class="page-title-sub" data-i18n="facet.regulatoryTheme">Regulatory Theme</div>
+                </div>
+            </div>
+            <div class="form-actions">
+                <button type="button" class="btn btn-secondary" id="closeBtn" data-i18n="button.close">Close</button>
+                <button type="button" class="btn btn-primary" id="saveBtn" data-i18n="button.save">Save</button>
+                <button type="button" class="btn btn-success" id="saveAndCloseBtn" data-i18n="button.saveAndClose">Save & Close</button>
+            </div>
+        </div>
+    </div>
+
+    <main class="main-content">
+        <div class="content-card">
+            <div class="content-header">
+                <div class="tab-container">
+                    <button class="tab active" data-i18n="tab.details">DETAILS</button>
+                </div>
+            </div>
+            <div class="content-body">
+                <form id="regulatoryThemeForm">
+                    <!-- Regulatory Theme Container with Two-Column Grid -->
+                    <div class="policy-container grid grid-cols-2 gap-6">
+                        <!-- Left Column: Definition and Optional Fields -->
+                        <div class="left-column">
+                            <!-- DEFINITION Card -->
+                            <div class="form-section">
+                                <h3 class="section-title definition">DEFINITION</h3>
+                                
+                                <div class="form-fields-container">
+                                    <div class="form-group">
+                                        <label class="form-label">Name <span class="required">*</span></label>
+                                        <input type="text" class="form-input" id="name" placeholder="Enter Name">
+                                        <span class="field-error" id="nameError" style="display:none"></span>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label class="form-label">Parent Name</label>
+                                        <div class="searchable-dropdown-container">
+                                            <div class="searchable-dropdown">
+                                                <input type="text" class="form-input" id="parentName" placeholder="Parent Name" readonly>
+                                                <input type="hidden" id="parentId" value="">
+                                                <!-- Clear selection icon -->
+                                                <div class="searchable-dropdown-toggle" id="parentClearSelection" title="Clear selection" style="right: 2.25rem;">
+                                                    <i class="fas fa-times"></i>
+                                                </div>
+                                                <div class="searchable-dropdown-toggle" id="parentDropdownToggle">
+                                                    <i class="fas fa-edit"></i>
+                                                </div>
+                                                <div class="searchable-dropdown-menu" id="parentDropdownMenu" style="display: none;">
+                                                    <div class="searchable-dropdown-search">
+                                                        <input type="text" id="parentSearchInput" placeholder="Search regulatory themes...">
+                                                    </div>
+                                                    <div class="searchable-dropdown-list" id="parentDropdownList"></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="form-group full-width">
+                                        <label class="form-label">Description <span class="required">*</span></label>
+                                        <textarea class="form-input form-textarea" id="description" placeholder="Enter Description"></textarea>
+                                        <button type="button" class="editor-button" id="showDescriptionEditorBtn">Show Editor</button>
+                                        <span class="field-error" id="descriptionError" style="display:none"></span>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label class="form-label">Ref.</label>
+                                        <input type="text" class="form-input" id="ref" placeholder="Enter Reference">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- OPTIONAL FIELDS Card -->
+                            <div class="form-section">
+                                <h4 class="section-title optional-fields">OPTIONAL FIELDS</h4>
+                                
+                                <div class="form-fields-container">
+                                    <div class="form-group">
+                                        <label class="form-label">Short Name</label>
+                                        <input type="text" class="form-input" id="shortName" placeholder="Enter Short Name">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Right Column: Classifications -->
+                        <div class="right-column">
+                            <!-- CLASSIFICATIONS Card -->
+                            <div class="form-section">
+                                <h3 class="section-title classifications">CLASSIFICATIONS</h3>
+                                
+                                <div class="form-fields-container classifications-vertical">
+                                    <div class="form-group">
+                                        <label class="form-label">BUDG Status <span class="required">*</span></label>
+                                        <select class="form-select" id="BUDGStatus">
+                                            <option value="">Please select</option>
+                                        </select>
+                                        <span class="field-error" id="BUDGStatusError" style="display:none"></span>
+                                    </div>
+                                    
+                                    <!-- Segment Field -->
+                                    <div id="segmentFieldContainer" style="grid-column: 1/-1; margin-top: 1rem;"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Custom Fields Section -->
+                    <div class="form-section" style="grid-column: 1/-1; margin-top: 2rem;">
+                        <h3 class="section-title">CUSTOM FIELDS</h3>
+                        <div id="customFieldsContainer"></div>
+                    </div>
+
+                </form>
+            </div>
+        </div>
+    </main>
+
+    <script src="assets/js/config.js"></script>
+    <script src="assets/js/api-service.js"></script>
+    <script src="assets/js/admin-panel/admin-notifications.js"></script>
+    <script src="assets/js/main.js"></script>
+    <script src="assets/js/initSearch.js"></script>
+    
+    <script src="assets/js/custom-fields.js"></script>
+    <script src="assets/js/segment-field.js"></script>
+    <script src="assets/js/advanced-rich-text-editor.js"></script>
+    <script src="assets/js/regulatorytheme.js"></script>
+    <script src="assets/js/header.js"></script>
+</body>
+</html>
+

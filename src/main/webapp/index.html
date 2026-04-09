@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#2563eb">
+    <link rel="manifest" href="/manifest.webmanifest">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="assets/css/main.css">
+    <link rel="stylesheet" href="assets/css/facets.shared.css">
+    <link rel="stylesheet" href="assets/css/dashboard.css">
+    <link rel="stylesheet" href="assets/css/global-lock-ui.css">
+    <link rel="stylesheet" href="assets/css/notification-panel.css">
+    <!-- RTL styles for Arabic (disabled by default, enabled by i18n.js) -->
+    <link rel="stylesheet" href="assets/css/rtl.css" id="rtl-styles" disabled>
+    <!-- Language Switcher styles -->
+    <link rel="stylesheet" href="assets/css/language-switcher.css">
+    <link rel="icon" type="image/png" href="assets/images/avatars/icon.jpg">
+    <link rel="icon" type="image/jpeg" href="/assets/images/avatars/icon.jpg">
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <script>
+        // Apply theme immediately to prevent flash of unstyled content
+        (function () {
+            const savedTheme = localStorage.getItem('budg-theme') || 'light';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+        })();
+    </script>
+    <!-- Apply locale/dir/RTL before first paint (prevents Arabic flash) -->
+    <script src="/assets/i18n/head-locale.js"></script>
+    <!-- i18n script - Load EARLY before other scripts -->
+    <script src="assets/i18n/i18n.js"></script>
+</head>
+
+<body class="page-index">
+    <!-- Header Navigation -->
+    <header class="header"></header>
+
+    <!-- Sub Navigation (Home / My Dashboard) -->
+    <nav class="sub-nav" id="subNav" style="display: none;">
+        <div class="sub-nav-container">
+            <div class="sub-nav-tabs">
+                <a href="#" class="sub-nav-item active" data-tab="home" id="homeTab">
+                    <span data-i18n="nav.home">Home</span>
+                </a>
+                <a href="#" class="sub-nav-item" data-tab="dashboard" id="dashboardTab">
+                    <span data-i18n="nav.myDashboard">My Dashboard</span>
+                </a>
+            </div>
+            <div class="sub-nav-actions">
+                <button class="sub-nav-actions-button" id="subNavActionsButton" data-i18n-aria="button.actions"
+                    aria-label="Actions">
+                    <span data-i18n="button.actions">Actions</span>
+                    <i class="fas fa-chevron-down"></i>
+                </button>
+                <div class="sub-nav-actions-dropdown" id="subNavActionsDropdown">
+                    <!-- Content will be populated based on active tab -->
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Hero Section -->
+        <section class="hero-section">
+            <div class='box'>
+                <div class='wave -one'></div>
+                <div class='wave -two'></div>
+                <div class='wave -three'></div>
+
+            </div>
+            <div class="hero-container">
+                <h1 class="hero-title animate-fade-in-up" data-i18n="hero.title">
+                    Welcome to BUDG
+                </h1>
+                <p class="hero-subtitle animate-fade-in-up" data-i18n="hero.subtitle">
+                    Empowering organizations to manage, protect, and optimize their data assets with clarity, control,
+                    and compliance.
+                </p>
+                <div class="hero-buttons animate-fade-in-up">
+                    <a href="#" class="btn btn-primary btn-large">
+                        <i class="fas fa-play"></i>
+                        <span data-i18n="hero.learnMore">Learn More</span>
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        <!-- Dashboard Section (shown when My Dashboard tab is active) -->
+        <section id="dashboardSection" style="display: none;">
+            <div class="dashboard-container">
+                <div class="dashboard-header">
+                    <h1 data-i18n="dashboard.title">My Dashboard</h1>
+                    <div class="dashboard-description-section">
+                        <p data-i18n="dashboard.welcome" class="dashboard-description">Welcome back! Here's an overview of your activities and
+                            responsibilities.</p>
+                        <div class="dashboard-meta-info">
+                            <span class="dashboard-creator" id="dashboardCreator"></span>
+                            <span class="dashboard-shared-with" id="dashboardSharedWith"></span>
+                            <p class="dashboard-layout-hint" data-i18n="dashboard.layoutSavedToAccount">Widget order and visibility are saved to your account.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="dashboard-grid">
+                    <div id="objectCountsWidget" style="display: none;"></div>
+                    <div id="rolesNotAcceptedWidget" style="display: none;"></div>
+                    <div id="stakeholdershipWidget" style="display: none;"></div>
+                    <div id="savedSearchesWidget" style="display: none;"></div>
+                    <div id="changeRequestsWidget" style="display: none;"></div>
+                    <div id="teamWidget" style="display: none;"></div>
+                    <div id="pendingTasksWidget" style="display: none;"></div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- New Widget Modal -->
+    <div class="modal-overlay" id="newWidgetModal" style="display: none;">
+        <div class="modal-container new-widget-modal">
+            <div class="modal-header">
+                <h2 data-i18n="dashboard.modal.newWidget">New Widget</h2>
+                <button class="modal-close" id="newWidgetModalClose">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p class="modal-description" data-i18n="dashboard.widgetModal.description">Select the source for the widget and visualization</p>
+
+                <form id="newWidgetForm">
+                    <div class="new-widget-form-layout">
+                        <!-- Left Section -->
+                        <div class="new-widget-left-section">
+                            <!-- Widget Source Section -->
+                            <div class="form-section">
+                                <label class="form-section-label" id="widgetSourceLabel" data-i18n="dashboard.widgetModal.widgetSource">Widget Source <span
+                                        class="required">*</span></label>
+                                <div class="radio-group" role="radiogroup" aria-labelledby="widgetSourceLabel">
+                                    <label class="radio-label">
+                                        <input type="radio" name="widgetSource" value="savedSearch"
+                                            id="sourceSavedSearch" checked>
+                                        <span data-i18n="dashboard.widgetModal.savedSearch">Saved Search</span>
+                                    </label>
+                                    <label class="radio-label">
+                                        <input type="radio" name="widgetSource" value="text" id="sourceText">
+                                        <span data-i18n="dashboard.widgetModal.text">Text</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Saved Search Options -->
+                            <div id="savedSearchOptions" class="form-section">
+                                <div class="form-group">
+                                    <label for="widgetSourceDropdown" class="form-label" data-i18n="dashboard.widgetModal.source">Source <span
+                                            class="required">*</span></label>
+                                    <div class="select-with-link">
+                                        <div class="custom-dropdown" id="widgetSourceDropdown" role="combobox"
+                                            aria-expanded="false" aria-haspopup="listbox"
+                                            aria-labelledby="widgetSourceDropdown" tabindex="0">
+                                            <div class="custom-dropdown-selected" id="widgetSourceSelected">
+                                                <span class="placeholder" data-i18n="dashboard.widgetModal.placeholderSelectSavedSearch">Select a saved search</span>
+                                                <i class="fas fa-chevron-down dropdown-arrow"></i>
+                                            </div>
+                                            <div class="custom-dropdown-options" id="widgetSourceOptions"
+                                                role="listbox">
+                                                <!-- Options will be populated by JavaScript -->
+                                            </div>
+                                        </div>
+                                        <input type="hidden" id="widgetSourceSelect" name="source" required>
+                                        <a href="#" id="viewSearchLink" class="view-search-link" target="_blank"
+                                            style="display: none;">View Search</a>
+                                    </div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="widgetFocusSelect" class="form-label" data-i18n="dashboard.widgetModal.focus">Focus <span
+                                            class="required">*</span></label>
+                                    <select id="widgetFocusSelect" name="focus" class="form-select" required>
+                                        <option value="" data-i18n="dashboard.widgetModal.placeholderSelectFacet">Select a facet</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- Common Fields -->
+                            <div class="form-field">
+                                <label for="widgetTitle" data-i18n="dashboard.widgetModal.title">Title <span class="required">*</span></label>
+                                <input type="text" id="widgetTitle" name="title" class="form-input"
+                                    data-i18n-placeholder="dashboard.widgetModal.placeholderWidgetTitle" placeholder="Enter a title for the widget" required>
+                            </div>
+
+                            <div class="form-field">
+                                <label for="widgetDescription" data-i18n="dashboard.label.description" id="descriptionRequired">Description <span class="required">*</span></label>
+                                <textarea id="widgetDescription" name="description" class="form-textarea"
+                                    data-i18n-placeholder="dashboard.widgetModal.placeholderWidgetDescription" placeholder="Enter a description for the widget" required></textarea>
+                            </div>
+                        </div>
+
+                        <!-- Right Section -->
+                        <div class="new-widget-right-section">
+                            <!-- Visualization Section (only for Saved Search) -->
+                            <div id="visualizationSection" class="form-section">
+                                <label class="form-section-label" id="visualizationSectionLabel" data-i18n="dashboard.widgetModal.visualizeAs">Visualize As <span
+                                        class="required">*</span></label>
+                                <div class="visualization-options" role="radiogroup"
+                                    aria-labelledby="visualizationSectionLabel">
+                                    <label class="visualization-option" data-type="doughnut">
+                                        <input type="radio" name="visualizeAs" value="doughnut" id="visualizeDoughnut"
+                                            checked>
+                                        <div class="visualization-icon">
+                                            <i class="fas fa-chart-pie"></i>
+                                        </div>
+                                        <span data-i18n="dashboard.widgetModal.doughnutChart">Doughnut Chart</span>
+                                    </label>
+                                    <label class="visualization-option" data-type="bar">
+                                        <input type="radio" name="visualizeAs" value="bar" id="visualizeBar">
+                                        <div class="visualization-icon">
+                                            <i class="fas fa-chart-bar"></i>
+                                        </div>
+                                        <span data-i18n="dashboard.widgetModal.barChart">Bar Chart</span>
+                                    </label>
+                                    <label class="visualization-option" data-type="count">
+                                        <input type="radio" name="visualizeAs" value="count" id="visualizeCount">
+                                        <div class="visualization-icon">
+                                            <span class="count-icon">123</span>
+                                        </div>
+                                        <span data-i18n="dashboard.widgetModal.count">Count</span>
+                                    </label>
+                                    <label class="visualization-option" data-type="table">
+                                        <input type="radio" name="visualizeAs" value="table" id="visualizeTable">
+                                        <div class="visualization-icon">
+                                            <i class="fas fa-table"></i>
+                                        </div>
+                                        <span data-i18n="dashboard.widgetModal.table">Table</span>
+                                    </label>
+                                </div>
+
+                                <!-- Visualize By (for charts) -->
+                                <div id="visualizeBySection" class="form-group">
+                                    <label for="widgetVisualizeBy" class="form-label" data-i18n="dashboard.widgetModal.visualizeBy">Visualize By <span
+                                            class="required">*</span></label>
+                                    <select id="widgetVisualizeBy" name="visualizeBy" class="form-select" required>
+                                        <option value="" data-i18n="dashboard.widgetModal.placeholderSelectColumn">Select a column</option>
+                                    </select>
+                                </div>
+
+                                <!-- Display (for table) -->
+                                <div id="displaySection" class="form-group" style="display: none;">
+                                    <label for="widgetDisplay" class="form-label" data-i18n="dashboard.widgetModal.display">Display <span
+                                            class="required">*</span></label>
+                                    <div id="widgetDisplay" class="display-chips" role="group"
+                                        aria-labelledby="widgetDisplay">
+                                        <!-- Column chips will be added here -->
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Text Widget Rich Text Editor -->
+                            <div id="textWidgetOptions" class="form-section" style="display: none;">
+                                <div id="textWidgetEditor" class="text-widget-editor">
+                                    <!-- Rich text editor will be initialized here -->
+                                    <div id="textWidgetEditorToolbar" class="text-editor-toolbar">
+                                        <!-- Row 1 -->
+                                        <div class="text-editor-toolbar-row">
+                                            <!-- Lightbulb dropdown -->
+                                            <div class="text-editor-dropdown">
+                                                <button type="button" class="text-editor-btn" title="Suggestions"><i
+                                                        class="fas fa-lightbulb"></i><i class="fas fa-chevron-down"
+                                                        style="font-size: 0.6rem; margin-left: 2px;"></i></button>
+                                                <div class="text-editor-dropdown-menu">
+                                                    <a href="#" class="text-editor-dropdown-item">Template 1</a>
+                                                    <a href="#" class="text-editor-dropdown-item">Template 2</a>
+                                                </div>
+                                            </div>
+                                            <button type="button" class="text-editor-btn" title="Bold"
+                                                data-command="bold">B</button>
+                                            <button type="button" class="text-editor-btn" title="Underline"
+                                                data-command="underline">U</button>
+                                            <button type="button" class="text-editor-btn" title="Pen/Marker"
+                                                data-command="backColor"><i class="fas fa-pen"></i></button>
+                                            <!-- Text Color dropdown -->
+                                            <div class="text-editor-dropdown">
+                                                <button type="button" class="text-editor-btn active" title="Text Color"
+                                                    data-command="foreColor">A<i class="fas fa-chevron-down"
+                                                        style="font-size: 0.6rem; margin-left: 2px;"></i></button>
+                                                <div class="text-editor-dropdown-menu text-color-menu">
+                                                    <div class="color-picker-grid">
+                                                        <span class="color-option" data-color="#000000"
+                                                            style="background: #000000;"></span>
+                                                        <span class="color-option" data-color="#FF0000"
+                                                            style="background: #FF0000;"></span>
+                                                        <span class="color-option" data-color="#00FF00"
+                                                            style="background: #00FF00;"></span>
+                                                        <span class="color-option" data-color="#0000FF"
+                                                            style="background: #0000FF;"></span>
+                                                        <span class="color-option" data-color="#FFFF00"
+                                                            style="background: #FFFF00;"></span>
+                                                        <span class="color-option" data-color="#FF00FF"
+                                                            style="background: #FF00FF;"></span>
+                                                        <span class="color-option" data-color="#00FFFF"
+                                                            style="background: #00FFFF;"></span>
+                                                        <span class="color-option" data-color="#808080"
+                                                            style="background: #808080;"></span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <button type="button" class="text-editor-btn" title="Bullet List"
+                                                data-command="insertUnorderedList"><i
+                                                    class="fas fa-list-ul"></i></button>
+                                            <button type="button" class="text-editor-btn" title="Numbered List"
+                                                data-command="insertOrderedList"><i class="fas fa-list-ol"></i></button>
+                                            <!-- Alignment dropdown -->
+                                            <div class="text-editor-dropdown">
+                                                <button type="button" class="text-editor-btn" title="Text Alignment"><i
+                                                        class="fas fa-align-left"></i><i class="fas fa-chevron-down"
+                                                        style="font-size: 0.6rem; margin-left: 2px;"></i></button>
+                                                <div class="text-editor-dropdown-menu">
+                                                    <a href="#" class="text-editor-dropdown-item"
+                                                        data-command="justifyLeft"><i class="fas fa-align-left"></i>
+                                                        Align Left</a>
+                                                    <a href="#" class="text-editor-dropdown-item"
+                                                        data-command="justifyCenter"><i class="fas fa-align-center"></i>
+                                                        Align Center</a>
+                                                    <a href="#" class="text-editor-dropdown-item"
+                                                        data-command="justifyRight"><i class="fas fa-align-right"></i>
+                                                        Align Right</a>
+                                                    <a href="#" class="text-editor-dropdown-item"
+                                                        data-command="justifyFull"><i class="fas fa-align-justify"></i>
+                                                        Justify</a>
+                                                </div>
+                                            </div>
+                                            <!-- Table dropdown -->
+                                            <div class="text-editor-dropdown">
+                                                <button type="button" class="text-editor-btn" title="Table"><i
+                                                        class="fas fa-table"></i><i class="fas fa-chevron-down"
+                                                        style="font-size: 0.6rem; margin-left: 2px;"></i></button>
+                                                <div class="text-editor-dropdown-menu table-menu">
+                                                    <div class="table-grid" id="tableGrid"></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <!-- Row 2 -->
+                                        <div class="text-editor-toolbar-row">
+                                            <button type="button" class="text-editor-btn" title="Link"
+                                                data-command="createLink"><i class="fas fa-link"></i></button>
+                                            <button type="button" class="text-editor-btn" title="Image"
+                                                data-command="insertImage"><i class="fas fa-image"></i></button>
+                                            <button type="button" class="text-editor-btn" title="Video"
+                                                data-command="insertVideo"><i class="fas fa-video"></i></button>
+                                            <button type="button" class="text-editor-btn" title="Fullscreen"
+                                                data-command="fullscreen"><i class="fas fa-expand"></i></button>
+                                            <button type="button" class="text-editor-btn" title="Code View"
+                                                data-command="codeView"><i class="fas fa-code"></i></button>
+                                            <button type="button" class="text-editor-btn" title="Help"><i
+                                                    class="fas fa-question-circle"></i></button>
+                                        </div>
+                                    </div>
+                                    <div id="textWidgetEditorContent" class="text-editor-content"
+                                        contenteditable="true"></div>
+                                </div>
+                            </div>
+
+                            <!-- Preview Section - only for Saved Search widgets -->
+                            <div id="savedSearchPreviewSection" class="form-section preview-section"
+                                style="display: none;">
+                                <label class="form-section-label" data-i18n="dashboard.widgetModal.preview">Preview</label>
+                                <div id="widgetPreview" class="widget-preview">
+                                    <button type="button" class="preview-button" id="previewButton" data-i18n="dashboard.widgetModal.preview">Preview</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" id="newWidgetCancel" data-i18n="button.cancel">Cancel</button>
+                <button type="button" class="btn btn-primary" id="newWidgetOK" data-i18n="button.ok">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Choose Widgets Modal -->
+    <div class="modal-overlay" id="chooseWidgetsModal" style="display: none;">
+        <div class="modal-container choose-widgets-modal">
+            <div class="modal-header">
+                <h2 data-i18n="dashboard.modal.chooseWidgets">Choose Widgets</h2>
+                <button class="modal-close" id="chooseWidgetsModalClose">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p class="modal-description" data-i18n="dashboard.chooseWidgetsDescription">Select the widgets you want to display in your dashboard. You can reorder
+                    them by dragging.</p>
+                <div id="chooseWidgetsList" class="choose-widgets-list">
+                    <!-- Widget checkboxes will be populated here -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" id="chooseWidgetsCancel" data-i18n="button.cancel">Cancel</button>
+                <button type="button" class="btn btn-primary" id="chooseWidgetsOK" data-i18n="button.ok">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chart.js Library -->
+    <script src="assets/js/chart.umd.min.js"></script>
+
+    <script src="assets/js/api-service.js"></script>
+    <script src="assets/js/config.js"></script>
+    <script src="assets/js/logout-modal.js"></script>
+    <script src="assets/js/auth-error-handler.js"></script>
+    <script src="assets/js/auth-helper.js"></script>
+    <script src="assets/js/main.js"></script>
+    <script src="assets/js/initSearch.js"></script>
+    <script src="assets/js/header.js"></script>
+    <script src="assets/js/notification-panel.js"></script>
+
+    <!-- Dashboard Scripts -->
+    <script src="assets/js/dashboard/dashboard-navigation.js"></script>
+    <script src="assets/js/dashboard/dashboard-drag-drop.js"></script>
+    <script src="assets/js/dashboard/dashboard-object-counts.js"></script>
+    <script src="assets/js/dashboard/dashboard-roles-not-accepted.js"></script>
+    <script src="assets/js/dashboard/dashboard-stakeholdership.js"></script>
+    <script src="assets/js/dashboard/dashboard-saved-searches.js"></script>
+    <script src="assets/js/dashboard/dashboard-change-requests.js"></script>
+    <script src="assets/js/dashboard/dashboard-team.js"></script>
+    <script src="assets/js/dashboard/dashboard-pending-tasks.js"></script>
+    <script src="assets/js/dashboard/dashboard-text-widget.js"></script>
+    <script src="assets/js/dashboard/dashboard-saved-search-widget.js"></script>
+    <!-- Edit Dashboard Modal -->
+    <div class="modal-overlay" id="editDashboardModal" style="display: none;">
+        <div class="modal-container edit-dashboard-modal">
+            <div class="modal-header">
+                <h2 data-i18n="dashboard.modal.editDashboard">Edit Dashboard</h2>
+                <button class="modal-close" id="editDashboardModalClose">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <form id="editDashboardForm">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label class="form-label" for="editDashboardTitle" data-i18n="dashboard.label.name">
+                            Name<span class="required">*</span>
+                        </label>
+                        <input type="text" id="editDashboardTitle" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="editDashboardDescription" data-i18n="dashboard.label.description">
+                            Description<span class="required">*</span>
+                        </label>
+                        <textarea id="editDashboardDescription" class="form-control" rows="4" required></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-checkbox-label">
+                            <input type="checkbox" id="editDashboardSetAsDefault">
+                            <span data-i18n="dashboard.setAsDefault">Set as Default</span>
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" id="editDashboardCancel" data-i18n="button.cancel">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="editDashboardSave" data-i18n="button.save">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Choose Dashboard Modal -->
+    <div class="modal-overlay" id="chooseDashboardModal" style="display: none;">
+        <div class="modal-container choose-dashboard-modal">
+            <div class="modal-header">
+                <h2 data-i18n="dashboard.modal.chooseDashboards">Choose Dashboards</h2>
+                <button class="modal-close" id="chooseDashboardModalClose">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="search-container">
+                    <input type="text" id="chooseDashboardSearch" class="search-input"
+                        data-i18n-placeholder="dashboard.placeholder.searchDashboards" placeholder="Search dashboards...">
+                    <i class="fas fa-search search-icon"></i>
+                </div>
+                <div class="dashboard-list" id="chooseDashboardList">
+                    <!-- Dashboards will be populated here -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" id="chooseDashboardCancel" data-i18n="button.cancel">Cancel</button>
+                <button type="button" class="btn btn-primary" id="chooseDashboardOK" data-i18n="button.ok">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Set as Default Confirmation Modal -->
+    <div class="modal-overlay" id="setDefaultConfirmModal" style="display: none;">
+        <div class="modal-container confirm-modal">
+            <div class="modal-header">
+                <h2 data-i18n="dashboard.modal.setAsDefault">Set as Default</h2>
+                <button class="modal-close" id="setDefaultConfirmModalClose">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p data-i18n="dashboard.setAsDefaultConfirmMessage">Are you sure you want to set this dashboard as the default tab?</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" id="setDefaultConfirmCancel" data-i18n="button.cancel">Cancel</button>
+                <button type="button" class="btn btn-primary" id="setDefaultConfirmOK" data-i18n="button.ok">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- New Dashboard Modal -->
+    <div class="modal-overlay" id="newDashboardModal" style="display: none;">
+        <div class="modal-container new-dashboard-modal">
+            <div class="modal-header">
+                <h2 data-i18n="dashboard.modal.newDashboard">New Dashboard</h2>
+                <button class="modal-close" id="newDashboardModalClose">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <form id="newDashboardForm">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label class="form-label" for="newDashboardName" data-i18n="dashboard.label.name">
+                            Name<span class="required">*</span>
+                        </label>
+                        <input type="text" id="newDashboardName" class="form-control"
+                            data-i18n-placeholder="dashboard.placeholder.dashboardTitle" placeholder="Enter a title for the dashboard" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="newDashboardDescription" data-i18n="dashboard.label.description">
+                            Description<span class="required">*</span>
+                        </label>
+                        <textarea id="newDashboardDescription" class="form-control" rows="4"
+                            data-i18n-placeholder="dashboard.placeholder.dashboardDescription" placeholder="Enter a description for the dashboard" required></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-checkbox-label">
+                            <input type="checkbox" id="newDashboardSetAsDefault">
+                            <span data-i18n="dashboard.setAsDefault">Set as Default</span>
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" id="newDashboardCancel" data-i18n="button.cancel">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="newDashboardOK" data-i18n="button.ok">OK</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Clone Dashboard Modal -->
+    <div class="modal-overlay" id="cloneDashboardModal" style="display: none;">
+        <div class="modal-container new-dashboard-modal">
+            <div class="modal-header">
+                <h2 data-i18n="dashboard.modal.cloneDashboard">Clone Dashboard</h2>
+                <button class="modal-close" id="cloneDashboardModalClose">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <form id="cloneDashboardForm">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label class="form-label" for="cloneDashboardName" data-i18n="dashboard.label.name">
+                            Name<span class="required">*</span>
+                        </label>
+                        <input type="text" id="cloneDashboardName" class="form-control"
+                            data-i18n-placeholder="dashboard.placeholder.dashboardTitle" placeholder="Enter a title for the dashboard" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="cloneDashboardDescription" data-i18n="dashboard.label.description">
+                            Description<span class="required">*</span>
+                        </label>
+                        <textarea id="cloneDashboardDescription" class="form-control" rows="4"
+                            data-i18n-placeholder="dashboard.placeholder.dashboardDescription" placeholder="Enter a description for the dashboard" required></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-checkbox-label">
+                            <input type="checkbox" id="cloneDashboardSetAsDefault">
+                            <span data-i18n="dashboard.setAsDefault">Set as Default</span>
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" id="cloneDashboardCancel" data-i18n="button.cancel">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="cloneDashboardOK" data-i18n="button.ok">OK</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modify Sharing Modal -->
+    <div class="modal-overlay" id="modifySharingModal" style="display: none;">
+        <div class="modal-container sharing-modal">
+            <div class="modal-header">
+                <h2 data-i18n="dashboard.modal.modifySharing">Modify Sharing</h2>
+                <button class="modal-close" id="modifySharingModalClose">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="sharing-options">
+                    <div class="sharing-option">
+                        <label class="sharing-radio-label">
+                            <input type="radio" name="sharingType" value="public" id="sharePublic">
+                            <span class="sharing-option-title" data-i18n="dashboard.sharing.shareWithPublic">Share with public</span>
+                        </label>
+                        <p class="sharing-option-description" data-i18n="dashboard.sharing.shareWithPublicDesc">Share the dashboard with all users in your organization.
+                        </p>
+                        <div class="sharing-sub-option" id="publicSubOption" style="display: none;">
+                            <label class="form-checkbox-label">
+                                <input type="checkbox" id="makeSearchesPublic">
+                                <span data-i18n="dashboard.sharing.makeSearchesPublic">Make searches used in the dashboard widgets public.</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="sharing-option">
+                        <label class="sharing-radio-label">
+                            <input type="radio" name="sharingType" value="selected" id="shareSelected">
+                            <span class="sharing-option-title" data-i18n="dashboard.sharing.shareWithSelected">Share with selected users</span>
+                        </label>
+                        <p class="sharing-option-description" data-i18n="dashboard.sharing.shareWithSelectedDesc">Share the dashboard with specific users.</p>
+                        <div class="sharing-sub-option" id="selectedSubOption" style="display: none;">
+                            <div class="form-group">
+                                <label class="form-label" data-i18n="dashboard.sharing.selectUsers">Select Users</label>
+                                <div class="user-selection-method">
+                                    <select id="userSelectionMethod" class="form-control">
+                                        <option value="manual" data-i18n="dashboard.sharing.selectUsersManually">Select Users Manually</option>
+                                        <option value="bulk" disabled data-i18n="dashboard.sharing.bulkUploadComingSoon">Bulk Uploading (Coming Soon)</option>
+                                    </select>
+                                </div>
+                                <div class="user-search-container" id="userSearchContainer">
+                                    <input type="text" id="userSearchInput" class="form-control"
+                                        data-i18n-placeholder="dashboard.sharing.searchUsers" placeholder="Search users...">
+                                    <div class="user-list" id="userList">
+                                        <!-- Users will be populated here -->
+                                    </div>
+                                </div>
+                                <div class="selected-users" id="selectedUsers">
+                                    <!-- Selected users will appear here -->
+                                </div>
+                            </div>
+                            <label class="form-checkbox-label">
+                                <input type="checkbox" id="shareSearchesSelected">
+                                <span data-i18n="dashboard.sharing.shareSearchesWithWidgets">Share searches used in the dashboard widgets.</span>
+                            </label>
+                            <div class="shared-list-link">
+                                <a href="#" id="showSharedList" data-i18n="dashboard.sharing.showSharedList">Show shared list</a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="sharing-option">
+                        <label class="sharing-radio-label">
+                            <input type="radio" name="sharingType" value="stop" id="stopSharing">
+                            <span class="sharing-option-title" data-i18n="dashboard.sharing.stopSharing">Stop sharing</span>
+                        </label>
+                        <p class="sharing-option-description" data-i18n="dashboard.sharing.stopSharingDesc">Do not share. If the dashboard is already shared with some
+                            users, it will be removed from their view, but the shared searches will remain in their
+                            'Searches Shared With Me' page.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" id="modifySharingCancel" data-i18n="button.cancel">Cancel</button>
+                <button type="button" class="btn btn-primary" id="modifySharingSave" data-i18n="button.save">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Export Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+    <script src="assets/js/dashboard/dashboard-main.js"></script>
+    <script src="assets/js/dashboard/new-widget-modal.js"></script>
+    <script src="assets/js/global-lock-ui.js"></script>
+    <script src="assets/js/dashboard/choose-widgets-modal.js"></script>
+    <!-- Language Switcher -->
+    <script src="assets/js/language-switcher.js"></script>
+</body>
+
+</html>

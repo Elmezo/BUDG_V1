@@ -1,0 +1,473 @@
+/**
+ * rtl.css - Right-to-left layout for Arabic
+ * 
+ * This file is automatically enabled/disabled by i18n.js
+ * when the language is switched to Arabic.
+ * 
+ * Only applies when html[dir="rtl"] is set.
+ */
+
+/* ============================================
+   Global RTL Settings
+   ============================================ */
+
+[dir="rtl"] {
+    text-align: right;
+}
+
+/* Logical alignment for mixed-content blocks */
+[dir="rtl"] .dashboard-layout-hint {
+    text-align: right;
+}
+
+[dir="rtl"] body {
+    direction: rtl;
+}
+
+/* ============================================
+   Navigation (unified: same header look on all pages as main)
+   ============================================ */
+
+/* Lock panel: move to the left side in RTL (lock button is on the left due to row-reverse) */
+[dir="rtl"] .global-locked-items-panel {
+    right: auto;
+    left: 20px;
+}
+
+/* Profile dropdown position is set by JS (position: fixed) for all pages including RTL */
+
+/* Login dropdown: input icon on the left in RTL */
+[dir="rtl"] .login-dropdown .form-input-icon {
+    right: auto;
+    left: 12px;
+}
+
+[dir="rtl"] .login-dropdown .form-input {
+    padding-left: 36px;
+    padding-right: 12px;
+}
+
+/* Profile header: reverse avatar + text order for RTL */
+[dir="rtl"] .profile-header {
+    flex-direction: row-reverse;
+}
+
+/* Profile menu items: reverse icon + label and align right for RTL */
+[dir="rtl"] .profile-menu {
+    text-align: right;
+}
+
+[dir="rtl"] .profile-item {
+    flex-direction: row-reverse;
+    text-align: right;
+}
+
+/* Language item: keep icon and label grouped together in RTL */
+[dir="rtl"] .profile-item.profile-item-language .profile-item-label {
+    flex: 0 0 auto;
+}
+
+[dir="rtl"] .profile-item.profile-item-language .profile-submenu-chevron {
+    margin-right: auto;
+    margin-left: 0;
+}
+
+/* Language submenu: open to the right in RTL */
+[dir="rtl"] .language-dropdown-inline {
+    right: auto;
+    left: 100%;
+    margin-right: 0;
+    margin-left: 4px;
+    transform: translateX(-8px);
+}
+
+[dir="rtl"] .language-dropdown-inline.active {
+    transform: translateX(0);
+}
+
+/* My Items linked-to popover: positioned on the left in RTL so it stays visible */
+[dir="rtl"] .my-items-linked-to-popover,
+[dir="rtl"] .my-items-linked-to-subpopover {
+    text-align: right;
+}
+
+/* ============================================
+   Hero Section
+   ============================================ */
+
+[dir="rtl"] .hero-title,
+[dir="rtl"] .hero-subtitle {
+    text-align: right;
+}
+
+[dir="rtl"] .hero-buttons {
+    flex-direction: row-reverse;
+}
+
+/* ============================================
+   Forms
+   ============================================ */
+
+[dir="rtl"] .form-label {
+    text-align: right;
+}
+
+[dir="rtl"] input,
+[dir="rtl"] textarea,
+[dir="rtl"] select {
+    text-align: right;
+    direction: rtl;
+}
+
+[dir="rtl"] input::placeholder,
+[dir="rtl"] textarea::placeholder {
+    text-align: right;
+}
+
+/* Form groups */
+[dir="rtl"] .form-group {
+    text-align: right;
+}
+
+/* Checkboxes and radios */
+[dir="rtl"] .form-checkbox-label,
+[dir="rtl"] .radio-label {
+    flex-direction: row-reverse;
+}
+
+[dir="rtl"] .form-checkbox-label input,
+[dir="rtl"] .radio-label input {
+    margin-left: 0.5rem;
+    margin-right: 0;
+}
+
+/* ============================================
+   Buttons
+   ============================================ */
+
+[dir="rtl"] .btn {
+    flex-direction: row-reverse;
+}
+
+[dir="rtl"] .btn i {
+    margin-left: 0;
+    margin-right: 0.5rem;
+}
+
+[dir="rtl"] .btn-group {
+    flex-direction: row-reverse;
+}
+
+[dir="rtl"] .hero-buttons .btn {
+    margin-left: 0;
+    margin-right: 1rem;
+}
+
+[dir="rtl"] .hero-buttons .btn:last-child {
+    margin-right: 0;
+}
+
+/* ============================================
+   Modals
+   ============================================ */
+
+[dir="rtl"] .modal-header {
+    flex-direction: row-reverse;
+}
+
+[dir="rtl"] .modal-footer {
+    flex-direction: row-reverse;
+}
+
+[dir="rtl"] .modal-close {
+    left: 1rem;
+    right: auto;
+}
+
+/* ============================================
+   Tables
+   ============================================ */
+
+[dir="rtl"] table {
+    direction: rtl;
+}
+
+[dir="rtl"] th,
+[dir="rtl"] td {
+    text-align: right;
+}
+
+/* Keep first column (usually IDs) left-aligned */
+[dir="rtl"] td:first-child {
+    text-align: left;
+    direction: ltr;
+}
+
+/* ============================================
+   Dashboard & Widgets
+   ============================================ */
+
+[dir="rtl"] .dashboard-grid {
+    direction: rtl;
+}
+
+[dir="rtl"] .widget {
+    text-align: right;
+}
+
+[dir="rtl"] .widget-header {
+    flex-direction: row-reverse;
+}
+
+/* ============================================
+   Icons - Directional
+   ============================================ */
+
+/* Flip chevrons */
+[dir="rtl"] .fa-chevron-left::before {
+    content: "\f054";
+    /* fa-chevron-right */
+}
+
+[dir="rtl"] .fa-chevron-right::before {
+    content: "\f053";
+    /* fa-chevron-left */
+}
+
+/* Flip arrows */
+[dir="rtl"] .fa-arrow-left::before {
+    content: "\f061";
+    /* fa-arrow-right */
+}
+
+[dir="rtl"] .fa-arrow-right::before {
+    content: "\f060";
+    /* fa-arrow-left */
+}
+
+/* Flip angle brackets */
+[dir="rtl"] .fa-angle-left::before {
+    content: "\f105";
+    /* fa-angle-right */
+}
+
+[dir="rtl"] .fa-angle-right::before {
+    content: "\f104";
+    /* fa-angle-left */
+}
+
+/* ============================================
+   Search & Filters (unified with main)
+   ============================================ */
+
+/* ============================================
+   Dropdowns
+   ============================================ */
+
+[dir="rtl"] .custom-dropdown {
+    text-align: right;
+}
+
+[dir="rtl"] .custom-dropdown-selected {
+    text-align: right;
+}
+
+[dir="rtl"] .dropdown-arrow {
+    left: 1rem;
+    right: auto;
+}
+
+/* ============================================
+   Pagination
+   ============================================ */
+
+[dir="rtl"] .pagination {
+    flex-direction: row-reverse;
+}
+
+[dir="rtl"] .pagination-dot {
+    margin-left: 0;
+    margin-right: 0.5rem;
+}
+
+/* ============================================
+   Breadcrumbs
+   ============================================ */
+
+[dir="rtl"] .breadcrumb {
+    flex-direction: row-reverse;
+}
+
+[dir="rtl"] .breadcrumb-item::before {
+    content: "\\";
+    transform: scaleX(-1);
+}
+
+/* ============================================
+   Language Switcher
+   ============================================ */
+
+[dir="rtl"] .language-switcher {
+    margin-left: 0;
+    margin-right: 1rem;
+}
+
+[dir="rtl"] .language-dropdown {
+    left: 0;
+    right: auto;
+}
+
+[dir="rtl"] .language-flag {
+    margin-right: 0;
+    margin-left: 0.75rem;
+}
+
+/* ============================================
+   Utility Classes
+   ============================================ */
+
+/* Margins */
+[dir="rtl"] .ml-1 {
+    margin-left: 0;
+    margin-right: 0.25rem;
+}
+
+[dir="rtl"] .ml-2 {
+    margin-left: 0;
+    margin-right: 0.5rem;
+}
+
+[dir="rtl"] .ml-3 {
+    margin-left: 0;
+    margin-right: 1rem;
+}
+
+[dir="rtl"] .mr-1 {
+    margin-right: 0;
+    margin-left: 0.25rem;
+}
+
+[dir="rtl"] .mr-2 {
+    margin-right: 0;
+    margin-left: 0.5rem;
+}
+
+[dir="rtl"] .mr-3 {
+    margin-right: 0;
+    margin-left: 1rem;
+}
+
+/* Padding */
+[dir="rtl"] .pl-1 {
+    padding-left: 0;
+    padding-right: 0.25rem;
+}
+
+[dir="rtl"] .pl-2 {
+    padding-left: 0;
+    padding-right: 0.5rem;
+}
+
+[dir="rtl"] .pl-3 {
+    padding-left: 0;
+    padding-right: 1rem;
+}
+
+[dir="rtl"] .pr-1 {
+    padding-right: 0;
+    padding-left: 0.25rem;
+}
+
+[dir="rtl"] .pr-2 {
+    padding-right: 0;
+    padding-left: 0.5rem;
+}
+
+[dir="rtl"] .pr-3 {
+    padding-right: 0;
+    padding-left: 1rem;
+}
+
+/* Text alignment */
+[dir="rtl"] .text-left {
+    text-align: right;
+}
+
+[dir="rtl"] .text-right {
+    text-align: left;
+}
+
+/* Float */
+[dir="rtl"] .float-left {
+    float: right;
+}
+
+[dir="rtl"] .float-right {
+    float: left;
+}
+
+/* ============================================
+   Lists (Forcing Left Alignment for Arabic)
+   ============================================ */
+
+[dir="rtl"] ul,
+[dir="rtl"] ol,
+[dir="rtl"] .notification-list,
+[dir="rtl"] .choose-widgets-list,
+[dir="rtl"] .dashboard-list,
+[dir="rtl"] .choose-dashboard-list,
+[dir="rtl"] .user-list,
+[dir="rtl"] .selected-users,
+[dir="rtl"] .dropdown-menu,
+[dir="rtl"] .custom-dropdown-options,
+[dir="rtl"] .sub-nav-actions-dropdown {
+    left: 0;
+    right: auto;
+}
+[dir="rtl"] .sub-nav-actions-dropdown,
+[dir="rtl"] .selected-modules,
+[dir="rtl"] .modules-list,
+[dir="rtl"] .hierarchy-table,
+[dir="rtl"] .hierarchy-table th,
+[dir="rtl"] .hierarchy-table td,
+[dir="rtl"] .live-search-results,
+[dir="rtl"] .search-group-list,
+[dir="rtl"] .search-pagination {
+    text-align: left !important;
+    direction: ltr !important;
+}
+
+[dir="rtl"] li,
+[dir="rtl"] .notification-item,
+[dir="rtl"] .choose-widget-item,
+[dir="rtl"] .dashboard-item,
+[dir="rtl"] .user-item,
+[dir="rtl"] .selected-user-item,
+[dir="rtl"] .dropdown-item,
+[dir="rtl"] .module-row,
+[dir="rtl"] .search-item {
+    text-align: left !important;
+    direction: ltr !important;
+}
+
+/* ============================================
+   Admin Panel (sidebar on the right in RTL)
+   ============================================ */
+
+[dir="rtl"] .admin-sidebar {
+    left: auto;
+    right: 0;
+    box-shadow: -2px 0 10px rgba(0, 0, 0, 0.1);
+}
+
+[dir="rtl"] .admin-main-content {
+    margin-left: 0;
+    margin-right: 280px;
+    width: calc(100% - 280px);
+    box-sizing: border-box;
+}
+
+[dir="rtl"] .sidebar-navigation .nav-item.active {
+    border-right: none;
+    border-left: 3px solid #248567;
+}

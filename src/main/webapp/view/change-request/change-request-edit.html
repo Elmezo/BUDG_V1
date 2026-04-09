@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Change Request - BUDG</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../../assets/css/main.css">
+    <link rel="stylesheet" href="../../view/view.css">
+    <link rel="stylesheet" href="../../view/edit/edit-shared.css">
+    <link rel="stylesheet" href="../../view/change-request/change-request.css">
+    <link rel="stylesheet" href="../../assets/css/custom-fields.css">
+    <link rel="icon" type="image/png" href="../../assets/images/avatars/icon.jpg">
+    <link rel="stylesheet" href="../../view/components/document-upload-component.css">
+    <!-- RTL styles for Arabic (disabled by default, enabled by i18n.js) -->
+    <link rel="stylesheet" href="../../assets/css/advanced-rich-text-editor.css">
+    <link rel="stylesheet" href="../../assets/css/rtl.css" id="rtl-styles" disabled>
+    <script>(function(){const t=localStorage.getItem('budg-theme')||'light';document.documentElement.setAttribute('data-theme',t);})();</script>
+    <script src="../../assets/i18n/i18n.js"></script>
+</head>
+<body class="change-request-page" data-submenu="data">
+<header class="header"></header>
+
+<div class="page-header">
+    <div class="page-header-container">
+        <div class="page-title">
+            <div class="page-icon"><i class="fas fa-comment-dots"></i></div>
+            <div class="page-title-text">
+                <div class="page-title-main" id="pageTitle">Edit Change Request</div>
+                <div class="page-title-sub" id="facetInfo">
+                    <a href="#" id="affectedItemLink" class="affected-item-link"></a> | Change Request
+                </div>
+            </div>
+        </div>
+        <div class="form-actions">
+            <button type="button" class="btn btn-primary" id="saveBtn">Save</button>
+            <button type="button" class="btn btn-success" id="saveAndCloseBtn" title="Save changes and return to the change request view page">Save & Close</button>
+            <button type="button" class="btn btn-secondary" id="closeBtn">Close</button>
+        </div>
+    </div>
+</div>
+
+<main class="main-content">
+    <div class="content-card">
+        <div class="content-header">
+            <div class="tab-container">
+                <button class="tab active" data-tab="summary" data-i18n="tab.summary">SUMMARY</button>
+                <button class="tab" data-tab="relationships" data-i18n="tab.relationships">RELATIONSHIPS</button>
+            </div>
+        </div>
+        <div class="content-body">
+            <!-- Summary Tab Content -->
+            <div id="summaryTab" class="tab-content active">
+                <form id="changeRequestEditForm">
+                    <div class="change-request-container grid grid-cols-2 gap-6">
+                        <!-- Left Column - Definition -->
+                        <div class="left-column">
+                            <div class="form-section">
+                                <h4 class="section-title">DEFINITION</h4>
+                                <div class="form-fields-container">
+                                    <div class="form-group">
+                                        <label for="title" class="form-label required">Title</label>
+                                        <input type="text" id="title" class="form-input" placeholder="Enter Title" required>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label for="type" class="form-label required">Type</label>
+                                        <select id="type" class="form-select" required>
+                                            <option value="">Please select</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label for="summary" class="form-label required">Summary</label>
+                                        <textarea id="summary" class="form-textarea" rows="3" placeholder="Enter Summary" required></textarea>
+                                        <div style="margin-top: 0.5rem;">
+                                            <button type="button" class="btn btn-sm btn-secondary" id="showEditorBtn">
+                                                Show Editor
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="form-section">
+                                <h4 class="section-title">OPTIONAL FIELDS</h4>
+                                <div class="form-fields-container">
+                                    <div class="form-group">
+                                        <label for="parent" class="form-label">Parent</label>
+                                        <select id="parent" class="form-select">
+                                            <option value="">Please select</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label for="analysis" class="form-label">Analysis</label>
+                                        <textarea id="analysis" class="form-textarea" rows="4" placeholder="Enter Analysis"></textarea>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label for="resolutionStatus" class="form-label">Resolution Status</label>
+                                        <select id="resolutionStatus" class="form-select">
+                                            <option value="">Please select</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label for="resolution" class="form-label">Resolution</label>
+                                        <textarea id="resolution" class="form-textarea" rows="4" placeholder="Enter Resolution"></textarea>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Right Column - Classifications -->
+                        <div class="right-column">
+                            <div class="form-section">
+                                <h4 class="section-title">CLASSIFICATIONS</h4>
+                                <div class="form-fields-container">
+                                    <div class="section-subtitle">BASIC CLASSIFICATIONS</div>
+                                    
+                                    <div class="form-group">
+                                        <label for="severity" class="form-label required">Severity</label>
+                                        <select id="severity" class="form-select" required>
+                                            <option value="">Please select</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label for="urgency" class="form-label required">Urgency</label>
+                                        <select id="urgency" class="form-select" required>
+                                            <option value="">Please select</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="section-subtitle" style="margin-top: 1.5rem;">ADVANCED CLASSIFICATIONS</div>
+
+                                    <div class="form-group">
+                                        <label for="estimatedBenefit" class="form-label">Estimated Benefit</label>
+                                        <div class="input-group-inline">
+                                            <input type="number" id="estimatedBenefit" class="form-input" placeholder="Enter Value" step="0.01">
+                                            <select id="estimatedBenefitCurrency" class="form-select" style="width: 120px;">
+                                                <option value="GBP">GBP</option>
+                                                <option value="USD">USD</option>
+                                                <option value="EUR">EUR</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label for="estimatedCost" class="form-label">Estimated Cost</label>
+                                        <div class="input-group-inline">
+                                            <input type="number" id="estimatedCost" class="form-input" placeholder="Enter Value" step="0.01">
+                                            <select id="estimatedCostCurrency" class="form-select" style="width: 120px;">
+                                                <option value="GBP">GBP</option>
+                                                <option value="USD">USD</option>
+                                                <option value="EUR">EUR</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Segment Field Container -->
+                    <div id="segmentFieldContainer" style="grid-column: 1/-1; margin-top: 1rem;"></div>
+
+                    <div class="form-section" style="grid-column: 1/-1; margin-top: 1rem;">
+                        <h4 class="section-title">CUSTOM FIELDS</h4>
+                        <div class="form-fields-container">
+                            <div id="customFieldsContainer"></div>
+                        </div>
+                    </div>
+
+                    <!-- DOCUMENTS Section - Full Width -->
+                    <div class="view-section" style="grid-column: 1/-1; margin-top: 2rem;">
+                        <div class="form-card documents-card">
+                            <div class="card-header">
+                                <h3 class="card-title" data-i18n="card.documents">DOCUMENTS</h3>
+                            </div>
+                            <div class="card-body">
+                                <div id="documentUploadContainer"></div>
+                                <div id="documentTableContainer" style="margin-top: 20px;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Relationships Tab Content -->
+            <div id="relationshipsTab" class="tab-content">
+                <div class="relationships-container">
+                    <div class="relationships-header">
+                        <h4 class="section-title">CHANGE REQUEST RELATIONSHIPS</h4>
+                        <button type="button" class="btn btn-primary btn-sm" id="addRelationshipBtn">
+                            <i class="fas fa-plus"></i> Add Relationship
+                        </button>
+                    </div>
+                    
+                    <div class="relationships-table-container">
+                        <table class="relationships-table" id="relationshipsTable">
+                            <thead>
+                                <tr>
+                                    <th>Relationship Type</th>
+                                    <th>Object Type</th>
+                                    <th>Related Change Request</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="relationshipsTableBody">
+                                <!-- Relationships will be populated here -->
+                            </tbody>
+                        </table>
+                        
+                        <div class="empty-relationships" id="emptyRelationships" style="display: none;">
+                            <i class="fas fa-project-diagram"></i>
+                            <p>No relationships defined</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Add Relationship Form -->
+                    <div class="add-relationship-form" id="addRelationshipForm" style="display: none;">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="relationshipType" class="form-label required">Relationship Type</label>
+                                <select id="relationshipType" class="form-select" required>
+                                    <option value="">Please select</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="objectType" class="form-label required">Object Type</label>
+                                <select id="objectType" class="form-select" required>
+                                    <option value="">Please select</option>
+                                    <option value="Dataset">Dataset</option>
+                                    <option value="System">System</option>
+                                    <option value="Capability">Capability</option>
+                                    <option value="Client">Client</option>
+                                    <option value="Product">Product</option>
+                                    <option value="System Interface">System Interface</option>
+                                    <option value="Policy">Policy</option>
+                                    <option value="Committee">Committee</option>
+                                    <option value="Process">Process</option>
+                                    <option value="Business Area">Business Area</option>
+                                    <option value="Glossary">Glossary</option>
+                                    <option value="Geography">Geography</option>
+                                    <option value="Legal Entity">Legal Entity</option>
+                                    <option value="Org Unit">Org Unit</option>
+                                    <option value="People">People</option>
+                                    <option value="Project">Project</option>
+                                    <option value="Regulation">Regulation</option>
+                                    <option value="Regulator">Regulator</option>
+                                    <option value="Regulatory Theme">Regulatory Theme</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="relatedChangeRequest" class="form-label required">Related Change Request</label>
+                                <select id="relatedChangeRequest" class="form-select" required disabled>
+                                    <option value="">Select object type first</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="form-actions">
+                            <button type="button" class="btn btn-primary btn-sm" id="saveRelationshipBtn">Save</button>
+                            <button type="button" class="btn btn-secondary btn-sm" id="cancelRelationshipBtn">Cancel</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<script src="../../assets/js/config.js"></script>
+<script src="../../assets/js/api-service.js"></script>
+<script src="../../assets/js/main.js"></script>
+<script src="../../assets/js/segment-field.js"></script>
+<script src="../../assets/js/custom-fields.js"></script>
+<script src="../../view/components/document-upload-component.js"></script>
+<script src="../../view/components/document-table-component.js"></script>
+<script src="../../view/change-request/change-request-documents-init.js"></script>
+<script src="../../assets/js/header.js"></script>
+<script src="../../assets/js/advanced-rich-text-editor.js"></script>
+<script src="../../view/change-request/change-request-edit.js"></script>
+</body>
+</html>
+

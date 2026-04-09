@@ -1,0 +1,627 @@
+/* Dataset specific overrides (if needed) */
+
+/* Relationships tab specific styles */
+.relationships-section {
+    background: var(--background-primary, #fff);
+    border: 1px solid var(--border-color, #e9ecef);
+    border-radius: 8px;
+    padding: 1.25rem;
+    box-shadow: var(--shadow-light, 0 2px 10px rgba(0, 0, 0, 0.1));
+}
+
+.relationships-section .section-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+    font-weight: 600;
+    color: var(--text-secondary, #6c757d);
+    font-size: 0.875rem;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    background-color: var(--background-secondary, #f8f9fa);
+    padding: 0.5rem 0.75rem;
+    border-radius: 6px;
+    border-left: 4px solid var(--secondary-color, #248567);
+}
+
+.relationships-section .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    border: 1px solid var(--border-color, #e9ecef);
+    border-radius: 6px;
+    background: var(--background-secondary, #f8f9fa);
+    color: var(--text-primary, #2c3e50);
+    text-decoration: none;
+    font-weight: 500;
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: var(--transition, all 0.3s ease);
+}
+
+.relationships-section .btn:hover {
+    background: var(--secondary-color, #248567);
+    border-color: var(--secondary-color, #248567);
+    color: var(--background-primary, #fff);
+    transform: translateY(-1px);
+}
+
+.relationships-section .btn i {
+    font-size: 0.875rem;
+}
+
+/* Empty state styling */
+.relationships-empty {
+    text-align: center;
+    padding: 2rem;
+    color: var(--text-secondary, #6c757d);
+}
+
+.relationships-empty i {
+    font-size: 1.5rem;
+    margin-bottom: 0.5rem;
+    color: var(--text-tertiary, #adb5bd);
+}
+
+/* Action buttons in table */
+.relationship-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.relationship-actions .btn-icon {
+    padding: 0.25rem 0.5rem;
+    border: 1px solid var(--border-color, #e9ecef);
+    border-radius: 6px;
+    background: var(--background-secondary, #f8f9fa);
+    color: var(--text-secondary, #6c757d);
+    cursor: pointer;
+    transition: var(--transition, all 0.3s ease);
+    font-size: 0.875rem;
+}
+
+.relationship-actions .btn-icon:hover {
+    background: var(--secondary-color, #248567);
+    border-color: var(--secondary-color, #248567);
+    color: var(--background-primary, #fff);
+    transform: translateY(-1px);
+}
+
+.relationship-actions .btn-icon.danger:hover {
+    background: var(--required-color, #dc3545);
+    border-color: var(--required-color, #dc3545);
+    color: var(--background-primary, #fff);
+}
+
+/* Impact section styling - aligned with app design */
+.impact-section {
+    background: var(--background-primary, #fff);
+    border: 1px solid var(--border-color, #e9ecef);
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: var(--shadow-light, 0 2px 10px rgba(0, 0, 0, 0.1));
+}
+
+.impact-header {
+    background: var(--background-secondary, #f8f9fa);
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--border-color, #e9ecef);
+}
+
+.impact-title {
+    font-weight: 600;
+    color: var(--text-primary, #2c3e50);
+    font-size: 0.875rem;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    background-color: var(--background-secondary, #f8f9fa);
+    padding: 0.5rem 0.75rem;
+    border-radius: 6px;
+    border-left: 4px solid var(--secondary-color, #248567);
+    margin: 0;
+}
+
+.impact-content {
+    padding: 1.5rem;
+}
+
+.impact-empty {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    color: var(--text-secondary, #6c757d);
+    font-size: 0.9rem;
+    padding: 1rem 0;
+    background: var(--background-primary, #fff);
+    border-radius: 6px;
+}
+
+.impact-empty i {
+    font-size: 1.1rem;
+    color: var(--text-primary, #2c3e50);
+    background: var(--text-primary, #2c3e50);
+    color: var(--background-primary, #fff);
+    border-radius: 50%;
+    width: 1.5rem;
+    height: 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    font-weight: 600;
+    flex-shrink: 0;
+}
+
+/* Impact items styling */
+.impact-item {
+    background: var(--background-primary, #fff);
+    border: 1px solid var(--border-color, #e9ecef);
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    overflow: hidden;
+    box-shadow: var(--shadow-light, 0 1px 3px rgba(0, 0, 0, 0.1));
+}
+
+.impact-item:last-child {
+    margin-bottom: 0;
+}
+
+.impact-item-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 1.25rem;
+    background: var(--background-secondary, #f8f9fa);
+    border-bottom: 1px solid var(--border-color, #e9ecef);
+}
+
+.impact-item-header h4 {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary, #2c3e50);
+}
+
+.impact-severity {
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.impact-severity.high {
+    background: #fee2e2;
+    color: #dc2626;
+    border: 1px solid #fecaca;
+}
+
+.impact-severity.medium {
+    background: #fef3c7;
+    color: #d97706;
+    border: 1px solid #fed7aa;
+}
+
+.impact-severity.low {
+    background: #d1fae5;
+    color: #059669;
+    border: 1px solid #a7f3d0;
+}
+
+.impact-item-content {
+    padding: 1.25rem;
+}
+
+.impact-item-content p {
+    margin: 0 0 1rem 0;
+    color: var(--text-secondary, #6c757d);
+    line-height: 1.5;
+}
+
+.impact-metrics {
+    display: flex;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+}
+
+.impact-metrics .metric {
+    font-size: 0.875rem;
+    color: var(--text-secondary, #6c757d);
+    background: var(--background-secondary, #f8f9fa);
+    padding: 0.5rem 0.75rem;
+    border-radius: 6px;
+    border: 1px solid var(--border-color, #e9ecef);
+}
+
+/* Relationships table styles */
+.relationships-table-wrapper {
+    overflow-x: auto;
+    margin-top: 1rem;
+}
+
+.relationships-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--background-primary, #fff);
+}
+
+.relationships-table thead {
+    background: var(--background-secondary, #f8f9fa);
+}
+
+.relationships-table th {
+    padding: 0.75rem 1rem;
+    text-align: left;
+    font-weight: 600;
+    color: var(--text-primary, #2c3e50);
+    border-bottom: 2px solid var(--border-color, #e9ecef);
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.relationships-table td {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--border-color, #e9ecef);
+    font-size: 0.9rem;
+    color: var(--text-secondary, #6c757d);
+}
+
+.relationships-table tbody tr:hover {
+    background: var(--background-secondary, #f8f9fa);
+}
+
+.relationships-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+}
+
+.relationships-title {
+    font-weight: 600;
+    color: var(--text-secondary, #6c757d);
+    font-size: 0.875rem;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    background-color: var(--background-secondary, #f8f9fa);
+    padding: 0.5rem 0.75rem;
+    border-radius: 6px;
+    border-left: 4px solid var(--secondary-color, #248567);
+}
+
+.relationships-count {
+    margin-top: 0.75rem;
+    padding: 0.5rem;
+    text-align: right;
+    font-size: 0.875rem;
+    color: var(--text-secondary, #6c757d);
+    font-weight: 500;
+}
+
+.relationships-content {
+    padding: 1.5rem;
+}
+
+/* Column selector dropdown - ensure it's above everything */
+.relationships-column-dropdown {
+    z-index: 9999 !important;
+    position: absolute !important;
+}
+
+.relationships-actions {
+    position: relative !important;
+    z-index: 10000 !important;
+}
+
+/* Editable table specific styles */
+.editable-table select.form-control {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid var(--border-color, #e9ecef);
+    border-radius: 4px;
+    background: var(--background-primary, #fff);
+    font-size: 0.875rem;
+    color: var(--text-primary, #2c3e50);
+}
+
+.editable-table select.form-control:focus {
+    outline: none;
+    border-color: var(--secondary-color, #248567);
+    box-shadow: 0 0 0 2px rgba(36, 133, 103, 0.1);
+}
+
+.editable-table .relationship-dropdown {
+    min-width: 150px;
+}
+
+/* Highlighted row for attribute navigation from search */
+tr.highlighted-row {
+    background-color: #fff3cd !important;
+    border: 2px solid #ffc107 !important;
+    box-shadow: 0 0 10px rgba(255, 193, 7, 0.5) !important;
+    animation: highlightPulse 0.5s ease-in-out;
+}
+
+@keyframes highlightPulse {
+    0% {
+        background-color: #ffffff;
+        transform: scale(1);
+    }
+    50% {
+        background-color: #fff3cd;
+        transform: scale(1.01);
+    }
+    100% {
+        background-color: #fff3cd;
+        transform: scale(1);
+    }
+}
+
+/* Smooth transition when highlight is removed */
+tr.attr-row {
+    transition: all 0.3s ease;
+}
+
+/* Relationships section styling - same as policy impact */
+.relationships-container {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+/* Sub-tabs styling - match process impact exactly */
+/* Use more specific selectors to override system.css */
+.dataset-edit-page .relationships-sub-tabs,
+#impactTab .relationships-sub-tabs,
+#impact .relationships-sub-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border-color, #e5e7eb);
+    margin-bottom: 1rem;
+    background: none !important;
+}
+
+.dataset-edit-page .sub-tab,
+#impactTab .sub-tab,
+#impact .sub-tab {
+    background: none !important;
+    border: none !important;
+    padding: 0.75rem 1.5rem !important;
+    font-size: 0.875rem !important;
+    font-weight: 500 !important;
+    color: var(--text-muted, #6b7280) !important;
+    cursor: pointer;
+    border-bottom: 2px solid transparent !important;
+    transition: all 0.2s ease;
+    position: relative;
+}
+
+.dataset-edit-page .sub-tab:hover,
+#impactTab .sub-tab:hover,
+#impact .sub-tab:hover {
+    color: var(--text-primary, #374151) !important;
+    background-color: var(--background-hover, #f9fafb) !important;
+}
+
+.dataset-edit-page .sub-tab.active,
+#impactTab .sub-tab.active,
+#impact .sub-tab.active {
+    color: var(--primary-color, #248567) !important;
+    border-bottom-color: var(--primary-color, #248567) !important;
+    background-color: var(--background-primary, #ffffff) !important;
+}
+
+.relationships-content {
+    position: relative;
+}
+
+.sub-tab-content {
+    display: none;
+}
+
+.sub-tab-content.active {
+    display: block;
+}
+
+/* Relationships hierarchy styling - same as policy impact */
+.relationships-hierarchy {
+    background: var(--background-primary, #fff);
+    border: 1px solid var(--border-color, #e9ecef);
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: var(--shadow-light, 0 2px 10px rgba(0, 0, 0, 0.1));
+}
+
+.relationships-hierarchy .hierarchy-header {
+    background: var(--background-secondary, #f8f9fa);
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--border-color, #e9ecef);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.relationships-hierarchy .hierarchy-title {
+    font-weight: 600;
+    color: var(--text-secondary, #6c757d);
+    letter-spacing: .04em;
+    font-size: .9rem;
+    background-color: var(--background-secondary, #f8f9fa);
+    padding: 0.5rem 0.75rem;
+    border-radius: 6px;
+    border-left: 4px solid var(--secondary-color, #248567);
+    text-transform: uppercase;
+}
+
+.relationships-hierarchy .hierarchy-actions {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+}
+
+.data-table-wrapper {
+    overflow-x: auto;
+    max-height: 600px;
+    overflow-y: auto;
+}
+
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.data-table thead {
+    background: var(--background-secondary, #f8f9fa);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.data-table th {
+    padding: 1rem 1rem;
+    text-align: left;
+    font-weight: 600;
+    color: var(--text-secondary, #6c757d);
+    font-size: .82rem;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    background: var(--background-secondary, #f8f9fa);
+    border-bottom: 1px solid var(--border-color, #e9ecef);
+}
+
+.data-table th .th-content {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.data-table th .th-content i {
+    font-size: 0.75rem;
+    opacity: 0.5;
+}
+
+.data-table td {
+    padding: .9rem 1rem;
+    border-top: 1px solid var(--border-color, #e9ecef);
+    color: var(--text-primary, #2c3e50);
+    font-size: 0.875rem;
+}
+
+/* Center table cells under centered headers */
+/* Product table: Ref (3rd), Owner (4th), Action (5th) */
+#impactProductContent .data-table th:nth-child(3),
+#impactProductContent .data-table th:nth-child(4),
+#impactProductContent .data-table th:nth-child(5),
+#impactProductContent .data-table th:nth-child(5) .th-content,
+#impactProductContent .data-table td:nth-child(3),
+#impactProductContent .data-table td:nth-child(4),
+#impactProductContent .data-table td:nth-child(5) {
+    text-align: center;
+}
+
+#impactProductContent .data-table th:nth-child(3) .th-content,
+#impactProductContent .data-table th:nth-child(5) .th-content {
+    justify-content: center;
+}
+
+/* Client table: Owner (3rd), Action (4th) */
+#impactClientContent .data-table th:nth-child(3),
+#impactClientContent .data-table th:nth-child(4),
+#impactClientContent .data-table th:nth-child(4) .th-content,
+#impactClientContent .data-table td:nth-child(3),
+#impactClientContent .data-table td:nth-child(4) {
+    text-align: center;
+}
+
+#impactClientContent .data-table th:nth-child(4) .th-content {
+    justify-content: center;
+}
+
+/* Legal table: Owner (3rd), Action (4th) */
+#impactLegalContent .data-table th:nth-child(3),
+#impactLegalContent .data-table th:nth-child(4),
+#impactLegalContent .data-table th:nth-child(4) .th-content,
+#impactLegalContent .data-table td:nth-child(3),
+#impactLegalContent .data-table td:nth-child(4) {
+    text-align: center;
+}
+
+#impactLegalContent .data-table th:nth-child(4) .th-content {
+    justify-content: center;
+}
+
+.data-table tbody tr:hover {
+    background: var(--background-hover, #f9fafb);
+}
+
+.hierarchy-footer {
+    padding: 0.75rem 1.25rem;
+    background: var(--background-secondary, #f8f9fa);
+    border-top: 1px solid var(--border-color, #e9ecef);
+    font-size: 0.875rem;
+    color: var(--text-secondary, #6c757d);
+    text-align: left;
+}
+
+/* Form controls in tables */
+.data-table .form-control,
+.data-table .form-select {
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--border-color, #cbd5e1);
+    border-radius: 6px;
+    font-size: 0.875rem;
+    color: var(--text-primary, #1e293b);
+    background: var(--background-primary, #ffffff);
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.data-table .form-control:focus,
+.data-table .form-select:focus {
+    outline: none;
+    border-color: var(--primary-color, #2563eb);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.data-table .text-muted {
+    color: var(--text-muted, #6b7280);
+}
+
+/* Action buttons */
+.action-buttons {
+    display: flex;
+    gap: 0.25rem;
+    align-items: center;
+    justify-content: center;
+}
+
+.action-buttons .btn {
+    padding: 0.375rem;
+    min-width: 28px;
+    height: 28px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    background: #f9fafb;
+    color: #6b7280;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 0.75rem;
+}
+
+.action-buttons .btn:hover {
+    background: #f3f4f6;
+    border-color: #9ca3af;
+    transform: scale(1.05);
+}
+
+.action-buttons .btn i {
+    font-size: 0.75rem;
+}
+

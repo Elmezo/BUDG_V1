@@ -1,0 +1,1025 @@
+/*
+ * Facets Shared Styles - Unified CSS for all Facet Hierarchy Tabs
+ * 
+ * This stylesheet provides consistent styling for all facet hierarchy tabs
+ * across the application. It unifies the visual appearance while preserving
+ * all existing data bindings and component logic.
+ * 
+ * Integration:
+ * 1. Include this file globally in your main CSS or HTML head
+ * 2. Remove duplicate hierarchy styles from individual facet CSS files
+ * 3. This file uses CSS variables for easy theming and customization
+ * 
+ * Usage:
+ * - Add <link rel="stylesheet" href="assets/css/facets.shared.css"> to HTML
+ * - Or import in main CSS: @import "assets/css/facets.shared.css";
+ * - Or import in SCSS: @import "assets/css/facets.shared.css";
+ */
+
+/* ==========================================================================
+   CSS Variables - Facet Theme System
+   ========================================================================== */
+
+:root {
+  /* Brand Colors */
+  --brand-primary: #248567;
+  --brand-accent: #248567;
+  --brand-secondary: #6b7280;
+  
+  /* Facet Background Colors */
+  --facet-bg: #ffffff;
+  --facet-bg-secondary: #f8f9fa;
+  --facet-bg-hover: #f1f5f9;
+  --facet-bg-active: #e7f5ed;
+  
+  /* Border and Structure */
+  --facet-border: #e5e7eb;
+  --facet-border-light: #f1f5f9;
+  --facet-radius: 8px;
+  --facet-radius-sm: 6px;
+  
+  /* Tab System */
+  --tab-bg: transparent;
+  --tab-bg-hover: #f8fafc;
+  --tab-bg-active: #ffffff;
+  --tab-border: transparent;
+  --tab-border-active: var(--brand-accent);
+  
+  /* Typography */
+  --text-color: #2c3e50;
+  --text-secondary: #6c757d;
+  --text-muted: #9ca3af;
+  --text-inverse: #ffffff;
+  
+  /* Spacing System */
+  --gap-xs: 0.25rem;
+  --gap-sm: 0.5rem;
+  --gap-md: 1rem;
+  --gap-lg: 1.5rem;
+  --gap-xl: 2rem;
+  
+  /* Shadows */
+  --shadow-light: 0 2px 10px rgba(0, 0, 0, 0.1);
+  --shadow-medium: 0 4px 20px rgba(0, 0, 0, 0.15);
+  
+  /* Transitions */
+  --transition-fast: 0.15s ease;
+  --transition-normal: 0.2s ease;
+  --transition-slow: 0.3s ease;
+}
+
+/* Dark theme support */
+[data-theme="dark"] {
+  --facet-bg: #1f2937;
+  --facet-bg-secondary: #374151;
+  --facet-bg-hover: #4b5563;
+  --facet-bg-active: #248567;
+  --facet-border: #4b5563;
+  --facet-border-light: #374151;
+  --text-color: #f9fafb;
+  --text-secondary: #d1d5db;
+  --text-muted: #9ca3af;
+}
+
+/* ==========================================================================
+   Facet Container System
+   ========================================================================== */
+
+.facet {
+  background: var(--facet-bg);
+  border: 1px solid var(--facet-border);
+  border-radius: var(--facet-radius);
+  overflow: hidden;
+  box-shadow: var(--shadow-light);
+}
+
+.facet--compact {
+  --gap-md: 0.75rem;
+  --gap-lg: 1rem;
+}
+
+.facet--large {
+  --gap-md: 1.25rem;
+  --gap-lg: 2rem;
+}
+
+/* ==========================================================================
+   Facet Tabs System
+   ========================================================================== */
+
+.facet__tabs {
+  display: flex;
+  border-bottom: 1px solid var(--facet-border);
+  background: var(--facet-bg);
+  border-radius: var(--facet-radius) var(--facet-radius) 0 0;
+  overflow: hidden;
+}
+
+.facet__tab {
+  flex: 1;
+  padding: var(--gap-md) var(--gap-lg);
+  background: var(--tab-bg);
+  border: none;
+  border-bottom: 3px solid var(--tab-border);
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-normal);
+  position: relative;
+  text-align: center;
+}
+
+.facet__tab:hover {
+  color: var(--text-color);
+  background: var(--tab-bg-hover);
+}
+
+.facet__tab:focus {
+  outline: 2px solid var(--brand-primary);
+  outline-offset: -2px;
+}
+
+.facet__tab--active,
+.facet__tab.active {
+  color: var(--brand-accent);
+  background: var(--tab-bg-active);
+  border-bottom-color: var(--tab-border-active);
+  font-weight: 600;
+}
+
+/* Hierarchy tab specific styling */
+.facet__tab--hierarchy {
+  position: relative;
+}
+
+.stakeholder-subtabs {
+  display: flex;
+  gap: var(--gap-sm);
+  margin-bottom: var(--gap-sm);
+  flex-wrap: wrap;
+}
+
+.stakeholder-subtab {
+  padding: 0.4rem 0.8rem;
+  border: 1px solid var(--tab-border, transparent);
+  background: var(--tab-bg, transparent);
+  color: var(--text-color, #1f2937);
+  border-radius: var(--facet-radius-sm, 6px);
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all 0.15s ease;
+}
+
+.stakeholder-subtab:hover {
+  background: var(--tab-bg-hover, #f8fafc);
+  border-color: var(--tab-border-active, var(--brand-accent, #248567));
+  color: var(--brand-accent, #248567);
+}
+
+.stakeholder-subtab.active {
+  background: var(--tab-bg-active, #ffffff);
+  border-color: var(--tab-border-active, var(--brand-accent, #248567));
+  color: var(--brand-accent, #248567);
+  box-shadow: 0 1px 3px rgba(36, 133, 103, 0.15);
+}
+
+.stakeholder-followers-panel .followers-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+
+.stakeholder-followers-panel .followers-table th,
+.stakeholder-followers-panel .followers-table td {
+  padding: 0.65rem 0.75rem;
+  border-bottom: 1px solid var(--facet-border, #e5e7eb);
+  text-align: left;
+}
+
+.stakeholder-followers-panel .followers-table th {
+  background: var(--facet-bg, #ffffff);
+  font-weight: 600;
+  color: var(--text-secondary, #374151);
+}
+
+.stakeholder-followers-panel .followers-table .empty {
+  text-align: center;
+  color: var(--text-muted, #6b7280);
+}
+
+.stakeholder-followers-panel .followers-actions {
+  margin-top: 0.75rem;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.facet__tab--hierarchy::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--brand-accent);
+  transform: scaleX(0);
+  transition: transform var(--transition-normal);
+}
+
+.facet__tab--hierarchy.facet__tab--active::after,
+.facet__tab--hierarchy.active::after {
+  transform: scaleX(1);
+}
+
+/* ==========================================================================
+   Facet Content System
+   ========================================================================== */
+
+.facet__content {
+  position: relative;
+  background: var(--facet-bg);
+}
+
+.facet__tab-content {
+  display: none;
+  animation: fadeIn var(--transition-slow) ease-in-out;
+}
+
+.facet__tab-content--active,
+.facet__tab-content.active {
+  display: block;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ==========================================================================
+   Hierarchy System - Core Components
+   ========================================================================== */
+
+.relationships-hierarchy {
+  background: var(--facet-bg);
+  border: 1px solid var(--facet-border);
+  border-radius: var(--facet-radius);
+  overflow: hidden;
+  box-shadow: var(--shadow-light);
+  margin-top: var(--gap-md);
+}
+
+.relationships-hierarchy .hierarchy-header {
+  background: var(--facet-bg-secondary);
+  padding: var(--gap-md) var(--gap-lg);
+  border-bottom: 1px solid var(--facet-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.relationships-hierarchy .hierarchy-title {
+  font-weight: 600;
+  color: var(--text-secondary);
+  letter-spacing: 0.04em;
+  font-size: 0.9rem;
+  background-color: var(--facet-bg-secondary);
+  padding: var(--gap-sm) 0.75rem;
+  border-radius: var(--facet-radius-sm);
+  border-left: 4px solid var(--brand-accent);
+  text-transform: uppercase;
+  display: inline-block;
+}
+
+.relationships-hierarchy .hierarchy-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-sm);
+}
+
+/* ==========================================================================
+   Hierarchy Table System
+   ========================================================================== */
+
+.relationships-hierarchy .hierarchy-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--facet-bg);
+}
+
+.relationships-hierarchy .hierarchy-table th {
+  padding: var(--gap-md);
+  text-align: left;
+  font-weight: 600;
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background: var(--facet-bg-secondary);
+  border-bottom: 2px solid var(--facet-border);
+}
+
+.relationships-hierarchy .hierarchy-table td {
+  padding: 0.9rem var(--gap-md);
+  border-top: 1px solid var(--facet-border);
+  color: var(--text-color);
+  vertical-align: top;
+}
+
+/* Project hierarchy table column widths */
+.project-page .hierarchy-table .ref-col {
+  width: 120px;
+  min-width: 120px;
+}
+
+.project-page .hierarchy-table .project-col {
+  width: 200px;
+  min-width: 200px;
+}
+
+.project-page .hierarchy-table .description-col {
+  width: 250px;
+  min-width: 200px;
+}
+
+.project-page .hierarchy-table .rag-col {
+  width: 100px;
+  min-width: 100px;
+}
+
+.project-page .hierarchy-table .lifecycle-col {
+  width: 120px;
+  min-width: 120px;
+}
+
+.project-page .hierarchy-table .startdate-col {
+  width: 120px;
+  min-width: 120px;
+}
+
+.project-page .hierarchy-table .enddate-col {
+  width: 120px;
+  min-width: 120px;
+}
+
+.project-page .hierarchy-table {
+  table-layout: fixed;
+}
+
+.project-page .hierarchy-table-container {
+  overflow-x: auto;
+}
+
+.project-page .hierarchy-table td {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.project-page .hierarchy-table .description-col {
+  white-space: normal;
+  word-wrap: break-word;
+  word-break: break-word;
+}
+
+.project-page .hierarchy-table .rag-badge,
+.project-page .hierarchy-table .lifecycle-badge {
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.project-page .hierarchy-table .rag-badge {
+  background-color: #f3f4f6;
+  color: #374151;
+}
+
+.project-page .hierarchy-table .lifecycle-badge {
+  background-color: #e5e7eb;
+  color: #374151;
+}
+
+.relationships-hierarchy .hierarchy-table tr:hover td {
+  background: var(--facet-bg-hover);
+}
+
+/* ==========================================================================
+   Hierarchy Item System
+   ========================================================================== */
+
+.relationships-hierarchy .hierarchy-item {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-sm);
+}
+
+/* Expand/Collapse Icons */
+.relationships-hierarchy .expand-icon {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all var(--transition-normal);
+  user-select: none;
+  padding: var(--gap-xs);
+  border-radius: 4px;
+  background: rgba(36, 133, 103, 0.1);
+  margin-right: var(--gap-sm);
+}
+
+.relationships-hierarchy .expand-icon:hover {
+  color: var(--brand-primary);
+  transform: scale(1.1);
+  background: rgba(36, 133, 103, 0.12);
+}
+
+.relationships-hierarchy .expand-icon.expanded {
+  transform: rotate(90deg);
+}
+
+.relationships-hierarchy .expand-icon.collapsed {
+  transform: rotate(0deg);
+}
+
+/* Hierarchy Row States */
+.relationships-hierarchy .hierarchy-parent {
+  background-color: #e3f2fd !important;
+}
+
+.relationships-hierarchy .hierarchy-child {
+  background: var(--facet-bg-secondary);
+  padding-left: var(--gap-xl);
+}
+
+.relationships-hierarchy .hierarchy-child.collapsed {
+  display: none;
+}
+
+/* Current Item Highlighting */
+.relationships-hierarchy .current-name {
+  font-weight: 700;
+  color: var(--brand-primary);
+  background: var(--facet-bg-active);
+  padding: 0.3rem 0.6rem;
+  border-radius: var(--facet-radius);
+  border: 2px solid var(--brand-primary);
+  text-decoration: none;
+  display: inline-block;
+  transition: all var(--transition-normal);
+}
+
+.relationships-hierarchy .current-name:hover {
+  background: var(--brand-primary-200, #b0ddc9);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(36, 133, 103, 0.2);
+}
+
+/* Current Link Styling - Unified across all facets */
+.system-page .current-system-link,
+.glossary-page .current-glossary-link,
+.org-unit-page .current-org-unit-link,
+.business-area-page .current-business-area-link,
+.legal-entity-page .current-legal-entity-link,
+.client-page .current-client-link,
+.committee-page .current-committee-link,
+.project-page .current-project-link,
+.product-page .current-product-link,
+.capability-page .current-capability-link {
+  color: #248567;
+  font-weight: 700;
+  background: #e5e7eb;
+  padding: 0.2rem 0.5rem;
+  border-radius: 50px; /* Circular shape */
+  border: 2px solid var(--primary-500, #248567);
+  text-decoration: none;
+  transition: all var(--transition-normal);
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2rem;
+  min-height: 2rem;
+}
+
+.system-page .current-system-link:hover,
+.glossary-page .current-glossary-link:hover,
+.org-unit-page .current-org-unit-link:hover,
+.business-area-page .current-business-area-link:hover,
+.legal-entity-page .current-legal-entity-link:hover,
+.client-page .current-client-link:hover,
+.committee-page .current-committee-link:hover,
+.project-page .current-project-link:hover,
+.product-page .current-product-link:hover,
+.capability-page .current-capability-link:hover {
+  background: var(--primary-100, #d2ebde);
+  color: var(--primary-800, #144034) !important;
+  border-color: var(--primary-600, #1f7359);
+  transform: translateY(-1px) scale(1.05);
+  box-shadow: 0 4px 8px rgba(36, 133, 103, 0.25);
+}
+
+/* Parent Item Styling */
+.relationships-hierarchy .parent-name {
+  font-weight: 600;
+  color: var(--text-color);
+  background: var(--brand-accent);
+  color: var(--text-inverse);
+  padding: 0.2rem 0.5rem;
+  border-radius: var(--facet-radius-sm);
+  border: 1px solid var(--brand-accent);
+  text-decoration: none;
+  display: inline-block;
+  transition: all var(--transition-normal);
+}
+
+.relationships-hierarchy .parent-name:hover {
+  background: #1e6b4f;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Child Item Styling */
+.relationships-hierarchy .child-name {
+  font-weight: 400;
+  color: var(--text-secondary);
+  padding-left: var(--gap-sm);
+  text-decoration: none;
+  transition: color var(--transition-normal);
+}
+
+.relationships-hierarchy .child-name:hover {
+  color: var(--brand-primary);
+}
+
+/* Relationship Labels */
+.relationships-hierarchy .relationship-label {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  font-weight: 400;
+  background: var(--facet-bg-secondary);
+  padding: 0.2rem 0.5rem;
+  border-radius: var(--facet-radius-sm);
+  margin-left: var(--gap-sm);
+  display: inline-block;
+}
+
+/* ==========================================================================
+   Hierarchy Connector System
+   ========================================================================== */
+
+.hierarchy-connector {
+  position: relative;
+  display: flex;
+  align-items: center;
+  margin-right: 1.5rem;
+  margin-left: 2rem;
+  min-width: 2rem;
+}
+
+.connector-line {
+  width: 1px;
+  height: 1rem;
+  background: var(--facet-border);
+  margin-left: var(--gap-sm);
+  display: block;
+}
+
+.connector-line.last-child {
+  height: 0.5rem;
+}
+
+.connector-l-shape {
+  width: 0.5rem;
+  height: 1px;
+  background: var(--facet-border);
+  display: block;
+}
+
+/* ==========================================================================
+   Hierarchy Icons System
+   ========================================================================== */
+
+.relationships-hierarchy .hierarchy-item .business-area-icon,
+.relationships-hierarchy .hierarchy-item .policy-icon,
+.relationships-hierarchy .hierarchy-item .legal-icon,
+.relationships-hierarchy .hierarchy-item .client-icon,
+.relationships-hierarchy .hierarchy-item .committee-icon,
+.relationships-hierarchy .hierarchy-item .project-icon,
+.relationships-hierarchy .hierarchy-item .product-icon,
+.relationships-hierarchy .hierarchy-item .capability-icon {
+  color: var(--brand-accent);
+  font-size: 0.9rem;
+  margin-right: var(--gap-sm);
+}
+
+/* ==========================================================================
+   Hierarchy Footer
+   ========================================================================== */
+
+.relationships-hierarchy .hierarchy-footer {
+  padding: 0.75rem var(--gap-md);
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  border-top: 1px solid var(--facet-border);
+  background: var(--facet-bg-secondary);
+  text-align: center;
+}
+
+/* ==========================================================================
+   State Classes for Different Facets
+   ========================================================================== */
+
+/* Business Area States */
+.relationships-hierarchy .current-business-area {
+  background: var(--facet-bg-active) !important;
+  border-left: 4px solid var(--brand-primary);
+}
+
+.relationships-hierarchy .parent-business-area {
+  background: var(--facet-bg-secondary);
+  border-left: 2px solid var(--text-muted);
+}
+
+/* Policy States */
+.relationships-hierarchy .current-policy {
+  background-color: var(--facet-bg-active);
+  border-left: 3px solid var(--brand-primary);
+}
+
+.relationships-hierarchy .parent-policy {
+  background-color: var(--facet-bg-secondary);
+}
+
+/* Legal Entity States */
+.relationships-hierarchy .current-legal {
+  background-color: var(--facet-bg-active);
+  border-left: 3px solid var(--brand-primary);
+}
+
+.relationships-hierarchy .parent-legal {
+  background-color: var(--facet-bg-secondary);
+}
+
+/* Client States */
+.relationships-hierarchy .current-client {
+  background: var(--facet-bg-active) !important;
+  border-left: 4px solid var(--brand-primary);
+}
+
+.relationships-hierarchy .parent-client {
+  background: var(--facet-bg-secondary);
+  border-left: 2px solid var(--text-muted);
+}
+
+/* Committee States */
+.relationships-hierarchy .current-committee {
+  background-color: var(--facet-bg-active);
+  border-left: 3px solid var(--brand-primary);
+}
+
+.relationships-hierarchy .parent-committee {
+  background-color: var(--facet-bg-secondary);
+}
+
+/* Project States */
+.relationships-hierarchy .current-project {
+  background-color: var(--facet-bg-active);
+  border-left: 3px solid var(--brand-primary);
+}
+
+.relationships-hierarchy .parent-project {
+  background-color: var(--facet-bg-secondary);
+}
+
+/* Product States */
+.relationships-hierarchy .current-product {
+  background-color: var(--facet-bg-active);
+  border-left: 3px solid var(--brand-primary);
+}
+
+.relationships-hierarchy .parent-product {
+  background-color: var(--facet-bg-secondary);
+}
+
+/* Capability States */
+.relationships-hierarchy .current-capability {
+  background-color: var(--facet-bg-active);
+  border-left: 3px solid var(--brand-primary);
+}
+
+.relationships-hierarchy .parent-capability {
+  background-color: var(--facet-bg-secondary);
+}
+
+/* ==========================================================================
+   Loading and Empty States
+   ========================================================================== */
+
+.hierarchy-loading {
+  text-align: center;
+  padding: var(--gap-xl);
+  color: var(--text-secondary);
+}
+
+.hierarchy-loading i {
+  font-size: 2rem;
+  margin-bottom: var(--gap-md);
+  opacity: 0.7;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.hierarchy-empty {
+  text-align: center;
+  padding: 3rem;
+  color: var(--text-secondary);
+}
+
+.hierarchy-empty i {
+  font-size: 3rem;
+  margin-bottom: var(--gap-md);
+  opacity: 0.5;
+}
+
+.hierarchy-empty p {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.hierarchy-error {
+  text-align: center;
+  padding: 3rem;
+  color: #dc3545;
+}
+
+.hierarchy-error i {
+  font-size: 2.5rem;
+  margin-bottom: var(--gap-md);
+  opacity: 0.7;
+}
+
+.hierarchy-error p {
+  margin: 0 0 var(--gap-md) 0;
+  font-size: 1rem;
+}
+
+/* ==========================================================================
+   Responsive Design
+   ========================================================================== */
+
+@media (max-width: 768px) {
+  .facet__tab {
+    padding: 0.75rem 1rem;
+    font-size: 0.85rem;
+  }
+  
+  .relationships-hierarchy .hierarchy-header {
+    padding: 0.75rem 1rem;
+    flex-direction: column;
+    gap: var(--gap-sm);
+  }
+  
+  .relationships-hierarchy .hierarchy-table th,
+  .relationships-hierarchy .hierarchy-table td {
+    padding: 0.75rem 0.5rem;
+  }
+  
+  .hierarchy-connector {
+    margin-right: 1rem;
+    margin-left: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .facet__tabs {
+    flex-direction: column;
+  }
+  
+  .facet__tab {
+    border-bottom: 1px solid var(--facet-border);
+    border-right: none;
+  }
+  
+  .facet__tab:last-child {
+    border-bottom: none;
+  }
+}
+
+/* ==========================================================================
+   Accessibility Enhancements
+   ========================================================================== */
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  :root {
+    --facet-border: #000000;
+    --text-color: #000000;
+    --text-secondary: #333333;
+    --brand-primary: #005a3c;
+    --brand-accent: #00724c;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .facet__tab,
+  .relationships-hierarchy .expand-icon,
+  .relationships-hierarchy .current-name,
+  .relationships-hierarchy .parent-name,
+  .facet__tab-content {
+    transition: none;
+  }
+  
+  .facet__tab-content {
+    animation: none;
+  }
+}
+
+/* Focus management for keyboard navigation */
+.facet__tab:focus-visible {
+  outline: 2px solid var(--brand-primary);
+  outline-offset: 2px;
+}
+
+.relationships-hierarchy .expand-icon:focus-visible {
+  outline: 2px solid var(--brand-primary);
+  outline-offset: 2px;
+}
+
+/* ==========================================================================
+   Utility Classes
+   ========================================================================== */
+
+.facet--compact .facet__tab {
+  padding: 0.5rem 1rem;
+  font-size: 0.85rem;
+}
+
+.facet--large .facet__tab {
+  padding: 1.25rem 2rem;
+  font-size: 1rem;
+}
+
+.facet--compact .relationships-hierarchy .hierarchy-header {
+  padding: 0.75rem 1rem;
+}
+
+.facet--large .relationships-hierarchy .hierarchy-header {
+  padding: 1.5rem 2rem;
+}
+
+/* Print styles */
+@media print {
+  .facet__tabs {
+    display: none;
+  }
+  
+  .relationships-hierarchy {
+    box-shadow: none;
+    border: 1px solid #000;
+  }
+  
+  .relationships-hierarchy .hierarchy-header {
+    background: #f0f0f0 !important;
+  }
+}
+
+/* ==========================================================================
+   Tree Structure Styles for Full Hierarchy
+   ========================================================================== */
+
+/* Tree cell container */
+.tree-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  position: relative;
+}
+
+/* Tree indentation */
+.tree-indent {
+  display: inline-block;
+  width: 1.5rem;
+  height: 1rem;
+  position: relative;
+}
+
+/* Tree expander button */
+.tree-expander {
+  background: none;
+  border: none;
+  padding: 0.25rem;
+  cursor: pointer;
+  color: var(--text-muted, #6b7280);
+  transition: color 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 3px;
+}
+
+.tree-expander:hover {
+  color: var(--brand-primary, #248567);
+  background: var(--brand-primary-50, #e7f5ed);
+}
+
+.tree-expander i {
+  font-size: 0.75rem;
+  transition: transform 0.2s ease;
+}
+
+.tree-expander.expanded i {
+  transform: rotate(90deg);
+}
+
+/* Tree placeholder for items without children */
+.tree-placeholder {
+  display: inline-block;
+  width: 1.5rem;
+  height: 1rem;
+}
+
+/* Tree branch connector */
+.tree-branch {
+  position: absolute;
+  left: 0.75rem;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--border-color, #e5e7eb);
+}
+
+.tree-branch::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.5rem;
+  width: 0.75rem;
+  height: 1px;
+  background: var(--border-color, #e5e7eb);
+}
+
+/* Item icon */
+.item-icon {
+  color: var(--text-muted, #6b7280);
+  font-size: 0.875rem;
+  margin-right: 0.5rem;
+}
+
+/* Current row highlighting */
+.current-row {
+  background: var(--brand-primary-50, #e7f5ed) !important;
+  border-left: 3px solid var(--brand-primary, #248567);
+}
+
+.current-row .item-icon {
+  color: var(--brand-primary, #248567);
+}
+
+/* Business area specific styling */
+.business-area-name {
+  font-weight: 500;
+  color: var(--text-color, #1f2937);
+}
+
+.business-area-link {
+  color: var(--text-color, #1f2937);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.business-area-link:hover {
+  color: var(--brand-primary, #248567);
+  text-decoration: underline;
+}
+
+/* Current business area link styling */
+.current-business-area-link {
+  color: var(--brand-primary, #248567) !important;
+  font-weight: 600;
+  background: var(--brand-primary-100, #d2ebde);
+  padding: 0.2rem 0.5rem;
+  border-radius: 6px;
+  border: 1px solid var(--brand-primary-200, #b0ddc9);
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.current-business-area-link:hover {
+  background: var(--brand-primary-200, #b0ddc9);
+  color: var(--brand-primary-700, #195d48) !important;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(36, 133, 103, 0.2);
+}

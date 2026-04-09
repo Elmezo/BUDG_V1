@@ -1,0 +1,149 @@
+/* Active Tasks Styles */
+
+.overdue-task {
+    background-color: #dc3545;
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-weight: bold;
+    display: inline-block;
+    white-space: nowrap;
+}
+
+/* Highlight overdue rows */
+.active-tasks-table tbody tr.overdue-row {
+    background-color: #fff5f5;
+}
+
+.active-tasks-table tbody tr.overdue-row:hover {
+    background-color: #ffe0e0;
+}
+
+/* Fallback for browsers that don't support :has() */
+.active-tasks-table tbody tr:has(.overdue-task) {
+    background-color: #fff5f5;
+}
+
+.active-tasks-table tbody tr:has(.overdue-task):hover {
+    background-color: #ffe0e0;
+}
+
+.task-action-btn {
+    padding: 4px 12px;
+    margin: 0 2px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.875rem;
+    transition: all 0.2s;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.task-action-btn:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.task-action-btn:active {
+    opacity: 0.7;
+    transform: translateY(0);
+}
+
+.task-action-btn.approve {
+    background-color: #28a745;
+    color: white;
+}
+
+.task-action-btn.approve:hover {
+    background-color: #218838;
+}
+
+.task-action-btn.reject {
+    background-color: #dc3545;
+    color: white;
+}
+
+.task-action-btn.reject:hover {
+    background-color: #c82333;
+}
+
+.task-action-btn.complete {
+    background-color: #007bff;
+    color: white;
+}
+
+.task-action-btn.complete:hover {
+    background-color: #0056b3;
+}
+
+.task-action-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.task-action-btn:disabled:hover {
+    box-shadow: none;
+}
+
+/* Active Tasks Table Styles */
+.active-tasks-table {
+    width: 100%;
+}
+
+.active-tasks-table th {
+    background-color: #f8f9fa;
+    font-weight: 600;
+    padding: 12px;
+    text-align: left;
+    border-bottom: 2px solid #dee2e6;
+}
+
+.active-tasks-table td {
+    padding: 10px 12px;
+    border-bottom: 1px solid #dee2e6;
+    vertical-align: middle;
+}
+
+.active-tasks-table tbody tr:hover {
+    background-color: #f8f9fa;
+}
+
+.active-tasks-table .title-cell a {
+    color: #248567;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.active-tasks-table .title-cell a:hover {
+    text-decoration: underline;
+}
+
+.active-tasks-table .object-cell a {
+    color: #248567;
+    text-decoration: none;
+}
+
+.active-tasks-table .object-cell a:hover {
+    text-decoration: underline;
+}
+
+.active-tasks-table .actions-cell {
+    white-space: nowrap;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .active-tasks-table {
+        font-size: 0.875rem;
+    }
+    
+    .task-action-btn {
+        padding: 3px 8px;
+        font-size: 0.75rem;
+        margin: 0 1px;
+    }
+}
+

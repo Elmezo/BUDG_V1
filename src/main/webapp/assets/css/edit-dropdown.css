@@ -1,0 +1,521 @@
+/**
+ * Unified Edit Dropdown Styles
+ * Consistent styling for edit button with dropdown across all facet view pages
+ */
+
+/* Edit Dropdown Container */
+.edit-dropdown-container {
+    position: relative;
+    display: inline-block;
+}
+
+/* Edit Dropdown Trigger Button */
+.edit-dropdown-trigger {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: var(--primary-color, #248567);
+    color: white;
+    border: none;
+    border-radius: 0.375rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.edit-dropdown-trigger:hover {
+    background: var(--primary-dark, #1e6b54);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.edit-dropdown-trigger:active {
+    transform: translateY(0);
+}
+
+.edit-dropdown-trigger[aria-expanded="true"] .edit-dropdown-arrow {
+    transform: rotate(180deg);
+}
+
+/* Dropdown Arrow */
+.edit-dropdown-arrow {
+    font-size: 0.75rem;
+    transition: transform 0.2s ease;
+    margin-left: 0.25rem;
+}
+
+/* RTL Support for Arabic */
+[dir="rtl"] .edit-dropdown-arrow {
+    margin-left: 0;
+    margin-right: 0.25rem;
+}
+
+/* Edit Dropdown Menu - above map toolbar (10000), overlays (10001) and all facet content */
+/* Uses position: fixed so the menu escapes overflow: hidden on parent containers */
+.edit-dropdown-menu {
+    position: fixed;
+    z-index: 10500 !important;
+    min-width: 220px;
+    max-width: 280px;
+    background: white;
+    border: 1px solid var(--border-color, #e5e7eb);
+    border-radius: 0.5rem;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-10px);
+    transition: all 0.2s ease;
+}
+
+/* Ensure edit dropdown menu is above everything (incl. map controls on facets view) */
+#editDropdownMenu {
+    z-index: 10500 !important;
+}
+
+/* RTL Support: Positioning is handled by JS for fixed positioning */
+[dir="rtl"] .edit-dropdown-menu {
+    /* left/right set dynamically by JS */
+}
+
+.edit-dropdown-menu.show {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+/* Dropdown Sections */
+.edit-dropdown-section {
+    padding: 0.75rem 0;
+}
+
+.edit-dropdown-section:first-child {
+    padding-top: 0.75rem;
+}
+
+.edit-dropdown-section:last-child {
+    padding-bottom: 0.75rem;
+}
+
+/* Section Titles */
+.edit-dropdown-section-title {
+    padding: 0.5rem 1rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: var(--text-muted, #6b7280);
+    letter-spacing: 0.05em;
+    margin-bottom: 0.25rem;
+}
+
+/* Dropdown Items */
+.edit-dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    width: 100%;
+    padding: 0.75rem 1rem;
+    background: none;
+    border: none;
+    color: var(--text-primary, #374151);
+    font-size: 0.875rem;
+    text-align: left;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    border-radius: 0;
+}
+
+/* RTL Support: Right-align text in Arabic */
+[dir="rtl"] .edit-dropdown-item {
+    text-align: right;
+}
+
+.edit-dropdown-item:hover {
+    background: var(--background-hover, #f9fafb);
+    color: var(--text-primary, #111827);
+}
+
+.edit-dropdown-item:active {
+    background: var(--background-active, #f3f4f6);
+}
+
+/* Dropdown Item Icons */
+.edit-dropdown-item i {
+    width: 1rem;
+    text-align: center;
+    font-size: 0.875rem;
+    color: var(--text-muted, #6b7280);
+    flex-shrink: 0;
+}
+
+.edit-dropdown-item:hover i {
+    color: var(--text-primary, #374151);
+}
+
+/* Danger Item (Delete) */
+.edit-dropdown-item-danger {
+    color: var(--danger-color, #dc2626);
+}
+
+.edit-dropdown-item-danger:hover {
+    background: var(--danger-bg, #fef2f2);
+    color: var(--danger-dark, #b91c1c);
+}
+
+.edit-dropdown-item-danger i {
+    color: var(--danger-color, #dc2626);
+}
+
+.edit-dropdown-item-danger:hover i {
+    color: var(--danger-dark, #b91c1c);
+}
+
+/* Disabled Item (Edit when CR is Running) */
+.edit-dropdown-item-disabled {
+    opacity: 0.5;
+    cursor: not-allowed !important;
+    color: var(--text-muted, #9ca3af) !important;
+    background: var(--background-disabled, #f3f4f6) !important;
+}
+
+.edit-dropdown-item-disabled:hover {
+    background: var(--background-disabled, #f3f4f6) !important;
+    color: var(--text-muted, #9ca3af) !important;
+    cursor: not-allowed !important;
+}
+
+.edit-dropdown-item-disabled i {
+    color: var(--text-muted, #9ca3af) !important;
+}
+
+.edit-dropdown-item-disabled:hover i {
+    color: var(--text-muted, #9ca3af) !important;
+}
+
+.edit-disabled-note {
+    display: block;
+    font-size: 0.75rem;
+    color: #999;
+    margin-top: 4px;
+    font-style: italic;
+    line-height: 1.3;
+}
+
+[data-theme="dark"] .edit-dropdown-item-disabled {
+    background: var(--dark-bg-disabled, #374151) !important;
+    color: var(--dark-text-muted, #6b7280) !important;
+}
+
+[data-theme="dark"] .edit-dropdown-item-disabled:hover {
+    background: var(--dark-bg-disabled, #374151) !important;
+    color: var(--dark-text-muted, #6b7280) !important;
+}
+
+[data-theme="dark"] .edit-disabled-note {
+    color: #9ca3af;
+}
+
+/* Dropdown Divider */
+.edit-dropdown-divider {
+    height: 1px;
+    background: var(--border-color, #e5e7eb);
+    margin: 0.5rem 0;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .edit-dropdown-menu {
+        min-width: 200px;
+        /* left/right set dynamically by JS */
+    }
+    
+    .edit-dropdown-trigger {
+        padding: 0.5rem 0.75rem;
+        font-size: 0.8125rem;
+    }
+    
+    .edit-dropdown-item {
+        padding: 0.625rem 0.875rem;
+        font-size: 0.8125rem;
+    }
+}
+
+/* Dark Theme Support */
+[data-theme="dark"] .edit-dropdown-menu {
+    background: var(--dark-bg-secondary, #1f2937);
+    border-color: var(--dark-border, #374151);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+}
+
+[data-theme="dark"] .edit-dropdown-section-title {
+    color: var(--dark-text-muted, #9ca3af);
+}
+
+[data-theme="dark"] .edit-dropdown-item {
+    color: var(--dark-text-primary, #f9fafb);
+}
+
+[data-theme="dark"] .edit-dropdown-item:hover {
+    background: var(--dark-bg-hover, #374151);
+    color: var(--dark-text-primary, #ffffff);
+}
+
+[data-theme="dark"] .edit-dropdown-item i {
+    color: var(--dark-text-muted, #9ca3af);
+}
+
+[data-theme="dark"] .edit-dropdown-item:hover i {
+    color: var(--dark-text-primary, #f9fafb);
+}
+
+[data-theme="dark"] .edit-dropdown-divider {
+    background: var(--dark-border, #374151);
+}
+
+/* Focus States for Accessibility */
+.edit-dropdown-trigger:focus {
+    outline: 2px solid var(--primary-color, #248567);
+    outline-offset: 2px;
+}
+
+.edit-dropdown-item:focus {
+    outline: none;
+    background: var(--background-hover, #f9fafb);
+}
+
+[data-theme="dark"] .edit-dropdown-item:focus {
+    background: var(--dark-bg-hover, #374151);
+}
+
+/* Animation for smooth transitions */
+@keyframes dropdownSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px) scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.edit-dropdown-menu.show {
+    animation: dropdownSlideIn 0.2s ease-out;
+}
+
+/* Ensure dropdown appears above other elements (map, overlays, etc.) */
+.edit-dropdown-menu {
+    z-index: 10500 !important;
+}
+
+/* Additional RTL support - positioning handled by JS */
+[dir="rtl"] #editDropdownMenu {
+    z-index: 10500 !important;
+    /* left/right set dynamically by JS */
+}
+
+/* Integration with existing button styles */
+.btn.edit-dropdown-trigger {
+    border: none;
+    text-decoration: none;
+}
+
+.btn.edit-dropdown-trigger:focus,
+.btn.edit-dropdown-trigger:active {
+    box-shadow: none;
+}
+
+/* Override any conflicting styles */
+.edit-dropdown-container * {
+    box-sizing: border-box;
+}
+
+/* Ensure proper positioning in different containers */
+.form-actions .edit-dropdown-container,
+.tab-actions .edit-dropdown-container {
+    margin-left: auto;
+}
+
+/* RTL Support: Use margin-right instead of margin-left in Arabic */
+[dir="rtl"] .form-actions .edit-dropdown-container,
+[dir="rtl"] .tab-actions .edit-dropdown-container {
+    margin-left: 0;
+    margin-right: auto;
+}
+
+.page-header .edit-dropdown-container {
+    flex-shrink: 0;
+}
+
+/* Clone Modal Styles */
+.clone-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.clone-modal.show {
+    opacity: 1;
+    visibility: visible;
+}
+
+.clone-modal-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(2px);
+}
+
+.clone-modal-content {
+    position: relative;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    max-width: 500px;
+    width: 90%;
+    max-height: 90vh;
+    overflow: hidden;
+    transform: scale(0.95);
+    transition: transform 0.3s ease;
+}
+
+.clone-modal.show .clone-modal-content {
+    transform: scale(1);
+}
+
+.clone-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.5rem;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.clone-modal-header h3 {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #111827;
+}
+
+.clone-close-btn {
+    background: none;
+    border: none;
+    font-size: 1.25rem;
+    color: #6b7280;
+    cursor: pointer;
+    padding: 0.25rem;
+    line-height: 1;
+    transition: color 0.2s;
+}
+
+.clone-close-btn:hover {
+    color: #111827;
+}
+
+.clone-modal-body {
+    padding: 1.5rem;
+    color: #374151;
+    line-height: 1.6;
+}
+
+.clone-modal-footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    padding: 1.5rem;
+    border-top: 1px solid #e5e7eb;
+}
+
+.clone-cancel-btn,
+.clone-continue-btn {
+    padding: 0.5rem 1.25rem;
+    border-radius: 0.375rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: 1px solid;
+}
+
+.clone-cancel-btn {
+    background: white;
+    color: #374151;
+    border-color: #d1d5db;
+}
+
+.clone-cancel-btn:hover {
+    background: #f9fafb;
+    border-color: #9ca3af;
+}
+
+.clone-continue-btn {
+    background: var(--primary-color, #248567);
+    color: white;
+    border-color: var(--primary-color, #248567);
+}
+
+.clone-continue-btn:hover {
+    background: var(--primary-dark, #1e6b54);
+    border-color: var(--primary-dark, #1e6b54);
+}
+
+.clone-continue-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* Dark theme support for clone modal */
+[data-theme="dark"] .clone-modal-content {
+    background: var(--dark-bg-secondary, #1f2937);
+    border-color: var(--dark-border, #374151);
+}
+
+[data-theme="dark"] .clone-modal-header {
+    border-bottom-color: var(--dark-border, #374151);
+}
+
+[data-theme="dark"] .clone-modal-header h3 {
+    color: var(--dark-text-primary, #f9fafb);
+}
+
+[data-theme="dark"] .clone-close-btn {
+    color: var(--dark-text-muted, #9ca3af);
+}
+
+[data-theme="dark"] .clone-close-btn:hover {
+    color: var(--dark-text-primary, #f9fafb);
+}
+
+[data-theme="dark"] .clone-modal-body {
+    color: var(--dark-text-primary, #f9fafb);
+}
+
+[data-theme="dark"] .clone-modal-footer {
+    border-top-color: var(--dark-border, #374151);
+}
+
+[data-theme="dark"] .clone-cancel-btn {
+    background: var(--dark-bg-secondary, #1f2937);
+    color: var(--dark-text-primary, #f9fafb);
+    border-color: var(--dark-border, #374151);
+}
+
+[data-theme="dark"] .clone-cancel-btn:hover {
+    background: var(--dark-bg-hover, #374151);
+    border-color: var(--dark-border-hover, #4b5563);
+}

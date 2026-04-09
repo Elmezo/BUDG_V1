@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BUDG - New Dataset</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="assets/css/main.css">
+    <link rel="stylesheet" href="assets/css/people.css">
+    <link rel="stylesheet" href="assets/css/dataset.css">
+    <link rel="stylesheet" href="assets/css/custom-fields.css">
+    <link rel="stylesheet" href="assets/css/global-lock-ui.css">
+    <link rel="stylesheet" href="assets/css/toast.css">
+    <link rel="stylesheet" href="assets/css/advanced-rich-text-editor.css">
+    <!-- RTL styles for Arabic (disabled by default, enabled by i18n.js) -->
+    <link rel="stylesheet" href="assets/css/rtl.css" id="rtl-styles" disabled>
+    <link rel="stylesheet" href="assets/css/segments-cube-panel.css">
+    <link rel="icon" type="image/png" href="assets/images/avatars/icon.jpg">
+    
+    <script>
+        (function() {
+            const savedTheme = localStorage.getItem('budg-theme') || 'light';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+        })();
+    </script>
+    
+    <script src="/assets/i18n/head-locale.js"></script>
+    <script src="assets/i18n/i18n.js"></script>
+</head>
+<body class="dataset-page" data-submenu="data" data-custom-facet="Data Sets">
+    <header class="header"></header>
+
+    <div class="page-header">
+        <div class="page-header-container">
+            <div class="page-title">
+                <div class="page-icon">
+                    <i class="fas fa-database"></i>
+                </div>
+                <div class="page-title-text">
+                    <div class="page-title-main" data-i18n="createPage.title.newDataset">New Dataset</div>
+                    <div class="page-title-sub" data-i18n="label.group.dataTechnology">Data & Technology</div>
+                </div>
+            </div>
+            <div class="form-actions">
+                <button type="button" class="btn btn-secondary" id="closeBtn" data-i18n="button.close">Close</button>
+                <button type="button" class="btn btn-primary" id="saveBtn" data-i18n="button.save">Save</button>
+                <button type="button" class="btn btn-success" id="saveAndCloseBtn" data-i18n="button.saveAndClose">Save & Close</button>
+            </div>
+        </div>
+    </div>
+
+    <main class="main-content">
+        <div class="content-card">
+            <div class="content-header">
+                <div class="tab-container">
+                    <button class="tab active" data-i18n="tab.details">DETAILS</button>
+                </div>
+            </div>
+            <div class="content-body">
+                <form id="datasetForm">
+                    <div class="dataset-container">
+                        <!-- DEFINITION Card -->
+                        <div class="form-card definition-card">
+                            <div class="card-header">
+                                <h3 class="card-title" data-i18n="createPage.section.definition">DEFINITION</h3>
+                            </div>
+                            <div class="card-body">
+                                <div class="form-group">
+                                    <label class="form-label"><span data-i18n="createPage.label.name">Name</span> <span class="required">*</span></label>
+                                    <input type="text" class="form-input" id="dsName" data-i18n-placeholder="createPage.placeholder.enterName" placeholder="Enter dataset name">
+                                    <span class="field-error" id="dsNameError" style="display:none"></span>
+                                </div>
+
+                                <div class="form-group">
+                                    <label class="form-label"><span data-i18n="label.systemShortName">System Short Name</span> <span class="required">*</span></label>
+                                    <div class="select-dropdown-container">
+                                        <div class="select-dropdown-input" id="systemSelectDropdown">
+                                            <input type="text" class="select-dropdown-display" id="systemSelectDisplay" data-i18n-placeholder="createPage.placeholder.selectSystem" placeholder="Select a system..." readonly>
+                                            <i class="fas fa-chevron-down select-dropdown-arrow" id="systemSelectArrow" title="Click to open dropdown"></i>
+                                        </div>
+                                        <div class="select-dropdown-menu" id="systemSelectMenu">
+                                            <div class="select-dropdown-search">
+                                                <i class="fas fa-search"></i>
+                                                <input type="text" id="systemSelectSearch" data-i18n-placeholder="placeholder.search" placeholder="Search systems...">
+                                            </div>
+                                            <div class="select-dropdown-items" id="systemSelectItems"></div>
+                                        </div>
+                                    </div>
+                                    <select class="form-select" id="dsSystem" style="display:none"></select>
+                                    <span class="field-error" id="dsSystemError" style="display:none"></span>
+                                </div>
+
+                                <div class="form-group">
+                                    <label class="form-label" data-i18n="createPage.label.ref">Ref.</label>
+                                    <input type="text" class="form-input" id="dsRef" data-i18n-placeholder="createPage.placeholder.autoGenerated" placeholder="Auto-generated if empty (e.g., DS001)">
+                                    <span class="field-error" id="dsRefError" style="display:none"></span>
+                                    <div class="form-hint">
+                                        <span id="refHint" data-i18n="createPage.placeholder.autoGenerated">Enter Reference manually or auto-generate if empty</span>
+                                        <span id="refPreview" class="ref-preview" style="display: none;"></span>
+                                    </div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label class="form-label"><span data-i18n="createPage.label.definition">Definition</span> <span class="required">*</span></label>
+                                    <textarea class="form-input form-textarea" id="dsDefinition" data-i18n-placeholder="createPage.placeholder.enterDescription" placeholder="Enter definition"></textarea>
+                                    <button type="button" class="editor-button" id="showDefinitionEditorBtn">Show Editor</button>
+                                    <span class="field-error" id="dsDefinitionError" style="display:none"></span>
+                                </div>
+
+                                <div class="form-group">
+                                    <label class="form-label"><span data-i18n="label.glossaryName">Glossary Name</span> <span class="required">*</span></label>
+                                    <select class="form-select searchable" id="dsGlossary"></select>
+                                    <div class="form-hint" id="glossaryHint"></div>
+                                    <span class="field-error" id="dsGlossaryError" style="display:none"></span>
+                                </div>
+
+                                <div class="form-group">
+                                    <label class="form-label" data-i18n="createPage.label.usage">Usage</label>
+                                    <textarea class="form-input form-textarea" id="dsUsage" data-i18n-placeholder="createPage.placeholder.enterDescription" placeholder="Enter usage"></textarea>
+                                    <button type="button" class="editor-button" id="showUsageEditorBtn">Show Editor</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- CLASSIFICATIONS Card -->
+                        <div class="form-card classifications-card">
+                            <div class="card-header">
+                                <h3 class="card-title" data-i18n="createPage.section.classifications">CLASSIFICATIONS</h3>
+                            </div>
+                            <div class="card-body">
+                                <div class="form-group">
+                                    <label class="form-label"><span data-i18n="createPage.label.budgStatus">BUDG Status</span> <span class="required">*</span></label>
+                                    <select class="form-select" id="dsStatus"></select>
+                                    <span class="field-error" id="dsStatusError" style="display:none"></span>
+                                </div>
+
+                                <div class="form-group">
+                                    <label class="form-label"><span data-i18n="createPage.label.type">Type</span> <span class="required">*</span></label>
+                                    <select class="form-select" id="dsType"></select>
+                                    <span class="field-error" id="dsTypeError" style="display:none"></span>
+                                </div>
+
+                                <div class="form-group">
+                                    <label class="form-label"><span data-i18n="createPage.label.budgViewing">BUDG Viewing</span> <span class="required">*</span></label>
+                                    <select class="form-select" id="dsViewing"></select>
+                                    <span class="field-error" id="dsViewingError" style="display:none"></span>
+                                </div>
+
+                                <div class="form-group">
+                                    <label class="form-label"><span data-i18n="createPage.label.lifecycle">Lifecycle</span> <span class="required">*</span></label>
+                                    <select class="form-select" id="dsLifecycle"></select>
+                                    <span class="field-error" id="dsLifecycleError" style="display:none"></span>
+                                </div>
+                                
+                                <!-- Segment Field Container (populated by segment-field.js) -->
+                                <div id="segmentFieldContainer"></div>
+                            </div>
+                            
+                            <!-- Custom Fields Section -->
+                            <div class="form-section form-card" style="grid-column: 1/-1; margin-top: 2rem;">
+                                <div class="card-header">
+                                    <h3 class="card-title" data-i18n="createPage.section.customFields">CUSTOM FIELDS</h3>
+                                </div>
+                                <div class="card-body">
+                                    <div id="customFieldsContainer"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+        </form>
+    </div>
+</div>
+    </main>
+
+    <script src="assets/js/config.js"></script>
+    <script src="assets/js/api-service.js"></script>
+    <script src="assets/js/admin-panel/admin-notifications.js"></script>
+    <script src="assets/js/global-lock-ui.js"></script>
+    <script src="assets/js/segments-cube-panel.js"></script>
+    <script src="assets/js/segment-field.js"></script>
+    <script src="assets/js/main.js"></script>
+    <script src="assets/js/initSearch.js"></script>
+
+    <script src="assets/js/custom-fields.js"></script>
+    <script src="assets/js/dfcr-utils.js"></script>
+    <script src="assets/js/advanced-rich-text-editor.js"></script>
+    <script src="assets/js/dataset.js"></script>
+    <script src="assets/js/header.js"></script>
+</body>
+</html>
+

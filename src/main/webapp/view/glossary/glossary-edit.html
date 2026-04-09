@@ -1,0 +1,940 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Glossary - BUDG</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../../assets/css/main.css">
+    <link rel="stylesheet" href="../../view/view.css">
+    <link rel="stylesheet" href="../../view/glossary/glossary.css">
+    <link rel="stylesheet" href="../../view/edit/edit-shared.css">
+    <link rel="stylesheet" href="../../view/glossary/glossary-edit.css">
+    <link rel="stylesheet" href="../../assets/css/stakeholder.css">
+    <link rel="stylesheet" href="../../assets/css/custom-fields.css">
+    <link rel="stylesheet" href="../../assets/css/global-lock-ui.css">
+    <link rel="stylesheet" href="../../assets/css/advanced-rich-text-editor.css">
+    <!-- RTL styles for Arabic (disabled by default, enabled by i18n.js) -->
+    <link rel="stylesheet" href="../../assets/css/rtl.css" id="rtl-styles" disabled>
+    <link rel="stylesheet" href="../../view/components/document-upload-component.css">
+    <style>
+        /* Glossary Edit Page Styles - Matching other edit pages */
+        
+        /* Apply edit-page class to body */
+        .glossary-edit-page {
+            background: var(--background-primary, #f8fafc);
+        }
+        
+        .glossary-edit-page .main-content {
+            margin: 0 auto;
+            padding: 20px 80px 20px 80px;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+        
+        .glossary-edit-page .content-card {
+            background: var(--background-primary, #ffffff);
+            border-radius: 18px;
+            box-shadow: var(--shadow-medium, 0 18px 40px rgba(15, 23, 42, 0.12));
+            border: 1px solid var(--border-color, #e2e8f0);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        .glossary-edit-page .content-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1.25rem 1.75rem;
+            background: var(--background-secondary, #f8fafc);
+            border-bottom: 1px solid var(--border-color, #e2e8f0);
+        }
+        
+        .glossary-edit-page .content-body {
+            padding: 1.75rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+        
+        /* Override some styles to match edit mode */
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Form Container - Matching edit-shared.css */
+        .edit-form-container {
+            padding: 0;
+        }
+
+        /* New responsive two-column grid layout */
+        .glossary-container {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .left-column,
+        .right-column {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        /* Legacy form-row support */
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+        }
+
+        .form-column {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        /* Form Section - Matching edit-shared.css */
+        .form-section {
+            background: var(--background-primary, #ffffff);
+            border: 1px solid var(--border-color, #e2e8f0);
+            border-radius: 12px;
+            padding: 1.25rem 1.5rem;
+            box-shadow: var(--shadow-light, 0 8px 24px rgba(15, 23, 42, 0.08));
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        /* Section Title - Matching edit-shared.css */
+        .section-title {
+            font-size: 0.82rem;
+            font-weight: 600;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--text-secondary, #475569);
+            margin: 0;
+        }
+
+        .subsection-title {
+            font-size: 0.75rem;
+            font-weight: 600;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--text-secondary, #64748b);
+            margin: 1.5rem 0 1rem 0;
+        }
+
+        /* Form Group */
+        .form-group {
+            margin-bottom: 1.25rem;
+        }
+
+        /* Form Label */
+        .form-label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--text-primary, #1e293b);
+            margin-bottom: 0.5rem;
+        }
+
+        .form-label.required::after {
+            content: ' *';
+            color: #ef4444;
+        }
+
+        /* Form Inputs */
+        .form-input,
+        .form-textarea,
+        .form-select {
+            border: 1px solid var(--border-color, #cbd5e1);
+            border-radius: 8px;
+            font-size: 0.875rem;
+            color: var(--text-primary, #1e293b);
+            background: var(--background-primary, #ffffff);
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .form-input:focus,
+        .form-textarea:focus,
+        .form-select:focus {
+            outline: none;
+            border-color: var(--primary-color, #2563eb);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .form-textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .input-group {
+            position: relative;
+        }
+
+        .input-group .input-icon {
+            position: absolute;
+            right: 0.75rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-secondary, #64748b);
+            cursor: pointer;
+            font-size: 0.875rem;
+            transition: color 0.2s;
+        }
+
+        .input-group .input-icon:hover {
+            color: var(--primary-color, #2563eb);
+        }
+
+        /* CIA Rating specific styles */
+        .cia-rating-group {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .cia-rating-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .cia-rating-label {
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--text-primary, #1e293b);
+            min-width: 1.5rem;
+        }
+
+        .cia-rating-select {
+            width: 60px;
+            padding: 0.375rem 0.5rem;
+            border: 1px solid var(--border-color, #cbd5e1);
+            border-radius: 6px;
+            font-size: 0.875rem;
+            text-align: center;
+        }
+
+        .cia-rating-help {
+            color: var(--text-secondary, #64748b);
+            cursor: help;
+            font-size: 0.875rem;
+        }
+
+         /* Strategic Source Table */
+         .strategic-source-table {
+             width: 100%;
+             border-collapse: collapse;
+             margin-top: 1rem;
+             table-layout: fixed;
+             min-width: 100%;
+         }
+         
+         /* Strategic Source Section - Force full width */
+         .form-section:has(.strategic-source-table) {
+             overflow-x: auto;
+             max-width: 100%;
+         }
+         
+         /* Strategic Source Table Container */
+         .strategic-source-container {
+             width: 100%;
+             overflow-x: auto;
+         }
+         
+         .strategic-source-table th,
+         .strategic-source-table td {
+             padding: 0.75rem;
+             text-align: left;
+             border-bottom: 1px solid var(--border-color, #e2e8f0);
+         }
+         
+         .strategic-source-table th {
+             background: var(--background-secondary, #f8fafc);
+             font-weight: 600;
+             font-size: 0.875rem;
+             color: var(--text-secondary, #475569);
+         }
+         
+         .strategic-source-table td {
+             font-size: 0.875rem;
+         }
+         
+         /* Column widths */
+         .strategic-source-table th:nth-child(1),
+         .strategic-source-table td:nth-child(1) {
+             width: 30%;
+         }
+         
+         .strategic-source-table th:nth-child(2),
+         .strategic-source-table td:nth-child(2) {
+             width: 25%;
+         }
+         
+         .strategic-source-table th:nth-child(3),
+         .strategic-source-table td:nth-child(3) {
+             width: 25%;
+         }
+         
+         .strategic-source-table th:nth-child(4),
+         .strategic-source-table td:nth-child(4) {
+             width: 20%;
+             text-align: center;
+         }
+         
+         .strategic-source-table .form-input,
+         .strategic-source-table .form-select {
+             width: 100%;
+             margin: 0;
+             box-sizing: border-box;
+         }
+         
+         /* Ensure table fills container */
+         .form-section {
+             display: flex;
+             flex-direction: column;
+         }
+         
+         .form-section .strategic-source-table {
+             flex: 1;
+             width: 100%;
+         }
+         
+         /* Force table to fill width */
+         .strategic-source-table {
+             display: table;
+             width: 100% !important;
+             max-width: 100%;
+             min-width: 100%;
+         }
+         
+         .strategic-source-table tbody {
+             width: 100%;
+         }
+         
+         .strategic-source-table tr {
+             width: 100%;
+             display: table-row;
+         }
+         
+         /* Override any parent constraints */
+         .form-column {
+             width: 100%;
+         }
+         
+         .form-section {
+             max-width: none;
+         }
+         
+         /* Strategic Source Full Width Section */
+         .strategic-source-full-width {
+             grid-column: 1 / -1; /* Span both columns */
+             margin-top: 1.5rem;
+             margin-top : 2rem;
+             padding-top : 2rem;
+             border-top : 1px solid var(--border-color, #e2e8f0);
+              }
+
+        .action-button {
+            background: none;
+            border: none;
+            color: var(--text-secondary, #64748b);
+            cursor: pointer;
+            padding: 0.25rem;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+
+        .action-button:hover {
+            background: var(--background-secondary, #f1f5f9);
+            color: var(--primary-color, #2563eb);
+        }
+
+        .action-button.add {
+            color: var(--success-color, #248567);
+        }
+
+        .action-button.remove {
+            color: var(--danger-color, #ef4444);
+        }
+
+        /* Form actions */
+        .form-actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: flex-end;
+            padding-top: 1.5rem;
+            border-top: 1px solid var(--border-color, #e2e8f0);
+            margin-top: 2rem;
+        }
+
+        .btn {
+            padding: 0.625rem 1.25rem;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            border: 1px solid transparent;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary {
+            background: var(--primary-color, #2563eb);
+            color: white;
+            border-color: var(--primary-color, #2563eb);
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-hover, #1d4ed8);
+            border-color: var(--primary-hover, #1d4ed8);
+        }
+
+        .btn-secondary {
+            background: var(--background-primary, #ffffff);
+            color: var(--text-primary, #1e293b);
+            border-color: var(--border-color, #cbd5e1);
+        }
+
+        .btn-secondary:hover {
+            background: var(--background-secondary, #f8fafc);
+        }
+
+        .btn-outline {
+            background: transparent;
+            color: var(--text-primary, #1e293b);
+            border-color: var(--border-color, #cbd5e1);
+        }
+
+        .btn-outline:hover {
+            background: var(--background-secondary, #f8fafc);
+        }
+
+        .btn-sm {
+            padding: 0.375rem 0.75rem;
+            font-size: 0.75rem;
+        }
+
+        .error-message {
+            color: #ef4444;
+            font-size: 0.75rem;
+            margin-top: 0.25rem;
+        }
+
+        .success-message {
+            color: #248567;
+            font-size: 0.75rem;
+            margin-top: 0.25rem;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .glossary-container {
+                grid-template-columns: 1fr;
+                gap: 1.5rem;
+            }
+            
+            .left-column,
+            .right-column {
+                gap: 1rem;
+            }
+            
+            .form-row {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+            
+            .form-actions {
+                flex-direction: column;
+            }
+
+            .cia-rating-group {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.5rem;
+            }
+        }
+    </style>
+    <script src="/assets/i18n/head-locale.js"></script>
+    <script src="../../assets/i18n/i18n.js"></script>
+</head>
+<body class="glossary-edit-page" data-submenu="data">
+    <div class="app-container">
+        <!-- Header -->
+        <header class="header"></header>
+
+        <div class="page-header">
+            <div class="page-header-container">
+                <div class="page-title">
+                    <div class="page-icon"><i class="fas fa-book"></i></div>
+                    <div class="page-title-text">
+                        <div class="page-title-main" id="glossaryTitle">Name</div>
+                        <div class="page-title-sub">glossary</div>
+                    </div>
+                </div>
+                <div class="form-actions" id="formActionsContainer">
+                    <button type="button" class="btn btn-primary" id="saveBtn">
+                        <i class="fas fa-save"></i> Save
+                    </button>
+                    <button type="button" class="btn btn-success" id="saveAndCloseBtn">
+                        <i class="fas fa-save"></i> Save & Close
+                    </button>
+                    <button type="button" class="btn btn-workflow" id="saveAndSubmitBtn" style="display: none; background-color: #248567; color: white;" title="Save your changes and automatically create/submit a change request for workflow approval. The changes will be applied once the change request is approved.">
+                        <i class="fas fa-paper-plane"></i> Save & Submit
+                    </button>
+                    <button type="button" class="btn btn-secondary" id="closeBtn">
+                        <i class="fas fa-times"></i> Close
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <main class="main-content">
+            <div class="content-card">
+                <div class="content-header">
+                    <div class="tab-container">
+                        <button class="tab active" data-tab="summary" data-i18n="tab.summary">SUMMARY</button>
+                        <button class="tab" data-tab="relationships" data-i18n="tab.relationships">RELATIONSHIPS</button>
+                        <button class="tab" data-tab="stakeholders" data-i18n="tab.stakeholders">STAKEHOLDERS</button>
+                        <button class="tab" data-tab="impact" data-i18n="tab.impact">IMPACT</button>
+                    </div>
+                </div>
+                <div class="content-body">
+                    <!-- Summary Tab -->
+                    <div id="summaryContainer" class="tab-content active">
+                        <div class="edit-form-container">
+                            <div class="glossary-container">
+                                <!-- Left Column -->
+                                <div class="left-column">
+                                    <!-- Definition Section -->
+                                    <div class="form-section">
+                                        <div class="section-title">DEFINITION</div>
+                                        
+                                        <div class="form-group">
+                                            <label for="glossaryName" class="form-label required">Name</label>
+                                            <input type="text" id="glossaryName" class="form-input" placeholder="Enter name" required>
+                                        </div>
+
+                                        <div class="form-group">
+                                            <label for="glossaryDefinition" class="form-label required">Definition</label>
+                                            <input type="text" id="glossaryDefinition" class="form-input" placeholder="Enter definition" required>
+                                        </div>
+                                        
+                                        <div class="form-group">
+                                            <label for="glossaryRef" class="form-label">Ref.</label>
+                                            <input type="text" id="glossaryRef" class="form-input" placeholder="GLOS-1">
+                                        </div>
+                                        
+                                        <div class="form-group">
+                                            <label for="formatType" class="form-label required">Format Type</label>
+                                            <select id="formatType" class="form-select" required>
+                                                <option value="">Select format type</option>
+                                            </select>
+                                        </div>
+                                        
+                                        <div class="form-group">
+                                            <label for="parentName" class="form-label">Parent Glossary</label>
+                                            <div class="input-group">
+                                                <input type="text" id="parentName" class="form-input" placeholder="Select parent glossary" readonly>
+                                                <button type="button" class="btn btn-sm btn-secondary" id="selectParentBtn">
+                                                    <i class="fas fa-pencil-alt"></i>
+                                                </button>
+                                                <button type="button" class="btn btn-sm btn-outline" id="clearParentBtn" title="Clear Parent">
+                                                    <i class="fas fa-times"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="subsection-title">OPTIONAL FIELDS</div>
+                                        
+                                        <div class="form-group">
+                                            <label for="aliasNames" class="form-label">Alias Names</label>
+                                            <input type="text" id="aliasNames" class="form-input" placeholder="Add Alias Names and press Enter">
+                                        </div>
+                                        
+                                        <div class="form-group">
+                                            <label for="formatDescription" class="form-label">Format Description</label>
+                                            <textarea id="formatDescription" class="form-textarea" placeholder="Enter Format Description" rows="3"></textarea>
+                                        </div>
+                                        
+                                        <div class="form-group">
+                                            <label for="ldmReference" class="form-label">LDM Reference</label>
+                                            <input type="text" id="ldmReference" class="form-input" placeholder="Enter LDM Reference">
+                                        </div>
+                                        
+                                        <div class="form-group">
+                                            <label for="businessLogic" class="form-label">Business Logic</label>
+                                            <textarea id="businessLogic" class="form-textarea" placeholder="Enter Business Logic" rows="3"></textarea>
+                                            <div class="form-actions" style="margin-top: 0.5rem; padding-top: 0; border-top: none;">
+                                                <button type="button" class="btn btn-outline btn-sm" id="showBusinessLogicEditorBtn">Show Editor</button>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="form-group">
+                                            <label for="examples" class="form-label">Examples</label>
+                                            <textarea id="examples" class="form-textarea" placeholder="Enter Examples" rows="3"></textarea>
+                                            <div class="form-actions" style="margin-top: 0.5rem; padding-top: 0; border-top: none;">
+                                                <button type="button" class="btn btn-outline btn-sm" id="showExamplesEditorBtn">Show Editor</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                </div>
+                                
+                                <!-- Right Column -->
+                                <div class="right-column">
+                                    <!-- Classifications Section -->
+                                    <div class="form-section">
+                                        <div class="section-title">CLASSIFICATIONS</div>
+                                        
+                                        <div class="subsection-title">BASIC CLASSIFICATIONS</div>
+                                        
+                                        <div class="form-group">
+                                            <label for="budgStatus" class="form-label required">BUDG Status</label>
+                                            <select id="budgStatus" class="form-select" required>
+                                                <option value="">Select status</option>
+                                            </select>
+                                        </div>
+                                        
+                                        <div class="form-group">
+                                            <label for="lifecycle" class="form-label required">Lifecycle</label>
+                                            <select id="lifecycle" class="form-select" required>
+                                                <option value="">Select lifecycle</option>
+                                            </select>
+                                        </div>
+                                        
+                                        <div class="form-group">
+                                            <label for="budgViewing" class="form-label required">BUDG Viewing</label>
+                                            <select id="budgViewing" class="form-select" required>
+                                                <option value="">Select viewing</option>
+                                            </select>
+                                        </div>
+                                        
+                                        <!-- Segment Field -->
+                                        <div id="segmentFieldContainer" style="margin-top: 1rem;"></div>
+                                        
+                                        <div class="form-group">
+                                            <label for="type" class="form-label required">Type</label>
+                                            <select id="type" class="form-select" required>
+                                                <option value="">Select type</option>
+                                            </select>
+                                        </div>
+                                        
+                                        <div class="form-group">
+                                            <label for="securityClassification" class="form-label required">Security Classification</label>
+                                            <select id="securityClassification" class="form-select" required>
+                                                <option value="">Select security classification</option>
+                                            </select>
+                                        </div>
+                                        
+                                        <div class="subsection-title">OTHER INFORMATION</div>
+                                        
+                                        <div class="form-group">
+                                            <label class="form-label">CIA Rating</label>
+                                            <div class="cia-rating-group">
+                                                <div class="cia-rating-item">
+                                                    <span class="cia-rating-label">C</span>
+                                                    <select id="confidentialityRating" class="cia-rating-select">
+                                                        <option value="">-</option>
+                                                        <option value="1">1</option>
+                                                        <option value="2">2</option>
+                                                        <option value="3">3</option>
+                                                        <option value="4">4</option>
+                                                        <option value="5">5</option>
+                                                    </select>
+                                                </div>
+                                                <div class="cia-rating-item">
+                                                    <span class="cia-rating-label">I</span>
+                                                    <select id="integrityRating" class="cia-rating-select">
+                                                        <option value="">-</option>
+                                                        <option value="1">1</option>
+                                                        <option value="2">2</option>
+                                                        <option value="3">3</option>
+                                                        <option value="4">4</option>
+                                                        <option value="5">5</option>
+                                                    </select>
+                                                </div>
+                                                <div class="cia-rating-item">
+                                                    <span class="cia-rating-label">A</span>
+                                                    <select id="availabilityRating" class="cia-rating-select">
+                                                        <option value="">-</option>
+                                                        <option value="1">1</option>
+                                                        <option value="2">2</option>
+                                                        <option value="3">3</option>
+                                                        <option value="4">4</option>
+                                                        <option value="5">5</option>
+                                                    </select>
+                                                </div>
+                                                <i class="fas fa-question-circle cia-rating-help" title="CIA Rating Help"></i>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="form-group">
+                                            <label for="kde" class="form-label">KDE</label>
+                                            <select id="kde" class="form-select">
+                                                <option value=""></option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Strategic Source Section - Full Width -->
+                            <div class="form-section strategic-source-full-width">
+                                <div class="section-title" style="display: flex; align-items: center; justify-content: space-between;">
+                                    <span>STRATEGIC SOURCE</span>
+                                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                        <i class="fas fa-cog" style="color: var(--text-secondary, #6c757d); cursor: pointer;"></i>
+                                        <i class="fas fa-chevron-down" style="color: var(--text-secondary, #6c757d); cursor: pointer;"></i>
+                                    </div>
+                                </div>
+                                
+                                <div class="strategic-source-container">
+                                    <table class="strategic-source-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Relationship Type</th>
+                                                <th>System</th>
+                                                <th>Data Set</th>
+                                                <th>Action</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="strategicSourceTableBody">
+                                            <tr>
+                                                <td>Strategic Master Source for</td>
+                                                <td><i class="fas fa-layer-group"></i> CRM2</td>
+                                                <td><i class="fas fa-database"></i> Dataset2</td>
+                                                <td>
+                                                    <div class="action-buttons">
+                                                        <button type="button" class="btn btn-sm btn-success" id="addStrategicSourceBtn">
+                                                            <i class="fas fa-plus"></i>
+                                                        </button>
+                                                        <button type="button" class="btn btn-sm btn-danger" id="removeStrategicSourceBtn">
+                                                            <i class="fas fa-minus"></i>
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                </table>
+                                </div>
+                            </div>
+                            
+                            <!-- Custom Fields Section -->
+                            <div class="form-section" style="grid-column: 1/-1; margin-top: 2rem;">
+                                <div class="section-title">CUSTOM FIELDS</div>
+                                <div id="customFieldsContainer"></div>
+                            </div>
+
+                            <!-- DOCUMENTS Section - Full Width -->
+                            <div class="view-section" style="grid-column: 1/-1; margin-top: 2rem;">
+                                <div class="form-card documents-card">
+                                    <div class="card-header">
+                                        <h3 class="card-title" data-i18n="card.documents">DOCUMENTS</h3>
+                                    </div>
+                                    <div class="card-body" id="documentsContainer">
+                                        <div id="documentUploadContainer"></div>
+                                        <div id="documentTableContainer" style="margin-top: 20px;"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Relationships Tab -->
+                    <div id="relationshipsContainer" class="tab-content" style="display:none;">
+                        <div class="relationships-hierarchy">
+                            <div class="hierarchy-header">
+                                <div class="hierarchy-title">RELATIONSHIPS</div>
+                                <div class="hierarchy-actions">
+                                    <button type="button" class="btn btn-secondary">
+                                        <i class="fas fa-cog"></i><i class="fas fa-chevron-down" style="margin-left:.3rem;font-size:.7rem;"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="data-table-wrapper">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th><div class="th-content"><span>Relationship Type</span><i class="fas fa-sort"></i></div></th>
+                                            <th><div class="th-content"><span>Glossary</span><i class="fas fa-sort"></i></div></th>
+                                            <th><div class="th-content"><span>Glossary Type</span><i class="fas fa-sort"></i></div></th>
+                                            <th><div class="th-content"><span>Actions</span></div></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="relationshipsTableBody">
+                                        <tr><td colspan="4" style="text-align:center;padding:2rem;color:var(--text-muted,#6b7280);">Loading...</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="hierarchy-footer" id="relationshipsFooter">
+                                0 records
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="stakeholdersContainer" class="tab-content" style="display:none;">
+                        <div id="glossaryStakeholdersContainer" class="view-grid"></div>
+                    </div>
+                    
+                    <div id="impactContainer" class="tab-content" style="display:none;">
+                        <div id="impact" class="relationships-container">
+                            <!-- Sub-tabs Navigation -->
+                            <div class="relationships-sub-tabs">
+                                <button class="sub-tab active" data-sub-tab="product">Product</button>
+                                <button class="sub-tab" data-sub-tab="client">Client</button>
+                            </div>
+                            
+                            <!-- Sub-tab Content Area -->
+                            <div class="relationships-content">
+                                <!-- Product Sub-tab -->
+                                <div id="impactProductContent" class="sub-tab-content active">
+                                    <div class="relationships-hierarchy">
+                                        <div class="hierarchy-header">
+                                            <div class="hierarchy-title">PRODUCT</div>
+                                            <div class="hierarchy-actions">
+                                                <button type="button" class="btn btn-secondary">
+                                                    <i class="fas fa-list"></i> List
+                                                </button>
+                                                <button type="button" class="btn btn-secondary">
+                                                    <i class="fas fa-search-plus"></i> Search and Add
+                                                </button>
+                                                <button type="button" class="btn btn-secondary">
+                                                    <i class="fas fa-cog"></i><i class="fas fa-chevron-down"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div class="data-table-wrapper">
+                                            <table class="data-table">
+                                                <thead>
+                                                    <tr>
+                                                        <th><div class="th-content"><span>Relationship Type</span><i class="fas fa-sort"></i></div></th>
+                                                        <th><div class="th-content"><span>Product Name</span><i class="fas fa-sort"></i></div></th>
+                                                        <th><div class="th-content" style="justify-content: center;"><span>Product Owner</span><i class="fas fa-sort"></i></div></th>
+                                                        <th><div class="th-content" style="justify-content: center;"><span>Action</span></div></th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody id="productImpactTableBody">
+                                                    <tr>
+                                                        <td colspan="4" style="text-align: center; padding: 2rem;">
+                                                            <i class="fas fa-spinner fa-spin" style="font-size: 1.5rem; color: var(--secondary-color, #248567);"></i>
+                                                            <p style="margin-top: 0.5rem;">Loading product relationships...</p>
+                                                        </td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                        <div class="hierarchy-footer" id="productImpactFooter">
+                                            0 records
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Client Sub-tab -->
+                                <div id="impactClientContent" class="sub-tab-content">
+                                    <div class="relationships-hierarchy">
+                                        <div class="hierarchy-header">
+                                            <div class="hierarchy-title">CLIENT</div>
+                                            <div class="hierarchy-actions">
+                                                <button type="button" class="btn btn-secondary">
+                                                    <i class="fas fa-list"></i> List
+                                                </button>
+                                                <button type="button" class="btn btn-secondary">
+                                                    <i class="fas fa-search-plus"></i> Search and Add
+                                                </button>
+                                                <button type="button" class="btn btn-secondary">
+                                                    <i class="fas fa-cog"></i><i class="fas fa-chevron-down"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div class="data-table-wrapper">
+                                            <table class="data-table">
+                                                <thead>
+                                                    <tr>
+                                                        <th><div class="th-content"><span>Relationship Type</span><i class="fas fa-sort"></i></div></th>
+                                                        <th><div class="th-content"><span>Client</span><i class="fas fa-sort"></i></div></th>
+                                                        <th><div class="th-content" style="justify-content: center;"><span>Client Owner</span><i class="fas fa-sort"></i></div></th>
+                                                        <th><div class="th-content" style="justify-content: center;"><span>Action</span></div></th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody id="clientImpactTableBody">
+                                                    <tr>
+                                                        <td colspan="4" style="text-align: center; padding: 2rem;">
+                                                            <i class="fas fa-spinner fa-spin" style="font-size: 1.5rem; color: var(--secondary-color, #248567);"></i>
+                                                            <p style="margin-top: 0.5rem;">Loading client relationships...</p>
+                                                        </td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                        <div class="hierarchy-footer" id="clientImpactFooter">
+                                            0 records
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Parent Selection Modal -->
+    <div id="parentSelectionModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Select Parent Glossary</h3>
+                <button type="button" class="modal-close" id="closeParentModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="search-container">
+                    <input type="text" id="parentSearchInput" class="form-input" placeholder="Search glossaries...">
+                </div>
+                <div class="glossary-list" id="glossaryList">
+                    <!-- Glossaries will be loaded here -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" id="cancelParentSelection">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="../../assets/js/config.js"></script>
+    <script src="../../assets/js/api-service.js"></script>
+    <script src="../../assets/js/save-error-helper.js"></script>
+    <script src="../../assets/js/lock-manager.js"></script>
+    <script src="../../assets/js/lock-init-helper.js"></script>
+    <script src="../../assets/js/global-lock-ui.js"></script>
+    <script src="../../assets/js/main.js"></script>
+    <script src="../../assets/js/initSearch.js"></script>
+    
+    <script src="../../assets/js/header.js"></script>
+    <script src="../../assets/js/custom-fields.js"></script>
+    <script src="../../assets/js/segment-field.js"></script>
+    <script src="../../assets/js/dfcr-utils.js"></script>
+    <script src="../../view/glossary/glossary-stakeholder-edit.js"></script>
+    <script src="../../view/glossary/glossary-impact-edit.js"></script>
+    <script src="../../view/components/document-upload-component.js"></script>
+    <script src="../../view/components/document-table-component.js"></script>
+    <script src="../../view/glossary/glossary-documents-init.js"></script>
+    <script src="../../assets/js/advanced-rich-text-editor.js"></script>
+    <script src="../../view/glossary/glossary-edit.js"></script>
+</body>
+</html>
+

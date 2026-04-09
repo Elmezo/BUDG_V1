@@ -1,0 +1,595 @@
+/* Regulation View specific styles - matching system view design */
+
+#glossaryViewContainer.view-grid .glossary-container,
+#glossaryViewContainer .glossary-container {
+    display: grid;
+    grid-template-columns: 1.5fr 1fr;
+    gap: 1.5rem;
+    margin: 1rem 0 2rem 0;
+}
+
+#glossaryViewContainer .left-column,
+#glossaryViewContainer .right-column {
+    display: flex;
+    flex-direction: column;
+}
+
+    margin-top: 1rem;
+}
+
+.view-section {
+    background: var(--background-primary, #fff);
+    border: 1px solid var(--border-color, #e9ecef);
+    border-radius: 12px;
+    padding: 1.25rem 1.5rem;
+    box-shadow: var(--shadow-card, 0 1px 2px rgba(0,0,0,0.04));
+    margin-bottom: 1rem;
+}
+
+.section-title {
+    font-weight: 600;
+    color: var(--text-secondary, #6c757d);
+    font-size: 0.85rem;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    margin-bottom: .75rem;
+    padding-bottom: .5rem;
+    border-bottom: 1px solid var(--border-color, #e5e7eb);
+}
+
+.view-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid var(--border-light, #f3f4f6);
+}
+
+.view-item:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.view-item:first-child {
+    padding-top: 0;
+}
+
+.view-label {
+    font-weight: 500;
+    color: var(--text-secondary, #6c757d);
+    min-width: 120px;
+    flex-shrink: 0;
+}
+
+.view-value {
+    color: var(--text-primary, #1e293b);
+    text-align: left;
+    flex: 1;
+    word-break: break-word;
+}
+
+.view-value.empty {
+    color: var(--text-muted, #9ca3af);
+    font-style: italic;
+}
+
+/* Classifications sidebar */
+.sidebar-section {
+    background: var(--background-primary, #fff);
+}
+
+.classifications-group {
+    margin-bottom: 1.5rem;
+}
+
+.classifications-group:last-child {
+    margin-bottom: 0;
+}
+
+.group-title {
+    font-weight: 600;
+    color: var(--text-secondary, #6c757d);
+    font-size: 0.75rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border-light, #e5e7eb);
+}
+
+.classification-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.6rem 0;
+    border-bottom: 1px solid var(--border-light, #f3f4f6);
+}
+
+.classification-item:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.classification-label {
+    font-weight: 500;
+    color: var(--text-secondary, #6c757d);
+    font-size: 0.875rem;
+}
+
+.classification-value {
+    color: var(--text-primary, #1e293b);
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.status-dot.active {
+    background-color: var(--success, #10b981);
+}
+
+.status-dot.pending {
+    background-color: var(--warning, #f59e0b);
+}
+
+.status-dot.inactive {
+    background-color: var(--danger, #ef4444);
+}
+
+.status-dot.obsolete {
+    background-color: var(--danger, #ef4444);
+}
+
+.status-dot.draft {
+    background-color: var(--info, #3b82f6);
+}
+
+/* Empty state */
+.empty {
+    color: var(--text-muted, #9ca3af);
+    font-style: italic;
+}
+
+/* Links */
+.parent-regulation-link {
+    color: var(--primary, #3b82f6);
+    text-decoration: none;
+}
+
+.parent-regulation-link:hover {
+    text-decoration: underline;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    #glossaryViewContainer .glossary-container {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    
+    .view-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.25rem;
+    }
+    
+    .view-label {
+        min-width: auto;
+    }
+    
+    .view-value {
+        text-align: left;
+    }
+    
+    .classification-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.25rem;
+    }
+}
+
+    margin-top: 1rem;
+}
+
+    margin-bottom: 0;
+}
+
+/* Data tables for tabs */
+.data-table-wrapper {
+    overflow-x: auto;
+    margin-top: 1rem;
+}
+
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--background-primary, #fff);
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: var(--shadow-light, 0 1px 3px rgba(0,0,0,0.1));
+}
+
+.data-table th,
+.data-table td {
+    padding: 0.75rem 1rem;
+    text-align: left;
+    border-bottom: 1px solid var(--border-light, #f3f4f6);
+}
+
+.data-table th {
+    background: var(--background-secondary, #f8fafc);
+    font-weight: 600;
+    color: var(--text-secondary, #6c757d);
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+}
+
+.data-table tbody tr:hover {
+    background: var(--background-hover, #f9fafb);
+}
+
+.data-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+/* Tab content styling */
+.tab-content {
+    padding: 1.5rem 0;
+}
+
+/* Regulation sections */
+.regulator-section,
+.geography-section {
+    margin-bottom: 1rem;
+}
+
+.regulator-section .view-section,
+.geography-section .view-section {
+    background: var(--background-primary, #fff);
+}
+
+.regulator-section .section-title,
+.geography-section .section-title {
+    color: var(--text-primary, #1e293b);
+    border-left: 4px solid var(--primary, #3b82f6);
+    padding-left: 1rem;
+    margin-left: -1rem;
+}
+
+/* No data state */
+.no-data-message {
+    text-align: center;
+    padding: 3rem 2rem;
+    color: var(--text-muted, #9ca3af);
+}
+
+.no-data-message i {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    display: block;
+    opacity: 0.5;
+}
+
+/* Regulation specific styling */
+.regulation-info-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+@media (max-width: 768px) {
+    .regulation-info-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Regulation hierarchy styles */
+.regulation-page .hierarchy-table-wrapper {
+    background: var(--background-primary, #fff);
+    border: 1px solid var(--border-color, #e9ecef);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.regulation-page .hierarchy-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+}
+
+.regulation-page .hierarchy-table thead {
+    background: var(--background-secondary, #f8f9fa);
+}
+
+.regulation-page .hierarchy-table th {
+    padding: 0.75rem 1rem;
+    text-align: left;
+    font-weight: 600;
+    color: var(--text-primary, #1e293b);
+    border-bottom: 1px solid var(--border-color, #e9ecef);
+}
+
+.regulation-page .hierarchy-table td {
+    padding: 0.5rem 1rem;
+    border-bottom: 1px solid var(--border-color, #e9ecef);
+    vertical-align: top;
+}
+
+/* Ref column specific styling to prevent text wrapping */
+.regulation-page .hierarchy-table td:first-child {
+    white-space: nowrap;
+    min-width: 80px;
+    width: auto;
+}
+
+.regulation-page .hierarchy-table tbody tr:hover {
+    background: var(--background-hover, #f8f9fa);
+}
+
+.regulation-page .tree-cell {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.regulation-page .tree-indent {
+    width: 1.5rem;
+    height: 1rem;
+    display: inline-block;
+}
+
+.regulation-page .tree-branch {
+    width: 1rem;
+    height: 1rem;
+    border-left: 1px solid var(--border-color, #e9ecef);
+    border-bottom: 1px solid var(--border-color, #e9ecef);
+    display: inline-block;
+    margin-right: 0.25rem;
+}
+
+.regulation-page .tree-expander {
+    background: none;
+    border: none;
+    padding: 0.25rem;
+    cursor: pointer;
+    color: var(--text-secondary, #64748b);
+    font-size: 0.75rem;
+    border-radius: 4px;
+    background: var(--background-primary, #fff);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+}
+
+.regulation-page .tree-expander:hover {
+    color: var(--secondary-color, #248567);
+    background: var(--background-hover, #f8f9fa);
+}
+
+.regulation-page .tree-placeholder {
+    display: inline-block;
+    width: 22px;
+    height: 22px;
+}
+
+.regulation-page .item-icon {
+    color: var(--secondary-color, #248567);
+    margin-right: 0.5rem;
+    font-size: 0.875rem;
+}
+
+.regulation-page .regulation-name {
+    font-weight: 500;
+}
+
+.regulation-page .regulation-link {
+    color: var(--text-primary, #1e293b);
+    text-decoration: none;
+    transition: color 0.15s ease;
+}
+
+.regulation-page .regulation-link:hover {
+    color: var(--secondary-color, #248567);
+    text-decoration: underline;
+}
+
+.regulation-page .current-regulation-link {
+    color: var(--secondary-color, #248567);
+    font-weight: 600;
+}
+
+.regulation-page .regulation-ref {
+    font-size: 0.875rem;
+    color: var(--text-secondary, #64748b);
+    margin-left: 0.5rem;
+}
+
+.regulation-page .child-count {
+    background: var(--secondary-color, #248567);
+    color: white;
+    font-size: 0.75rem;
+    padding: 0.125rem 0.375rem;
+    border-radius: 0.75rem;
+    margin-left: 0.5rem;
+    font-weight: 500;
+}
+
+.regulation-page .current-row {
+    background: var(--success-100, #d1fae5);
+}
+
+.regulation-page .current-row td:first-child {
+    border-left: 3px solid var(--secondary-color, #248567);
+}
+
+.regulation-page .table-footer {
+    padding: 0.75rem 1rem;
+    background: var(--background-secondary, #f8f9fa);
+    border-top: 1px solid var(--border-color, #e9ecef);
+    font-size: 0.875rem;
+    color: var(--text-secondary, #64748b);
+    text-align: right;
+}
+
+.regulation-page .ref-number {
+    font-family: 'Courier New', monospace;
+    font-size: 0.875rem;
+    color: var(--text-secondary, #64748b);
+    background: var(--background-secondary, #f8f9fa);
+    padding: 0.125rem 0.375rem;
+    border-radius: 0.25rem;
+    white-space: nowrap;
+    display: inline-block;
+}
+
+/* Regulator link styling */
+.regulation-page .regulator-link {
+    color: var(--secondary-color, #248567);
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.15s ease;
+}
+
+.regulation-page .regulator-link:hover {
+    color: #1f6f4e;
+    text-decoration: underline;
+}
+
+/* Geography link styling */
+.regulation-page .geography-link {
+    color: var(--secondary-color, #248567);
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.15s ease;
+}
+
+.regulation-page .geography-link:hover {
+    color: #1f6f4e;
+    text-decoration: underline;
+}
+
+/* Inheritance indicators */
+.regulation-page .inheritance-badge {
+    display: inline-block;
+    background: var(--info, #3b82f6);
+    color: white;
+    font-size: 0.75rem;
+    padding: 0.125rem 0.25rem;
+    border-radius: 0.25rem;
+    margin-left: 0.5rem;
+    font-weight: 500;
+    cursor: help;
+}
+
+.regulation-page .inherited-row {
+    background: rgba(59, 130, 246, 0.05);
+    border-left: 2px solid var(--info, #3b82f6);
+}
+
+/* Regulations summary styling */
+.regulation-page .regulations-summary {
+    display: inline-flex;
+    align-items: center;
+    color: var(--secondary-color, #248567);
+    font-weight: 500;
+    cursor: help;
+}
+
+.regulation-page .regulations-summary:hover {
+    color: #1f6f4e;
+}
+
+/* Expandable regulations styling */
+.regulation-page .expandable-regulations {
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.regulation-page .expandable-regulations:hover {
+    color: #1f6f4e;
+}
+
+.regulation-page .expand-icon {
+    transition: all 0.2s ease;
+}
+
+.regulation-page .expanded-regulations-row {
+    background: transparent;
+}
+
+.regulation-page .expanded-regulations-container {
+    border-radius: 4px;
+    margin: 0.25rem 0;
+}
+
+.regulation-page .expanded-regulations-table .data-table {
+    box-shadow: none;
+    border: 1px solid var(--border-color, #e9ecef);
+}
+
+.regulation-page .expanded-regulations-table .data-table th {
+    background: var(--background-primary, #fff);
+    font-size: 0.875rem;
+    padding: 0.5rem 0.75rem;
+}
+
+.regulation-page .expanded-regulations-table .data-table td {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+}
+
+.regulation-page .empty {
+    color: var(--text-secondary, #64748b);
+    font-style: italic;
+}
+
+/* Inheritance badge styling */
+.regulation-page .inheritance-badge {
+    display: inline-block;
+    background: var(--info, #3b82f6);
+    color: white;
+    font-size: 0.75rem;
+    padding: 0.125rem 0.25rem;
+    border-radius: 0.25rem;
+    margin-left: 0.5rem;
+    font-weight: 500;
+    cursor: help;
+}
+
+/* Center table cells under centered headers for Impact view */
+/* Product, Policy, Project tables: Ref (3rd), Owner (4th) */
+#impactProductContent .data-table th:nth-child(3),
+#impactProductContent .data-table th:nth-child(4),
+#impactProductContent .data-table td:nth-child(3),
+#impactProductContent .data-table td:nth-child(4),
+#impactPolicyContent .data-table th:nth-child(3),
+#impactPolicyContent .data-table th:nth-child(4),
+#impactPolicyContent .data-table td:nth-child(3),
+#impactPolicyContent .data-table td:nth-child(4),
+#impactProjectContent .data-table th:nth-child(3),
+#impactProjectContent .data-table th:nth-child(4),
+#impactProjectContent .data-table td:nth-child(3),
+#impactProjectContent .data-table td:nth-child(4) {
+    text-align: center;
+}
+
+#impactProductContent .data-table th:nth-child(3) .th-content,
+#impactProductContent .data-table th:nth-child(4) .th-content,
+#impactPolicyContent .data-table th:nth-child(3) .th-content,
+#impactPolicyContent .data-table th:nth-child(4) .th-content,
+#impactProjectContent .data-table th:nth-child(3) .th-content,
+#impactProjectContent .data-table th:nth-child(4) .th-content {
+    justify-content: center;
+}

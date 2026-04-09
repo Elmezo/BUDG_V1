@@ -1,0 +1,2088 @@
+[
+  {
+    "key": "attributexattribute",
+    "relationship_table": "attribute_x_attribute",
+    "entity_a": {
+      "name": "attribute",
+      "table": "attribute",
+      "name_field": "PrimaryName",
+      "ref_field": "RefNumber",
+      "db_column": "Source_AttributeID"
+    },
+    "entity_b": {
+      "name": "attribute",
+      "table": "attribute",
+      "name_field": "PrimaryName",
+      "ref_field": "RefNumber",
+      "db_column": "Target_AttributeID"
+    },
+    "relation_type_table": "attribute_x_attribute_relationtype",
+    "relation_type_field": "Relation_Type",
+    "requires_relation_type": true,
+    "headers": [
+      "Sourcing Logic",
+      "Sourcing Type",
+      "Target Attribute Ref.",
+      "Target Attribute Name",
+      "Target Data Set Name",
+      "Target System Short Name",
+      "Source Attribute Ref.",
+      "Source Attribute Name",
+      "Source Data Set Name",
+      "Source System Short Name",
+      "Scope of Data",
+      "Interface Name",
+      "Interface Source System Short Name",
+      "Interface Target System Short Name"
+    ]
+  },
+  {
+    "key": "businessareaxglossary",
+    "relationship_table": "businessarea_x_glossary",
+    "entity_a": {
+      "name": "businessarea",
+      "table": "business_area",
+      "name_field": "PrimaryName",
+      "parent_field": "Parent_ID",
+      "db_column": "BusinessArea_ID"
+    },
+    "entity_b": {
+      "name": "glossary",
+      "table": "glossary",
+      "name_field": "Name",
+      "ref_field": "Ref_Number",
+      "parent_field": "Parent_ID",
+      "db_column": "Glossary_ID"
+    },
+    "relation_type_table": "businessarea_x_glossary_relationtype",
+    "relation_type_field": "RelationType",
+    "requires_relation_type": true,
+    "headers": [
+      "Businessarea Name",
+      "Parent Businessarea Name",
+      "Glossary Ref.",
+      "Glossary Name",
+      "Parent Glossary Name",
+      "Relationship Type"
+    ]
+  },
+  {
+    "key": "businessareaxprocess",
+    "relationship_table": "businessarea_x_process",
+    "entity_a": {
+      "name": "businessarea",
+      "table": "business_area",
+      "name_field": "PrimaryName",
+      "parent_field": "Parent_ID",
+      "db_column": "BusinessArea_ID"
+    },
+    "entity_b": {
+      "name": "process",
+      "table": "process",
+      "name_field": "primaryname",
+      "ref_field": "refnumber",
+      "parent_field": "parentid",
+      "db_column": "Process_ID"
+    },
+    "relation_type_table": "businessarea_x_process_relationtype",
+    "relation_type_field": "RelationType",
+    "requires_relation_type": true,
+    "headers": [
+      "Businessarea Name",
+      "Parent Businessarea Name",
+      "Process Ref.",
+      "Process Name",
+      "Parent Process Name",
+      "Relationship Type"
+    ]
+  },
+  {
+    "key": "businessareaxsystem",
+    "relationship_table": "businessarea_x_system",
+    "entity_a": {
+      "name": "businessarea",
+      "table": "business_area",
+      "name_field": "PrimaryName",
+      "parent_field": "Parent_ID",
+      "db_column": "BusinessArea_ID"
+    },
+    "entity_b": {
+      "name": "system",
+      "table": "system",
+      "name_field": "Name",
+      "parent_field": "parent_id",
+      "db_column": "System_ID"
+    },
+    "relation_type_table": "businessarea_x_system_relationtype",
+    "relation_type_field": "RelationType",
+    "requires_relation_type": true,
+    "headers": [
+      "Businessarea Name",
+      "Parent Businessarea Name",
+      "System Name",
+      "Parent System Name",
+      "Relationship Type"
+    ]
+  },
+  {
+    "key": "capabilityxbusinessarea",
+    "relationship_table": "capability_x_businessarea",
+    "entity_a": {
+      "name": "capability",
+      "table": "capability",
+      "name_field": "PrimaryName",
+      "ref_field": "RefNumber",
+      "parent_field": "Parent_ID",
+      "db_column": "Capability_ID"
+    },
+    "entity_b": {
+      "name": "businessarea",
+      "table": "business_area",
+      "name_field": "PrimaryName",
+      "parent_field": "Parent_ID",
+      "db_column": "BusinessArea_ID"
+    },
+    "relation_type_table": "capability_x_businessarea_relationtype",
+    "relation_type_field": "RelationType",
+    "requires_relation_type": true,
+    "headers": [
+      "Capability Ref.",
+      "Capability Name",
+      "Parent Capability Name",
+      "Businessarea Name",
+      "Parent Businessarea Name",
+      "Relationship Type"
+    ]
+  },
+  {
+    "key": "capabilityxclient",
+    "relationship_table": "capability_x_client",
+    "entity_a": {
+      "name": "capability",
+      "table": "capability",
+      "name_field": "PrimaryName",
+      "ref_field": "RefNumber",
+      "parent_field": "Parent_ID",
+      "db_column": "Capability_ID"
+    },
+    "entity_b": {
+      "name": "client",
+      "table": "client",
+      "name_field": "PrimaryName",
+      "parent_field": "Parent_ID",
+      "db_column": "Client_ID"
+    },
+    "relation_type_table": "capability_x_client_relationtype",
+    "relation_type_field": "RelationType",
+    "requires_relation_type": true,
+    "headers": [
+      "Capability Ref.",
+      "Capability Name",
+      "Parent Capability Name",
+      "Client Name",
+      "Parent Client Name",
+      "Relationship Type"
+    ]
+  },
+  {
+    "key": "capabilityxglossary",
+    "relationship_table": "capability_x_glossary",
+    "entity_a": {
+      "name": "capability",
+      "table": "capability",
+      "name_field": "PrimaryName",
+      "ref_field": "RefNumber",
+      "parent_field": "Parent_ID",
+      "db_column": "Capability_ID"
+    },
+    "entity_b": {
+      "name": "glossary",
+      "table": "glossary",
+      "name_field": "Name",
+      "ref_field": "Ref_Number",
+      "parent_field": "Parent_ID",
+      "db_column": "Glossary_ID"
+    },
+    "relation_type_table": "capability_x_glossary_relationtype",
+    "relation_type_field": "RelationType",
+    "requires_relation_type": true,
+    "headers": [
+      "Capability Ref.",
+      "Capability Name",
+      "Parent Capability Name",
+      "Glossary Ref.",
+      "Glossary Name",
+      "Parent Glossary Name",
+      "Relationship Type"
+    ]
+  },
+  {
+    "key": "capabilityxlegalentity",
+    "relationship_table": "capability_x_legal",
+    "entity_a": {
+      "name": "capability",
+      "table": "capability",
+      "name_field": "PrimaryName",
+      "ref_field": "RefNumber",
+      "parent_field": "Parent_ID",
+      "db_column": "Capability_ID"
+    },
+    "entity_b": {
+      "name": "legal",
+      "table": "legal",
+      "name_field": "ShortName",
+      "parent_field": "Parent_ID",
+      "db_column": "Legal_ID"
+    },
+    "relation_type_table": "capability_x_legal_relationtype",
+    "relation_type_field": "RelationType",
+    "requires_relation_type": true,
+    "headers": [
+      "Capability Ref.",
+      "Capability Name",
+      "Parent Capability Name",
+      "Legal Name",
+      "Parent Legal Name",
+      "Relationship Type"
+    ]
+  },
+  {
+    "key": "capabilityxprocess",
+    "relationship_table": "capability_x_process",
+    "entity_a": {
+      "name": "capability",
+      "table": "capability",
+      "name_field": "PrimaryName",
+      "ref_field": "RefNumber",
+      "parent_field": "Parent_ID",
+      "db_column": "Capability_ID"
+    },
+    "entity_b": {
+      "name": "process",
+      "table": "process",
+      "name_field": "primaryname",
+      "ref_field": "refnumber",
+      "parent_field": "parentid",
+      "db_column": "Process_ID"
+    },
+    "relation_type_table": "capability_x_process_relationtype",
+    "relation_type_field": "RelationType",
+    "requires_relation_type": true,
+    "headers": [
+      "Capability Ref.",
+      "Capability Name",
+      "Parent Capability Name",
+      "Process Ref.",
+      "Process Name",
+      "Parent Process Name",
+      "Relationship Type"
+    ]
+  },
+  {
+    "key": "capabilityxproduct",
+    "relationship_table": "capability_x_product",
+    "entity_a": {
+      "name": "capability",
+      "table": "capability",
+      "name_field": "PrimaryName",
+      "ref_field": "RefNumber",
+      "parent_field": "Parent_ID",
+      "db_column": "Capability_ID"
+    },
+    "entity_b": {
+      "name": "product",
+      "table": "product",
+      "name_field": "primaryname",
+      "parent_field": "parent_id",
+      "db_column": "Product_ID"
+    },
+    "relation_type_table": "capability_x_product_relationtype",
+    "relation_type_field": "RelationType",
+    "requires_relation_type": true,
+    "headers": [
+      "Capability Ref.",
+      "Capability Name",
+      "Parent Capability Name",
+      "Product Name",
+      "Parent Product Name",
+      "Relationship Type"
+    ]
+  },
+  {
+    "key": "capabilityxsystem",
+    "relationship_table": "capability_x_system",
+    "entity_a": {
+      "name": "capability",
+      "table": "capability",
+      "name_field": "PrimaryName",
+      "ref_field": "RefNumber",
+      "parent_field": "Parent_ID",
+      "db_column": "Capability_ID"
+    },
+    "entity_b": {
+      "name": "system",
+      "table": "system",
+      "name_field": "Name",
+      "parent_field": "parent_id",
+      "db_column": "System_ID"
+    },
+    "relation_type_table": "capability_x_system_relationtype",
+    "relation_type_field": "RelationType",
+    "requires_relation_type": true,
+    "headers": [
+      "Capability Ref.",
+      "Capability Name",
+      "Parent Capability Name",
+      "System Name",
+      "Parent System Name",
+      "Relationship Type"
+    ]
+  },
+  {
+    "key": "committeexcapability",
+    "relationship_table": "committee_x_capability",
+    "entity_a": {
+      "name": "committee",
+      "table": "committee",
+      "name_field": "PrimaryName",
+      "ref_field": "RefNumber",
+      "parent_field": "Parent_ID",
+      "db_column": "Committee_ID"
+    },
+    "entity_b": {
+      "name": "capability",
+      "table": "capability",
+      "name_field": "PrimaryName",
+      "ref_field": "RefNumber",
+      "parent_field": "Parent_ID",
+      "db_column": "Capability_ID"
+    },
+    "relation_type_table": "committee_x_capability_relationtype",
+    "relation_type_field": "RelationType",
+    "requires_relation_type": true,
+    "headers": [
+      "Committee Ref.",
+      "Committee Name",
+      "Parent Committee Name",
+      "Capability Ref.",
+      "Capability Name",
+      "Parent Capability Name",
+      "Relationship Type"
+    ]
+  },
+  {
+    "key": "committeexcommittee",
+    "relationship_table": "committee_x_committee",
+    "entity_a": {
+      "name": "committee",
+      "table": "committee",
+      "name_field": "PrimaryName",
+      "ref_field": "RefNumber",
+      "parent_field": "Parent_ID",
+      "db_column": "Source_ID"
+    },
+    "entity_b": {
+      "name": "committee",
+      "table": "committee",
+      "name_field": "PrimaryName",
+      "ref_field": "RefNumber",
+      "parent_field": "Parent_ID",
+      "db_column": "Target_ID"
+    },
+    "relation_type_table": "committee_x_committee_relationtype",
+    "relation_type_field": "RelationType",
+    "requires_relation_type": true,
+    "headers": [
+      "Committee Ref.",
+      "Committee Name",
+      "Parent Committee Name",
+      "Committee Ref.",
+      "Committee Name",
+      "Parent Committee Name",
+      "Relationship Type"
+    ]
+  },
+  {
+    "key": "datasetxclient",
+    "relationship_table": "client_x_dataset",
+    "entity_a": {
+      "name": "client",
+      "table": "client",
+      "name_field": "PrimaryName",
+      "parent_field": "Parent_ID",
+      "db_column": "Client_ID"
+    },
+    "entity_b": {
+      "name": "dataset",
+      "table": "dataset",
+      "name_field": "PrimaryName",
+      "ref_field": "RefNumber",
+      "db_column": "Dataset_ID"
+    },
+    "relation_type_table": "client_x_dataset_relationtype",
+    "relation_type_field": "RelationType",
+    "requires_relation_type": true,
+    "headers": [
+      "Client Name",
+      "Parent Client Name",
+      "Data Set Ref.",
+      "Data Set Name",
+      "Data Set System Short Name",
+      "Relationship Type"
+    ]
+  },
+  {
+    "key": "datasetxlegalentity",
+    "relationship_table": "dataset_x_legal",
+    "entity_a": {
+      "name": "dataset",
+      "table": "dataset",
+      "name_field": "PrimaryName",
+      "ref_field": "RefNumber",
+      "db_column": "DataSet_ID"
+    },
+    "entity_b": {
+      "name": "legal",
+      "table": "legal",
+      "name_field": "ShortName",
+      "parent_field": "Parent_ID",
+      "db_column": "Legal_ID"
+    },
+    "relation_type_table": "dataset_x_legal_relationtype",
+    "relation_type_field": "RelationType",
+    "requires_relation_type": true,
+    "headers": [
+      "Data Set Ref.",
+      "Data Set Name",
+      "Legal Name",
+      "Parent Legal Name",
+      "Data Set System Short Name",
+      "Relationship Type"
+    ]
+  },
+  {
+    "key": "datasetxproduct",
+    "relationship_table": "product_x_dataset",
+    "entity_a": {
+      "name": "product",
+      "table": "product",
+      "name_field": "primaryname",
+      "parent_field": "parent_id",
+      "db_column": "Product_ID"
+    },
+    "entity_b": {
+      "name": "dataset",
+      "table": "dataset",
+      "name_field": "PrimaryName",
+      "ref_field": "RefNumber",
+      "db_column": "Dataset_ID"
+    },
+    "relation_type_table": "product_x_dataset_relationtype",
+    "relation_type_field": "Product_Dataset_Relation_Type",
+    "requires_relation_type": true,
+    "headers": [
+      "Product Name",
+      "Parent Product Name",
+      "Data Set Ref.",
+      "Data Set Name",
+      "Data Set System Short Name",
+      "Relationship Type"
+    ]
+  },
+  {
+    "key": "glossaryxclient",
+    "relationship_table": "client_x_glossary",
+    "entity_a": {
+      "name": "client",
+      "table": "client",
+      "name_field": "PrimaryName",
+      "parent_field": "Parent_ID",
+      "db_column": "Client_ID"
+    },
+    "entity_b": {
+      "name": "glossary",
+      "table": "glossary",
+      "name_field": "Name",
+      "ref_field": "Ref_Number",
+      "parent_field": "Parent_ID",
+      "db_column": "Glossary_ID"
+    },
+    "relation_type_table": "client_x_glossary_relationtype",
+    "relation_type_field": "RelationType",
+    "requires_relation_type": true,
+    "headers": [
+      "Client Name",
+      "Parent Client Name",
+      "Glossary Ref.",
+      "Glossary Name",
+      "Parent Glossary Name",
+      "Relationship Type"
+    ]
+  },
+  {
+    "key": "glossaryxglossary",
+    "relationship_table": "glossary_x_glossary",
+    "entity_a": {
+      "name": "glossary",
+      "table": "glossary",
+      "name_field": "Name",
+      "ref_field": "Ref_Number",
+      "parent_field": "Parent_ID",
+      "db_column": "SourceGlossaryID"
+    },
+    "entity_b": {
+      "name": "glossary",
+      "table": "glossary",
+      "name_field": "Name",
+      "ref_field": "Ref_Number",
+      "parent_field": "Parent_ID",
+      "db_column": "TargetGlossaryID"
+    },
+    "relation_type_table": "glossary_x_glossary_reltype",
+    "relation_type_field": "RelationType",
+    "requires_relation_type": true,
+    "headers": [
+      "Glossary Ref.",
+      "Glossary Name",
+      "Parent Glossary Name",
+      "Glossary Ref.",
+      "Glossary Name",
+      "Parent Glossary Name",
+      "Relationship Type"
+    ]
+  },
+  {
+    "key": "glossaryxproduct",
+    "relationship_table": "product_x_glossary",
+    "entity_a": {
+      "name": "product",
+      "table": "product",
+      "name_field": "primaryname",
+      "parent_field": "parent_id",
+      "db_column": "productid"
+    },
+    "entity_b": {
+      "name": "glossary",
+      "table": "glossary",
+      "name_field": "Name",
+      "ref_field": "Ref_Number",
+      "parent_field": "Parent_ID",
+      "db_column": "glossaryid"
+    },
+    "relation_type_table": "product_x_glossary_relationtype",
+    "relation_type_field": "relationtype",
+    "requires_relation_type": true,
+    "headers": [
+      "Product Name",
+      "Parent Product Name",
+      "Glossary Ref.",
+      "Glossary Name",
+      "Parent Glossary Name",
+      "Relationship Type"
+    ]
+  },
+  {
+    "key": "glossaryxsystem",
+    "relationship_table": "glossary_x_system",
+    "entity_a": {
+      "name": "glossary",
+      "table": "glossary",
+      "name_field": "Name",
+      "ref_field": "Ref_Number",
+      "parent_field": "Parent_ID",
+      "db_column": "GlossaryID"
+    },
+    "entity_b": {
+      "name": "system",
+      "table": "system",
+      "name_field": "Name",
+      "parent_field": "parent_id",
+      "db_column": "SystemID"
+    },
+    "relation_type_table": "glossary_x_system_relationtype",
+    "relation_type_field": "Relation_TypeID",
+    "requires_relation_type": true,
+    "headers": [
+      "Glossary Ref.",
+      "Glossary Name",
+      "Parent Glossary Name",
+      "System Name",
+      "Parent System Name",
+      "Relationship Type"
+    ]
+  },
+  {
+    "key": "interfacexglossary",
+    "relationship_table": "interface_x_glossary",
+    "entity_a": {
+      "name": "interface",
+      "table": "interface",
+      "name_field": "Name",
+      "ref_field": "Ref_number",
+      "db_column": "Interface"
+    },
+    "entity_b": {
+      "name": "glossary",
+      "table": "glossary",
+      "name_field": "Name",
+      "ref_field": "Ref_Number",
+      "parent_field": "Parent_ID",
+      "db_column": "Glossary"
+    },
+    "relation_type_table": "interface_x_glossary_relationtype",
+    "relation_type_field": "Glossary_RelationType",
+    "requires_relation_type": true,
+    "headers": [
+      "Interface Ref.",
+      "Interface Name",
+      "Glossary Ref.",
+      "Glossary Name",
+      "Parent Glossary Name",
+      "Relationship Type"
+    ]
+  },
+  {
+    "key": "legalentityxgeography",
+    "relationship_table": "legal_x_geography",
+    "entity_a": {
+      "name": "legal",
+      "table": "legal",
+      "name_field": "ShortName",
+      "parent_field": "Parent_ID",
+      "db_column": "Legal_ID"
+    },
+    "entity_b": {
+      "name": "geography",
+      "table": "geography",
+      "name_field": "PrimaryName",
+      "parent_field": "ParentID",
+      "db_column": "Geography_ID"
+    },
+    "relation_type_table": "legal_x_geo_relationtype",
+    "relation_type_field": "Relation_Type",
+    "requires_relation_type": true,
+    "headers": [
+      "Legal Name",
+      "Parent Legal Name",
+      "Geography Name",
+      "Parent Geography Name",
+      "Relationship Type"
+    ]
+  },
+  {
+    "key": "legalxgeography",
+    "relationship_table": "legal_x_geography",
+    "entity_a": {
+      "name": "legal",
+      "table": "legal",
+      "name_field": "ShortName",
+      "parent_field": "Parent_ID",
+      "db_column": "Legal_ID"
+    },
+    "entity_b": {
+      "name": "geography",
+      "table": "geography",
+      "name_field": "PrimaryName",
+      "parent_field": "ParentID",
+      "db_column": "Geography_ID"
+    },
+    "relation_type_table": "legal_x_geo_relationtype",
+    "relation_type_field": "Relation_Type",
+    "requires_relation_type": true,
+    "headers": [
+      "Legal Name",
+      "Parent Legal Name",
+      "Geography Name",
+      "Parent Geography Name",
+      "Relationship Type"
+    ]
+  },
+  {
+    "key": "peoplexpeople",
+    "relationship_table": "people_x_people",
+    "entity_a": {
+      "name": "people",
+      "table": "people",
+      "name_field": "Email",
+      "db_column": "Manager"
+    },
+    "entity_b": {
+      "name": "people",
+      "table": "people",
+      "name_field": "Email",
+      "db_column": "Employee"
+    },
+    "relation_type_table": "people_x_people_relationtype",
+    "relation_type_field": "ipXip_RelationType",
+    "requires_relation_type": true,
+    "headers": [
+      "People Name",
+      "People Name",
+      "Relationship Type"
+    ]
+  },
+  {
+    "key": "policyxattribute",
+    "relationship_table": "policy_x_attribute",
+    "entity_a": {
+      "name": "policy",
+      "table": "policy",
+      "name_field": "PrimaryName",
+      "ref_field": "RefNumber",
+      "parent_field": "ParentID",
+      "db_column": "policyid"
+    },
+    "entity_b": {
+      "name": "attribute",
+      "table": "attribute",
+      "name_field": "PrimaryName",
+      "ref_field": "RefNumber",
+      "db_column": "attributeid"
+    },
+    "relation_type_table": "policy_x_attribute_relationtype",
+    "relation_type_field": "relation_type",
+    "requires_relation_type": true,
+    "headers": [
+      "Policy Ref.",
+      "Policy Name",
+      "Parent Policy Name",
+      "Attribute Ref.",
+      "Attribute Name",
+      "Relationship Type",
+      "Description"
+    ]
+  },
+  {
+    "key": "policyxbusinessarea",
+    "relationship_table": "policy_x_businessarea",
+    "entity_a": {
+      "name": "policy",
+      "table": "policy",
+      "name_field": "PrimaryName",
+      "ref_field": "RefNumber",
+      "parent_field": "ParentID",
+      "db_column": "Policy_ID"
+    },
+    "entity_b": {
+      "name": "businessarea",
+      "table": "business_area",
+      "name_field": "PrimaryName",
+      "parent_field": "Parent_ID",
+      "db_column": "BusinessArea_ID"
+    },
+    "relation_type_table": "policy_x_businessarea_relationtype",
+    "relation_type_field": "RelationType",
+    "requires_relation_type": true,
+    "headers": [
+      "Policy Ref.",
+      "Policy Name",
+      "Parent Policy Name",
+      "Businessarea Name",
+      "Parent Businessarea Name",
+      "Relationship Type"
+    ]
+  },
+  {
+    "key": "policyxclient",
+    "relationship_table": "client_x_policy",
+    "entity_a": {
+      "name": "client",
+      "table": "client",
+      "name_field": "PrimaryName",
+      "parent_field": "Parent_ID",
+      "db_column": "Client_ID"
+    },
+    "entity_b": {
+      "name": "policy",
+      "table": "policy",
+      "name_field": "PrimaryName",
+      "ref_field": "RefNumber",
+      "parent_field": "ParentID",
+      "db_column": "Policy_ID"
+    },
+    "relation_type_table": "client_x_policy_relationtype",
+    "relation_type_field": "RelationType",
+    "requires_relation_type": true,
+    "headers": [
+      "Client Name",
+      "Parent Client Name",
+      "Policy Ref.",
+      "Policy Name",
+      "Parent Policy Name",
+      "Relationship Type"
+    ]
+  },
+  {
+    "key": "policyxdataset",
+    "relationship_table": "policy_x_dataset",
+    "entity_a": {
+      "name": "policy",
+      "table": "policy",
+      "name_field": "PrimaryName",
+      "ref_field": "RefNumber",
+      "parent_field": "ParentID",
+      "db_column": "PolicyID"
+    },
+    "entity_b": {
+      "name": "dataset",
+      "table": "dataset",
+      "name_field": "PrimaryName",
+      "ref_field": "RefNumber",
+      "db_column": "DatasetID"
+    },
+    "relation_type_table": "policy_x_dataset_relationtype",
+    "relation_type_field": "Relation_Type",
+    "requires_relation_type": true,
+    "headers": [
+      "Policy Ref.",
+      "Policy Name",
+      "Parent Policy Name",
+      "Data Set Ref.",
+      "Data Set Name",
+      "Data Set System Short Name",
+      "Relationship Type"
+    ]
+  },
+  {
+    "key": "policyxglossary",
+    "relationship_table": "policy_x_glossary",
+    "entity_a": {
+      "name": "policy",
+      "table": "policy",
+      "name_field": "PrimaryName",
+      "ref_field": "RefNumber",
+      "parent_field": "ParentID",
+      "db_column": "PolicyID"
+    },
+    "entity_b": {
+      "name": "glossary",
+      "table": "glossary",
+      "name_field": "Name",
+      "ref_field": "Ref_Number",
+      "parent_field": "Parent_ID",
+      "db_column": "GlossaryID"
+    },
+    "relation_type_table": "policy_x_glossary_relationtype",
+    "relation_type_field": "Relation_Type",
+    "requires_relation_type": true,
+    "headers": [
+      "Policy Ref.",
+      "Policy Name",
+      "Parent Policy Name",
+      "Glossary Ref.",
+      "Glossary Name",
+      "Parent Glossary Name",
+      "Relationship Type"
+    ]
+  },
+  {
+    "key": "policyxlegalentity",
+    "relationship_table": "policy_x_legal",
+    "entity_a": {
+      "name": "policy",
+      "table": "policy",
+      "name_field": "PrimaryName",
+      "ref_field": "RefNumber",
+      "parent_field": "ParentID",
+      "db_column": "Policy_ID"
+    },
+    "entity_b": {
+      "name": "legal",
+      "table": "legal",
+      "name_field": "ShortName",
+      "parent_field": "Parent_ID",
+      "db_column": "Legal_ID"
+    },
+    "relation_type_table": "policy_x_legal_relationtype",
+    "relation_type_field": "RelationType",
+    "requires_relation_type": true,
+    "headers": [
+      "Policy Ref.",
+      "Policy Name",
+      "Parent Policy Name",
+      "Legal Name",
+      "Parent Legal Name",
+      "Relationship Type"
+    ]
+  },
+  {
+    "key": "policyxpolicy",
+    "relationship_table": "policy_x_policy",
+    "entity_a": {
+      "name": "policy",
+      "table": "policy",
+      "name_field": "PrimaryName",
+      "ref_field": "RefNumber",
+      "parent_field": "ParentID",
+      "db_column": "sourceid"
+    },
+    "entity_b": {
+      "name": "policy",
+      "table": "policy",
+      "name_field": "PrimaryName",
+      "ref_field": "RefNumber",
+      "parent_field": "ParentID",
+      "db_column": "targetid"
+    },
+    "relation_type_table": "policy_x_policy_relation_type",
+    "relation_type_field": "RelationType",
+    "requires_relation_type": true,
+    "headers": [
+      "Policy Ref.",
+      "Policy Name",
+      "Parent Policy Name",
+      "Policy Ref.",
+      "Policy Name",
+      "Parent Policy Name",
+      "Relationship Type"
+    ]
+  },
+  {
+    "key": "policyxprocess",
+    "relationship_table": "policy_x_process",
+    "entity_a": {
+      "name": "policy",
+      "table": "policy",
+      "name_field": "PrimaryName",
+      "ref_field": "RefNumber",
+      "parent_field": "ParentID",
+      "db_column": "policy_id"
+    },
+    "entity_b": {
+      "name": "process",
+      "table": "process",
+      "name_field": "primaryname",
+      "ref_field": "refnumber",
+      "parent_field": "parentid",
+      "db_column": "process_id"
+    },
+    "relation_type_table": "policy_x_process_relationtype",
+    "relation_type_field": "relation_type",
+    "requires_relation_type": true,
+    "headers": [
+      "Policy Ref.",
+      "Policy Name",
+      "Parent Policy Name",
+      "Process Ref.",
+      "Process Name",
+      "Parent Process Name",
+      "Relationship Type"
+    ]
+  },
+  {
+    "key": "policyxproduct",
+    "relationship_table": "product_x_policy",
+    "entity_a": {
+      "name": "product",
+      "table": "product",
+      "name_field": "primaryname",
+      "parent_field": "parent_id",
+      "db_column": "productid"
+    },
+    "entity_b": {
+      "name": "policy",
+      "table": "policy",
+      "name_field": "PrimaryName",
+      "ref_field": "RefNumber",
+      "parent_field": "ParentID",
+      "db_column": "policyid"
+    },
+    "relation_type_table": "product_x_policy_relationtype",
+    "relation_type_field": "relationtype",
+    "requires_relation_type": true,
+    "headers": [
+      "Product Name",
+      "Parent Product Name",
+      "Policy Ref.",
+      "Policy Name",
+      "Parent Policy Name",
+      "Relationship Type"
+    ]
+  },
+  {
+    "key": "policyxproject",
+    "relationship_table": "policy_x_project",
+    "entity_a": {
+      "name": "policy",
+      "table": "policy",
+      "name_field": "PrimaryName",
+      "ref_field": "RefNumber",
+      "parent_field": "ParentID",
+      "db_column": "policy_id"
+    },
+    "entity_b": {
+      "name": "project",
+      "table": "project",
+      "name_field": "primaryname",
+      "ref_field": "refnumber",
+      "parent_field": "parentid",
+      "db_column": "project_id"
+    },
+    "relation_type_table": "policy_x_project_relationtype",
+    "relation_type_field": "relation_type",
+    "requires_relation_type": true,
+    "headers": [
+      "Policy Ref.",
+      "Policy Name",
+      "Parent Policy Name",
+      "Project Ref.",
+      "Project Name",
+      "Parent Project Name",
+      "Relationship Type"
+    ]
+  },
+  {
+    "key": "policyxsystem",
+    "relationship_table": "policy_x_system",
+    "entity_a": {
+      "name": "policy",
+      "table": "policy",
+      "name_field": "PrimaryName",
+      "ref_field": "RefNumber",
+      "parent_field": "ParentID",
+      "db_column": "Policy_ID"
+    },
+    "entity_b": {
+      "name": "system",
+      "table": "system",
+      "name_field": "Name",
+      "parent_field": "parent_id",
+      "db_column": "System_ID"
+    },
+    "relation_type_table": "policy_x_system_relationtype",
+    "relation_type_field": "Relation_Type",
+    "requires_relation_type": true,
+    "headers": [
+      "Policy Ref.",
+      "Policy Name",
+      "Parent Policy Name",
+      "System Name",
+      "Parent System Name",
+      "Relationship Type"
+    ]
+  },
+  {
+    "key": "processxattribute",
+    "relationship_table": "process_x_attribute",
+    "entity_a": {
+      "name": "process",
+      "table": "process",
+      "name_field": "primaryname",
+      "ref_field": "refnumber",
+      "parent_field": "parentid",
+      "db_column": "processid"
+    },
+    "entity_b": {
+      "name": "attribute",
+      "table": "attribute",
+      "name_field": "PrimaryName",
+      "ref_field": "RefNumber",
+      "db_column": "attributeid"
+    },
+    "relation_type_table": "process_x_attribute_relationtype",
+    "relation_type_field": "relation_type",
+    "requires_relation_type": true,
+    "headers": [
+      "Process Ref.",
+      "Process Name",
+      "Parent Process Name",
+      "Attribute Ref.",
+      "Attribute Name",
+      "Relationship Type"
+    ]
+  },
+  {
+    "key": "processxclient",
+    "relationship_table": "client_x_process",
+    "entity_a": {
+      "name": "client",
+      "table": "client",
+      "name_field": "PrimaryName",
+      "parent_field": "Parent_ID",
+      "db_column": "Client_ID"
+    },
+    "entity_b": {
+      "name": "process",
+      "table": "process",
+      "name_field": "primaryname",
+      "ref_field": "refnumber",
+      "parent_field": "parentid",
+      "db_column": "Process_ID"
+    },
+    "relation_type_table": "client_x_process_relationtype",
+    "relation_type_field": "RelationType",
+    "requires_relation_type": true,
+    "headers": [
+      "Client Name",
+      "Parent Client Name",
+      "Process Ref.",
+      "Process Name",
+      "Parent Process Name",
+      "Relationship Type"
+    ]
+  },
+  {
+    "key": "processxdataset",
+    "relationship_table": "process_x_dataset",
+    "entity_a": {
+      "name": "process",
+      "table": "process",
+      "name_field": "primaryname",
+      "ref_field": "refnumber",
+      "parent_field": "parentid",
+      "db_column": "processid"
+    },
+    "entity_b": {
+      "name": "dataset",
+      "table": "dataset",
+      "name_field": "PrimaryName",
+      "ref_field": "RefNumber",
+      "db_column": "datasetid"
+    },
+    "relation_type_table": "process_x_dataset_relationtype",
+    "relation_type_field": "relation_type",
+    "requires_relation_type": true,
+    "headers": [
+      "Process Ref.",
+      "Process Name",
+      "Parent Process Name",
+      "Data Set Ref.",
+      "Data Set Name",
+      "Data Set System Short Name",
+      "Relationship Type"
+    ]
+  },
+  {
+    "key": "processxglossary",
+    "relationship_table": "glossary_x_process",
+    "entity_a": {
+      "name": "glossary",
+      "table": "glossary",
+      "name_field": "Name",
+      "ref_field": "Ref_Number",
+      "parent_field": "Parent_ID",
+      "db_column": "Glossary_ID"
+    },
+    "entity_b": {
+      "name": "process",
+      "table": "process",
+      "name_field": "primaryname",
+      "ref_field": "refnumber",
+      "parent_field": "parentid",
+      "db_column": "Process_ID"
+    },
+    "relation_type_table": "glossary_x_process_relationtype",
+    "relation_type_field": "RelationType",
+    "requires_relation_type": true,
+    "headers": [
+      "Glossary Ref.",
+      "Glossary Name",
+      "Parent Glossary Name",
+      "Process Ref.",
+      "Process Name",
+      "Parent Process Name",
+      "Relationship Type"
+    ]
+  },
+  {
+    "key": "processxlegalentity",
+    "relationship_table": "process_x_legal",
+    "entity_a": {
+      "name": "process",
+      "table": "process",
+      "name_field": "primaryname",
+      "ref_field": "refnumber",
+      "parent_field": "parentid",
+      "db_column": "Process_ID"
+    },
+    "entity_b": {
+      "name": "legal",
+      "table": "legal",
+      "name_field": "ShortName",
+      "parent_field": "Parent_ID",
+      "db_column": "Legal_ID"
+    },
+    "relation_type_table": "process_x_legal_relationtype",
+    "relation_type_field": "RelationType",
+    "requires_relation_type": true,
+    "headers": [
+      "Process Ref.",
+      "Process Name",
+      "Parent Process Name",
+      "Legal Name",
+      "Parent Legal Name",
+      "Relationship Type"
+    ]
+  },
+  {
+    "key": "processxprocess",
+    "relationship_table": "process_x_process",
+    "entity_a": {
+      "name": "process",
+      "table": "process",
+      "name_field": "primaryname",
+      "ref_field": "refnumber",
+      "parent_field": "parentid",
+      "db_column": "sourceprocess_id"
+    },
+    "entity_b": {
+      "name": "process",
+      "table": "process",
+      "name_field": "primaryname",
+      "ref_field": "refnumber",
+      "parent_field": "parentid",
+      "db_column": "targetprocess_id"
+    },
+    "relation_type_table": "process_x_process_relationtype",
+    "relation_type_field": "relationtype",
+    "requires_relation_type": false,
+    "headers": [
+      "Process Ref.",
+      "Process Name",
+      "Parent Process Name",
+      "Process Ref.",
+      "Process Name",
+      "Parent Process Name",
+      "Relationship Type",
+      "Description"
+    ]
+  },
+  {
+    "key": "processxproduct",
+    "relationship_table": "product_x_process",
+    "entity_a": {
+      "name": "product",
+      "table": "product",
+      "name_field": "primaryname",
+      "parent_field": "parent_id",
+      "db_column": "productid"
+    },
+    "entity_b": {
+      "name": "process",
+      "table": "process",
+      "name_field": "primaryname",
+      "ref_field": "refnumber",
+      "parent_field": "parentid",
+      "db_column": "processid"
+    },
+    "relation_type_table": "product_x_process_relationtype",
+    "relation_type_field": "relationtype",
+    "requires_relation_type": true,
+    "headers": [
+      "Product Name",
+      "Parent Product Name",
+      "Process Ref.",
+      "Process Name",
+      "Parent Process Name",
+      "Relationship Type"
+    ]
+  },
+  {
+    "key": "processxsystem",
+    "relationship_table": "process_x_system",
+    "entity_a": {
+      "name": "process",
+      "table": "process",
+      "name_field": "primaryname",
+      "ref_field": "refnumber",
+      "parent_field": "parentid",
+      "db_column": "Process_ID"
+    },
+    "entity_b": {
+      "name": "system",
+      "table": "system",
+      "name_field": "Name",
+      "parent_field": "parent_id",
+      "db_column": "System_ID"
+    },
+    "relation_type_table": "process_x_system_relationtype",
+    "relation_type_field": "RelationType",
+    "requires_relation_type": true,
+    "headers": [
+      "Process Ref.",
+      "Process Name",
+      "Parent Process Name",
+      "System Name",
+      "Parent System Name",
+      "Relationship Type"
+    ]
+  },
+  {
+    "key": "processxsysteminterface",
+    "relationship_table": "process_x_interface",
+    "entity_a": {
+      "name": "process",
+      "table": "process",
+      "name_field": "primaryname",
+      "ref_field": "refnumber",
+      "parent_field": "parentid",
+      "db_column": "Process_ID"
+    },
+    "entity_b": {
+      "name": "interface",
+      "table": "interface",
+      "name_field": "Name",
+      "ref_field": "Ref_number",
+      "db_column": "Interface_ID"
+    },
+    "relation_type_table": "process_x_interface_relationtype",
+    "relation_type_field": "RelationType",
+    "requires_relation_type": true,
+    "headers": [
+      "Process Ref.",
+      "Process Name",
+      "Parent Process Name",
+      "Interface Ref.",
+      "Interface Name",
+      "Relationship Type"
+    ]
+  },
+  {
+    "key": "productxbusinessarea",
+    "relationship_table": "product_x_businessarea",
+    "entity_a": {
+      "name": "product",
+      "table": "product",
+      "name_field": "primaryname",
+      "ref_field": "refnumber",
+      "parent_field": "parent_id",
+      "db_column": "Product_ID"
+    },
+    "entity_b": {
+      "name": "businessarea",
+      "table": "business_area",
+      "name_field": "PrimaryName",
+      "parent_field": "Parent_ID",
+      "db_column": "BusinessArea_ID"
+    },
+    "relation_type_table": "product_x_businessarea_relationtype",
+    "relation_type_field": "RelationType",
+    "requires_relation_type": true,
+    "headers": [
+      "Product Ref.",
+      "Product Name",
+      "Parent Product Name",
+      "Businessarea Name",
+      "Parent Businessarea Name",
+      "Relationship Type"
+    ]
+  },
+  {
+    "key": "productxclient",
+    "relationship_table": "product_x_client",
+    "entity_a": {
+      "name": "product",
+      "table": "product",
+      "name_field": "primaryname",
+      "ref_field": "refnumber",
+      "parent_field": "parent_id",
+      "db_column": "Product_ID"
+    },
+    "entity_b": {
+      "name": "client",
+      "table": "client",
+      "name_field": "PrimaryName",
+      "parent_field": "Parent_ID",
+      "db_column": "Client_ID"
+    },
+    "relation_type_table": "product_x_client_relationtype",
+    "relation_type_field": "RelationType",
+    "requires_relation_type": true,
+    "headers": [
+      "Product Ref.",
+      "Product Name",
+      "Parent Product Name",
+      "Client Name",
+      "Parent Client Name",
+      "Relationship Type"
+    ]
+  },
+  {
+    "key": "productxlegalentity",
+    "relationship_table": "product_x_legal",
+    "entity_a": {
+      "name": "product",
+      "table": "product",
+      "name_field": "primaryname",
+      "ref_field": "refnumber",
+      "parent_field": "parent_id",
+      "db_column": "Product_ID"
+    },
+    "entity_b": {
+      "name": "legal",
+      "table": "legal",
+      "name_field": "ShortName",
+      "parent_field": "Parent_ID",
+      "db_column": "Legal_ID"
+    },
+    "relation_type_table": "product_x_legalentity_relationtype",
+    "relation_type_field": "RelationType",
+    "requires_relation_type": true,
+    "headers": [
+      "Product Ref.",
+      "Product Name",
+      "Parent Product Name",
+      "Legal Name",
+      "Parent Legal Name",
+      "Relationship Type"
+    ]
+  },
+  {
+    "key": "productxsystem",
+    "relationship_table": "product_x_system",
+    "entity_a": {
+      "name": "product",
+      "table": "product",
+      "name_field": "primaryname",
+      "parent_field": "parent_id",
+      "db_column": "Product_ID"
+    },
+    "entity_b": {
+      "name": "system",
+      "table": "system",
+      "name_field": "Name",
+      "parent_field": "parent_id",
+      "db_column": "System_ID"
+    },
+    "relation_type_table": "product_x_system_relationtype",
+    "relation_type_field": "Product_System_Relation_Type",
+    "requires_relation_type": true,
+    "headers": [
+      "Product Name",
+      "Parent Product Name",
+      "System Name",
+      "Parent System Name",
+      "Relationship Type",
+      "Legal_Relation_Type",
+      "Legal_ID"
+    ]
+  },
+  {
+    "key": "projectxattribute",
+    "relationship_table": "project_x_attribute",
+    "entity_a": {
+      "name": "project",
+      "table": "project",
+      "name_field": "primaryname",
+      "ref_field": "refnumber",
+      "parent_field": "parentid",
+      "db_column": "projectid"
+    },
+    "entity_b": {
+      "name": "attribute",
+      "table": "attribute",
+      "name_field": "PrimaryName",
+      "ref_field": "RefNumber",
+      "db_column": "attribute_id"
+    },
+    "relation_type_table": "project_x_attribute_relationtype",
+    "relation_type_field": "relationtype",
+    "requires_relation_type": true,
+    "headers": [
+      "Project Ref.",
+      "Project Name",
+      "Parent Project Name",
+      "Attribute Ref.",
+      "Attribute Name",
+      "Relationship Type"
+    ]
+  },
+  {
+    "key": "projectxbusinessarea",
+    "relationship_table": "project_x_businessarea",
+    "entity_a": {
+      "name": "project",
+      "table": "project",
+      "name_field": "primaryname",
+      "ref_field": "refnumber",
+      "parent_field": "parentid",
+      "db_column": "Project_ID"
+    },
+    "entity_b": {
+      "name": "businessarea",
+      "table": "business_area",
+      "name_field": "PrimaryName",
+      "parent_field": "Parent_ID",
+      "db_column": "BusinessArea_ID"
+    },
+    "relation_type_table": "project_x_businessarea_relationtype",
+    "relation_type_field": "RelationType",
+    "requires_relation_type": true,
+    "headers": [
+      "Project Ref.",
+      "Project Name",
+      "Parent Project Name",
+      "Businessarea Name",
+      "Parent Businessarea Name",
+      "Relationship Type"
+    ]
+  },
+  {
+    "key": "projectxcapability",
+    "relationship_table": "project_x_capability",
+    "entity_a": {
+      "name": "project",
+      "table": "project",
+      "name_field": "primaryname",
+      "ref_field": "refnumber",
+      "parent_field": "parentid",
+      "db_column": "Project_ID"
+    },
+    "entity_b": {
+      "name": "capability",
+      "table": "capability",
+      "name_field": "PrimaryName",
+      "ref_field": "RefNumber",
+      "parent_field": "Parent_ID",
+      "db_column": "Capability_ID"
+    },
+    "relation_type_table": "project_x_capability_relationtype",
+    "relation_type_field": "RelationType",
+    "requires_relation_type": true,
+    "headers": [
+      "Project Ref.",
+      "Project Name",
+      "Parent Project Name",
+      "Capability Ref.",
+      "Capability Name",
+      "Parent Capability Name",
+      "Relationship Type"
+    ]
+  },
+  {
+    "key": "projectxclient",
+    "relationship_table": "client_x_project",
+    "entity_a": {
+      "name": "client",
+      "table": "client",
+      "name_field": "PrimaryName",
+      "parent_field": "Parent_ID",
+      "db_column": "Client_ID"
+    },
+    "entity_b": {
+      "name": "project",
+      "table": "project",
+      "name_field": "primaryname",
+      "ref_field": "refnumber",
+      "parent_field": "parentid",
+      "db_column": "Project_ID"
+    },
+    "relation_type_table": "client_x_project_relationtype",
+    "relation_type_field": "RelationType",
+    "requires_relation_type": true,
+    "headers": [
+      "Client Name",
+      "Parent Client Name",
+      "Project Ref.",
+      "Project Name",
+      "Parent Project Name",
+      "Relationship Type"
+    ]
+  },
+  {
+    "key": "projectxdataset",
+    "relationship_table": "project_x_dataset",
+    "entity_a": {
+      "name": "project",
+      "table": "project",
+      "name_field": "primaryname",
+      "ref_field": "refnumber",
+      "parent_field": "parentid",
+      "db_column": "projectid"
+    },
+    "entity_b": {
+      "name": "dataset",
+      "table": "dataset",
+      "name_field": "PrimaryName",
+      "ref_field": "RefNumber",
+      "db_column": "dataset_id"
+    },
+    "relation_type_table": "project_x_dataset_relationtype",
+    "relation_type_field": "relationtype",
+    "requires_relation_type": true,
+    "headers": [
+      "Project Ref.",
+      "Project Name",
+      "Parent Project Name",
+      "Data Set Ref.",
+      "Data Set Name",
+      "Data Set System Short Name",
+      "Relationship Type"
+    ]
+  },
+  {
+    "key": "projectxglossary",
+    "relationship_table": "glossary_x_project",
+    "entity_a": {
+      "name": "glossary",
+      "table": "glossary",
+      "name_field": "Name",
+      "ref_field": "Ref_Number",
+      "parent_field": "Parent_ID",
+      "db_column": "Glossary_ID"
+    },
+    "entity_b": {
+      "name": "project",
+      "table": "project",
+      "name_field": "primaryname",
+      "ref_field": "refnumber",
+      "parent_field": "parentid",
+      "db_column": "Project_ID"
+    },
+    "relation_type_table": "glossary_x_project_relationtype",
+    "relation_type_field": "RelationType",
+    "requires_relation_type": true,
+    "headers": [
+      "Glossary Ref.",
+      "Glossary Name",
+      "Parent Glossary Name",
+      "Project Ref.",
+      "Project Name",
+      "Parent Project Name",
+      "Relationship Type",
+      "Description"
+    ]
+  },
+  {
+    "key": "projectxprocess",
+    "relationship_table": "project_x_process",
+    "entity_a": {
+      "name": "project",
+      "table": "project",
+      "name_field": "primaryname",
+      "ref_field": "refnumber",
+      "parent_field": "parentid",
+      "db_column": "projectid"
+    },
+    "entity_b": {
+      "name": "process",
+      "table": "process",
+      "name_field": "primaryname",
+      "ref_field": "refnumber",
+      "parent_field": "parentid",
+      "db_column": "process_id"
+    },
+    "relation_type_table": "project_x_process_relationtype",
+    "relation_type_field": "relationtype",
+    "requires_relation_type": true,
+    "headers": [
+      "Project Ref.",
+      "Project Name",
+      "Parent Project Name",
+      "Process Ref.",
+      "Process Name",
+      "Parent Process Name",
+      "Relationship Type"
+    ]
+  },
+  {
+    "key": "projectxproduct",
+    "relationship_table": "product_x_project",
+    "entity_a": {
+      "name": "product",
+      "table": "product",
+      "name_field": "primaryname",
+      "parent_field": "parent_id",
+      "db_column": "productid"
+    },
+    "entity_b": {
+      "name": "project",
+      "table": "project",
+      "name_field": "primaryname",
+      "ref_field": "refnumber",
+      "parent_field": "parentid",
+      "db_column": "projectid"
+    },
+    "relation_type_table": "product_x_project_relationtype",
+    "relation_type_field": "relationtype",
+    "requires_relation_type": true,
+    "headers": [
+      "Product Name",
+      "Parent Product Name",
+      "Project Ref.",
+      "Project Name",
+      "Parent Project Name",
+      "Relationship Type"
+    ]
+  },
+  {
+    "key": "projectxproject",
+    "relationship_table": "project_x_project",
+    "entity_a": {
+      "name": "project",
+      "table": "project",
+      "name_field": "primaryname",
+      "ref_field": "refnumber",
+      "parent_field": "parentid",
+      "db_column": "sourceprojectid"
+    },
+    "entity_b": {
+      "name": "project",
+      "table": "project",
+      "name_field": "primaryname",
+      "ref_field": "refnumber",
+      "parent_field": "parentid",
+      "db_column": "targetprojectid"
+    },
+    "relation_type_table": "project_x_project_relationtype",
+    "relation_type_field": "RelationType",
+    "requires_relation_type": true,
+    "headers": [
+      "Project Ref.",
+      "Project Name",
+      "Parent Project Name",
+      "Project Ref.",
+      "Project Name",
+      "Parent Project Name",
+      "Relationship Type"
+    ]
+  },
+  {
+    "key": "projectxsystem",
+    "relationship_table": "project_x_system",
+    "entity_a": {
+      "name": "project",
+      "table": "project",
+      "name_field": "primaryname",
+      "ref_field": "refnumber",
+      "parent_field": "parentid",
+      "db_column": "projectid"
+    },
+    "entity_b": {
+      "name": "system",
+      "table": "system",
+      "name_field": "Name",
+      "parent_field": "parent_id",
+      "db_column": "systemid"
+    },
+    "relation_type_table": "project_x_system_relationtype",
+    "relation_type_field": "RelationType",
+    "requires_relation_type": true,
+    "headers": [
+      "Project Ref.",
+      "Project Name",
+      "Parent Project Name",
+      "System Name",
+      "Parent System Name",
+      "Relationship Type"
+    ]
+  },
+  {
+    "key": "regulationxpolicy",
+    "relationship_table": "regulation_x_policy",
+    "entity_a": {
+      "name": "regulation",
+      "table": "regulation",
+      "name_field": "PrimaryName",
+      "ref_field": "RefNumber",
+      "parent_field": "Parent_ID",
+      "db_column": "RegulationID"
+    },
+    "entity_b": {
+      "name": "policy",
+      "table": "policy",
+      "name_field": "PrimaryName",
+      "ref_field": "RefNumber",
+      "parent_field": "ParentID",
+      "db_column": "PolicyID"
+    },
+    "relation_type_table": "regulation_x_policy_relationtype",
+    "relation_type_field": "RelationType",
+    "requires_relation_type": true,
+    "headers": [
+      "Regulation Ref.",
+      "Regulation Name",
+      "Parent Regulation Name",
+      "Policy Ref.",
+      "Policy Name",
+      "Parent Policy Name",
+      "Relationship Type"
+    ]
+  },
+  {
+    "key": "regulationxproduct",
+    "relationship_table": "regulation_x_product",
+    "entity_a": {
+      "name": "regulation",
+      "table": "regulation",
+      "name_field": "PrimaryName",
+      "ref_field": "RefNumber",
+      "parent_field": "Parent_ID",
+      "db_column": "RegulationID"
+    },
+    "entity_b": {
+      "name": "product",
+      "table": "product",
+      "name_field": "primaryname",
+      "parent_field": "parent_id",
+      "db_column": "ProductID"
+    },
+    "relation_type_table": "regulation_x_product_relationtype",
+    "relation_type_field": "RelationType",
+    "requires_relation_type": true,
+    "headers": [
+      "Regulation Ref.",
+      "Regulation Name",
+      "Parent Regulation Name",
+      "Product Name",
+      "Parent Product Name",
+      "Relationship Type"
+    ]
+  },
+  {
+    "key": "regulationxproject",
+    "relationship_table": "regulation_x_project",
+    "entity_a": {
+      "name": "regulation",
+      "table": "regulation",
+      "name_field": "PrimaryName",
+      "ref_field": "RefNumber",
+      "parent_field": "Parent_ID",
+      "db_column": "RegulationID"
+    },
+    "entity_b": {
+      "name": "project",
+      "table": "project",
+      "name_field": "primaryname",
+      "ref_field": "refnumber",
+      "parent_field": "parentid",
+      "db_column": "ProjectID"
+    },
+    "relation_type_table": "regulation_x_project_relationtype",
+    "relation_type_field": "RelationType",
+    "requires_relation_type": true,
+    "headers": [
+      "Regulation Ref.",
+      "Regulation Name",
+      "Parent Regulation Name",
+      "Project Ref.",
+      "Project Name",
+      "Parent Project Name",
+      "Relationship Type"
+    ]
+  },
+  {
+    "key": "regulationxregulator",
+    "relationship_table": "regulation_x_regulator",
+    "entity_a": {
+      "name": "regulation",
+      "table": "regulation",
+      "name_field": "PrimaryName",
+      "ref_field": "RefNumber",
+      "parent_field": "Parent_ID",
+      "db_column": "RegulationID"
+    },
+    "entity_b": {
+      "name": "regulator",
+      "table": "regulator",
+      "name_field": "PrimaryName",
+      "db_column": "RegulatorID"
+    },
+    "relation_type_table": "regulation_x_regulator_relationtype",
+    "relation_type_field": "RelationType",
+    "requires_relation_type": true,
+    "headers": [
+      "Regulation Ref.",
+      "Regulation Name",
+      "Parent Regulation Name",
+      "Regulator Name",
+      "Relationship Type",
+      "Description"
+    ]
+  },
+  {
+    "key": "regulationxregulatorytheme",
+    "relationship_table": "regulation_x_regulatorytheme",
+    "entity_a": {
+      "name": "regulation",
+      "table": "regulation",
+      "name_field": "PrimaryName",
+      "ref_field": "RefNumber",
+      "parent_field": "Parent_ID",
+      "db_column": "Regulation_ID"
+    },
+    "entity_b": {
+      "name": "regulatorytheme",
+      "table": "regulatorytheme",
+      "name_field": "PrimaryName",
+      "ref_field": "RefNumber",
+      "parent_field": "Parent_ID",
+      "db_column": "RegulatoryTheme_ID"
+    },
+    "relation_type_table": "regulation_x_regulatorytheme_relationtype",
+    "relation_type_field": "RelationType",
+    "requires_relation_type": true,
+    "headers": [
+      "Regulation Ref.",
+      "Regulation Name",
+      "Parent Regulation Name",
+      "Regulatorytheme Ref.",
+      "Regulatorytheme Name",
+      "Parent Regulatorytheme Name",
+      "Relationship Type"
+    ]
+  },
+  {
+    "key": "regulatorxgeography",
+    "relationship_table": "regulator_x_geography",
+    "entity_a": {
+      "name": "regulator",
+      "table": "regulator",
+      "name_field": "PrimaryName",
+      "db_column": "Regulator_ID"
+    },
+    "entity_b": {
+      "name": "geography",
+      "table": "geography",
+      "name_field": "PrimaryName",
+      "parent_field": "ParentID",
+      "db_column": "Geography_ID"
+    },
+    "requires_relation_type": false,
+    "headers": [
+      "Regulator Name",
+      "Geography Name",
+      "Parent Geography Name",
+      "Description"
+    ]
+  },
+  {
+    "key": "segmentxobject",
+    "relationship_table": "segment_x_identity",
+    "entity_a": {
+      "name": "segment",
+      "table": "segment",
+      "name_field": "PrimaryName",
+      "db_column": "Segment_ID"
+    },
+    "entity_b": {
+      "name": "identity",
+      "table": "identity",
+      "name_field": "Object_ID",
+      "db_column": "Identity_ID"
+    },
+    "requires_relation_type": false,
+    "headers": [
+      "Segment Name",
+      "Identity Name",
+      "Description",
+      "Object_ID"
+    ]
+  },
+  {
+    "key": "systemxclient",
+    "relationship_table": "client_x_system",
+    "entity_a": {
+      "name": "client",
+      "table": "client",
+      "name_field": "PrimaryName",
+      "parent_field": "Parent_ID",
+      "db_column": "Client_ID"
+    },
+    "entity_b": {
+      "name": "system",
+      "table": "system",
+      "name_field": "Name",
+      "parent_field": "parent_id",
+      "db_column": "System_ID"
+    },
+    "relation_type_table": "client_x_system_relationtype",
+    "relation_type_field": "RelationType",
+    "requires_relation_type": true,
+    "headers": [
+      "Client Name",
+      "Parent Client Name",
+      "System Name",
+      "Parent System Name",
+      "Relationship Type"
+    ]
+  },
+  {
+    "key": "systemxglossary",
+    "relationship_table": "glossary_x_system",
+    "entity_a": {
+      "name": "system",
+      "table": "system",
+      "name_field": "Name",
+      "parent_field": "parent_id",
+      "db_column": "SystemID"
+    },
+    "entity_b": {
+      "name": "glossary",
+      "table": "glossary",
+      "name_field": "Name",
+      "ref_field": "Ref_Number",
+      "parent_field": "Parent_ID",
+      "db_column": "GlossaryID"
+    },
+    "relation_type_table": "glossary_x_system_relationtype",
+    "relation_type_field": "Relation_TypeID",
+    "requires_relation_type": true,
+    "headers": [
+      "System Name",
+      "Parent System Name",
+      "Glossary Ref.",
+      "Glossary Name",
+      "Parent Glossary Name",
+      "Relationship Type"
+    ]
+  },
+  {
+    "key": "systemxlegalentity",
+    "relationship_table": "system_x_legal",
+    "entity_a": {
+      "name": "system",
+      "table": "system",
+      "name_field": "Name",
+      "parent_field": "parent_id",
+      "db_column": "System_ID"
+    },
+    "entity_b": {
+      "name": "legal",
+      "table": "legal",
+      "name_field": "ShortName",
+      "parent_field": "Parent_ID",
+      "db_column": "Legal_ID"
+    },
+    "relation_type_table": "system_x_legal_relationtype",
+    "relation_type_field": "RelationType",
+    "requires_relation_type": true,
+    "headers": [
+      "System Name",
+      "Parent System Name",
+      "Legal Name",
+      "Parent Legal Name",
+      "Relationship Type"
+    ]
+  },
+  {
+    "key": "systemxproduct",
+    "relationship_table": "product_x_system",
+    "entity_a": {
+      "name": "system",
+      "table": "system",
+      "name_field": "Name",
+      "parent_field": "parent_id",
+      "db_column": "System_ID"
+    },
+    "entity_b": {
+      "name": "product",
+      "table": "product",
+      "name_field": "primaryname",
+      "parent_field": "parent_id",
+      "db_column": "Product_ID"
+    },
+    "relation_type_table": "product_x_system_relationtype",
+    "relation_type_field": "Product_System_Relation_Type",
+    "requires_relation_type": true,
+    "headers": [
+      "System Name",
+      "Parent System Name",
+      "Product Name",
+      "Parent Product Name",
+      "Relationship Type",
+      "Legal_Relation_Type",
+      "Legal_ID"
+    ]
+  }
+]

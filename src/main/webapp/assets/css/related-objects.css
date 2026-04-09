@@ -1,0 +1,206 @@
+/* Related Objects Panel Styles */
+
+/* Expand/Collapse Button */
+.expand-related {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0.25rem 0.5rem;
+    color: var(--primary-color, #007bff);
+    transition: all 0.2s ease;
+}
+
+.expand-related:hover {
+    background-color: var(--hover-bg, rgba(0, 123, 255, 0.1));
+    border-radius: 4px;
+}
+
+.expand-related i {
+    font-size: 1.2rem;
+    transition: transform 0.3s ease;
+}
+
+.expand-related i.icon-chevron-up {
+    transform: rotate(180deg);
+}
+
+/* Related Objects Panel */
+.related-objects-panel {
+    background: var(--panel-bg, #f9f9f9);
+}
+
+.related-objects-panel td {
+    padding: 0 !important;
+}
+
+.related-objects-container {
+    padding: 1.5rem;
+    border-top: 2px solid var(--border-color, #e0e0e0);
+    border-bottom: 2px solid var(--border-color, #e0e0e0);
+}
+
+.related-objects-title {
+    margin: 0 0 1rem 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--text-primary, #333);
+}
+
+/* Related Objects Grid */
+.related-objects-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.no-related {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 2rem;
+    color: var(--text-muted, #999);
+    font-style: italic;
+}
+
+.loading, .error {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 2rem;
+    color: var(--text-muted, #666);
+}
+
+.error {
+    color: var(--error-color, #dc3545);
+}
+
+/* Related Facet Card */
+.related-facet-card {
+    border: 1px solid var(--border-color, #ddd);
+    border-radius: 8px;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    background: white;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.related-facet-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
+    border-color: var(--primary-color, #007bff);
+}
+
+.related-facet-card .facet-icon {
+    font-size: 2rem;
+    text-align: center;
+    margin-bottom: 0.5rem;
+}
+
+.related-facet-card .facet-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    flex: 1;
+}
+
+.related-facet-card .facet-name {
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: var(--text-primary, #333);
+}
+
+.related-facet-card .facet-count {
+    color: var(--text-muted, #666);
+    font-size: 0.85rem;
+}
+
+.related-facet-card .view-related {
+    align-self: flex-start;
+    padding: 0.4rem 0.8rem;
+    font-size: 0.85rem;
+    border: 1px solid var(--primary-color, #007bff);
+    background: transparent;
+    color: var(--primary-color, #007bff);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.related-facet-card .view-related:hover {
+    background: var(--primary-color, #007bff);
+    color: white;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .related-objects-grid {
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: 0.75rem;
+    }
+    
+    .related-objects-container {
+        padding: 1rem;
+    }
+    
+    .related-facet-card {
+        padding: 0.75rem;
+    }
+    
+    .related-facet-card .facet-icon {
+        font-size: 1.5rem;
+    }
+}
+
+/* Dark Mode Support */
+@media (prefers-color-scheme: dark) {
+    .related-objects-panel {
+        background: var(--panel-bg-dark, #2a2a2a);
+    }
+    
+    .related-objects-container {
+        border-color: var(--border-color-dark, #444);
+    }
+    
+    .related-objects-title {
+        color: var(--text-primary-dark, #e0e0e0);
+    }
+    
+    .related-facet-card {
+        background: var(--card-bg-dark, #333);
+        border-color: var(--border-color-dark, #555);
+    }
+    
+    .related-facet-card:hover {
+        background: var(--card-hover-bg-dark, #3a3a3a);
+        border-color: var(--primary-color, #4a90e2);
+    }
+    
+    .related-facet-card .facet-name {
+        color: var(--text-primary-dark, #e0e0e0);
+    }
+    
+    .related-facet-card .facet-count {
+        color: var(--text-muted-dark, #aaa);
+    }
+}
+
+/* Animation for panel opening */
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.related-objects-panel {
+    animation: slideDown 0.3s ease;
+}
+
+
+

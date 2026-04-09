@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#2563eb">
+    <link rel="manifest" href="/manifest.webmanifest">
+    <script src="/assets/i18n/head-locale.js"></script>
+    <script src="assets/i18n/i18n.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="assets/css/main.css">
+    <link rel="stylesheet" href="assets/css/rtl.css" id="rtl-styles" disabled>
+    <link rel="icon" type="image/png" href="assets/images/avatars/icon.jpg">
+    <title>Login - BUDG</title>
+    <style>
+        .login-container {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            padding: 20px;
+        }
+        
+        .login-card {
+            background: var(--background-primary);
+            border-radius: 16px;
+            box-shadow: var(--shadow-medium);
+            padding: 40px;
+            width: 100%;
+            max-width: 400px;
+            position: relative;
+            overflow: hidden;
+            transition: var(--transition);
+            animation: fadeInUp 0.5s ease-out;
+        }
+        
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .login-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+        }
+        
+        .login-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .login-logo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+        
+        .login-logo .logo-icon {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 12px;
+        }
+        
+        .login-logo .logo-icon i {
+            color: white;
+            font-size: 24px;
+        }
+        
+        .login-logo .logo-text {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+        
+        .login-logo .logo-text .highlight {
+            color: var(--secondary-color);
+        }
+        
+        .login-title {
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+        
+        .login-subtitle {
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+        
+        .form-input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 16px;
+            transition: var(--transition);
+            box-sizing: border-box;
+            background: var(--background-primary);
+            color: var(--text-primary);
+        }
+        
+        .form-input:focus {
+            outline: none;
+            border-color: var(--secondary-color);
+            box-shadow: 0 0 0 3px rgba(var(--secondary-color-rgb), 0.1);
+        }
+        
+        .form-input.error {
+            border-color: var(--error-color);
+            background: rgba(var(--error-color-rgb), 0.05);
+        }
+        
+        .form-input.error:focus {
+            border-color: var(--error-color);
+            box-shadow: 0 0 0 3px rgba(var(--error-color-rgb), 0.1);
+        }
+        
+        .input-group {
+            position: relative;
+        }
+        
+        .input-group i {
+            position: absolute;
+            left: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-tertiary);
+            font-size: 16px;
+        }
+        
+        .input-group .form-input {
+            padding-left: 48px;
+        }
+        
+        .error-message {
+            color: var(--error-color);
+            font-size: 13px;
+            margin-top: 6px;
+            display: none;
+            padding: 8px 12px;
+            background: rgba(var(--error-color-rgb), 0.1);
+            border-left: 3px solid var(--error-color);
+            border-radius: 4px;
+            animation: slideDown 0.3s ease-out;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .error-message i {
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+        
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .general-error {
+            background: rgba(var(--error-color-rgb), 0.1);
+            border: 1px solid rgba(var(--error-color-rgb), 0.3);
+            border-left: 4px solid var(--error-color);
+            border-radius: 8px;
+            padding: 12px 16px;
+            margin-bottom: 20px;
+            color: var(--error-color);
+            font-size: 14px;
+            display: none;
+            animation: slideDown 0.3s ease-out;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .general-error i {
+            font-size: 16px;
+            flex-shrink: 0;
+        }
+        
+        .general-error.show {
+            display: flex;
+        }
+        
+        .login-button {
+            width: 100%;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            border: none;
+            padding: 14px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        
+        .login-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(var(--secondary-color-rgb), 0.3);
+            background: linear-gradient(135deg, var(--primary-hover), var(--primary-color));
+        }
+        
+        .login-button:active {
+            transform: translateY(0);
+        }
+        
+        .login-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .login-footer {
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+        
+        .login-footer a {
+            color: var(--secondary-color);
+            text-decoration: none;
+            font-weight: 500;
+        }
+        
+        .login-footer a:hover {
+            text-decoration: underline;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            margin-top: 20px;
+        }
+        
+        .spinner {
+            border: 3px solid var(--background-secondary);
+            border-top: 3px solid var(--primary-color);
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Dark theme support */
+        [data-theme="dark"] .login-card {
+            background: var(--background-secondary);
+            color: var(--text-primary);
+        }
+        
+        [data-theme="dark"] .login-title {
+            color: var(--text-primary);
+        }
+        
+        [data-theme="dark"] .login-subtitle {
+            color: var(--text-secondary);
+        }
+        
+        [data-theme="dark"] .login-logo .logo-text {
+            color: var(--text-primary);
+        }
+        
+        [data-theme="dark"] .form-label {
+            color: var(--text-secondary);
+        }
+        
+        [data-theme="dark"] .form-input {
+            background: var(--background-hover);
+            border-color: var(--border-color);
+            color: var(--text-primary);
+        }
+        
+        [data-theme="dark"] .form-input:focus {
+            border-color: var(--secondary-color);
+            box-shadow: 0 0 0 3px rgba(var(--secondary-color-rgb), 0.2);
+        }
+        
+        [data-theme="dark"] .input-group i {
+            color: var(--text-tertiary);
+        }
+        
+        [data-theme="dark"] .login-footer {
+            color: var(--text-secondary);
+        }
+        
+        [data-theme="dark"] .spinner {
+            border-color: var(--background-hover);
+        }
+        
+        [data-theme="dark"] .error-message {
+            background: rgba(var(--error-color-rgb), 0.15);
+            color: var(--error-color);
+        }
+        
+        [data-theme="dark"] .general-error {
+            background: rgba(var(--error-color-rgb), 0.15);
+            border-color: rgba(var(--error-color-rgb), 0.4);
+            color: var(--error-color);
+        }
+        
+        [data-theme="dark"] .form-input.error {
+            background: rgba(var(--error-color-rgb), 0.1);
+        }
+
+        [dir="rtl"] .login-logo .logo-icon {
+            margin-right: 0;
+            margin-left: 12px;
+        }
+        [dir="rtl"] .input-group i {
+            left: auto;
+            right: 16px;
+        }
+        [dir="rtl"] .input-group .form-input {
+            padding-left: 16px;
+            padding-right: 48px;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-card">
+            <div class="login-header">
+                <div class="login-logo">
+                    <div class="logo-icon">
+                        <i class="fas fa-database"></i>
+                    </div>
+                    <span class="logo-text">BU<span class="highlight">DG</span></span>
+                </div>
+                <h1 class="login-title" data-i18n="loginPage.welcomeBack">Welcome Back</h1>
+                <p class="login-subtitle" data-i18n="loginPage.signInSubtitle">Sign in to your account to continue</p>
+            </div>
+            
+            <div class="general-error" id="generalError">
+                <i class="fas fa-exclamation-circle"></i>
+                <span id="generalErrorText"></span>
+            </div>
+            
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="email" class="form-label" data-i18n="loginPage.emailLabel">Email Address</label>
+                    <div class="input-group">
+                        <i class="fas fa-envelope"></i>
+                        <input 
+                            type="email" 
+                            id="email" 
+                            name="email" 
+                            class="form-input" 
+                            data-i18n-placeholder="loginPage.emailPlaceholder"
+                            placeholder="Enter your email"
+                            value="alice.smith@example.com"
+                            required
+                        >
+                    </div>
+                    <div class="error-message" id="emailError">
+                        <i class="fas fa-exclamation-circle"></i>
+                        <span></span>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="password" class="form-label" data-i18n="loginPage.passwordLabel">Password</label>
+                    <div class="input-group">
+                        <i class="fas fa-lock"></i>
+                        <input 
+                            type="password" 
+                            id="password" 
+                            name="password" 
+                            class="form-input" 
+                            data-i18n-placeholder="loginPage.passwordPlaceholder"
+                            placeholder="Enter your password"
+                            value="123"
+                            required
+                        >
+                    </div>
+                    <div class="error-message" id="passwordError">
+                        <i class="fas fa-exclamation-circle"></i>
+                        <span></span>
+                    </div>
+                </div>
+                
+                <button type="submit" class="login-button" id="loginButton">
+                    <i class="fas fa-sign-in-alt"></i>
+                    <span data-i18n="loginPage.signIn">Sign In</span>
+                </button>
+                
+                <div class="loading" id="loading">
+                    <div class="spinner"></div>
+                    <p data-i18n="loginPage.signingIn">Signing you in...</p>
+                </div>
+            </form>
+            
+            <div class="login-footer">
+                <p><span data-i18n="loginPage.footerNoAccount">Don't have an account?</span>
+                    <a href="#" id="loginContactAdminLink" data-i18n="loginPage.contactAdmin">Contact Admin</a></p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Apply theme immediately to prevent flash of unstyled content
+        (function() {
+            const savedTheme = localStorage.getItem('budg-theme') || 'light';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+        })();
+
+        function tLogin(key) {
+            if (window.I18n && typeof window.I18n.t === 'function') {
+                const s = window.I18n.t(key);
+                if (s && s !== key) return s;
+            }
+            return '';
+        }
+
+        // Client-side validation
+        function validateEmail(email) {
+            if (!email || email.trim() === '') {
+                return { valid: false, message: tLogin('loginPage.validation.emailRequired') || 'Email address is required' };
+            }
+            // Allow both email format (contains @) and username format (no @)
+            if (email.includes('@')) {
+                const emailRegex = /^[A-Za-z0-9+_.-]+@(.+)$/;
+                if (!emailRegex.test(email)) {
+                    return { valid: false, message: tLogin('loginPage.validation.emailInvalid') || 'Please enter a valid email address' };
+                }
+            } else {
+                // Username format: alphanumeric, dots, underscores, hyphens
+                const usernameRegex = /^[A-Za-z0-9._-]+$/;
+                if (!usernameRegex.test(email)) {
+                    return { valid: false, message: tLogin('loginPage.validation.usernameOrEmailInvalid') || 'Please enter a valid username or email address' };
+                }
+            }
+            return { valid: true };
+        }
+
+        function validatePassword(password) {
+            if (!password || password.trim() === '') {
+                return { valid: false, message: tLogin('loginPage.validation.passwordRequired') || 'Password is required' };
+            }
+            if (password.length < 1 || password.length > 100) {
+                return { valid: false, message: tLogin('loginPage.validation.passwordLength') || 'Password must be between 1 and 100 characters' };
+            }
+            return { valid: true };
+        }
+
+        // Parse error response to determine field and message
+        function parseError(response, data, text) {
+            let field = 'general';
+            let message = tLogin('loginPage.error.generic') || 'An error occurred. Please try again.';
+            
+            // Try to get field and error from response
+            if (data && data.field) {
+                field = data.field;
+            }
+            if (data && data.error) {
+                message = data.error;
+            } else if (text) {
+                message = text;
+            }
+            
+            // If no field specified, determine from status code and message
+            if (field === 'general' || !data || !data.field) {
+                const status = response.status;
+                const errorMessage = (data && data.error) ? data.error.toLowerCase() : message.toLowerCase();
+                
+                if (status === 400) {
+                    if (errorMessage.includes('email') || errorMessage.includes('username')) {
+                        field = 'email';
+                    } else if (errorMessage.includes('password')) {
+                        field = 'password';
+                    } else if (errorMessage.includes('required')) {
+                        // Check which field is mentioned first
+                        if (errorMessage.indexOf('email') < errorMessage.indexOf('password')) {
+                            field = 'email';
+                        } else {
+                            field = 'password';
+                        }
+                    }
+                } else if (status === 401) {
+                    field = 'password';
+                } else if (status === 403 || status === 429 || status === 500 || status === 503) {
+                    field = 'general';
+                }
+            }
+            
+            return { field, message };
+        }
+
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const email = document.getElementById('email').value.trim();
+            const password = document.getElementById('password').value;
+            const loginButton = document.getElementById('loginButton');
+            const loading = document.getElementById('loading');
+            
+            // Clear previous errors
+            clearErrors();
+            
+            // Client-side validation
+            const emailValidation = validateEmail(email);
+            if (!emailValidation.valid) {
+                showError('email', emailValidation.message);
+                loginButton.disabled = false;
+                scrollToError('email');
+                return;
+            }
+            
+            const passwordValidation = validatePassword(password);
+            if (!passwordValidation.valid) {
+                showError('password', passwordValidation.message);
+                loginButton.disabled = false;
+                scrollToError('password');
+                return;
+            }
+            
+            // Show loading state
+            loginButton.disabled = true;
+            loading.style.display = 'block';
+            
+            try {
+                const response = await fetch('/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        email: email,
+                        password: password
+                    })
+                });
+                
+                const contentType = response.headers.get('content-type') || '';
+                let data = {};
+                let text = '';
+                try {
+                    if (contentType.includes('application/json')) {
+                        data = await response.json();
+                    } else {
+                        text = await response.text();
+                    }
+                } catch (e) {
+                    try { text = await response.text(); } catch (_) {}
+                }
+
+                if (response.ok) {
+                    // Login successful - redirect to the originally requested page (if any), otherwise homepage
+                    const params = new URLSearchParams(window.location.search);
+                    const redirectTo = params.get('redirect');
+                    const destination = (redirectTo && redirectTo.startsWith('/') && !redirectTo.startsWith('//'))
+                        ? redirectTo
+                        : '/index.html';
+                    window.location.replace(destination);
+                    return;
+                } else {
+                    // Parse error to determine field and message
+                    const errorInfo = parseError(response, data, text);
+                    
+                    if (errorInfo.field === 'general') {
+                        showGeneralError(errorInfo.message);
+                    } else {
+                        showError(errorInfo.field, errorInfo.message);
+                        scrollToError(errorInfo.field);
+                    }
+                    
+                    loginButton.disabled = false;
+                    loading.style.display = 'none';
+                }
+            } catch (error) {
+                console.error('Login error:', error);
+                const net = tLogin('loginPage.error.network') || 'Network error. Please check your internet connection and try again.';
+                const unexp = tLogin('loginPage.error.unexpected') || 'An unexpected error occurred. Please try again.';
+                const errorMessage = error.message && error.message.includes('fetch') ? net : unexp;
+                showGeneralError(errorMessage);
+                loginButton.disabled = false;
+                loading.style.display = 'none';
+            }
+        });
+        
+        function clearErrors() {
+            document.querySelectorAll('.error-message').forEach(error => {
+                error.style.display = 'none';
+                const span = error.querySelector('span');
+                if (span) span.textContent = '';
+            });
+            document.querySelectorAll('.form-input').forEach(input => {
+                input.classList.remove('error');
+            });
+            hideGeneralError();
+        }
+        
+        function showError(field, message) {
+            const errorElement = document.getElementById(field + 'Error');
+            const inputElement = document.getElementById(field);
+            
+            if (errorElement) {
+                const span = errorElement.querySelector('span');
+                if (span) {
+                    span.textContent = message;
+                } else {
+                    errorElement.textContent = message;
+                }
+                errorElement.style.display = 'flex';
+            }
+            
+            if (inputElement) {
+                inputElement.classList.add('error');
+            }
+        }
+        
+        function showGeneralError(message) {
+            const generalError = document.getElementById('generalError');
+            const generalErrorText = document.getElementById('generalErrorText');
+            if (generalError && generalErrorText) {
+                generalErrorText.textContent = message;
+                generalError.classList.add('show');
+                // Scroll to top of card
+                generalError.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+        }
+        
+        function hideGeneralError() {
+            const generalError = document.getElementById('generalError');
+            if (generalError) {
+                generalError.classList.remove('show');
+            }
+        }
+        
+        function scrollToError(field) {
+            const inputElement = document.getElementById(field);
+            if (inputElement) {
+                setTimeout(() => {
+                    inputElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    inputElement.focus();
+                }, 100);
+            }
+        }
+        
+        // Clear errors when user starts typing
+        document.getElementById('email').addEventListener('input', function() {
+            if (this.classList.contains('error')) {
+                clearFieldError('email');
+            }
+        });
+        
+        document.getElementById('password').addEventListener('input', function() {
+            if (this.classList.contains('error')) {
+                clearFieldError('password');
+            }
+        });
+        
+        function clearFieldError(field) {
+            const errorElement = document.getElementById(field + 'Error');
+            const inputElement = document.getElementById(field);
+            
+            if (errorElement) {
+                errorElement.style.display = 'none';
+                const span = errorElement.querySelector('span');
+                if (span) span.textContent = '';
+            }
+            
+            if (inputElement) {
+                inputElement.classList.remove('error');
+            }
+        }
+        
+        // Auto-focus email field
+        document.getElementById('email').focus();
+
+        function setupLoginI18n() {
+            if (window.I18n) {
+                document.title = window.I18n.t('loginPage.pageTitle');
+            }
+            var link = document.getElementById('loginContactAdminLink');
+            if (link && !link.getAttribute('data-i18n-contact-bound')) {
+                link.setAttribute('data-i18n-contact-bound', '1');
+                link.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    var msg = tLogin('loginPage.contactAdminAlert') || 'Contact your administrator to create an account';
+                    alert(msg);
+                });
+            }
+        }
+
+        if (window.i18nReadyPromise && typeof window.i18nReadyPromise.then === 'function') {
+            window.i18nReadyPromise.then(setupLoginI18n).catch(function () { setupLoginI18n(); });
+        } else {
+            document.addEventListener('DOMContentLoaded', setupLoginI18n);
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../assets/css/main.css">
+    <link rel="icon" type="image/png" href="../assets/images/avatars/icon.jpg">
+    <title>EDC API Test - BUDG</title>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--background-secondary, #f5f5f5);
+            padding: 20px;
+            margin: 0;
+        }
+        
+        .test-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: var(--background-primary, #ffffff);
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            padding: 30px;
+        }
+        
+        .test-header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid var(--border-color, #e0e0e0);
+        }
+        
+        .test-header h1 {
+            margin: 0;
+            color: var(--text-primary, #333);
+            font-size: 28px;
+        }
+        
+        .test-header p {
+            margin: 10px 0 0 0;
+            color: var(--text-secondary, #666);
+        }
+        
+        .form-section {
+            margin-bottom: 30px;
+        }
+        
+        .form-section h2 {
+            font-size: 20px;
+            margin-bottom: 15px;
+            color: var(--text-primary, #333);
+            border-left: 4px solid var(--primary-color, #007bff);
+            padding-left: 10px;
+        }
+        
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .form-group label {
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: var(--text-primary, #333);
+            font-size: 14px;
+        }
+        
+        .form-group input,
+        .form-group select {
+            padding: 10px 12px;
+            border: 1px solid var(--border-color, #ddd);
+            border-radius: 6px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+        
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: var(--primary-color, #007bff);
+        }
+        
+        .form-group.checkbox-group {
+            flex-direction: row;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .form-group.checkbox-group input[type="checkbox"] {
+            width: auto;
+            margin: 0;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 20px;
+        }
+        
+        .test-button {
+            padding: 12px 24px;
+            background: var(--primary-color, #007bff);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .test-button:hover {
+            background: var(--primary-color-dark, #0056b3);
+        }
+        
+        .test-button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        
+        .test-button.secondary {
+            background: var(--secondary-color, #6c757d);
+        }
+        
+        .test-button.secondary:hover {
+            background: #5a6268;
+        }
+        
+        .results-section {
+            margin-top: 30px;
+            padding-top: 30px;
+            border-top: 2px solid var(--border-color, #e0e0e0);
+        }
+        
+        .results-section h2 {
+            font-size: 20px;
+            margin-bottom: 15px;
+            color: var(--text-primary, #333);
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+            margin-bottom: 15px;
+        }
+        
+        .status-indicator.success {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .status-indicator.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .status-indicator.loading {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+        
+        .results-container {
+            background: #f8f9fa;
+            border: 1px solid var(--border-color, #ddd);
+            border-radius: 6px;
+            padding: 15px;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        
+        .results-container pre {
+            margin: 0;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        
+        .loading-spinner {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 0.8s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <div class="test-header">
+            <h1><i class="fas fa-flask"></i> EDC API Test Page</h1>
+            <p>Test EDC APIs and verify connection</p>
+        </div>
+        
+        <!-- EDC Connection Settings -->
+        <div class="form-section">
+            <h2><i class="fas fa-cog"></i> EDC Connection Settings</h2>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="serverHost">Server Host (URL)</label>
+                    <input type="text" id="serverHost" value="https://edc.local" placeholder="https://edc.local">
+                </div>
+                <div class="form-group">
+                    <label for="serverPort">Server Port</label>
+                    <input type="number" id="serverPort" value="9185" placeholder="9185">
+                </div>
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input type="text" id="username" value="Administrator" placeholder="Administrator">
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" placeholder="Enter password">
+                </div>
+                <div class="form-group checkbox-group">
+                    <input type="checkbox" id="sslInsecure">
+                    <label for="sslInsecure">Disable SSL Certificate Validation (Dev/Testing Only)</label>
+                </div>
+            </div>
+        </div>
+        
+        <!-- API Test Inputs -->
+        <div class="form-section">
+            <h2><i class="fas fa-code"></i> API Test Inputs</h2>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="searchQuery">Search Query</label>
+                    <input type="text" id="searchQuery" value="customer" placeholder="customer">
+                </div>
+                <div class="form-group">
+                    <label for="objectId">Object ID (for Get Object test)</label>
+                    <input type="text" id="objectId" placeholder="e.g., DWH://orcl/CRM/CUSTOMER_MASTER">
+                    <small style="color: #666; font-size: 12px; margin-top: 4px; display: block;">
+                        Example: DWH://orcl/CRM/CUSTOMER_MASTER or bussma_budg://InfaBudg/BudgGlossary/17
+                    </small>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Test Buttons -->
+        <div class="button-group">
+            <button class="test-button" onclick="testProductInformation()">
+                <i class="fas fa-info-circle"></i> Test Product Information
+            </button>
+            <button class="test-button" onclick="testSearch()">
+                <i class="fas fa-search"></i> Test Search
+            </button>
+            <button class="test-button" onclick="testGetObject()">
+                <i class="fas fa-database"></i> Test Get Object
+            </button>
+            <button class="test-button secondary" onclick="loadEdcSettings()">
+                <i class="fas fa-sync"></i> Load Saved Settings
+            </button>
+        </div>
+        
+        <!-- Results Section -->
+        <div class="results-section">
+            <h2><i class="fas fa-list"></i> Results</h2>
+            <div id="statusIndicator" class="status-indicator" style="display: none;"></div>
+            <div class="results-container">
+                <pre id="resultsOutput">No tests run yet. Click a test button to start.</pre>
+            </div>
+        </div>
+    </div>
+    
+    <script src="edc-api-test.js"></script>
+</body>
+</html>
+

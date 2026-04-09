@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>New Change Request - BUDG</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../../assets/css/main.css">
+    <link rel="stylesheet" href="../../view/view.css">
+    <link rel="stylesheet" href="../../view/edit/edit-shared.css">
+    <link rel="stylesheet" href="../../view/change-request/change-request.css">
+    <link rel="icon" type="image/png" href="../../assets/images/avatars/icon.jpg">
+    <link rel="stylesheet" href="../../view/components/document-upload-component.css">
+    <link rel="stylesheet" href="../../assets/css/global-lock-ui.css">
+    <link rel="stylesheet" href="../../assets/css/advanced-rich-text-editor.css">
+    <!-- RTL styles for Arabic (disabled by default, enabled by i18n.js) -->
+    <link rel="stylesheet" href="../../assets/css/rtl.css" id="rtl-styles" disabled>
+    <script>(function(){const t=localStorage.getItem('budg-theme')||'light';document.documentElement.setAttribute('data-theme',t);})();</script>
+    <script src="../../assets/i18n/i18n.js"></script>
+</head>
+<body class="change-request-page" data-submenu="data">
+<header class="header"></header>
+
+<div class="page-header">
+    <div class="page-header-container">
+        <div class="page-title">
+            <div class="page-icon"><i class="fas fa-comment-dots"></i></div>
+            <div class="page-title-text">
+                <div class="page-title-main">New Change Request</div>
+                <div class="page-title-sub" id="facetInfo">Change Request</div>
+            </div>
+        </div>
+        <div class="form-actions">
+            <button type="button" class="btn btn-primary" id="saveBtn">
+                <i class="fas fa-save"></i> Save
+            </button>
+            <button type="button" class="btn btn-success" id="saveAndCloseBtn" title="Save the change request and redirect to the edit page">
+                <i class="fas fa-save"></i> Save & Close
+            </button>
+            <button type="button" class="btn btn-secondary" id="closeBtn">
+                <i class="fas fa-times"></i> Close
+            </button>
+        </div>
+    </div>
+</div>
+
+<main class="main-content">
+    <div class="content-card">
+        <div class="content-header">
+            <div class="tab-container">
+                <button class="tab active" data-tab="summary" data-i18n="tab.summary">SUMMARY</button>
+            </div>
+        </div>
+        <div class="content-body">
+            <form id="changeRequestForm">
+                <div class="change-request-container grid grid-cols-2 gap-6">
+                    <!-- Left Column - Definition -->
+                    <div class="left-column">
+                        <div class="form-section">
+                            <h4 class="section-title">DEFINITION</h4>
+                            <div class="form-fields-container">
+                                <div class="form-group">
+                                    <label for="title" class="form-label required">Title</label>
+                                    <input type="text" id="title" class="form-input" placeholder="Enter Title" required>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="type" class="form-label required">Type</label>
+                                    <select id="type" class="form-select" required>
+                                        <option value="">Please select</option>
+                                    </select>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="summary" class="form-label required">Summary</label>
+                                    <textarea id="summary" class="form-textarea" rows="3" placeholder="Enter Summary" required></textarea>
+                                    <div style="margin-top: 0.5rem;">
+                                        <textarea id="summaryEditor" class="form-textarea" rows="3" placeholder="" style="display: none;"></textarea>
+                                        <button type="button" class="btn btn-sm btn-secondary" id="showEditorBtn">
+                                            Show Editor
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="changeRequestSystem" class="form-label required">Change Request System</label>
+                                    <select id="changeRequestSystem" class="form-select" required>
+                                        <option value="">Please select</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-section">
+                            <h4 class="section-title">OPTIONAL FIELDS</h4>
+                            <div class="form-fields-container">
+                                <div class="form-group">
+                                    <label for="parent" class="form-label">Parent</label>
+                                    <select id="parent" class="form-select">
+                                        <option value="">Please select</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right Column - Classifications -->
+                    <div class="right-column">
+                        <div class="form-section">
+                            <h4 class="section-title">CLASSIFICATIONS</h4>
+                            <div class="form-fields-container">
+                                <div class="section-subtitle">BASIC CLASSIFICATIONS</div>
+                                
+                                <div class="form-group">
+                                    <label for="severity" class="form-label required">Severity</label>
+                                    <select id="severity" class="form-select" required>
+                                        <option value="">Please select</option>
+                                    </select>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="urgency" class="form-label required">Urgency</label>
+                                    <select id="urgency" class="form-select" required>
+                                        <option value="">Please select</option>
+                                    </select>
+                                </div>
+
+                                <div class="section-subtitle" style="margin-top: 1.5rem;">ADVANCED CLASSIFICATIONS</div>
+
+                                <div class="form-group">
+                                    <label for="estimatedBenefit" class="form-label">Estimated Benefit</label>
+                                    <div class="input-group-inline">
+                                        <input type="number" id="estimatedBenefit" class="form-input" placeholder="Enter Value" step="0.01">
+                                        <select id="estimatedBenefitCurrency" class="form-select" style="width: 120px;">
+                                            <option value="GBP">GBP</option>
+                                            <option value="USD">USD</option>
+                                            <option value="EUR">EUR</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="estimatedCost" class="form-label">Estimated Cost</label>
+                                    <div class="input-group-inline">
+                                        <input type="number" id="estimatedCost" class="form-input" placeholder="Enter Value" step="0.01">
+                                        <select id="estimatedCostCurrency" class="form-select" style="width: 120px;">
+                                            <option value="GBP">GBP</option>
+                                            <option value="USD">USD</option>
+                                            <option value="EUR">EUR</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</main>
+
+<script src="../../assets/js/config.js"></script>
+<script src="../../assets/js/api-service.js"></script>
+<script src="../../assets/js/main.js"></script>
+<script src="../../assets/js/header.js"></script>
+<script src="../../assets/js/advanced-rich-text-editor.js"></script>
+<script src="../../view/change-request/change-request.js"></script>
+<script src="../../assets/js/global-lock-ui.js"></script>
+</body>
+</html>

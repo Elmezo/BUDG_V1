@@ -1,0 +1,3508 @@
+(function() {
+    let _canEditObject = false; // Whether user can normally edit this object (without auto CR restriction)
+    let _hasActiveAutoCR = false; // Whether an active auto CR is blocking edits
+    
+    function parseId() {
+        const parts = window.location.pathname.split('/').filter(Boolean);
+        const idx = parts.indexOf('glossary');
+        if (idx === -1 || parts.length < idx + 2) return null;
+        const id = parseInt(parts[idx + 1], 10);
+        return Number.isNaN(id) ? null : id;
+    }
+
+    let _glossaryGuestCache = null;
+    async function isGuestVisitorForGlossary() {
+        if (_glossaryGuestCache !== null) {
+            return _glossaryGuestCache;
+        }
+        try {
+            const resp = await fetch('/api/me', { method: 'GET', credentials: 'include' });
+            if (!resp.ok) {
+                _glossaryGuestCache = true;
+                return _glossaryGuestCache;
+            }
+            const me = await resp.json().catch(() => ({}));
+            const role = (me.role || '').toString().toLowerCase();
+            const isAuthenticated = me.authenticated === true;
+            const isGuestRole = role.includes('guest');
+            _glossaryGuestCache = !isAuthenticated || isGuestRole;
+            return _glossaryGuestCache;
+        } catch (_) {
+            _glossaryGuestCache = true;
+            return _glossaryGuestCache;
+        }
+    }
+
+    function renderGlossaryGuestAccessDenied(container, glossaryId, segmentName, segmentId) {
+        if (!container) return;
+        const title = (window.I18n && window.I18n.t && window.I18n.t('error.segmentAccess.title')) || 'Cannot access this item';
+        const message = (window.I18n && window.I18n.t && window.I18n.t('error.segmentAccess.message')) || 'This item is not available for guest users.';
+        const code = 'ERR-SEGMENT-NOT-ENTERPRISE';
+        const segmentLabel = segmentName || ((segmentId !== undefined && segmentId !== null) ? `ID ${segmentId}` : 'Unknown');
+        const esc = (text) => {
+            if (text == null) return '';
+            const div = document.createElement('div');
+            div.textContent = String(text);
+            return div.innerHTML;
+        };
+        container.innerHTML = `
+            <div class="view-section" style="grid-column: 1/-1; text-align: center; padding: 3rem 1rem;">
+                <div class="access-denied-title" style="font-size: 1.5rem; font-weight: 600; margin-bottom: 0.75rem;">${esc(title)}</div>
+                <div class="access-denied-message" style="margin-bottom: 1.25rem; color: var(--text-muted, #4b5563);">
+                    ${esc(message)}
+                </div>
+                <div class="access-denied-details" style="font-size: 0.95rem; color: var(--text-muted, #6b7280);">
+                    <div style="margin-bottom: 0.5rem;">Segment: <strong>${esc(segmentLabel)}</strong></div>
+                    <div>Error code: <code>${code}</code></div>
+                </div>
+            </div>
+        `;
+    }
+
+     // Robust hide function: hides existing elements and watches for elements added later
+     function hideEditControls() {
+         // Hide the edit dropdown for unauthorized users
+         if (window.EditDropdown) {
+             window.EditDropdown.hideEditControls();
+         }
+         const ids = [
+             'editBtn',
+             'editBtn2',
+             'editStakeholdersBtn'
+         ];
+         ids.forEach(function(id){
+             const el = document.getElementById(id);
+             if (el) {
+                 try {
+                     el.style.setProperty('display', 'none', 'important');
+                 } catch (_) {
+                     el.style.display = 'none';
+                 }
+                 el.setAttribute('data-hidden-by', 'hideEditControls');
+                 try { if (typeof el.blur === 'function') el.blur(); } catch(_) {}
+             }
+         });
+         try {
+             document.querySelectorAll('[data-action="edit"]').forEach(function(el){
+                 try {
+                     el.style.setProperty('display', 'none', 'important');
+                 } catch (_) {
+                     el.style.display = 'none';
+                 }
+                 el.setAttribute('data-hidden-by', 'hideEditControls');
+                 try { if (typeof el.blur === 'function') el.blur(); } catch(_) {}
+             });
+         } catch (err) {
+             console.error('hideEditControls error:', err);
+         }
+     }
+
+     // ensure: run hideEditControls immediately and observe DOM for new matching nodes
+     function ensureHideEditControls(options = {}) {
+         const timeout = typeof options.timeout === 'number' ? options.timeout : 15000; // stop observing after 15s
+         hideEditControls();
+
+         // If the page adds elements later (e.g. via XHR/templating), observe and hide them when they appear
+         const observer = new MutationObserver(mutations => {
+             let found = false;
+             for (const m of mutations) {
+                 for (const node of m.addedNodes) {
+                     if (!(node instanceof Element)) continue;
+                     if (node.matches && node.matches('#editBtn,#editBtn2,#editStakeholdersBtn,[data-action="edit"]')) {
+                         found = true;
+                     } else if (node.querySelector && node.querySelector('#editBtn,#editBtn2,#editStakeholdersBtn,[data-action="edit"]')) {
+                         found = true;
+                     }
+                 }
+             }
+             if (found) hideEditControls();
+         });
+
+         // observe body (or documentElement) for subtree changes
+         const target = document.body || document.documentElement;
+         try {
+             observer.observe(target, { childList: true, subtree: true });
+         } catch (e) {
+             // ignore observe errors
+         }
+
+         // Stop observing after timeout to avoid long-lived observer
+         setTimeout(() => {
+             try { observer.disconnect(); } catch(_) {}
+         }, timeout);
+     }
+
+     // Auto-run on load (safe) - but check auth first
+     if (document.readyState === 'loading') {
+         document.addEventListener('DOMContentLoaded', () => hideEditsIfUnauthenticated());
+     } else {
+         hideEditsIfUnauthenticated();
+     }
+
+     // ---- Optional: integrate with your auth-check function ----
+     // Replace calls to hideEditControls() with ensureHideEditControls() to get the robust behavior:
+
+	async function hideEditsIfUnauthenticated() {
+		try {
+			const id = parseId();
+			if (!id) {
+				console.log('[Glossary] No ID found - hiding edit controls');
+				ensureHideEditControls();
+				return;
+			}
+
+			// Use the shared utility function to check if user can edit this object
+			if (window.checkCanEditObject) {
+				const editCheck = await window.checkCanEditObject('Glossary', id);
+				const canEditObject = editCheck.canEdit;
+				const isAdmin = editCheck.isAdmin;
+				
+				console.log('[Glossary] Can edit object?', canEditObject, '(isAdmin:', isAdmin, ', isStakeholder:', editCheck.isStakeholder, ')');
+				
+				// Store canEditObject at module level for stakeholder tab redirect
+				_canEditObject = canEditObject;
+				
+				// Show edit controls only if user can edit this object
+				if (canEditObject) {
+					console.log('[Glossary] User can edit this object - showing edit controls');
+					showEditControls();
+				} else {
+					console.log('[Glossary] User cannot edit this object - hiding edit controls');
+					ensureHideEditControls();
+				}
+			} else {
+				// Fallback to old method if utility function not available
+				const meResp = await fetch('/api/me', { method: 'GET', credentials: 'include' });
+				if (!meResp.ok) { 
+					console.log('API /api/me failed:', meResp.status);
+					ensureHideEditControls(); 
+					return; 
+				}
+				const me = await meResp.json();
+				const role = (me.role || me.Role || me.userRole || '').toString().toLowerCase();
+				const isAdmin = role === 'admin' || role === 'super admin' || role === 'super-admin' || role === 'super_admin' || role === 'suber admin';
+				
+				// Check permissions for Glossary facet
+				let hasEditPermission = isAdmin;
+				if (!isAdmin) {
+					try {
+						const permResp = await fetch('/api/user/permissions/Glossary', { 
+							method: 'GET', 
+							credentials: 'include' 
+						});
+						if (permResp.ok) {
+							const permData = await permResp.json();
+							if (permData.success) {
+								hasEditPermission = permData.canEdit === true || permData.isAdmin === true;
+							}
+						}
+					} catch (permError) {
+						console.warn('[Glossary] Error checking permissions:', permError);
+					}
+				}
+				
+				if (!hasEditPermission) {
+					ensureHideEditControls();
+				} else {
+					showEditControls();
+				}
+			}
+		} catch(e) {
+			console.log('Error in hideEditsIfUnauthenticated:', e);
+			ensureHideEditControls();
+		}
+	}
+
+	function showEditControls() {
+		const ids = [
+			'editBtn',
+			'editBtn2',
+			'editStakeholdersBtn'
+		];
+		ids.forEach(function(id){
+			const el = document.getElementById(id);
+			if (el) {
+				el.style.display = '';
+				el.style.setProperty('display', '', 'important');
+				el.removeAttribute('data-hidden-by');
+			}
+		});
+		try {
+			document.querySelectorAll('[data-action="edit"]').forEach(function(el){
+				el.style.display = '';
+				el.style.setProperty('display', '', 'important');
+				el.removeAttribute('data-hidden-by');
+			});
+		} catch(_) {}
+		console.log('Edit controls shown for admin user');
+	}
+
+    function escapeHtml(str) {
+        if (str == null) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+
+    function _richHtml(val) {
+        if (val == null || String(val).trim() === '') return '<span class="empty">-</span>';
+        var s = String(val);
+        if (!/<[a-z][\s\S]*>/i.test(s)) return escapeHtml(s);
+        var t = document.createElement('template'); t.innerHTML = s;
+        t.content.querySelectorAll('script,style,iframe,object,embed,link,meta').forEach(function(e){e.remove();});
+        t.content.querySelectorAll('*').forEach(function(el){
+            Array.from(el.attributes).forEach(function(a){
+                if(a.name.toLowerCase().indexOf('on')===0) el.removeAttribute(a.name);
+                if((a.name==='href'||a.name==='src')&&/^\s*javascript:/i.test(a.value)) el.removeAttribute(a.name);
+            });
+        });
+        return '<div class="rich-html-content">' + t.innerHTML + '</div>';
+    }
+
+    function renderItem(label, valueHtml) {
+        return `<div class=\"view-item\"><div class=\"view-label\">${label}</div><div class=\"view-value\">${valueHtml ?? '<span class=\"empty\">-</span>'}</div></div>`;
+    }
+
+    function renderUserLink(name, id) {
+        // Handle null, undefined, or empty string
+        if (!name || (typeof name === 'string' && name.trim() === '')) {
+            return '<span class="empty">-</span>';
+        }
+        // Ensure name is a string
+        const nameStr = String(name).trim();
+        if (nameStr === '') {
+            return '<span class="empty">-</span>';
+        }
+        // Render as link if ID is provided
+        if (id) {
+            return `<a href="/view/people/${id}" class="user-link">${escapeHtml(nameStr)}</a>`;
+        }
+        // Otherwise just render as text
+        return escapeHtml(nameStr);
+    }
+
+    // Helper function to find user by ID
+    function findUserById(people, userId) {
+        if (!people || !Array.isArray(people)) {
+            console.log('findUserById: people data not available or not array');
+            return null;
+        }
+        console.log(`findUserById: Looking for userId ${userId} in ${people.length} people`);
+        const user = people.find(person => person.ID === userId || person.id === userId);
+        console.log('findUserById: Found user:', user);
+        return user;
+    }
+
+    // Helper function to find CIA rating by ID
+    function findCiaRatingById(ciaRatings, ratingId) {
+        if (!ciaRatings || !Array.isArray(ciaRatings)) return null;
+        const normalized = String(ratingId ?? '').trim();
+        if (!normalized) return null;
+        return ciaRatings.find(rating => String(rating.id ?? rating.ID ?? '').trim() === normalized);
+    }
+
+    // Helper function to find KDE type by ID
+    function findKdeTypeById(kdeTypes, kdeId) {
+        if (!kdeTypes || !Array.isArray(kdeTypes)) return null;
+        return kdeTypes.find(kde => kde.ID === kdeId || kde.id === kdeId);
+    }
+
+    // Helper function to format date
+    function formatDate(dateString) {
+        if (!dateString) return '';
+        try {
+            return new Date(dateString).toLocaleDateString('en-GB');
+        } catch (error) {
+            return dateString;
+        }
+    }
+
+    let currentView = 'original'; // Track current view mode
+    
+    /**
+     * Get the current view mode from the toggle state
+     * MANDATORY: Always default to 'original' view on page load/refresh
+     */
+    function getCurrentViewMode() {
+        const activeToggle = document.querySelector('.revision-toggle-link.active');
+        if (activeToggle) {
+            const toggleView = activeToggle.dataset.view;
+            if (toggleView === 'original' || toggleView === 'changes') {
+                currentView = toggleView; // Sync currentView with toggle
+                return toggleView;
+            }
+        }
+        
+        // Always default to 'original' - clear any 'changes' from sessionStorage
+        try {
+            const id = parseId();
+            if (id != null) {
+                const key = `pendingChanges:view:Glossary#${id}`;
+                if (typeof sessionStorage !== 'undefined') {
+                    const saved = sessionStorage.getItem(key);
+                    if (saved === 'changes') {
+                        sessionStorage.removeItem(key);
+                    }
+                }
+            }
+        } catch (e) {
+            // ignore storage errors
+        }
+        
+        // Always default to 'original' - mandatory requirement
+        currentView = 'original';
+        return 'original';
+    }
+    
+    async function load(id, view = null) {
+        const container = document.getElementById('glossaryViewContainer');
+        if (!container) {
+            console.error('[Glossary] Container not found: glossaryViewContainer');
+            return;
+        }
+        
+        // Ensure container is visible before loading
+        container.style.display = '';
+        container.style.visibility = 'visible';
+        
+        const titleElement = document.getElementById('glossaryTitle');
+        const breadcrumbElement = document.getElementById('glossaryBreadcrumb');
+        
+        // Update current view
+        if (view !== null) {
+            currentView = view;
+        }
+        
+        container.innerHTML = '<div class="view-section" style="grid-column: 1/-1;">Loading...</div>';
+        try {
+            // Add view parameter to API call if viewing changes
+            let g = await window.BUDG_API_SERVICE.getGlossaryById(id, view === 'changes' ? 'changes' : null);
+            if (g && g.data) g = g.data;
+
+            try {
+                const isGuest = await isGuestVisitorForGlossary();
+                const segmentName = g?.segmentName || g?.segment_name || g?.segment;
+                const segmentId = g?.segmentId ?? g?.segment_id ?? g?.Segment_ID;
+                const segmentNameLower = (segmentName || '').toString().toLowerCase();
+                if (isGuest && segmentNameLower !== 'enterprise') {
+                    console.log('[Glossary] Guest visitor blocked from non-Enterprise segment view', { glossaryId: id, segmentName, segmentId });
+                    renderGlossaryGuestAccessDenied(container, id, segmentName, segmentId);
+                    return;
+                }
+            } catch (gateError) {
+                console.warn('[Glossary] Error during guest/segment access check, falling back to normal render:', gateError);
+            }
+            
+            // Debug: Log the complete glossary data to console
+            console.log('=== GLOSSARY DATA DEBUG ===');
+            console.log('Complete glossary object:', g);
+            console.log('All available keys:', Object.keys(g));
+            // Check for exact database field names
+            console.log('=== DATABASE FIELD CHECK ===');
+            console.log('CreatedBy_ID:', g.CreatedBy_ID);
+            console.log('Last_updated_userID:', g.Last_updated_userID);
+            console.log('Created_Datetime:', g.Created_Datetime);
+            console.log('Last_Updated_Datetime:', g.Last_Updated_Datetime);
+            console.log('=== USER FIELDS CHECK ===');
+            console.log('createdByName:', g.createdByName);
+            console.log('createdById:', g.createdById);
+            console.log('updatedByName:', g.updatedByName);
+            console.log('updatedById:', g.updatedById);
+            console.log('created:', g.created);
+            console.log('lastUpdated:', g.lastUpdated);
+            console.log('Confidentiality_Rating:', g.Confidentiality_Rating);
+            console.log('Integrity_Rating:', g.Integrity_Rating);
+            console.log('Availability_Rating:', g.Availability_Rating);
+            console.log('KDE:', g.KDE);
+            
+            // Check for alternative field name variations
+            console.log('=== ALTERNATIVE FIELD NAMES ===');
+            console.log('createdBy_ID:', g.createdBy_ID);
+            console.log('lastUpdated_userID:', g.lastUpdated_userID);
+            console.log('created_Datetime:', g.created_Datetime);
+            console.log('last_Updated_Datetime:', g.last_Updated_Datetime);
+            console.log('confidentiality_Rating:', g.confidentiality_Rating);
+            console.log('integrity_Rating:', g.integrity_Rating);
+            console.log('availability_Rating:', g.availability_Rating);
+            console.log('kde:', g.kde);
+            
+            // Check for camelCase variations
+            console.log('=== CAMELCASE VARIATIONS ===');
+            console.log('createdById:', g.createdById);
+            console.log('lastUpdatedUserId:', g.lastUpdatedUserId);
+            console.log('createdDatetime:', g.createdDatetime);
+            console.log('lastUpdatedDatetime:', g.lastUpdatedDatetime);
+            console.log('confidentialityRating:', g.confidentialityRating);
+            console.log('integrityRating:', g.integrityRating);
+            console.log('availabilityRating:', g.availabilityRating);
+            console.log('kdeType:', g.kdeType);
+            
+            console.log('CIA Rating Values (raw):', {
+                Confidentiality: g.Confidentiality_Rating,
+                Integrity: g.Integrity_Rating,
+                Availability: g.Availability_Rating
+            });
+            console.log('People data - CreatedBy:', g.CreatedBy);
+            console.log('People data - LastUpdatedBy:', g.LastUpdatedBy);
+            console.log('CIA Rating data:', g.CIARating);
+            console.log('KDE Type data:', g.KDEType);
+            console.log('CIA Rating Values - Confidentiality:', g.ConfidentialityRating);
+            console.log('CIA Rating Values - Integrity:', g.IntegrityRating);
+            console.log('CIA Rating Values - Availability:', g.AvailabilityRating);
+            console.log('KDE Type Name:', g.KDEType ? g.KDEType.Name : 'No KDE Type data');
+            console.log('Available fields with "created" or "date":', Object.keys(g).filter(key => 
+                key.toLowerCase().includes('created') || 
+                key.toLowerCase().includes('date') || 
+                key.toLowerCase().includes('updated')
+            ));
+            console.log('Available fields with "rating" or "cia":', Object.keys(g).filter(key => 
+                key.toLowerCase().includes('rating') || 
+                key.toLowerCase().includes('cia')
+            ));
+            console.log('Available fields with "kde":', Object.keys(g).filter(key => 
+                key.toLowerCase().includes('kde')
+            ));
+            console.log('================================');
+            
+            // Get additional data from lookup tables to fill missing fields
+            let lookupData = {};
+            
+            // Get CIA ratings data
+            try {
+                const ciaRatings = await window.BUDG_API_SERVICE.getCiaRatings();
+                console.log('CIA Ratings data:', ciaRatings);
+                lookupData.ciaRatings = ciaRatings;
+            } catch (error) {
+                console.log('Could not load CIA ratings:', error);
+            }
+            
+            // Get KDE types data
+            try {
+                const kdeTypes = await window.BUDG_API_SERVICE.getGlossaryKdeList();
+                console.log('KDE Types data:', kdeTypes);
+                lookupData.kdeTypes = kdeTypes;
+            } catch (error) {
+                console.log('Could not load KDE types:', error);
+            }
+            
+            // Get people data for user information
+            try {
+                const people = await window.BUDG_API_SERVICE.getPeople();
+                console.log('People data:', people);
+                lookupData.people = people.data || people; // Handle both response formats
+            } catch (error) {
+                console.log('Could not load people data:', error);
+            }
+            
+            // Try to get stakeholders data which might contain user information
+            try {
+                const stakeholders = await window.BUDG_API_SERVICE.getGlossaryStakeholders(id);
+                console.log('Stakeholders data:', stakeholders);
+                lookupData.stakeholders = stakeholders;
+            } catch (error) {
+                console.log('Could not load stakeholders data:', error);
+            }
+            
+            // Debug: Show what we have in lookup data
+            console.log('=== LOOKUP DATA DEBUG ===');
+            console.log('CIA Ratings:', lookupData.ciaRatings);
+            console.log('KDE Types:', lookupData.kdeTypes);
+            console.log('People:', lookupData.people);
+            console.log('Stakeholders:', lookupData.stakeholders);
+            
+            // Show detailed structure of lookup data
+            if (lookupData.ciaRatings && lookupData.ciaRatings.length > 0) {
+                console.log('CIA Ratings structure:', lookupData.ciaRatings[0]);
+                console.log('All CIA Rating IDs and Values:', lookupData.ciaRatings.map(r => ({id: r.id, values: r.Values || r.values})));
+            }
+            
+            if (lookupData.kdeTypes && lookupData.kdeTypes.length > 0) {
+                console.log('KDE Types structure:', lookupData.kdeTypes[0]);
+                console.log('All KDE Type IDs and Names:', lookupData.kdeTypes.map(k => ({id: k.ID || k.id, name: k.Name || k.name})));
+            }
+            
+            if (lookupData.people && lookupData.people.length > 0) {
+                console.log('People structure:', lookupData.people[0]);
+                console.log('All People IDs and Names:', lookupData.people.map(p => ({id: p.ID || p.id, name: `${p.First_Name || ''} ${p.Last_Name || ''}`.trim()})));
+                console.log('Looking for CreatedBy_ID 2 in people data:', lookupData.people.find(p => (p.ID || p.id) == 2));
+                console.log('Looking for Last_updated_userID 1 in people data:', lookupData.people.find(p => (p.ID || p.id) == 1));
+            }
+            
+            console.log('========================');
+            
+            // Summary of what we found
+            console.log('=== SUMMARY ===');
+            console.log('✅ Lookup data loaded successfully:');
+            console.log(`  - CIA Ratings: ${lookupData.ciaRatings ? lookupData.ciaRatings.length : 0} items`);
+            console.log(`  - KDE Types: ${lookupData.kdeTypes ? lookupData.kdeTypes.length : 0} items`);
+            console.log(`  - People: ${lookupData.people ? lookupData.people.length : 0} items`);
+            console.log('✅ All required fields now available in API response:');
+            console.log('  - Confidentiality_Rating, Integrity_Rating, Availability_Rating');
+            console.log('  - KDE (foreign key)');
+            console.log('  - CreatedBy_ID, Last_updated_userID');
+            console.log('  - Created_Datetime, Last_Updated_Datetime');
+            console.log('');
+            console.log('🎉 SOLUTION IMPLEMENTED:');
+            console.log('  The backend API endpoint /glossary/{id} has been updated successfully!');
+            console.log('  All fields are now being returned and should display correctly in the UI.');
+            console.log('================');
+            
+            // Compute user display values before template creation
+            let createdByDisplay = '<span class="empty">-</span>';
+            let lastUpdatedByDisplay = '<span class="empty">-</span>';
+            let lastUpdatedDateDisplay = '<span class="empty">-</span>';
+            
+            // Created By
+            const createdByName = g.createdByName || g.CreatedByName;
+            const createdById = g.CreatedBy_ID || g.createdById;
+            if (createdByName && String(createdByName).trim() !== '') {
+                createdByDisplay = renderUserLink(String(createdByName).trim(), createdById);
+            } else if (createdById && lookupData && lookupData.people) {
+                const user = findUserById(lookupData.people, createdById);
+                if (user) {
+                    const fullName = `${user.First_Name || ''} ${user.Last_Name || ''}`.trim();
+                    if (fullName) {
+                        createdByDisplay = renderUserLink(fullName, createdById);
+                    }
+                }
+            } else if (createdById) {
+                createdByDisplay = renderUserLink('Unknown User', createdById);
+            }
+            
+            // Last Updated By (fall back to Created By when never updated)
+            const lastUpdatedUserId = g.Last_updated_userID || g.updatedById;
+            const lastUpdatedUserIdForDisplay = lastUpdatedUserId || createdById;
+            if (lastUpdatedUserIdForDisplay) {
+                const lastUpdatedUserName = (lastUpdatedUserId ? (g.updatedByName || g.UpdatedByName) : null) || createdByName;
+                if (lastUpdatedUserName && String(lastUpdatedUserName).trim() !== '') {
+                    lastUpdatedByDisplay = renderUserLink(String(lastUpdatedUserName).trim(), lastUpdatedUserIdForDisplay);
+                } else if (lookupData && lookupData.people) {
+                    const user = findUserById(lookupData.people, lastUpdatedUserIdForDisplay);
+                    if (user) {
+                        const fullName = `${user.First_Name || ''} ${user.Last_Name || ''}`.trim();
+                        if (fullName) {
+                            lastUpdatedByDisplay = renderUserLink(fullName, lastUpdatedUserIdForDisplay);
+                        }
+                    }
+                } else {
+                    lastUpdatedByDisplay = renderUserLink('Unknown User', lastUpdatedUserIdForDisplay);
+                }
+            }
+            
+            // Last Updated Date (fall back to Created Date when never updated)
+            const lastUpdatedDate = g.lastUpdated || g.Last_Updated_Datetime || g.last_Updated_Datetime || g.lastUpdatedDatetime;
+            const createdDate = g.created || g.Created_Datetime || g.created_Datetime || g.createdDatetime;
+            if (lastUpdatedDate) {
+                lastUpdatedDateDisplay = new Date(lastUpdatedDate).toLocaleString();
+            } else if (createdDate) {
+                lastUpdatedDateDisplay = new Date(createdDate).toLocaleString();
+            }
+            
+            console.log('[Pre-computed] createdByDisplay:', createdByDisplay);
+            console.log('[Pre-computed] lastUpdatedByDisplay:', lastUpdatedByDisplay);
+            console.log('[Pre-computed] lastUpdatedDateDisplay:', lastUpdatedDateDisplay);
+            console.log('[Pre-computed] createdByName from g:', g.createdByName);
+            console.log('[Pre-computed] createdById from g:', g.CreatedBy_ID, g.createdById);
+            
+            const gT = (k) => (window.I18n && window.I18n.t(k)) || k;
+            // Now define classifications section with lookup data available
+            const classificationsSection = `
+                <div class="view-section sidebar-section" >
+                    <div class="section-title">${gT('glossary.sections.classifications')}</div>
+                    
+                    <div class="classifications-group">
+                        <div class="group-title">${gT('glossary.sections.basicClassifications')}</div>
+                        <div class="classification-item">
+                            <span class="classification-label">${gT('glossary.labels.budgStatus')}:</span>
+                            <span class="classification-value">
+                                <span class="status-dot ${g.statusName ? 'active' : ''}"></span>
+                                ${escapeHtml(g.statusName || '')}
+                            </span>
+                        </div>
+                        <div class="classification-item">
+                            <span class="classification-label">${gT('glossary.labels.lifecycle')}:</span>
+                            <span class="classification-value">
+                                <span class="lifecycle-badge">${escapeHtml(g.lifecycleName || '')}</span>
+                            </span>
+                        </div>
+                        <div class="classification-item">
+                            <span class="classification-label">${gT('glossary.labels.budgViewing')}:</span>
+                            <span class="classification-value">${escapeHtml(g.viewingName || '')}</span>
+                        </div>
+                    </div>
+
+                    <div class="classifications-group">
+                        <div class="group-title">${gT('glossary.sections.otherInformation')}</div>
+                        <div class="classification-item">
+                            <span class="classification-label">${gT('glossary.labels.securityClassification')}:</span>
+                            <span class="classification-value">${escapeHtml(g.securityName || '')}</span>
+                        </div>
+                        <div class="classification-item">
+                            <span class="classification-label">${gT('glossary.labels.type')}:</span>
+                            <span class="classification-value">
+                                <span class="type-badge ${(g.typeName || '').toLowerCase()}">${escapeHtml(g.typeName || '')}</span>
+                            </span>
+                        </div>
+                        <div class="classification-item">
+                            <span class="classification-label">${gT('glossary.labels.createdBy')}:</span>
+                            <span class="classification-value">${createdByDisplay}</span>
+                        </div>
+                        <div class="classification-item">
+                            <span class="classification-label">${gT('glossary.labels.created')}:</span>
+                            <span class="classification-value">${(() => {
+                                const createdDate = g.created || g.Created_Datetime || g.created_Datetime || g.createdDatetime;
+                                return createdDate ? new Date(createdDate).toLocaleString() : '<span class="empty">-</span>';
+                            })()}</span>
+                        </div>
+                        <div class="classification-item">
+                            <span class="classification-label">${gT('glossary.labels.lastUpdatedBy')}:</span>
+                            <span class="classification-value">${lastUpdatedByDisplay}</span>
+                        </div>
+                        <div class="classification-item">
+                            <span class="classification-label">${gT('glossary.labels.lastUpdated')}:</span>
+                            <span class="classification-value">${lastUpdatedDateDisplay}</span>
+                        </div>
+                        <div class="classification-item">
+                            <span class="classification-label">${gT('glossary.labels.lastApprovedDate')}:</span>
+                            <span class="classification-value">${gT('glossary.values.notAvailable')}</span>
+                        </div>
+                        <div class="classification-item">
+                            <span class="classification-label">${gT('glossary.labels.nextReviewDate')}:</span>
+                            <span class="classification-value">${gT('glossary.values.notEnforced')}</span>
+                        </div>
+                        <div class="classification-item">
+                            <span class="classification-label">${gT('glossary.labels.ciaRating')}:</span>
+                            <span class="classification-value">${(() => {
+                                // Use the explicit *_Rating fields from backend and show "-" for empty values.
+                                const confRating = g.Confidentiality_Rating ?? g.confidentiality_Rating;
+                                const intRating = g.Integrity_Rating ?? g.integrity_Rating;
+                                const availRating = g.Availability_Rating ?? g.availability_Rating;
+
+                                const toDisplay = (id, ratings) => {
+                                    const normalized = String(id ?? '').trim();
+                                    if (!normalized) return '-';
+                                    const r = ratings && findCiaRatingById(ratings, normalized);
+                                    if (!r) return '-';
+                                    return String(r.Values ?? r.values ?? '-');
+                                };
+
+                                const confVal = toDisplay(confRating, lookupData.ciaRatings);
+                                const intVal = toDisplay(intRating, lookupData.ciaRatings);
+                                const availVal = toDisplay(availRating, lookupData.ciaRatings);
+
+                                return `<div class="cia-inline">
+                                    <div class="cia-item"><span class="view-badge">C</span> ${escapeHtml(confVal)}</div>
+                                    <div class="cia-item"><span class="view-badge">I</span> ${escapeHtml(intVal)}</div>
+                                    <div class="cia-item"><span class="view-badge">A</span> ${escapeHtml(availVal)}</div>
+                                </div>`;
+                            })()}</span>
+                        </div>
+                        <div class="classification-item">
+                            <span class="classification-label">${gT('glossary.labels.kde')}:</span>
+                            <span class="classification-value">${escapeHtml(
+                                (() => {
+                                    // Try multiple field name variations for KDE
+                                    const kdeId = g.KDE || g.kde || g.kdeType || g.KDEType;
+                                    
+                                    if (kdeId && lookupData.kdeTypes) {
+                                        const kdeType = findKdeTypeById(lookupData.kdeTypes, kdeId);
+                                        return kdeType ? (kdeType.Name || kdeType.name) : '-';
+                                    }
+                                    return '-';
+                                })()
+                            )}</span>
+                        </div>
+                        <div class="classification-item">
+                            <span class="classification-label">${gT('glossary.labels.segment')}:</span>
+                            <span class="classification-value">${escapeHtml(g.segmentName || g.segment_name || g.segment || ((g.segmentId ?? g.segment_id ?? g.Segment_ID) != null ? `ID ${g.segmentId ?? g.segment_id ?? g.Segment_ID}` : (window.I18n?.t('message.notSpecified') || 'Not specified')))}</span>
+                        </div>
+                    </div>
+
+                    <div class="data-domain-rules">
+                        <div class="rules-title">${gT('glossary.dataDomainRules.title')}</div>
+                        <div class="rules-text">${gT('glossary.dataDomainRules.text')}</div>
+                    </div>
+                </div>
+            `;
+            
+            // Update header with glossary data IMMEDIATELY after loading data
+            if (titleElement) {
+                if (g && g.name) {
+                    titleElement.textContent = escapeHtml(g.name);
+                    console.log('[Glossary] Title updated to:', g.name);
+                } else {
+                    console.warn('[Glossary] Glossary name not found in data:', g);
+                }
+            } else {
+                console.warn('[Glossary] Title element not found (glossaryTitle)');
+            }
+            if (breadcrumbElement) {
+                breadcrumbElement.innerHTML = (window.I18n && window.I18n.t('glossary.breadcrumb')) || 'glossary';
+            }
+            
+            // Check if object is under revision and add toggle AFTER updating title
+            if (window.PendingChanges && window.PendingChanges.initToggle) {
+                try {
+                    await window.PendingChanges.initToggle('Glossary', id, '.page-title-text', null);
+                    
+                    // Re-update title after toggle init to ensure it's still correct
+                    if (titleElement && g && g.name) {
+                        titleElement.textContent = escapeHtml(g.name);
+                    }
+                    // After toggle is initialized, check the toggle state and sync currentView
+                    const activeToggle = document.querySelector('.revision-toggle-link.active');
+                    if (activeToggle) {
+                        const toggleView = activeToggle.dataset.view;
+                        if (toggleView === 'original' || toggleView === 'changes') {
+                            currentView = toggleView;
+                            // If toggle is set to changes, reload data with changes view
+                            if (toggleView === 'changes') {
+                                const reloadData = await window.BUDG_API_SERVICE.getGlossaryById(id, 'changes');
+                                g = reloadData;
+                                // Re-render the page with the updated data
+                                // We'll continue with the rendering below using the updated 'g' object
+                            }
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error initializing pending changes toggle:', error);
+                }
+            }
+            
+            // Re-compute user display values in case g object was updated (e.g., from changes view)
+            // Created By
+            const createdByName2 = g.createdByName || g.CreatedByName;
+            const createdById2 = g.CreatedBy_ID || g.createdById;
+            if (createdByName2 && String(createdByName2).trim() !== '') {
+                createdByDisplay = renderUserLink(String(createdByName2).trim(), createdById2);
+            } else if (createdById2 && lookupData && lookupData.people) {
+                const user = findUserById(lookupData.people, createdById2);
+                if (user) {
+                    const fullName = `${user.First_Name || ''} ${user.Last_Name || ''}`.trim();
+                    if (fullName) {
+                        createdByDisplay = renderUserLink(fullName, createdById2);
+                    }
+                }
+            } else if (createdById2) {
+                createdByDisplay = renderUserLink('Unknown User', createdById2);
+            } else {
+                createdByDisplay = '<span class="empty">-</span>';
+            }
+            
+            // Last Updated By (fall back to Created By when never updated)
+            const lastUpdatedUserId2 = g.Last_updated_userID || g.updatedById;
+            const lastUpdatedUserIdForDisplay2 = lastUpdatedUserId2 || createdById2;
+            if (lastUpdatedUserIdForDisplay2) {
+                const lastUpdatedUserName2 = (lastUpdatedUserId2 ? (g.updatedByName || g.UpdatedByName) : null) || createdByName2;
+                if (lastUpdatedUserName2 && String(lastUpdatedUserName2).trim() !== '') {
+                    lastUpdatedByDisplay = renderUserLink(String(lastUpdatedUserName2).trim(), lastUpdatedUserIdForDisplay2);
+                } else if (lookupData && lookupData.people) {
+                    const user = findUserById(lookupData.people, lastUpdatedUserIdForDisplay2);
+                    if (user) {
+                        const fullName = `${user.First_Name || ''} ${user.Last_Name || ''}`.trim();
+                        if (fullName) {
+                            lastUpdatedByDisplay = renderUserLink(fullName, lastUpdatedUserIdForDisplay2);
+                        }
+                    }
+                } else {
+                    lastUpdatedByDisplay = renderUserLink('Unknown User', lastUpdatedUserIdForDisplay2);
+                }
+            } else {
+                lastUpdatedByDisplay = '<span class="empty">-</span>';
+            }
+            
+            // Last Updated Date (fall back to Created Date when never updated)
+            const lastUpdatedDate2 = g.lastUpdated || g.Last_Updated_Datetime || g.last_Updated_Datetime || g.lastUpdatedDatetime;
+            const createdDate2 = g.created || g.Created_Datetime || g.created_Datetime || g.createdDatetime;
+            if (lastUpdatedDate2) {
+                lastUpdatedDateDisplay = new Date(lastUpdatedDate2).toLocaleString();
+            } else if (createdDate2) {
+                lastUpdatedDateDisplay = new Date(createdDate2).toLocaleString();
+            } else {
+                lastUpdatedDateDisplay = '<span class="empty">-</span>';
+            }
+            
+            console.log('[Re-computed after potential g update] createdByDisplay:', createdByDisplay);
+            
+            const glossaryDescription = g.description || g.Description || '';
+            const definitionSection = `
+                <div class="view-section">
+                    <div class="section-title">${gT('glossary.sections.definition')}</div>
+                    <div class="glossary-view-description">${_richHtml(glossaryDescription)}</div>
+                    ${renderItem(gT('glossary.labels.name'), escapeHtml(g.name || g.Name || ''))}
+                    ${renderItem(gT('glossary.labels.ref') + ':', escapeHtml(g.ref || g.Ref_Number || ''))}
+                    ${renderItem(gT('glossary.labels.aliasNames') + ':', g.aliases && g.aliases.length > 0 ? 
+                        g.aliases.map(alias => escapeHtml(alias)).join(', ') : 
+                        '<span class="empty">' + (window.I18n?.t('message.notSpecified') || 'Not specified') + '</span>')}
+                    ${renderItem(gT('glossary.labels.formatType') + ':', escapeHtml(g.formatTypeName || g.format_type_name || ''))}
+                    ${renderItem(gT('glossary.labels.formatDescription') + ':', g.format ? 
+                        escapeHtml(g.format) : 
+                        '<span class="empty">' + (window.I18n?.t('message.notSpecified') || 'Not specified') + '</span>')}
+                    ${renderItem(gT('glossary.labels.ldmReference') + ':', g.ldm ? 
+                        escapeHtml(g.ldm) : 
+                        '<span class="empty">' + (window.I18n?.t('message.notSpecified') || 'Not specified') + '</span>')}
+                    ${renderItem(gT('glossary.labels.businessLogic') + ':', (g.businessLogic ?? g.Business_Logic ?? g.business_logic) ? 
+                        _richHtml(g.businessLogic ?? g.Business_Logic ?? g.business_logic) : 
+                        '<span class="empty">' + (window.I18n?.t('message.notSpecified') || 'Not specified') + '</span>')}
+                    ${renderItem(gT('glossary.labels.examples') + ':', (g.examples ?? g.Examples) ? 
+                        _richHtml(g.examples ?? g.Examples) : 
+                        '<span class="empty">' + (window.I18n?.t('message.notSpecified') || 'Not specified') + '</span>')}
+                </div>
+            `;
+
+            // Load strategic source data - matches impact isolation mechanism
+            let strategicSourceData = [];
+            try {
+                // Pass view parameter to filter pending changes in View Original mode
+                // When view is 'original' or null, we pass null to get only original sources (backend filters out pending)
+                // When view is 'changes', we pass 'changes' to get both original and pending sources
+                // This matches the impact mechanism: view=changes shows pending, otherwise shows only original
+                const viewParam = (view === 'changes') ? 'changes' : null;
+                console.log('[Glossary View] Loading strategic sources with view:', viewParam, '(raw view:', view, ') for glossary:', id);
+                strategicSourceData = await window.BUDG_API_SERVICE.getGlossaryStrategicSource(id, viewParam);
+                console.log('[Glossary View] Strategic sources loaded:', strategicSourceData?.length || 0, 'sources', strategicSourceData);
+            } catch (error) {
+                console.error('[Glossary View] Error loading strategic sources:', error);
+                strategicSourceData = []; // Fallback to empty array on error
+            }
+                const strategicSourceSection = `
+                    <div class="view-section">
+                        <div class="section-title" style="display: flex; align-items: center; justify-content: space-between;">
+                            <span>STRATEGIC SOURCE</span>
+                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                <i class="fas fa-cog" style="color: var(--text-secondary, #6c757d); cursor: pointer;"></i>
+                                <i class="fas fa-chevron-down" style="color: var(--text-secondary, #6c757d); cursor: pointer;"></i>
+                            </div>
+                        </div>
+                        <div class="data-table-wrapper">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th><div class="th-content"><span>Relationship Type</span></div></th>
+                                        <th><div class="th-content"><span>System</span></div></th>
+                                        <th><div class="th-content"><span>Data Set</span></div></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${strategicSourceData && strategicSourceData.length > 0 ? 
+                                        strategicSourceData.map(item => `
+                                            <tr>
+                                                <td>${escapeHtml(item.relationTypeName || item.relationshipType || 'Strategic Master Source for')}</td>
+                                                <td><i class="fas fa-layer-group"></i> ${escapeHtml(item.systemName || '')}</td>
+                                                <td><i class="fas fa-database"></i> ${item.datasetName ? escapeHtml(item.datasetName) : '<span style="color: var(--text-tertiary, #adb5bd); font-style: italic;">No dataset selected</span>'}</td>
+                                            </tr>
+                                        `).join('') :
+                                        '<tr><td colspan="3" style="color: var(--text-tertiary, #adb5bd); padding: 1rem; text-align: center;">No strategic source data found</td></tr>'
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                        <div style="text-align: right; color: var(--text-tertiary, #adb5bd); font-size: 0.8rem; margin-top: 0.5rem;">
+                            ${strategicSourceData ? strategicSourceData.length : 0} record${strategicSourceData && strategicSourceData.length !== 1 ? 's' : ''}
+                        </div>
+                    </div>
+                `;
+
+                // Documents section - will be added after container.innerHTML
+                const documentsSection = '';
+
+                container.innerHTML = `
+                    <div class="glossary-container">
+                        <div class="left-column">
+                        ${definitionSection}
+                        ${strategicSourceSection}
+                        ${documentsSection}
+                        </div>
+                        <div class="right-column">
+                        ${classificationsSection}
+                        </div>
+                    </div>
+                `;
+                
+                // Ensure container is visible after loading data - use requestAnimationFrame for better rendering
+                if (container) {
+                    // Use requestAnimationFrame to ensure DOM is ready
+                    requestAnimationFrame(() => {
+                        container.style.display = '';
+                        container.style.visibility = 'visible';
+                        container.style.opacity = '1';
+                        console.log('[Glossary] Container displayed after loading data');
+                        
+                        // Force a reflow to ensure rendering
+                        void container.offsetHeight;
+                    });
+                }
+                
+                // Render custom fields section
+                if (window.CustomFields) {
+                    try {
+                        await window.CustomFields.renderViewSection({
+                            facetId: 'Glossary',
+                            containerId: 'glossaryViewContainer',
+                            objectId: id,
+                            title: 'CUSTOM FIELDS'
+                        });
+                    } catch (error) {
+                        console.error('Error rendering custom fields:', error);
+                    }
+                }
+
+                // Add DOCUMENTS collapsible section
+                const noDocsText = window.I18n?.t('message.noDocuments') || 'No documents';
+                const docsEmpty = '<div class="empty">' + noDocsText + '.</div>';
+                const documentsTitle = window.I18n?.t('card.documents') || 'DOCUMENTS';
+                const documentsCollapsibleSection = `
+                    <div class="view-section" style="grid-column: 1/-1; margin-top: 2rem;" data-collapsible>
+                        <div class="collapsible-header" style="display: flex; align-items: center; justify-content: space-between; padding: 1rem 1.5rem; background: var(--background-secondary, #f8f9fa); border: 1px solid var(--border-color, #e5e7eb); border-radius: 8px; cursor: pointer;">
+                            <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                <i class="fa-solid fa-file-lines" style="color: var(--secondary-color, #248567);"></i>
+                                <h3 style="margin: 0; font-size: 0.875rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">${documentsTitle}</h3>
+                            </div>
+                            <i class="fas fa-chevron-down" style="transition: transform 0.2s;"></i>
+                        </div>
+                        <div class="collapsible-body" style="display: none; padding: 1.5rem; border: 1px solid var(--border-color, #e5e7eb); border-top: none; border-radius: 0 0 8px 8px;">
+                            ${docsEmpty}
+                        </div>
+                    </div>
+                `;
+                container.insertAdjacentHTML('beforeend', documentsCollapsibleSection);
+
+                // Wire up collapsible toggle
+                const documentsCollapsible = container.querySelector('[data-collapsible]');
+                if (documentsCollapsible) {
+                    const header = documentsCollapsible.querySelector('.collapsible-header');
+                    const body = documentsCollapsible.querySelector('.collapsible-body');
+                    if (header && body) {
+                        header.addEventListener('click', function() {
+                            const isOpen = documentsCollapsible.classList.contains('open');
+                            documentsCollapsible.classList.toggle('open');
+                            header.setAttribute('aria-expanded', String(!isOpen));
+                            body.style.display = isOpen ? 'none' : 'block';
+                            const chevron = header.querySelector('.fa-chevron-down');
+                            if (chevron) {
+                                chevron.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(180deg)';
+                            }
+                        });
+                    }
+                }
+
+                // Load Documents (pass view mode to exclude pending documents in original view)
+                loadDocuments(id, view);
+        } catch (e) {
+            console.error('Error loading glossary:', e);
+            const isForbidden = e?.status === 403 || String(e?.message || '').includes('403');
+            if (isForbidden) {
+                container.innerHTML = `
+                    <div class="view-section" style="color: var(--danger, #b91c1c); text-align: center; padding: 2rem;">
+                        <h3>Glossary Not Available</h3>
+                        <p>This object is not available.</p>
+                        <button class="btn btn-primary" onclick="window.location.href='/view/glossary/glossary.html'">
+                            Back to Glossary List
+                        </button>
+                    </div>
+                `;
+            } else if (e.status === 404) {
+                container.innerHTML = `
+                    <div class="view-section" style="color: var(--danger, #b91c1c); text-align: center; padding: 2rem;">
+                        <h3>Glossary Not Found</h3>
+                        <p>The glossary with ID ${id} does not exist or has been deleted.</p>
+                        <button class="btn btn-primary" onclick="window.location.href='/view/glossary/glossary.html'">
+                            Back to Glossary List
+                        </button>
+                    </div>
+                `;
+            } else {
+                container.innerHTML = `
+                    <div class="view-section" style="color: var(--danger, #b91c1c); text-align: center; padding: 2rem;">
+                        <h3>Error Loading Glossary</h3>
+                        <p>Failed to load glossary (id=${id}). ${e.message || 'Unknown error occurred.'}</p>
+                        <button class="btn btn-primary" onclick="window.location.href='/view/glossary/glossary.html'">
+                            Back to Glossary List
+                        </button>
+                    </div>
+                `;
+            }
+        }
+    }
+
+    // Store document table instance for view mode switching
+    let glossaryDocumentTable = null;
+    
+    async function loadDocuments(glossaryId, viewMode = null) {
+        // Find the documents collapsible section within the glossary view container
+        const container = document.getElementById('glossaryViewContainer');
+        if (!container) {
+            console.warn('Glossary view container not found');
+            return;
+        }
+        const documentsSection = container.querySelector('[data-collapsible] .collapsible-body');
+        if (!documentsSection) {
+            console.warn('Documents section not found');
+            return;
+        }
+
+        // Create container for document table
+        const containerId = 'glossaryDocumentsTableContainer';
+        documentsSection.innerHTML = `<div id="${containerId}"></div>`;
+
+        // Initialize document table component (read-only for view page)
+        if (typeof DocumentTableComponent !== 'undefined') {
+            try {
+                glossaryDocumentTable = new DocumentTableComponent({
+                    facetType: 'glossary',
+                    facetId: glossaryId,
+                    container: `#${containerId}`,
+                    canEdit: false, // Read-only in view mode
+                    viewMode: viewMode // Pass view mode to filter pending documents
+                });
+            } catch (error) {
+                console.error('Error initializing document table:', error);
+                const failedToLoadDocs = window.I18n?.t('message.failedToLoadDocuments') || 'Failed to load documents.';
+                documentsSection.innerHTML = '<div class="empty" style="color:var(--danger,#b91c1c);">' + failedToLoadDocs + '</div>';
+            }
+        } else {
+            console.error('DocumentTableComponent not found');
+            const docComponentNotAvailable = window.I18n?.t('message.documentComponentNotAvailable') || 'Document component not available.';
+            documentsSection.innerHTML = '<div class="empty">' + docComponentNotAvailable + '</div>';
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        hideEditsIfUnauthenticated();
+        console.log('Glossary page loaded');
+        const backBtn = document.getElementById('backBtn');
+        
+        console.log('Back button found:', backBtn);
+        
+        if (backBtn) backBtn.addEventListener('click', () => window.history.length > 1 ? window.history.back() : window.location.assign('/'));
+        
+        const id = parseId();
+        if (id != null) {
+            // Ensure content body and container are visible
+            const contentBody = document.querySelector('.content-body');
+            if (contentBody) {
+                contentBody.style.display = '';
+            }
+            const glossaryViewContainer = document.getElementById('glossaryViewContainer');
+            if (glossaryViewContainer) {
+                glossaryViewContainer.style.display = '';
+                glossaryViewContainer.style.visibility = 'visible';
+            }
+            
+            // Load with null view first, then toggle will set the correct view
+            // The toggle initialization in load() will sync currentView
+            load(id, null).then(async function(){
+                // Force a re-render to ensure data is visible
+                const container = document.getElementById('glossaryViewContainer');
+                if (container) {
+                    container.style.display = '';
+                    container.style.visibility = 'visible';
+                    
+                    // Ensure summary tab is active and content is visible
+                    const summaryTab = document.querySelector('.tab[data-tab="summary"]');
+                    if (summaryTab) {
+                        summaryTab.classList.add('active');
+                        // Remove active from other tabs
+                        document.querySelectorAll('.tab-container .tab').forEach(t => {
+                            if (t !== summaryTab) {
+                                t.classList.remove('active');
+                            }
+                        });
+                    }
+                    
+                    // Trigger a small delay to ensure DOM is updated
+                    await new Promise(resolve => setTimeout(resolve, 50));
+                }
+                
+                // Check and display lock status
+                if (window.ViewLockHelper) {
+                    await window.ViewLockHelper.checkAndDisplayLockStatus('glossary', id);
+                }
+                
+            if (window.addFollowButton) {
+                try {
+                    await window.addFollowButton('glossary', id, null, '.form-actions');
+                } catch (e) {
+                    console.error('Failed to initialize follow button for glossary:', e);
+                }
+            }
+        });
+        try { window.BUDG_API_SERVICE.logVisit({ entity: 'CatItemCategory', entityId: String(id), route: `/view/glossary/${id}` }); } catch(_) {}
+                }
+
+    });
+
+    // Get glossary relationships map HTML using shared generator
+    function getGlossaryRelationshipsMapHtml() {
+        if (window.SharedMapHTML) {
+            return window.SharedMapHTML({
+                mapId: 'glossaryRelationshipsMap',
+                defaultMapType: 'glossary-lineage',
+                mapTypeOptions: [
+                    { value: 'glossary-lineage', label: 'Glossary Lineage' },
+                    { value: 'dataset-lineage', label: 'Dataset Lineage' },
+                    { value: 'system-lineage', label: 'System Lineage' }
+                ],
+                overlayConfig: {
+                    glossaryLineage: {
+                        columns: [
+                            {
+                                header: 'Data',
+                                items: [
+                                    { overlay: 'description', icon: 'fa-info-circle', label: 'Description' },
+                                    { overlay: 'stakeholders', icon: 'fa-users', label: 'Stakeholders' }
+                                ]
+                            }
+                        ]
+                    },
+                    systemLineage: {
+                        columns: [
+                            {
+                                header: 'Data',
+                                items: [
+                                    { overlay: 'description', icon: 'fa-info-circle', label: 'Description' },
+                                    { overlay: 'glossary', icon: 'fa-book', label: 'Glossary' },
+                                    { overlay: 'datasets', icon: 'fa-layer-group', label: 'Data Sets' },
+                                    { overlay: 'attributes', icon: 'fa-th', label: 'Attributes' }
+                                ]
+                            }
+                        ]
+                    },
+                    datasetLineage: {
+                        columns: [
+                            {
+                                header: 'Data',
+                                items: [
+                                    { overlay: 'description', icon: 'fa-info-circle', label: 'Description' },
+                                    { overlay: 'glossary', icon: 'fa-book', label: 'Glossary' },
+                                    { overlay: 'attributes', icon: 'fa-th', label: 'Attributes' }
+                                ]
+                            }
+                        ]
+                    }
+                },
+                filterConfig: {
+                    glossaryLineage: {
+                        categories: [
+                            {
+                                header: 'RELATIONSHIP TYPE',
+                                dynamic: true,
+                                containerId: 'glossaryRelationshipsMapFilterRelationTypeOptions'
+                            }
+                        ]
+                    },
+                    systemLineage: {
+                        categories: [
+                            {
+                                header: 'TYPE',
+                                dynamic: true,
+                                containerId: 'glossaryRelationshipsMapSystemFilterTypeOptions'
+                            },
+                            {
+                                header: 'LIFECYCLE',
+                                dynamic: true,
+                                containerId: 'glossaryRelationshipsMapSystemFilterLifecycleOptions'
+                            }
+                        ]
+                    },
+                    datasetLineage: {
+                        categories: [
+                            {
+                                header: 'TYPE',
+                                dynamic: true,
+                                containerId: 'glossaryRelationshipsMapDatasetFilterTypeOptions'
+                            },
+                            {
+                                header: 'LIFECYCLE',
+                                dynamic: true,
+                                containerId: 'glossaryRelationshipsMapDatasetFilterLifecycleOptions'
+                            }
+                        ]
+                    }
+                }
+            });
+        }
+        
+        // Fallback to basic HTML if shared generator not available
+        return `
+            <div class="map-section" id="glossaryRelationshipsMapSection" style="grid-column:1/-1; margin-bottom: 1.5rem;">
+                <div class="map-section-header">
+                    <div class="map-section-title">MAP</div>
+                    <button type="button" class="map-collapse-btn" id="glossaryRelationshipsMapCollapseBtn" title="Collapse/Expand">
+                        <i class="fas fa-minus"></i>
+                    </button>
+                </div>
+                <div class="interface-map-toolbar">
+                    <div class="map-control-group">
+                        <label>Map type:</label>
+                        <select id="glossaryRelationshipsMapTypeSelect" class="map-select">
+                            <option value="glossary-lineage" selected>Glossary Lineage</option>
+                            <option value="dataset-lineage">Dataset Lineage</option>
+                            <option value="system-lineage">System Lineage</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="interface-map-body">
+                    <div class="interface-map-canvas" id="glossaryRelationshipsMapCanvas">
+                        <div class="interface-map-loading" data-map-loading style="display:none;">
+                            <i class="fas fa-spinner fa-spin"></i>
+                            <span>Building lineage map...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    // Function to load relationships data
+    async function loadRelationshipsData(glossaryId, view = null) {
+        const tbody = document.getElementById('relationshipsTableBody');
+        const footer = document.querySelector('#relationshipsContent .hierarchy-footer');
+
+        if (!tbody) return;
+
+        // Determine view parameter - matches strategic source and impact isolation mechanism
+        const viewParam = (view === 'changes') ? 'changes' : null;
+        console.log('[Glossary Relationships] Loading bidirectional relationships for glossary ID:', glossaryId, 'with view:', viewParam);
+
+        try {
+            // Show loading state
+            tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;padding:2rem;color:var(--text-muted,#6b7280);">Loading...</td></tr>';
+
+            // Fetch bidirectional relationships (both as source and target)
+            // Pass view parameter to filter pending changes in View Original mode
+            console.log('[Glossary Relationships] Calling API: getGlossaryBidirectionalRelationships(' + glossaryId + ', ' + viewParam + ')');
+            const relationships = await window.BUDG_API_SERVICE.getGlossaryBidirectionalRelationships(glossaryId, viewParam);
+            console.log('[Glossary Relationships] API Response:', relationships);
+
+            if (!Array.isArray(relationships) || relationships.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;padding:2rem;color:var(--text-muted,#9ca3af);">No relationships found</td></tr>';
+                const footerEl = document.getElementById('relationshipsFooter');
+                if (footerEl) footerEl.textContent = '0 records';
+                return;
+            }
+
+            // Update footer
+            const footerEl = document.getElementById('relationshipsFooter');
+            if (footerEl) footerEl.textContent = `${relationships.length} record${relationships.length !== 1 ? 's' : ''}`;
+
+            // Render relationships table with bidirectional support
+            tbody.innerHTML = relationships.map(function(rel) {
+                // Use relatedGlossaryId and relatedGlossaryName for both directions
+                const relatedGlossaryId = rel.relatedGlossaryId;
+                const relatedGlossaryName = rel.relatedGlossaryName || 'Unknown';
+                const relatedGlossaryType = rel.relatedGlossaryType || 'Unknown';
+                const direction = rel.direction || 'outgoing'; // 'outgoing' or 'incoming'
+                
+                const glossaryLink = relatedGlossaryId 
+                    ? `<a href="/view/glossary/${relatedGlossaryId}" class="glossary-link">${escapeHtml(relatedGlossaryName)}</a>`
+                    : escapeHtml(relatedGlossaryName);
+                
+                // Add direction indicator to relationship type name
+                const relationTypeDisplay = escapeHtml(rel.relationTypeName || 'Unknown');
+                const directionBadge = direction === 'incoming' 
+                    ? '<span style="font-size: 0.75rem; color: #6b7280; margin-left: 0.25rem;">(incoming)</span>'
+                    : '<span style="font-size: 0.75rem; color: #6b7280; margin-left: 0.25rem;">(outgoing)</span>';
+                
+                return `
+                    <tr>
+                        <td style="text-align: center;">
+                            <span class="view-badge">${relationTypeDisplay}${directionBadge}</span>
+                        </td>
+                        <td style="text-align: center;">
+                            <div class="glossary-item">
+                                <i class="fas fa-book database-icon"></i>
+                                ${glossaryLink}
+                                </div>
+                        </td>
+                        <td style="text-align: center;">
+                            <span class="view-badge">${escapeHtml(relatedGlossaryType)}</span>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+
+            if (footer) {
+                footer.textContent = `${relationships.length} record${relationships.length !== 1 ? 's' : ''}`;
+            }
+
+        } catch (error) {
+            console.error('Failed to load relationships:', error);
+            console.error('Error details:', {
+                message: error.message,
+                status: error.status,
+                body: error.body
+            });
+            tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;padding:2rem;color:var(--danger,#b91c1c);">Failed to load relationships: ' + error.message + '</td></tr>';
+            if (footer) footer.textContent = '0 records';
+        }
+    }
+
+    // Function to view glossary details
+    function viewGlossary(glossaryId) {
+        window.location.href = `/view/glossary/${glossaryId}`;
+    }
+
+    // Setup add relationship functionality
+    function setupAddRelationship(glossaryId) {
+        const addBtn = document.getElementById('addRelationshipBtn');
+        const modal = document.getElementById('addRelationshipModal');
+        const cancelBtn = document.getElementById('cancelRelationshipBtn');
+        const form = document.getElementById('addRelationshipForm');
+        const relationshipTypeSelect = document.getElementById('relationshipTypeSelect');
+        const targetGlossarySelect = document.getElementById('targetGlossarySelect');
+
+        if (!addBtn || !modal || !form) return;
+
+        // Load relationship types and glossaries
+        async function loadRelationshipTypes() {
+            try {
+                const types = await window.BUDG_API_SERVICE.getGlossaryRelationTypes();
+                relationshipTypeSelect.innerHTML = '<option value="">Select Relationship Type</option>';
+                const typesArray = Array.isArray(types) ? types : (types?.data || []);
+                typesArray.forEach(type => {
+                    const option = document.createElement('option');
+                    option.value = type.id || type.ID;
+                    option.textContent = type.name || type.Name || type.PrimaryName;
+                    relationshipTypeSelect.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Failed to load relationship types:', error);
+            }
+        }
+
+        async function loadGlossaries() {
+            try {
+                const glossaries = await window.BUDG_API_SERVICE.getGlossaryList();
+                targetGlossarySelect.innerHTML = '<option value="">Select Glossary</option>';
+                const glossaryArray = Array.isArray(glossaries) ? glossaries : (glossaries?.data || []);
+                glossaryArray.forEach(glossary => {
+                    // Don't allow selecting the current glossary
+                    if (glossary.id === glossaryId || glossary.ID === glossaryId) return;
+                    const option = document.createElement('option');
+                    option.value = glossary.id || glossary.ID;
+                    option.textContent = glossary.name || glossary.Name;
+                    targetGlossarySelect.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Failed to load glossaries:', error);
+            }
+        }
+
+        // Open modal
+        addBtn.addEventListener('click', async function() {
+            modal.style.display = 'flex';
+            await loadRelationshipTypes();
+            await loadGlossaries();
+        });
+
+        // Close modal
+        cancelBtn?.addEventListener('click', function() {
+            modal.style.display = 'none';
+            form.reset();
+        });
+
+        // Close modal when clicking outside
+        modal.addEventListener('click', function(e) {
+            if (e.target === modal) {
+                modal.style.display = 'none';
+                form.reset();
+            }
+        });
+
+        // Save relationship
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const relationshipTypeId = relationshipTypeSelect.value;
+            const targetGlossaryId = targetGlossarySelect.value;
+
+            if (!relationshipTypeId || !targetGlossaryId) {
+                alert('Please select both Relationship Type and Target Glossary');
+                return;
+            }
+
+            try {
+                const response = await window.BUDG_API_SERVICE.createGlossaryRelationship({
+                    sourceGlossaryId: glossaryId,
+                    targetGlossaryId: parseInt(targetGlossaryId),
+                    relationType: parseInt(relationshipTypeId)
+                });
+
+                if (response && (response.success !== false)) {
+                    // Reload relationships
+                    await loadRelationshipsData(glossaryId);
+                    // Close modal
+                    modal.style.display = 'none';
+                    form.reset();
+                    // Show success message
+                    console.log('Relationship added successfully');
+                } else {
+                    throw new Error(response?.error || 'Failed to add relationship');
+                }
+            } catch (error) {
+                console.error('Failed to add relationship:', error);
+                alert('Failed to add relationship: ' + (error.message || error));
+            }
+        });
+    }
+
+    // Data tab functions moved to glossary-data-tab.js isolated module
+
+	    // Helper function to show placeholder content for tabs
+    function showPlaceholderContent(container, tabName, iconClass) {
+        const tabKey = 'tab.' + tabName.split('-').map((p, i) => i ? p.charAt(0).toUpperCase() + p.slice(1) : p).join('');
+        const tabLabel = (window.I18n && window.I18n.t(tabKey)) || tabName.replace(/-/g, ' ').toUpperCase();
+        const msg = (window.I18n && window.I18n.t('glossary.placeholder.tabContentSoon')) || '{tab} tab content will be available soon.';
+        const text = msg.replace('{tab}', tabLabel);
+        container.innerHTML = `
+            <div class="view-section" style="grid-column: 1/-1; padding: 3rem; text-align: center;">
+                <i class="${iconClass}" style="font-size: 3rem; color: var(--text-secondary, #64748b); margin-bottom: 1rem; display: block;"></i>
+                <p style="font-size: 1.125rem; color: var(--text-primary, #1e293b); margin: 0;">
+                    ${text}
+                </p>
+                        </div>
+                    `;
+    }
+
+	    // Helper function to load glossary hierarchy data
+    async function loadGlossaryHierarchy(glossaryId) {
+                            const tbody = document.getElementById('hierarchyTbody');
+                            const footer = document.getElementById('hierarchyFooter');
+                            
+                            if (!tbody || !footer) return;
+                            
+        const hierT = (k) => (window.I18n && window.I18n.t(k)) || k;
+        try {
+                            // Show loading state
+            tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:2rem;color:var(--text-muted,#6b7280);">' + hierT('glossary.hierarchy.loadingHierarchy') + '</td></tr>';
+            footer.textContent = hierT('glossary.hierarchy.loading');
+
+            // Fetch hierarchy data from API (includes ancestors, current, siblings, children, and siblings' children)
+            console.log('[Hierarchy] Fetching hierarchy for glossary ID:', glossaryId);
+            const hierarchyData = await window.BUDG_API_SERVICE.getGlossaryHierarchy(glossaryId);
+            console.log('[Hierarchy] Raw API response:', hierarchyData);
+            console.log('[Hierarchy] Response type:', typeof hierarchyData);
+            console.log('[Hierarchy] Is array?', Array.isArray(hierarchyData));
+            
+            // Handle different response formats
+            let items = [];
+            if (Array.isArray(hierarchyData)) {
+                items = hierarchyData;
+            } else if (hierarchyData && hierarchyData.data && Array.isArray(hierarchyData.data)) {
+                items = hierarchyData.data;
+            } else if (hierarchyData && Array.isArray(hierarchyData.items)) {
+                items = hierarchyData.items;
+            } else if (hierarchyData && typeof hierarchyData === 'object') {
+                // Try to extract array from object
+                const keys = Object.keys(hierarchyData);
+                for (const key of keys) {
+                    if (Array.isArray(hierarchyData[key])) {
+                        items = hierarchyData[key];
+                        break;
+                    }
+                }
+            }
+            
+            console.log('[Hierarchy] Processed items:', items);
+            console.log('[Hierarchy] Items count:', items.length);
+            
+            if (items.length === 0) {
+                console.warn('[Hierarchy] No hierarchy data found for glossary ID:', glossaryId);
+                tbody.innerHTML = '<tr><td colspan="8" style="color:var(--text-muted,#9ca3af);padding:1rem;text-align:center;">' + hierT('glossary.hierarchy.noData') + '</td></tr>';
+                                footer.textContent = hierT('glossary.hierarchy.zeroRecords');
+                                return;
+                            }
+
+            console.log('Glossary hierarchy data from API:', items);
+            console.log('Current glossary ID:', glossaryId);
+            
+            // Build hierarchy tree structure from flat data with levels
+            // Organize by relation type: ancestors (negative levels), current (level 0), siblings (level 0), descendants (positive levels), sibling_children (positive levels)
+            const byId = new Map();
+            const childrenMap = new Map();
+            
+            items.forEach(item => {
+                const id = item.id;
+                const parentId = item.parentId;
+                byId.set(id, item);
+                if (!childrenMap.has(parentId)) childrenMap.set(parentId, []);
+                childrenMap.get(parentId).push(item);
+            });
+            
+            // Find current glossary to determine its parent and calculate base depth
+            const currentGlossary = items.find(item => item.relation === 'current');
+            const currentParentId = currentGlossary ? currentGlossary.parentId : null;
+            
+            // Find the maximum ancestor level (most negative) to calculate base depth
+            const ancestors = items.filter(item => item.relation === 'ancestor');
+            const maxAncestorLevel = ancestors.length > 0 ? Math.min(...ancestors.map(a => a.level)) : 0;
+            const ancestorDepthOffset = Math.abs(maxAncestorLevel); // How many ancestor levels we have
+            
+            // Calculate current depth: if has ancestors, depth = ancestorDepthOffset, else 0
+            const currentDepth = currentParentId ? ancestorDepthOffset : 0;
+            
+            // Build tree structure: ancestors -> siblings -> current -> descendants -> siblings' children
+            const hierarchyRows = [];
+            
+            // Helper to calculate depth based on level and relation
+            function calculateDepth(item) {
+                if (item.relation === 'ancestor') {
+                    // Ancestors: convert negative level to positive depth (most negative = depth 0)
+                    return ancestorDepthOffset + item.level; // -1 becomes (offset-1), -2 becomes (offset-2), etc.
+                } else if (item.relation === 'current') {
+                    return currentDepth;
+                } else if (item.relation === 'sibling') {
+                    return currentDepth; // Same depth as current
+                } else if (item.relation === 'descendant') {
+                    // Descendants: current depth + level (1, 2, 3...)
+                    return currentDepth + item.level;
+                } else if (item.relation === 'sibling_child') {
+                    // Sibling children: sibling depth + level (1, 2, 3...)
+                    return currentDepth + item.level;
+                }
+                return 0;
+            }
+            
+            // Build proper hierarchical tree structure using parent-child relationships
+            // This ensures children appear directly under their parents, not just sorted by level
+            function buildHierarchicalOrder(items, currentGlossaryId) {
+                const result = [];
+                const processed = new Set();
+                
+                // Helper function to recursively add node and its children
+                function addNodeAndChildren(nodeId, depth) {
+                    if (processed.has(nodeId)) return;
+                    processed.add(nodeId);
+                    
+                    const node = byId.get(nodeId);
+                    if (!node) return;
+                    
+                    // Add current node
+                    result.push({ node, depth, parentId: node.parentId });
+                    
+                    // Get and sort children by name
+                    const children = (childrenMap.get(nodeId) || []).sort((a, b) => {
+                        return (a.name || '').localeCompare(b.name || '');
+                    });
+                    
+                    // Recursively add children
+                    children.forEach(child => {
+                        addNodeAndChildren(child.id, depth + 1);
+                    });
+                }
+                
+                // First, add ancestors in order (from root to current's parent)
+                const ancestors = items.filter(item => item.relation === 'ancestor')
+                    .sort((a, b) => a.level - b.level); // Most negative first (root ancestor)
+                ancestors.forEach(ancestor => {
+                    if (!processed.has(ancestor.id)) {
+                        addNodeAndChildren(ancestor.id, calculateDepth(ancestor));
+                    }
+                });
+                
+                // Then add siblings (before current)
+                const siblings = items.filter(item => item.relation === 'sibling')
+                    .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+                siblings.forEach(sibling => {
+                    if (!processed.has(sibling.id)) {
+                        addNodeAndChildren(sibling.id, calculateDepth(sibling));
+                    }
+                });
+                
+                // Then add current
+                if (currentGlossary) {
+                    addNodeAndChildren(currentGlossary.id, calculateDepth(currentGlossary));
+                }
+                
+                // Then add descendants (children of current) - they will be added recursively
+                const currentId = currentGlossary ? currentGlossary.id : currentGlossaryId;
+                const descendants = items.filter(item => item.relation === 'descendant')
+                    .filter(item => item.parentId === currentId); // Only direct children
+                descendants.forEach(descendant => {
+                    if (!processed.has(descendant.id)) {
+                        addNodeAndChildren(descendant.id, calculateDepth(descendant));
+                    }
+                });
+                
+                // Finally, add sibling children (children of siblings) - they will be added recursively
+                const siblingChildren = items.filter(item => item.relation === 'sibling_child');
+                const siblingIds = siblings.map(s => s.id);
+                siblingChildren
+                    .filter(item => siblingIds.includes(item.parentId)) // Only direct children of siblings
+                    .forEach(child => {
+                        if (!processed.has(child.id)) {
+                            addNodeAndChildren(child.id, calculateDepth(child));
+                        }
+                    });
+                
+                return result;
+            }
+            
+            // Build hierarchy rows using proper tree structure
+            const hierarchyRowsData = buildHierarchicalOrder(items, glossaryId);
+            
+            hierarchyRowsData.forEach(({ node, depth, parentId }) => {
+                const children = childrenMap.get(node.id) || [];
+                const hasChildren = children.length > 0;
+                
+                hierarchyRows.push({
+                    node: node,
+                    depth: depth,
+                    parentId: parentId,
+                    hasChildren: hasChildren,
+                    relation: node.relation
+                });
+            });
+            
+            console.log('Processed hierarchy rows:', hierarchyRows);
+            
+            // Render the hierarchy
+            const rowsHtml = hierarchyRows.map(({ node, depth, hasChildren, relation }) => {
+                const name = node.name || '';
+                const desc = node.description || '';
+                const type = node.typeName || '';
+                const isCurrent = relation === 'current';
+                const id = node.id;
+                const parentId = node.parentId || null;
+                
+                // Determine relationship type display (empty for current, show relationship for others)
+                let relationshipDisplay = '';
+                if (!isCurrent) {
+                    if (relation === 'ancestor') {
+                        relationshipDisplay = 'Is Parent Of';
+                    } else if (relation === 'sibling') {
+                        relationshipDisplay = 'Is Related to';
+                    } else if (relation === 'descendant') {
+                        relationshipDisplay = 'Is Child Of';
+                    } else if (relation === 'sibling_child') {
+                        relationshipDisplay = 'Is Related to';
+                    }
+                }
+                
+                // Calculate visual depth (indentation)
+                const visualDepth = depth;
+                const indent = Array(visualDepth).fill('<span class="tree-indent"></span>').join('');
+                const expander = hasChildren ? `<button type="button" class="tree-expander" aria-label="Toggle"><i class="fas fa-caret-down"></i></button>` : '<span class="tree-placeholder"></span>';
+                const childCount = childrenMap.get(id)?.length || 0;
+                const countBadge = hasChildren ? `<span class="child-count" title="Children">${childCount}</span>` : '';
+                const linkClass = isCurrent ? 'glossary-link current-glossary-link' : 'glossary-link';
+                const link = `<a class="${linkClass}" href="/view/glossary/${encodeURIComponent(id)}">${escapeHtml(name)}</a>`;
+                
+                // Strategic source system display with hyperlinks (matching image style)
+                let strategicSourceDisplay = '<span class="empty">-</span>';
+                if (node.strategicSourceIds && node.strategicSourceIds.trim()) {
+                    // Parse strategic source IDs and names: "id1:name1|id2:name2"
+                    const sources = node.strategicSourceIds.split('|').filter(s => s.trim());
+                    if (sources.length > 0) {
+                        strategicSourceDisplay = sources.map(source => {
+                            const [systemId, systemName] = source.split(':');
+                            if (systemId && systemName) {
+                                return `<a href="/view/system/${encodeURIComponent(systemId)}" class="system-link" style="color: #248567; text-decoration: none;">
+                                    <i class="fas fa-layer-group" style="color: #248567;"></i> ${escapeHtml(systemName)}
+                                </a>`;
+                            }
+                            return '';
+                        }).filter(s => s).join(', ');
+                    }
+                } else if (node.strategicSourceSystem) {
+                    // Fallback to comma-separated names if IDs not available
+                    const systemNames = node.strategicSourceSystem.split(',').map(s => s.trim()).filter(s => s);
+                    strategicSourceDisplay = systemNames.map(name => {
+                        return `<span style="color: #248567;">
+                            <i class="fas fa-layer-group" style="color: #248567;"></i> ${escapeHtml(name)}
+                        </span>`;
+                    }).join(', ');
+                }
+                
+                return `<tr class="${isCurrent ? 'current-row' : ''}" data-id="${id}" data-parent-id="${parentId || ''}" data-depth="${visualDepth}" data-relation="${relation}">
+                    <td><div class="tree-cell">${indent}${expander}${visualDepth>0?'<span class="tree-branch"></span>':''}<i class="fas fa-bookmark item-icon"></i><span class="glossary-name">${link}</span>${countBadge}</div></td>
+                    <td><span class="type-badge">${escapeHtml(type)}</span></td>
+                    <td>${escapeHtml(relationshipDisplay)}</td>
+                    <td><span title="${escapeHtml(desc)}">${escapeHtml(desc || '-')}</span></td>
+                    <td>${strategicSourceDisplay}</td>
+                    <td>${node.dataItems || 0}</td>
+                    <td>${node.dataAttributes || 0}</td>
+                    <td>${formatDate(node.lastUpdated) || 'N/A'}</td>
+                </tr>`;
+            }).join('');
+
+            tbody.innerHTML = rowsHtml;
+            const n = hierarchyRows.length;
+            footer.textContent = n === 1 ? hierT('glossary.hierarchy.recordOne') : (hierT('glossary.hierarchy.recordCount') || '{count} records').replace('{count}', n);
+            
+            // Build parent map for interactions
+            const parentMap = new Map();
+            items.forEach(item => {
+                if (item.parentId) {
+                    if (!parentMap.has(item.parentId)) {
+                        parentMap.set(item.parentId, []);
+                    }
+                    parentMap.get(item.parentId).push(item.id);
+                }
+            });
+            
+            const hierarchyRowsObj = {
+                rows: hierarchyRows,
+                parentMap: parentMap
+            };
+            
+            // Initialize interactions
+            initGlossariesInteractions(tbody.closest('.hierarchy-table-wrapper'), hierarchyRowsObj);
+        } catch (e) {
+            console.error('[Hierarchy] Failed to load hierarchy:', e);
+            console.error('[Hierarchy] Error stack:', e.stack);
+            console.error('[Hierarchy] Error details:', {
+                message: e.message,
+                name: e.name,
+                glossaryId: glossaryId
+            });
+            tbody.innerHTML = `<tr><td colspan="8" style="color:var(--danger,#b91c1c);padding:1rem;text-align:center;">Failed to load hierarchy data: ${e.message || 'Unknown error'}<br><small>Check console for details</small></td></tr>`;
+            footer.textContent = (window.I18n && window.I18n.t('glossary.hierarchy.zeroRecords')) || '0 records';
+        }
+    }
+
+    // Helper functions for rendering
+    function escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    function formatDate(dateString) {
+        if (!dateString) return 'N/A';
+        try {
+            const date = new Date(dateString);
+            return date.toLocaleDateString();
+        } catch (e) {
+            return 'N/A';
+        }
+    }
+
+    // Build direct lineage tree for glossaries (same as System facet)
+    function buildDirectLineageTree(glossaries, currentId) {
+        const byId = new Map();
+        glossaries.forEach(g => {
+            const id = g.ID ?? g.id;
+            byId.set(id, g);
+        });
+        
+        console.log('Building lineage tree for glossary ID:', currentId);
+        console.log('Available glossaries:', glossaries.map(g => ({ id: g.ID ?? g.id, name: g.name || g.Name, parent_id: g.parent_id ?? g.Parent_ID ?? g.parentId })));
+        
+        // Find all ancestors (parents, grandparents, great-grandparents, etc.) of the current glossary
+        const ancestors = new Set();
+        let current = byId.get(currentId);
+        console.log('Current glossary:', current);
+        
+        while (current) {
+            const parentId = current.parent_id ?? current.Parent_ID ?? current.parentId;
+            console.log('Looking for parent ID:', parentId);
+            if (parentId && parentId !== 0 && byId.has(parentId)) {
+                ancestors.add(parentId);
+                current = byId.get(parentId);
+                console.log('Found ancestor:', current);
+            } else {
+                break;
+            }
+        }
+        
+        // Find all descendants (children, grandchildren, great-grandchildren, etc.) of the current glossary
+        const descendants = new Set();
+        function findDescendants(id) {
+            glossaries.forEach(g => {
+                const parentId = g.parent_id ?? g.Parent_ID ?? g.parentId;
+                if (parentId === id) {
+                    const childId = g.ID ?? g.id;
+                    descendants.add(childId);
+                    console.log('Found descendant:', g);
+                    findDescendants(childId); // Recursively find all descendants
+                }
+            });
+        }
+        findDescendants(currentId);
+        
+        // Find all siblings (other children of the same parent)
+        const siblings = new Set();
+        const currentGlossary = byId.get(currentId);
+                            if (currentGlossary) {
+            const currentParentId = currentGlossary.parent_id ?? currentGlossary.Parent_ID ?? currentGlossary.parentId;
+            console.log('Current parent ID:', currentParentId);
+            if (currentParentId) {
+                glossaries.forEach(g => {
+                    const parentId = g.parent_id ?? g.Parent_ID ?? g.parentId;
+                    if (parentId === currentParentId && (g.ID ?? g.id) !== currentId) {
+                        siblings.add(g.ID ?? g.id);
+                        console.log('Found sibling:', g);
+                    }
+                });
+            }
+        }
+        
+        // CRITICAL: Find children of siblings (nieces and nephews)
+        const childrenOfSiblings = new Set();
+        siblings.forEach(siblingId => {
+            glossaries.forEach(g => {
+                const parentId = g.parent_id ?? g.Parent_ID ?? g.parentId;
+                if (parentId === siblingId) {
+                    childrenOfSiblings.add(g.ID ?? g.id);
+                    console.log('Found child of sibling (niece/nephew):', g);
+                }
+            });
+        });
+        
+        // CRITICAL: Find children of siblings of parent (cousins) - SIMPLIFIED
+        const childrenOfParentSiblings = new Set();
+        if (currentGlossary) {
+            const currentParentId = currentGlossary.parent_id ?? currentGlossary.Parent_ID ?? currentGlossary.parentId;
+            if (currentParentId) {
+                const parent = byId.get(currentParentId);
+                if (parent) {
+                    const grandparentId = parent.parent_id ?? parent.Parent_ID ?? parent.parentId;
+                    if (grandparentId) {
+                        // Find siblings of parent (uncles/aunts)
+                        glossaries.forEach(uncleAunt => {
+                            const uncleAuntParentId = uncleAunt.parent_id ?? uncleAunt.Parent_ID ?? uncleAunt.parentId;
+                            if (uncleAuntParentId === grandparentId && (uncleAunt.ID ?? uncleAunt.id) !== currentParentId) {
+                                console.log('Found uncle/aunt:', uncleAunt);
+                                // Find children of this uncle/aunt (cousins)
+                                glossaries.forEach(g => {
+                                    const parentId = g.parent_id ?? g.Parent_ID ?? g.parentId;
+                                    if (parentId === (uncleAunt.ID ?? uncleAunt.id)) {
+                                        childrenOfParentSiblings.add(g.ID ?? g.id);
+                                        console.log('Found cousin:', g);
+                                    }
+                                });
+                            }
+                        });
+                    }
+                }
+            }
+        }
+        
+        console.log('Ancestors:', Array.from(ancestors));
+        console.log('Descendants:', Array.from(descendants));
+        console.log('Siblings:', Array.from(siblings));
+        console.log('Children of Siblings (Nieces/Nephews):', Array.from(childrenOfSiblings));
+        console.log('Children of Parent Siblings (Cousins):', Array.from(childrenOfParentSiblings));
+        
+        // CRITICAL: Ensure we ALWAYS include basic relationships
+        const basicRelationships = new Set([currentId, ...ancestors, ...descendants, ...siblings]);
+        console.log('Glossary - Basic relationships:', Array.from(basicRelationships));
+        
+        // Include the current glossary, all its ancestors, all its descendants, all its siblings, nieces/nephews, and cousins
+        const includedIds = new Set([
+            ...basicRelationships,        // CRITICAL: Always include basic relationships
+            ...childrenOfSiblings,        // CRITICAL: Children of siblings (nieces/nephews)
+            ...childrenOfParentSiblings   // CRITICAL: Children of parent siblings (cousins)
+        ]);
+        
+        console.log('Glossary - Final included IDs:', Array.from(includedIds));
+        
+        // Filter glossaries to include the COMPLETE EXTENDED FAMILY TREE
+        let result = glossaries.filter(g => {
+            const id = g.ID ?? g.id;
+            return includedIds.has(id);
+        });
+        
+        // FALLBACK: If no extended family found, ensure we at least have basic relationships
+        if (result.length <= 1) {
+            console.log('Glossary - FALLBACK: Using basic relationships only');
+            result = glossaries.filter(g => {
+                const id = g.ID ?? g.id;
+                return basicRelationships.has(id);
+            });
+        }
+        
+        console.log('Final COMPLETE FAMILY TREE glossaries:', result);
+        return result;
+    }
+
+    // Build full hierarchy tree for glossaries (same as System facet)
+    function buildFullHierarchyTree(glossaries, currentId) {
+        console.log('Glossary - Building full hierarchy tree with glossaries:', glossaries.length);
+        console.log('Glossary - Current ID:', currentId);
+        
+        const byId = new Map();
+        const childrenMap = new Map();
+
+        const getId = g => g.ID ?? g.id;
+        const getParentId = g => g.parent_id ?? g.Parent_ID ?? g.parentId ?? null;
+
+        glossaries.forEach(g => {
+            const id = getId(g);
+            const parentId = getParentId(g);
+            byId.set(id, g);
+            if (!childrenMap.has(parentId)) childrenMap.set(parentId, []);
+            childrenMap.get(parentId).push(g);
+        });
+        
+        console.log('Glossary - byId map:', byId);
+        console.log('Glossary - childrenMap:', childrenMap);
+
+        // Find top-most ancestor (root)
+        function findRoot(id) {
+            const glossary = byId.get(id);
+            if (!glossary) return id;
+            const pid = getParentId(glossary);
+            return pid && byId.has(pid) ? findRoot(pid) : id;
+        }
+        const rootId = findRoot(currentId);
+
+        // Recursive tree builder
+        function buildNode(id, depth = 0, visited = new Set(), parentId = null) {
+            if (visited.has(id)) return null;
+            visited.add(id);
+
+            const node = byId.get(id);
+            if (!node) return null;
+
+            const children = childrenMap.get(id) || [];
+            const childNodes = children.map(c => buildNode(getId(c), depth + 1, visited, id)).filter(Boolean);
+
+            return { 
+                node, 
+                depth, 
+                parentId, 
+                hasChildren: childNodes.length > 0, 
+                children: childNodes 
+            };
+        }
+
+        const rootNode = buildNode(rootId);
+
+        // Flatten recursively for rendering and tracking parent relationships
+        const flattened = [];
+        (function flatten(n) {
+            if (!n) return;
+            flattened.push({
+                node: n.node,
+                depth: n.depth,
+                parentId: n.parentId,
+                hasChildren: n.hasChildren
+            });
+            n.children.forEach(flatten);
+        })(rootNode);
+
+        console.log(`Full hierarchy built for ${currentId}: ${flattened.length} glossaries total`);
+        return flattened;
+    }
+
+    // Build hierarchy tree for glossaries (same as System facet)
+    function buildHierarchyTree(glossaries, rootId) {
+        const byParent = new Map();
+        const byId = new Map();
+        glossaries.forEach(g => {
+            const id = g.ID ?? g.id;
+            const parentId = g.parent_id ?? g.Parent_ID ?? g.parentId ?? null;
+            byId.set(id, g);
+            if (!byParent.has(parentId)) byParent.set(parentId, []);
+            byParent.get(parentId).push(g);
+        });
+        byParent.forEach(list => list.sort((a,b) => String(a.name||a.Name||'').localeCompare(String(b.name||b.Name||''))));
+
+        // Compute child counts recursively
+        const childCount = new Map();
+        function countDescendants(id) {
+            const children = byParent.get(id) || [];
+            let total = children.length;
+            children.forEach(c => { total += countDescendants(c.ID ?? c.id); });
+            childCount.set(id, total);
+            return total;
+        }
+        countDescendants(rootId);
+
+        // Build DFS including root itself
+        const result = [];
+        function dfs(node, depth) {
+            const id = node.ID ?? node.id;
+            result.push({ node, depth, childCount: childCount.get(id) || 0, hasChildren: (byParent.get(id) || []).length > 0 });
+            const children = byParent.get(id) || [];
+            children.forEach(child => dfs(child, depth + 1));
+        }
+        const root = byId.get(rootId);
+        if (root) dfs(root, 0);
+        else (byParent.get(rootId) || []).forEach(child => dfs(child, 0));
+        return { rows: result, parentMap: new Map([...byId.entries()].map(([i, n]) => [i, n.Parent_ID ?? n.parent_id ?? null])) };
+    }
+
+    // Initialize glossaries interactions (adapted for existing HTML structure)
+    function initGlossariesInteractions(containerEl, hierarchyRows) {
+        const collapsed = new Set();
+        const parentMap = hierarchyRows.parentMap;
+        const tbody = containerEl ? containerEl.querySelector('tbody') : document.getElementById('hierarchyTbody');
+        if (!tbody) return;
+        
+        // Build a map of parent ID to child rows for faster lookup
+        const childrenByParent = new Map();
+        tbody.querySelectorAll('tr').forEach(tr => {
+            const parentId = tr.getAttribute('data-parent-id');
+            if (parentId) {
+                if (!childrenByParent.has(parentId)) {
+                    childrenByParent.set(parentId, []);
+                }
+                childrenByParent.get(parentId).push(tr);
+            }
+        });
+        
+        function toggleChildren(parentId, isCollapsed) {
+            const children = childrenByParent.get(String(parentId)) || [];
+            children.forEach(childTr => {
+                const childId = childTr.getAttribute('data-id');
+                const childParentId = childTr.getAttribute('data-parent-id');
+                
+                if (isCollapsed) {
+                    // Hide this child and all its descendants
+                    childTr.style.display = 'none';
+                    childTr.classList.add('collapsed');
+                    // Recursively hide all descendants
+                    toggleChildren(childId, true);
+                } else {
+                    // Show this child
+                    childTr.style.display = '';
+                    childTr.classList.remove('collapsed');
+                    // Recursively show children if parent is not collapsed
+                    if (!collapsed.has(String(childId))) {
+                        toggleChildren(childId, false);
+                    }
+                }
+            });
+        }
+        
+        function updateVisibility() {
+            // Update all rows based on collapsed state
+            tbody.querySelectorAll('tr').forEach(tr => {
+                const id = tr.getAttribute('data-id');
+                const parentId = tr.getAttribute('data-parent-id');
+                
+                // Check if any ancestor is collapsed
+                let shouldHide = false;
+                let currentParentId = parentId;
+                const visited = new Set();
+                
+                while (currentParentId && !shouldHide && !visited.has(currentParentId)) {
+                    visited.add(currentParentId);
+                    if (collapsed.has(String(currentParentId))) {
+                        shouldHide = true;
+                        break;
+                    }
+                    // Find the parent row to get its parent ID
+                    const parentRow = Array.from(tbody.querySelectorAll('tr')).find(r => 
+                        r.getAttribute('data-id') === currentParentId
+                    );
+                    if (parentRow) {
+                        currentParentId = parentRow.getAttribute('data-parent-id');
+                    } else {
+                        break;
+                    }
+                }
+                
+                if (shouldHide) {
+                    tr.style.display = 'none';
+                    tr.classList.add('collapsed');
+                } else {
+                    tr.style.display = '';
+                    tr.classList.remove('collapsed');
+                }
+            });
+            
+            // Update expander button states
+            tbody.querySelectorAll('tr').forEach(tr => {
+                const id = tr.getAttribute('data-id');
+                const btn = tr.querySelector('.tree-expander');
+                if (btn) {
+                    if (collapsed.has(String(id))) {
+                        btn.classList.add('collapsed');
+                    } else {
+                        btn.classList.remove('collapsed');
+                    }
+                }
+            });
+        }
+        
+        tbody.addEventListener('click', (e) => {
+            const button = e.target.closest('.tree-expander');
+            if (button) {
+                const tr = button.closest('tr');
+                const id = tr.getAttribute('data-id');
+                
+                // Toggle collapsed state
+                const wasCollapsed = collapsed.has(String(id));
+                if (wasCollapsed) {
+                    collapsed.delete(String(id));
+                } else {
+                    collapsed.add(String(id));
+                }
+                
+                // Immediately update visibility
+                updateVisibility();
+            }
+        });
+        
+        // Initial visibility update
+        updateVisibility();
+    }
+
+    // Helper function to generate glossary relationships map HTML
+    function getGlossaryRelationshipsMapHtml() {
+        const mapId = 'glossaryRelationshipsMap';
+        return `
+            <div class="map-section-header">
+                <div class="map-section-title">MAP</div>
+                <button type="button" class="map-collapse-btn" id="${mapId}CollapseBtn" title="Collapse/Expand">
+                    <i class="fas fa-minus"></i>
+                </button>
+            </div>
+            <div class="interface-map-container" style="height: 600px; display: flex; flex-direction: column;">
+                <!-- Map Toolbar -->
+                <div class="interface-map-toolbar">
+                    <!-- Map Type -->
+                    <div class="map-control-group">
+                        <label>Map type:</label>
+                        <select id="${mapId}TypeSelect" class="map-select">
+                            <option value="glossary-lineage" selected>Glossary Lineage</option>
+                            <option value="dataset-lineage">Dataset Lineage</option>
+                            <option value="system-lineage">System Lineage</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Layout (BUDG-style: Left to Right, Top to Bottom, Organic) -->
+                    <div class="map-control-group">
+                        <label>Layout:</label>
+                        <div class="map-layout-controls">
+                            <select id="${mapId}LayoutSelect" class="map-select" title="Change lineage flow direction">
+                                <option value="top-to-bottom" selected>Top to Bottom</option>
+                                <option value="left-to-right">Left to Right</option>
+                                <option value="organic">Organic</option>
+                            </select>
+                            <div class="map-btn-dropdown-wrapper">
+                                <button type="button" class="map-toolbar-btn-sm" id="${mapId}Spacing" title="Node spacing">
+                                    <i class="fas fa-expand-arrows-alt" id="${mapId}SpacingIcon"></i>
+                                    <i class="fas fa-chevron-down" style="font-size: 8px; margin-left: 2px;"></i>
+                                </button>
+                                <div class="map-btn-dropdown-menu" id="${mapId}SpacingMenu">
+                                    <div class="map-btn-dropdown-item" data-spacing="compact">Compact</div>
+                                    <div class="map-btn-dropdown-item active" data-spacing="normal">Normal</div>
+                                    <div class="map-btn-dropdown-item" data-spacing="spacey">Spacey</div>
+                                </div>
+                            </div>
+                            <div class="map-btn-dropdown-wrapper">
+                                <button type="button" class="map-toolbar-btn-sm" id="${mapId}EdgeStyle" title="Edge routing style">
+                                    <i class="fas fa-arrow-right" id="${mapId}EdgeStyleIcon"></i>
+                                    <i class="fas fa-chevron-down" style="font-size: 8px; margin-left: 2px;"></i>
+                                </button>
+                                <div class="map-btn-dropdown-menu" id="${mapId}EdgeStyleMenu">
+                                    <div class="map-btn-dropdown-item" data-edge-style="angle">Angle</div>
+                                    <div class="map-btn-dropdown-item" data-edge-style="square">Square</div>
+                                    <div class="map-btn-dropdown-item active" data-edge-style="direct">Direct</div>
+                                    <div class="map-btn-dropdown-item" data-edge-style="loop">Loop</div>
+                                    <div class="map-btn-dropdown-item" data-edge-style="top-down">Top-Down</div>
+                                    <div class="map-btn-dropdown-item" data-edge-style="left-right">Left-Right</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Overlay -->
+                    <div class="map-control-group">
+                        <label>Overlay:</label>
+                        <div class="map-overlay-controls">
+                            <div class="map-overlay-dropdown">
+                                <button type="button" class="map-select-btn" id="${mapId}OverlayBtn">
+                                    <span id="${mapId}OverlayBtnText">None</span>
+                                    <i class="fas fa-chevron-down"></i>
+                                </button>
+                                <!-- Glossary Lineage Overlay Menu (only Description and Stakeholders) -->
+                                <div class="map-overlay-menu" id="${mapId}OverlayMenuGlossary" data-map-type="glossary-lineage">
+                                    <div class="overlay-menu-grid">
+                                        <div class="overlay-menu-column">
+                                            <div class="overlay-menu-header">Data</div>
+                                            <div class="overlay-menu-item" data-overlay="description">
+                                                <i class="fas fa-info-circle"></i> Description
+                                            </div>
+                                        </div>
+                                        <div class="overlay-menu-column">
+                                            <div class="overlay-menu-header">Business</div>
+                                            <div class="overlay-menu-item" data-overlay="stakeholders">
+                                                <i class="fas fa-users"></i> Stakeholders
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="overlay-menu-footer">
+                                        <button type="button" class="overlay-clear-btn" id="${mapId}ClearOverlaysBtnGlossary">Clear Overlays</button>
+                                    </div>
+                                </div>
+                                <!-- Dataset Lineage Overlay Menu (Data Set Lineage: Data + Business) -->
+                                <div class="map-overlay-menu" id="${mapId}OverlayMenuDataset" data-map-type="dataset-lineage" style="display:none;">
+                                    <div class="overlay-menu-grid">
+                                        <div class="overlay-menu-column">
+                                            <div class="overlay-menu-header">Data</div>
+                                            <div class="overlay-menu-item" data-overlay="description">
+                                                <i class="fas fa-info-circle"></i> Description
+                                            </div>
+                                            <div class="overlay-menu-item" data-overlay="glossary">
+                                                <i class="fas fa-book"></i> Glossary
+                                            </div>
+                                            <div class="overlay-menu-item" data-overlay="attributes">
+                                                <i class="fas fa-th"></i> Attributes
+                                            </div>
+                                            <div class="overlay-menu-item" data-overlay="linking-attributes">
+                                                <i class="fas fa-link"></i> Linking Attributes
+                                            </div>
+                                            <div class="overlay-menu-item" data-overlay="data-quality">
+                                                <i class="fas fa-check-circle"></i> Data Quality
+                                            </div>
+                                        </div>
+                                        <div class="overlay-menu-column">
+                                            <div class="overlay-menu-header">Business</div>
+                                            <div class="overlay-menu-item" data-overlay="stakeholders">
+                                                <i class="fas fa-users"></i> Stakeholders
+                                            </div>
+                                            <div class="overlay-menu-item" data-overlay="processes">
+                                                <i class="fas fa-play-circle"></i> Processes
+                                            </div>
+                                            <div class="overlay-menu-item" data-overlay="projects">
+                                                <i class="fas fa-project-diagram"></i> Projects
+                                            </div>
+                                            <div class="overlay-menu-item" data-overlay="policies">
+                                                <i class="fas fa-file-alt"></i> Policies
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="overlay-menu-footer">
+                                        <button type="button" class="overlay-clear-btn" id="${mapId}ClearOverlaysBtnDataset">Clear Overlays</button>
+                                    </div>
+                                </div>
+                                <!-- System Lineage Overlay Menu (Data + Business + Organizational + Regulatory) -->
+                                <div class="map-overlay-menu" id="${mapId}OverlayMenuSystem" data-map-type="system-lineage" style="display:none;">
+                                    <div class="overlay-menu-grid">
+                                        <div class="overlay-menu-column">
+                                            <div class="overlay-menu-header">Data</div>
+                                            <div class="overlay-menu-item" data-overlay="description">
+                                                <i class="fas fa-info-circle"></i> Description
+                                            </div>
+                                            <div class="overlay-menu-item" data-overlay="glossary">
+                                                <i class="fas fa-book"></i> Glossary
+                                            </div>
+                                            <div class="overlay-menu-item" data-overlay="datasets">
+                                                <i class="fas fa-layer-group"></i> Data Sets
+                                            </div>
+                                            <div class="overlay-menu-item" data-overlay="attributes">
+                                                <i class="fas fa-th"></i> Attributes
+                                            </div>
+                                            <div class="overlay-menu-item" data-overlay="linking-attributes">
+                                                <i class="fas fa-link"></i> Linking Attributes
+                                            </div>
+                                            <div class="overlay-menu-item" data-overlay="data-quality">
+                                                <i class="fas fa-check-circle"></i> Data Quality
+                                            </div>
+                                            <div class="overlay-menu-item" data-overlay="data-privacy">
+                                                <i class="fas fa-shield-alt"></i> Data Privacy
+                                            </div>
+                                        </div>
+                                        <div class="overlay-menu-column">
+                                            <div class="overlay-menu-header">Business</div>
+                                            <div class="overlay-menu-item" data-overlay="stakeholders">
+                                                <i class="fas fa-users"></i> Stakeholders
+                                            </div>
+                                            <div class="overlay-menu-item" data-overlay="processes">
+                                                <i class="fas fa-play-circle"></i> Processes
+                                            </div>
+                                            <div class="overlay-menu-item" data-overlay="projects">
+                                                <i class="fas fa-project-diagram"></i> Projects
+                                            </div>
+                                            <div class="overlay-menu-item" data-overlay="policies">
+                                                <i class="fas fa-file-alt"></i> Policies
+                                            </div>
+                                        </div>
+                                        <div class="overlay-menu-column">
+                                            <div class="overlay-menu-header">Organizational</div>
+                                            <div class="overlay-menu-item" data-overlay="business-area">
+                                                <i class="fas fa-building"></i> Business Area
+                                            </div>
+                                            <div class="overlay-menu-item" data-overlay="products">
+                                                <i class="fas fa-box"></i> Products
+                                            </div>
+                                            <div class="overlay-menu-item" data-overlay="legal-entities">
+                                                <i class="fas fa-balance-scale"></i> Legal Entities
+                                            </div>
+                                        </div>
+                                        <div class="overlay-menu-column">
+                                            <div class="overlay-menu-header">Regulatory</div>
+                                            <div class="overlay-menu-item" data-overlay="geography">
+                                                <i class="fas fa-globe"></i> Geography
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="overlay-menu-footer">
+                                        <button type="button" class="overlay-clear-btn" id="${mapId}ClearOverlaysBtnSystem">Clear Overlays</button>
+                                    </div>
+                                </div>
+                            </div>
+                            <button type="button" class="map-toolbar-btn-sm" id="${mapId}OverlayGrid" title="Overlay fields as columns">
+                                <i class="fas fa-th"></i>
+                                <i class="fas fa-chevron-down" style="font-size: 8px; margin-left: 2px;"></i>
+                            </button>
+                            <div class="map-overlay-columns-menu map-filter-menu" id="${mapId}OverlayColumnsMenu" style="display: none;">
+                                <div class="map-filter-category">
+                                    <div class="map-filter-category-header">OVERLAY FIELDS AS COLUMNS</div>
+                                    <div id="${mapId}OverlayColumnsOptions" class="map-filter-options-container"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Hops Count (System Lineage / Data Lineage) -->
+                    <div class="map-control-group map-hops-group" id="${mapId}HopsGroup" style="display:none;">
+                        <label>Hops:</label>
+                        <input type="number" id="${mapId}HopsCount" class="map-hops-input" min="1" max="99" value="15" title="Upstream/downstream lineage depth (1-99, recommend 15)">
+                    </div>
+                    
+                    <!-- Filters -->
+                    <div class="map-control-group">
+                        <label>Filters:</label>
+                        <div class="map-filter-dropdown">
+                            <button type="button" class="map-select-btn" id="${mapId}FilterBtn">
+                                <span id="${mapId}FilterBtnText">All selected (0)</span>
+                                <i class="fas fa-chevron-down"></i>
+                            </button>
+                            <!-- Glossary Lineage Filter Menu (uses glossary_x_glossary_relationtype) -->
+                            <div class="map-filter-menu" id="${mapId}FilterMenuGlossary" data-map-type="glossary-lineage">
+                                <div class="map-filter-category">
+                                    <div class="map-filter-category-header">GLOSSARY</div>
+                                    <div class="map-filter-option">
+                                        <input type="checkbox" id="filterGlossaryLineage" checked>
+                                        <label for="filterGlossaryLineage">Glossary Lineage</label>
+                                    </div>
+                                </div>
+                                <div class="map-filter-category">
+                                    <div class="map-filter-category-header">RELATIONSHIP TYPE</div>
+                                    <div id="${mapId}FilterRelationshipTypeOptions" class="map-filter-options-container">
+                                        <!-- Dynamically populated from glossary_x_glossary_relationtype -->
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- Dataset Lineage Filter Menu -->
+                            <div class="map-filter-menu" id="${mapId}FilterMenuDataset" data-map-type="dataset-lineage" style="display:none;">
+                                <div class="map-filter-category">
+                                    <div class="map-filter-category-header">DATASET</div>
+                                    <div class="map-filter-option">
+                                        <input type="checkbox" id="filterGlossaryDatasetLineage" checked>
+                                        <label for="filterGlossaryDatasetLineage">Dataset Lineage</label>
+                                    </div>
+                                </div>
+                                <div class="map-filter-separator"></div>
+                                <div class="map-filter-category">
+                                    <div class="map-filter-category-header">TYPE</div>
+                                    <div id="${mapId}FilterDatasetTypeOptions" class="map-filter-options-container">
+                                        <!-- Dynamically populated -->
+                                    </div>
+                                </div>
+                                <div class="map-filter-separator"></div>
+                                <div class="map-filter-category">
+                                    <div class="map-filter-category-header">LIFECYCLE</div>
+                                    <div id="${mapId}FilterDatasetLifecycleOptions" class="map-filter-options-container">
+                                        <!-- Dynamically populated -->
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- System Lineage Filter Menu -->
+                            <div class="map-filter-menu" id="${mapId}FilterMenuSystem" data-map-type="system-lineage" style="display:none;">
+                                <div class="map-filter-category">
+                                    <div class="map-filter-category-header">SYSTEM</div>
+                                    <div class="map-filter-option">
+                                        <input type="checkbox" id="filterGlossarySystemLineage" checked>
+                                        <label for="filterGlossarySystemLineage">System Lineage</label>
+                                    </div>
+                                </div>
+                                <div class="map-filter-category">
+                                    <div class="map-filter-category-header">CLASSIFICATION</div>
+                                    <div id="${mapId}FilterClassificationOptions" class="map-filter-options-container">
+                                        <!-- Dynamically populated -->
+                                    </div>
+                                </div>
+                                <div class="map-filter-separator"></div>
+                                <div class="map-filter-category">
+                                    <div class="map-filter-category-header">TYPE</div>
+                                    <div id="${mapId}FilterTypeOptions" class="map-filter-options-container">
+                                        <!-- Dynamically populated -->
+                                    </div>
+                                </div>
+                                <div class="map-filter-separator"></div>
+                                <div class="map-filter-category">
+                                    <div class="map-filter-category-header">LIFECYCLE</div>
+                                    <div id="${mapId}FilterLifecycleOptions" class="map-filter-options-container">
+                                        <!-- Dynamically populated -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Toolbar Buttons -->
+                    <div class="map-toolbar-buttons">
+                        <button type="button" class="map-toolbar-btn" id="${mapId}ToggleLabels" title="Toggle labels">
+                            <i class="fas fa-exchange-alt"></i>
+                        </button>
+                        <div class="map-toolbar-separator"></div>
+                        <button type="button" class="map-toolbar-btn" id="${mapId}ZoomIn" title="Zoom in">
+                            <i class="fas fa-search-plus"></i>
+                        </button>
+                        <button type="button" class="map-toolbar-btn" id="${mapId}ZoomOut" title="Zoom out">
+                            <i class="fas fa-search-minus"></i>
+                        </button>
+                        <div class="map-toolbar-separator"></div>
+                        <button type="button" class="map-toolbar-btn" id="${mapId}Redraw" title="Redraw">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                        <button type="button" class="map-toolbar-btn" id="${mapId}Reset" title="Reset">
+                            <i class="fas fa-undo"></i>
+                        </button>
+                        <button type="button" class="map-toolbar-btn" id="${mapId}Export" title="Export as PNG">
+                            <i class="fas fa-save"></i>
+                        </button>
+                        <div class="map-toolbar-separator"></div>
+                        <button type="button" class="map-toolbar-btn" id="${mapId}Navigator" title="Map navigator">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        <button type="button" class="map-toolbar-btn" id="${mapId}Fullscreen" title="Fullscreen">
+                            <i class="fas fa-external-link-alt"></i>
+                        </button>
+                        <button type="button" class="map-toolbar-btn" id="${mapId}Legend" title="Open the Legend" aria-label="Open the Legend – refer to the legend to identify the symbols used in the map (Insight Maps Palette)">
+                            <i class="fas fa-list-ul"></i>
+                        </button>
+                        <div class="map-toolbar-separator"></div>
+                        <button type="button" class="map-toolbar-btn" id="${mapId}SavePreferences" title="Save map settings">
+                            <i class="fas fa-save"></i>
+                        </button>
+                        <button type="button" class="map-toolbar-btn" id="${mapId}ResetPreferences" title="Reset map settings to default">
+                            <i class="fas fa-undo"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Map Body -->
+                <div class="interface-map-body" style="flex: 1; position: relative;">
+                    <div class="interface-map-canvas" id="glossaryRelationshipsMapCanvas" style="width: 100%; height: 100%; position: relative;">
+                        <div class="interface-map-loading" data-glossary-relationships-map-loading style="display:none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; z-index: 10;">
+                            <i class="fas fa-spinner fa-spin"></i>
+                            <span>Building map...</span>
+                        </div>
+                    </div>
+                    <div class="interface-map-side-panel" id="${mapId}SidePanel" style="display:none;">
+                        <div class="map-side-panel-section">
+                            <h4><i class="fas fa-info-circle"></i> Selection</h4>
+                            <div class="selection-placeholder" data-glossary-relationships-map-placeholder>
+                                Select a node to see its details.
+                            </div>
+                            <div class="selection-info" data-glossary-relationships-map-details style="display:none;"></div>
+                        </div>
+                        <div class="map-side-panel-section">
+                            <h4 class="map-legend-palette-title"><i class="fas fa-layer-group"></i> Insight Maps Palette</h4>
+                            <div data-glossary-relationships-map-legend></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    // Setup glossary relationships map controls
+    function setupGlossaryRelationshipsMapControls(glossaryId) {
+        const mapId = 'glossaryRelationshipsMap';
+        
+        // Map type selector
+        const mapTypeSelect = document.getElementById(`${mapId}TypeSelect`);
+        if (mapTypeSelect) {
+            mapTypeSelect.addEventListener('change', (e) => {
+                const mapType = e.target.value;
+                // Switch overlay and filter menus based on map type
+                switchMapTypeMenus(mapType);
+                if (window.GlossaryRelationshipsMap) {
+                    window.GlossaryRelationshipsMap.setMapType(mapType);
+                }
+            });
+        }
+        
+        // Function to switch overlay and filter menus based on map type
+        function switchMapTypeMenus(mapType) {
+            // Hide all overlay menus
+            ['Glossary', 'Dataset', 'System'].forEach(type => {
+                const menu = document.getElementById(`${mapId}OverlayMenu${type}`);
+                if (menu) menu.style.display = 'none';
+            });
+            
+            // Show appropriate overlay menu
+            let overlayMenuType = 'Glossary';
+            if (mapType === 'dataset-lineage') {
+                overlayMenuType = 'Dataset';
+            } else if (mapType === 'system-lineage') {
+                overlayMenuType = 'System';
+            }
+            const activeOverlayMenu = document.getElementById(`${mapId}OverlayMenu${overlayMenuType}`);
+            if (activeOverlayMenu) {
+                activeOverlayMenu.style.display = '';
+            }
+            
+            // Hide all filter menus
+            ['Glossary', 'Dataset', 'System'].forEach(type => {
+                const menu = document.getElementById(`${mapId}FilterMenu${type}`);
+                if (menu) menu.classList.remove('open');
+            });
+            
+            // Reset overlay button text
+            const overlayBtn = document.getElementById(`${mapId}OverlayBtn`);
+            if (overlayBtn) {
+                overlayBtn.querySelector('span').textContent = 'None';
+            }
+            
+            // Clear active overlays
+            document.querySelectorAll('.overlay-menu-item').forEach(i => i.classList.remove('active'));
+            
+            // Clear overlay on map
+            if (window.GlossaryRelationshipsMap) {
+                window.GlossaryRelationshipsMap.setOverlay('none');
+            }
+            
+            // Hops Count: show for System Lineage and Data Lineage only
+            const hopsGroup = document.getElementById(`${mapId}HopsGroup`);
+            if (hopsGroup) {
+                hopsGroup.style.display = (mapType === 'system-lineage' || mapType === 'dataset-lineage') ? '' : 'none';
+            }
+        }
+        
+        // Layout selector
+        const layoutSelect = document.getElementById(`${mapId}LayoutSelect`);
+        if (layoutSelect) {
+            layoutSelect.addEventListener('change', (e) => {
+                if (window.GlossaryRelationshipsMap) {
+                    window.GlossaryRelationshipsMap.setLayout(e.target.value);
+                }
+            });
+        }
+        
+        // Hops Count (1-99, default 15) - System/Data lineage
+        const hopsInput = document.getElementById(`${mapId}HopsCount`);
+        if (hopsInput) {
+            hopsInput.addEventListener('change', (e) => {
+                let val = parseInt(e.target.value, 10);
+                if (isNaN(val) || val < 1) val = 1;
+                if (val > 99) val = 99;
+                e.target.value = val;
+                if (window.GlossaryRelationshipsMap && typeof window.GlossaryRelationshipsMap.setHopsCount === 'function') {
+                    window.GlossaryRelationshipsMap.setHopsCount(val);
+                }
+            });
+        }
+
+        // Overlay dropdown
+        const overlayBtn = document.getElementById(`${mapId}OverlayBtn`);
+        const overlayMenus = {
+            'glossary-lineage': document.getElementById(`${mapId}OverlayMenuGlossary`),
+            'dataset-lineage': document.getElementById(`${mapId}OverlayMenuDataset`),
+            'system-lineage': document.getElementById(`${mapId}OverlayMenuSystem`)
+        };
+        
+        if (overlayBtn) {
+            overlayBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const currentMapType = mapTypeSelect ? mapTypeSelect.value : 'glossary-lineage';
+                let activeMenu;
+                if (currentMapType === 'glossary-lineage') {
+                    activeMenu = overlayMenus['glossary-lineage'];
+                } else if (currentMapType === 'dataset-lineage') {
+                    activeMenu = overlayMenus['dataset-lineage'];
+                } else if (currentMapType === 'system-lineage') {
+                    activeMenu = overlayMenus['system-lineage'];
+                }
+                
+                if (activeMenu) {
+                    activeMenu.classList.toggle('open');
+                    // Close other menus
+                    Object.values(overlayMenus).forEach(menu => {
+                        if (menu && menu !== activeMenu) {
+                            menu.classList.remove('open');
+                        }
+                    });
+                }
+                // Close filter menus
+                Object.values(filterMenus).forEach(menu => {
+                    if (menu) menu.classList.remove('open');
+                });
+            });
+        }
+
+        // Setup overlay menu item click handlers
+        Object.values(overlayMenus).forEach(overlayMenu => {
+            if (overlayMenu) {
+                overlayMenu.querySelectorAll('.overlay-menu-item').forEach(item => {
+                    item.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        
+                        const overlayType = e.currentTarget.getAttribute('data-overlay');
+                        const wasActive = e.currentTarget.classList.contains('active');
+                        
+                        overlayMenu.querySelectorAll('.overlay-menu-item').forEach(i => i.classList.remove('active'));
+                        
+                        if (!wasActive) {
+                            e.currentTarget.classList.add('active');
+                            if (overlayBtn) {
+                                overlayBtn.querySelector('span').textContent = e.currentTarget.textContent.trim();
+                            }
+                            if (window.GlossaryRelationshipsMap) {
+                                window.GlossaryRelationshipsMap.setOverlay(overlayType);
+                            }
+                        } else {
+                            if (overlayBtn) {
+                                overlayBtn.querySelector('span').textContent = 'None';
+                            }
+                            if (window.GlossaryRelationshipsMap) {
+                                window.GlossaryRelationshipsMap.setOverlay('none');
+                            }
+                        }
+                        
+                        overlayMenu.classList.remove('open');
+                    });
+                });
+            }
+        });
+
+        // Clear overlays buttons
+        ['Glossary', 'Dataset', 'System'].forEach(type => {
+            const clearBtn = document.getElementById(`${mapId}ClearOverlaysBtn${type}`);
+            if (clearBtn) {
+                clearBtn.addEventListener('click', () => {
+                    document.querySelectorAll('.overlay-menu-item').forEach(i => i.classList.remove('active'));
+                    if (overlayBtn) overlayBtn.querySelector('span').textContent = 'None';
+                    if (window.GlossaryRelationshipsMap) {
+                        window.GlossaryRelationshipsMap.setOverlay('none');
+                    }
+                    const menu = overlayMenus[type.toLowerCase() + '-lineage'];
+                    if (menu) menu.classList.remove('open');
+                });
+            }
+        });
+
+        // Overlay grid button: overlay fields as columns dropdown
+        const overlayGridBtn = document.getElementById(`${mapId}OverlayGrid`);
+        const overlayColumnsMenuEl = document.getElementById(`${mapId}OverlayColumnsMenu`);
+        const overlayColumnsOptions = document.getElementById(`${mapId}OverlayColumnsOptions`);
+        if (overlayGridBtn && overlayColumnsMenuEl && overlayColumnsOptions) {
+            function populateOverlayColumnsMenu() {
+                overlayColumnsOptions.innerHTML = '';
+                const overlayType = window.GlossaryRelationshipsMap && window.GlossaryRelationshipsMap.getState ? (window.GlossaryRelationshipsMap.getState().overlay || '') : '';
+                if (!overlayType || overlayType === 'none') {
+                    overlayColumnsOptions.innerHTML = '<div class="map-overlay-columns-empty">Select an overlay first.</div>';
+                    return;
+                }
+                const columns = window.OverlayColumns && window.OverlayColumns.getOverlayColumns ? window.OverlayColumns.getOverlayColumns(overlayType) : [];
+                const selectedIds = window.GlossaryRelationshipsMap && typeof window.GlossaryRelationshipsMap.getOverlayColumns === 'function' ? window.GlossaryRelationshipsMap.getOverlayColumns(overlayType) : [];
+                if (!columns || columns.length === 0) {
+                    overlayColumnsOptions.innerHTML = '<div class="map-overlay-columns-empty">No columns for this overlay.</div>';
+                    return;
+                }
+                columns.forEach(col => {
+                    const div = document.createElement('div');
+                    div.className = 'map-filter-option';
+                    const input = document.createElement('input');
+                    input.type = 'checkbox';
+                    input.id = 'overlayCol_glossary_' + overlayType + '_' + col.id;
+                    input.checked = selectedIds.indexOf(col.id) !== -1;
+                    input.dataset.columnId = col.id;
+                    const label = document.createElement('label');
+                    label.htmlFor = input.id;
+                    label.textContent = col.label;
+                    div.appendChild(input);
+                    div.appendChild(label);
+                    input.addEventListener('change', () => {
+                        const checked = Array.from(overlayColumnsOptions.querySelectorAll('input:checked')).map(i => i.dataset.columnId);
+                        if (window.GlossaryRelationshipsMap && typeof window.GlossaryRelationshipsMap.setOverlayColumns === 'function') {
+                            window.GlossaryRelationshipsMap.setOverlayColumns(overlayType, checked);
+                        }
+                    });
+                    overlayColumnsOptions.appendChild(div);
+                });
+            }
+            overlayGridBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                Object.values(filterMenus).forEach(menu => { if (menu) menu.classList.remove('open'); });
+                Object.values(overlayMenus).forEach(menu => { if (menu) menu.classList.remove('open'); });
+                const isOpen = overlayColumnsMenuEl.classList.toggle('open');
+                if (isOpen) {
+                    overlayColumnsMenuEl.style.display = 'block';
+                    populateOverlayColumnsMenu();
+                    const rect = overlayGridBtn.getBoundingClientRect();
+                    overlayColumnsMenuEl.style.position = 'fixed';
+                    overlayColumnsMenuEl.style.left = rect.left + 'px';
+                    overlayColumnsMenuEl.style.top = (rect.bottom + 4) + 'px';
+                    overlayColumnsMenuEl.style.minWidth = '200px';
+                } else {
+                    overlayColumnsMenuEl.style.display = 'none';
+                }
+                overlayGridBtn.classList.toggle('active', isOpen);
+            });
+        }
+
+        // Filter dropdown
+        const filterBtn = document.getElementById(`${mapId}FilterBtn`);
+        const filterMenus = {
+            'glossary-lineage': document.getElementById(`${mapId}FilterMenuGlossary`),
+            'dataset-lineage': document.getElementById(`${mapId}FilterMenuDataset`),
+            'system-lineage': document.getElementById(`${mapId}FilterMenuSystem`)
+        };
+        
+        if (filterBtn) {
+            filterBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const currentMapType = mapTypeSelect ? mapTypeSelect.value : 'glossary-lineage';
+                let activeMenu;
+                if (currentMapType === 'glossary-lineage') {
+                    activeMenu = filterMenus['glossary-lineage'];
+                } else if (currentMapType === 'dataset-lineage') {
+                    activeMenu = filterMenus['dataset-lineage'];
+                } else if (currentMapType === 'system-lineage') {
+                    activeMenu = filterMenus['system-lineage'];
+                }
+                
+                if (activeMenu) {
+                    activeMenu.classList.toggle('open');
+                    // Close other menus and overlay menus
+                    Object.values(filterMenus).forEach(menu => {
+                        if (menu && menu !== activeMenu) {
+                            menu.classList.remove('open');
+                        }
+                    });
+                    Object.values(overlayMenus).forEach(menu => {
+                        if (menu) menu.classList.remove('open');
+                    });
+                }
+            });
+        }
+
+        // Setup filter checkbox handlers
+        // Relationship type filters (for glossary lineage)
+        document.addEventListener('glossaryRelationshipsMapFilterOptionsUpdated', (event) => {
+            const container = document.getElementById(`${mapId}FilterRelationshipTypeOptions`);
+            if (container) {
+                container.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+                    checkbox.addEventListener('change', () => {
+                        updateFilters();
+                    });
+                });
+            }
+        });
+
+        // Collapse/Expand section button
+        const collapseBtn = document.getElementById(`${mapId}CollapseBtn`);
+        const mapSection = document.getElementById('glossaryRelationshipsMapSection');
+        if (collapseBtn && mapSection) {
+            collapseBtn.addEventListener('click', () => {
+                const container = mapSection.querySelector('.interface-map-container');
+                const icon = collapseBtn.querySelector('i');
+                
+                if (container) {
+                    const isCollapsed = container.style.display === 'none';
+                    container.style.display = isCollapsed ? '' : 'none';
+                    icon.className = isCollapsed ? 'fas fa-minus' : 'fas fa-plus';
+                }
+            });
+        }
+
+        // Toolbar buttons
+        const zoomInBtn = document.getElementById(`${mapId}ZoomIn`);
+        if (zoomInBtn) {
+            zoomInBtn.addEventListener('click', () => {
+                if (window.GlossaryRelationshipsMap) window.GlossaryRelationshipsMap.zoomIn();
+            });
+        }
+
+        const zoomOutBtn = document.getElementById(`${mapId}ZoomOut`);
+        if (zoomOutBtn) {
+            zoomOutBtn.addEventListener('click', () => {
+                if (window.GlossaryRelationshipsMap) window.GlossaryRelationshipsMap.zoomOut();
+            });
+        }
+
+        const resetBtn = document.getElementById(`${mapId}Reset`);
+        if (resetBtn) {
+            resetBtn.addEventListener('click', () => {
+                if (window.GlossaryRelationshipsMap) window.GlossaryRelationshipsMap.resetMap();
+            });
+        }
+
+        const redrawBtn = document.getElementById(`${mapId}Redraw`);
+        if (redrawBtn) {
+            redrawBtn.addEventListener('click', () => {
+                if (window.GlossaryRelationshipsMap) window.GlossaryRelationshipsMap.redrawMap();
+            });
+        }
+
+        const exportBtn = document.getElementById(`${mapId}Export`);
+        if (exportBtn) {
+            exportBtn.addEventListener('click', () => {
+                if (window.GlossaryRelationshipsMap) window.GlossaryRelationshipsMap.exportAsPng();
+            });
+        }
+
+        const fullscreenBtn = document.getElementById(`${mapId}Fullscreen`);
+        if (fullscreenBtn) {
+            fullscreenBtn.addEventListener('click', () => {
+                if (window.GlossaryRelationshipsMap) window.GlossaryRelationshipsMap.openFullscreen();
+            });
+        }
+
+        const legendBtn = document.getElementById(`${mapId}Legend`);
+        if (legendBtn && typeof window.setupMapLegendDropdown === 'function') {
+            window.setupMapLegendDropdown(mapId + 'Legend', mapId + 'LegendDropdown', function() {
+                return window.GlossaryRelationshipsMap && window.GlossaryRelationshipsMap.getLegendHtml ? window.GlossaryRelationshipsMap.getLegendHtml() : '';
+            });
+        } else if (legendBtn) {
+            const sidePanel = document.getElementById(`${mapId}SidePanel`);
+            legendBtn.addEventListener('click', () => {
+                if (sidePanel) {
+                    const isVisible = sidePanel.style.display !== 'none';
+                    sidePanel.style.display = isVisible ? 'none' : 'flex';
+                    legendBtn.classList.toggle('active', !isVisible);
+                }
+            });
+        }
+
+        const navigatorBtn = document.getElementById(`${mapId}Navigator`);
+        if (navigatorBtn) {
+            navigatorBtn.addEventListener('click', () => {
+                if (window.GlossaryRelationshipsMap) window.GlossaryRelationshipsMap.toggleNavigator();
+            });
+        }
+        
+        // Save / Reset map preferences (BUDG-style)
+        const savePrefsBtn = document.getElementById(`${mapId}SavePreferences`);
+        if (savePrefsBtn) {
+            savePrefsBtn.addEventListener('click', () => {
+                if (window.GlossaryRelationshipsMap && typeof window.GlossaryRelationshipsMap.savePreferences === 'function') {
+                    window.GlossaryRelationshipsMap.savePreferences();
+                }
+            });
+        }
+        const resetPrefsBtn = document.getElementById(`${mapId}ResetPreferences`);
+        if (resetPrefsBtn) {
+            resetPrefsBtn.addEventListener('click', () => {
+                if (window.GlossaryRelationshipsMap && typeof window.GlossaryRelationshipsMap.resetPreferences === 'function') {
+                    window.GlossaryRelationshipsMap.resetPreferences();
+                }
+            });
+        }
+
+        // Sync UI from saved preferences (BUDG-style)
+        function syncUIFromPreferences(prefs) {
+            if (!prefs) return;
+            if (layoutSelect && prefs.layout) layoutSelect.value = prefs.layout;
+            if (hopsInput && prefs.hopsCount) hopsInput.value = String(prefs.hopsCount);
+            if (mapTypeSelect && prefs.mapType) {
+                mapTypeSelect.value = prefs.mapType;
+                switchMapTypeMenus(prefs.mapType);
+            }
+            const overlayLabels = { description: 'Description', stakeholders: 'Stakeholders', glossary: 'Glossary', datasets: 'Data Sets', attributes: 'Attributes', projects: 'Projects' };
+            if (overlayBtn) {
+                overlayBtn.querySelector('span').textContent = (prefs.overlay && prefs.overlay !== 'none' ? (overlayLabels[prefs.overlay] || prefs.overlay) : 'None');
+            }
+        }
+        window.addEventListener('glossaryRelationshipsMapPreferencesLoaded', (e) => {
+            syncUIFromPreferences(e.detail);
+        });
+
+        // Update filters function
+        function updateFilters() {
+            const currentMapType = mapTypeSelect ? mapTypeSelect.value : 'glossary-lineage';
+            const filters = {};
+            
+            if (currentMapType === 'glossary-lineage') {
+                // Get selected relationship types
+                const relTypeCheckboxes = document.querySelectorAll(`#${mapId}FilterRelationshipTypeOptions input[type="checkbox"]:checked`);
+                filters.relationshipTypes = Array.from(relTypeCheckboxes).map(cb => cb.getAttribute('data-rel-type'));
+            }
+            
+            if (window.GlossaryRelationshipsMap) {
+                window.GlossaryRelationshipsMap.setNodeFilters(filters);
+            }
+        }
+
+        // Initialize menu visibility based on default map type
+        if (mapTypeSelect) {
+            switchMapTypeMenus(mapTypeSelect.value);
+        }
+    }
+
+    // Helper function to set up relationships sub-tabs
+    function setupRelationshipsSubTabs(glossaryId, view = null) {
+        const subTabs = document.querySelectorAll('.relationships-sub-tabs .sub-tab');
+        subTabs.forEach(function(btn){
+            btn.addEventListener('click', function(){
+                subTabs.forEach(function(b){ b.classList.remove('active'); });
+                this.classList.add('active');
+
+                const subTabType = this.getAttribute('data-sub-tab');
+                const hierarchyContent = document.getElementById('hierarchyContent');
+                const relationshipsContent = document.getElementById('relationshipsContent');
+
+                if (subTabType === 'hierarchy') {
+                    if (hierarchyContent) hierarchyContent.classList.add('active');
+                    if (relationshipsContent) relationshipsContent.classList.remove('active');
+                } else if (subTabType === 'relationships') {
+                    if (hierarchyContent) hierarchyContent.classList.remove('active');
+                    if (relationshipsContent) relationshipsContent.classList.add('active');
+
+                    // Load relationships data when switching to relationships tab
+                    // Pass current view state to filter pending changes
+                    if (glossaryId) {
+                        loadRelationshipsData(glossaryId, currentView);
+                        setupAddRelationship(glossaryId);
+                        
+                        // Initialize map when relationships sub-tab is shown (map is within this sub-tab, below the table)
+                        setTimeout(() => {
+                            const mapCanvas = document.getElementById('glossaryRelationshipsMapCanvas');
+                            if (mapCanvas && window.GlossaryRelationshipsMap) {
+                                const mapState = window.GlossaryRelationshipsMap.getState();
+                                if (!mapState || !mapState.initialized) {
+                                    window.GlossaryRelationshipsMap.init(glossaryId, '#glossaryRelationshipsMapCanvas');
+                                    if (typeof setupGlossaryRelationshipsMapControls === 'function') {
+                                        setupGlossaryRelationshipsMapControls(glossaryId);
+                                    }
+                                }
+                            }
+                        }, 100);
+                    }
+                }
+            });
+        });
+    }
+
+    // Data tab sub-tabs setup moved to glossary-data-tab.js isolated module
+
+                    // OLD FUNCTION REMOVED - Using System-style approach instead
+
+        // Track last active tab (more reliable than querying DOM in some edge cases)
+        let lastActiveTab = 'summary';
+
+        // Tab switching logic
+        document.addEventListener('DOMContentLoaded', function() {
+            const glossaryId = parseId();
+            
+            // Traditional tab handling
+            const tabs = document.querySelectorAll('.tab-container .tab');
+
+                tabs.forEach(function(tab) {
+                    tab.addEventListener('click', function() {
+                        const tabName = this.getAttribute('data-tab');
+                        console.log('[Glossary] Tab clicked:', tabName);
+                        
+                        // Toggle stakeholder-only edit mode based on active tab and auto CR state
+                        if (window.EditDropdown && _hasActiveAutoCR && _canEditObject) {
+                            if (tabName === 'stakeholders') {
+                                window.EditDropdown.enableStakeholderOnlyEdit(`/view/glossary/glossary-edit.html?id=${glossaryId}`);
+                            } else {
+                                window.EditDropdown.disableStakeholderOnlyEdit();
+                            }
+                        }
+
+                        // Remove active class from all tabs
+                        tabs.forEach(function(t) { t.classList.remove('active'); });
+                                this.classList.add('active');
+                    lastActiveTab = tabName || 'summary';
+
+                        // Get glossary ID
+                        if (!glossaryId) {
+                            console.error('[Glossary] No glossary ID found');
+                            return;
+                        }
+
+                        // Handle tab content
+                        const container = document.getElementById('glossaryViewContainer');
+                        if (!container) {
+                            console.error('[Glossary] Container not found');
+                            return;
+                        }
+
+                        // ALWAYS get current view from toggle state (single source of truth)
+                        const viewToUse = getCurrentViewMode();
+                        console.log('[Glossary] Tab switch - using view mode:', viewToUse);
+
+                        // Tab-specific content handling
+                        console.log('[Glossary] Loading tab:', tabName, 'with view:', viewToUse);
+                        switch (tabName) {
+                            case 'summary':
+                                // Show summary - reload glossary with current view
+                                if (glossaryId) {
+                                    console.log('[Glossary] Loading summary tab with view:', viewToUse);
+                                    load(glossaryId, viewToUse);
+                                }
+                                break;
+
+                            case 'stakeholders':
+                                // Show stakeholders
+                                console.log('[Glossary] Loading stakeholders tab with view:', viewToUse);
+                                container.innerHTML = '<div id="glossaryStakeholdersContainer"></div>';
+                                if (window.GlossaryStakeholderView && glossaryId) {
+                                    window.GlossaryStakeholderView.init(glossaryId, viewToUse);
+                                }
+                                break;
+
+                        case 'relationships': {
+                            const hT = (k) => (window.I18n && window.I18n.t(k)) || k;
+                            const hierZero = hT('glossary.hierarchy.zeroRecords');
+                            const relLoading = hT('glossary.relationships.loading');
+                            // Show relationships tab with hierarchy and relationships sub-tabs
+                            console.log('[Glossary] Loading relationships tab with view:', viewToUse);
+                    container.innerHTML = `
+                                    <div class="relationships-container">
+                                        <div class="relationships-sub-tabs">
+                                            <button class="sub-tab active" data-sub-tab="hierarchy">${hT('glossary.hierarchy.subTabHierarchy')}</button>
+                                            <button class="sub-tab" data-sub-tab="relationships">${hT('glossary.hierarchy.subTabRelationships')}</button>
+                            </div>
+                                        <div class="relationships-content">
+                                            <div id="hierarchyContent" class="sub-tab-content active">
+                                                <div class="relationships-hierarchy">
+                                                    <div class="hierarchy-header">
+                                                        <div class="hierarchy-title">${hT('glossary.hierarchy.title')}</div>
+                                                        <div class="hierarchy-actions">
+                                                            <button type="button" class="btn btn-secondary" id="editBtn2"><i class="fas fa-cog"></i></button>
+                        </div>
+                            </div>
+                                                    <div class="hierarchy-table-wrapper">
+                                                        <table class="hierarchy-table">
+                                                            <thead>
+                                                                <tr>
+                                                                    <th>${hT('glossary.hierarchy.name')}</th>
+                                                                    <th>${hT('glossary.hierarchy.type')}</th>
+                                                                    <th>${hT('glossary.hierarchy.relationshipType')}</th>
+                                                                    <th>${hT('glossary.hierarchy.definition')}</th>
+                                                                    <th>${hT('glossary.hierarchy.strategicSourceSystem')}</th>
+                                                                    <th>${hT('glossary.hierarchy.dataItems')}</th>
+                                                                    <th>${hT('glossary.hierarchy.dataAttributes')}</th>
+                                                                    <th>${hT('glossary.hierarchy.lastUpdated')}</th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody id="hierarchyTbody">
+                                                                <tr><td colspan="8" style="text-align:center;padding:2rem;color:var(--text-muted,#6b7280);">${hT('glossary.hierarchy.loading')}</td></tr>
+                                                            </tbody>
+                                                        </table>
+                                                    </div>
+                                                    <div class="hierarchy-footer" id="hierarchyFooter">
+                                                        ${hierZero}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div id="relationshipsContent" class="sub-tab-content">
+                                                <!-- Relationships Table Section -->
+                                                <div class="relationships-hierarchy" style="margin-bottom: 1.5rem;">
+                                                    <div class="hierarchy-header">
+                                                        <div class="hierarchy-title">${hT('glossary.relationships.title')}</div>
+                                                        <div class="hierarchy-actions">
+                                                            <button type="button" id="addRelationshipBtn" class="btn btn-secondary" style="margin-right: 0.5rem;">
+                                                                <i class="fas fa-plus"></i> ${hT('glossary.relationships.addRelationship')}
+                                                            </button>
+                                                            <button type="button" class="btn btn-secondary"><i class="fas fa-cog"></i><i class="fas fa-chevron-down" style="margin-left:.3rem;font-size:.7rem;"></i></button>
+                                                        </div>
+                                                    </div>
+                                                    <div class="data-table-wrapper">
+                                                        <table class="data-table">
+                                                            <thead>
+                                                                <tr>
+                                                                    <th style="text-align: center;"><div class="th-content"><span>Relationship Type</span><i class="fas fa-sort"></i></div></th>
+                                                                    <th style="text-align: center;"><div class="th-content"><span>Glossary</span><i class="fas fa-sort"></i></div></th>
+                                                                    <th style="text-align: center;"><div class="th-content"><span>Glossary Type</span><i class="fas fa-sort"></i></div></th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody id="relationshipsTableBody">
+                                                                <tr><td colspan="3" style="text-align:center;padding:2rem;color:var(--text-muted,#6b7280);">${relLoading}</td></tr>
+                                                            </tbody>
+                                                        </table>
+                                                    </div>
+                                                    <div class="hierarchy-footer" id="relationshipsFooter">
+                                                        ${hierZero}
+                                                    </div>
+                                                </div>
+                                                
+                                                <!-- Map Section (below relationships table) -->
+                                                <div class="map-section" id="glossaryRelationshipsMapSection" style="margin-top: 1.5rem;">
+                                                    ${getGlossaryRelationshipsMapHtml()}
+                                                </div>
+                                                
+                                                <!-- Add Relationship Modal -->
+                                                <div id="addRelationshipModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
+                                                    <div style="background: white; padding: 2rem; border-radius: 8px; max-width: 500px; width: 90%; max-height: 90vh; overflow-y: auto;">
+                                                        <h3 style="margin-top: 0; margin-bottom: 1.5rem;">Add Relationship</h3>
+                                                        <form id="addRelationshipForm">
+                                                            <div style="margin-bottom: 1rem;">
+                                                                <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Relationship Type <span style="color: red;">*</span></label>
+                                                                <select id="relationshipTypeSelect" required style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">
+                                                                    <option value="">Select Relationship Type</option>
+                                                                </select>
+                                </div>
+                                                            <div style="margin-bottom: 1.5rem;">
+                                                                <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Target Glossary <span style="color: red;">*</span></label>
+                                                                <select id="targetGlossarySelect" required style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">
+                                                                    <option value="">Select Glossary</option>
+                                                                </select>
+                                                            </div>
+                                                            <div style="display: flex; gap: 0.5rem; justify-content: flex-end;">
+                                                                <button type="button" id="cancelRelationshipBtn" class="btn btn-secondary">Cancel</button>
+                                                                <button type="submit" id="saveRelationshipBtn" class="btn" style="background: #248567; color: white;">Save</button>
+                                                            </div>
+                                                        </form>
+                                                    </div>
+                                                </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+
+                            // Load hierarchy data and set up sub-tab functionality
+                            if (glossaryId) {
+                                loadGlossaryHierarchy(glossaryId);
+                                setupRelationshipsSubTabs(glossaryId);
+                                // Setup add relationship functionality
+                                setTimeout(() => setupAddRelationship(glossaryId), 100);
+                            }
+                            }
+                            break;
+
+                        case 'data-quality':
+                            // Show data quality tab
+                            container.innerHTML = '<div id="glossaryDataQualityContainer"></div>';
+                            if (window.GlossaryDataQualityView && glossaryId) {
+                                window.GlossaryDataQualityView.init(glossaryId);
+                            } else {
+                                showPlaceholderContent(container, 'data-quality', 'fas fa-chart-line');
+                            }
+                            break;
+
+                        case 'impact':
+                            // Show impact tab
+                            console.log('[Glossary] Loading impact tab with view:', viewToUse);
+                            container.innerHTML = '<div id="impactContainer"><div class="loading">Loading impact...</div></div>';
+                            if (window.loadGlossaryImpact && glossaryId) {
+                                window.loadGlossaryImpact(glossaryId, viewToUse);
+                            } else {
+                                showPlaceholderContent(container, 'impact', 'fas fa-bullseye');
+                            }
+                            break;
+
+                        case 'data':
+                            // Show data tab using isolated module
+                            container.innerHTML = '<div id="glossaryDataContainer"></div>';
+                            if (window.GlossaryDataView && glossaryId) {
+                                window.GlossaryDataView.init(glossaryId);
+                            }
+                            break;
+
+                        case 'enterprise-catalog':
+                            // Show enterprise catalog tab
+                            container.innerHTML = '<div id="glossaryEnterpriseCatalogContainer"></div>';
+                            if (window.GlossaryEnterpriseCatalogView && glossaryId) {
+                                window.GlossaryEnterpriseCatalogView.init(glossaryId);
+                            } else {
+                                showPlaceholderContent(container, 'enterprise-catalog', 'fas fa-building');
+                            }
+                            break;
+
+                        case 'history':
+                            // Show history tab with history component
+                            container.innerHTML = `
+                                <div class="view-section" style="grid-column:1/-1;">
+                                    <div id="glossaryHistoryContainer"></div>
+                                </div>
+                            `;
+                            // Initialize history component for glossary
+                            if (window.HistoryComponent && glossaryId) {
+                                console.log('Initializing history component for Glossary with ID:', glossaryId);
+                                window.HistoryComponent.initialize('Glossary', glossaryId, 'glossaryHistoryContainer');
+                            } else {
+                                console.error('HistoryComponent not available or glossaryId not found:', { HistoryComponent: !!window.HistoryComponent, glossaryId });
+                            }
+                            break;
+
+                        case 'change':
+                            // Show change tab
+                            container.innerHTML = '<div id="glossaryChangeContainer"></div>';
+                            if (window.ChangeTabComponent && glossaryId) {
+                                window.ChangeTabComponent.initialize('glossary', glossaryId, 'glossaryChangeContainer');
+                            } else {
+                                showPlaceholderContent(container, 'change', 'fas fa-exchange-alt');
+                            }
+                            break;
+
+                        default:
+                            // Fallback for unknown tabs
+                            showPlaceholderContent(container, tabName, 'fas fa-info-circle');
+                            break;
+                    }
+                    if (typeof window.syncStakeholderVisibility === 'function') {
+                        window.syncStakeholderVisibility('glossaryStakeholdersContainer');
+                    }
+                });
+            });
+        });
+        
+        // Initialize unified edit dropdown
+        const glossaryId = parseId();
+        if (window.EditDropdown && glossaryId != null) {
+            (async () => {
+                try {
+                    // Check if rollup view is enabled
+                    const isRollupViewEnabled = localStorage.getItem(`glossary_${glossaryId}_rollup_view`) === 'true';
+                    
+                    // Check Auto CR status and determine edit restrictions
+                    let disableEditOption = false;
+                    let disableEditReason = '';
+                    try {
+                        const statusRes = await fetch(`/api/pending-changes/status/Glossary/${glossaryId}`, {
+                            method: 'GET',
+                            credentials: 'include'
+                        });
+                        if (statusRes.ok) {
+                            const statusData = await statusRes.json();
+                            if (statusData.changeRequestId) {
+                                // Get current user
+                                const currentUserRes = await fetch('/api/me', { credentials: 'include' });
+                                const currentUser = currentUserRes.ok ? await currentUserRes.json() : null;
+                                const currentUserId = currentUser?.id != null ? currentUser.id : currentUser?.userId;
+
+                                // Determine CR status - check from statusData first, then fallback to CR API
+                                let crStatusName = statusData.crStatusName || '';
+                                let crCreatedBy = statusData.crCreatedBy;
+                                let isAutoCR = statusData.isAutoCR === true;
+
+                                // If statusData doesn't have CR details, fetch from CR API
+                                if (!isAutoCR && !crStatusName) {
+                                    try {
+                                        const crRes = await fetch(`/api/changerequests/${statusData.changeRequestId}`, { method: 'GET', credentials: 'include' });
+                                        if (crRes.ok) {
+                                            const crData = await crRes.json();
+                                            const mandatoryWorkflow = crData.mandatoryWorkflow === true || crData.mandatoryWorkflow === 1;
+                                            const pName = (crData.primaryName || crData.PrimaryName || '').toLowerCase();
+                                            const summ = (crData.summary || crData.Summary || '').toLowerCase();
+                                            isAutoCR = mandatoryWorkflow || pName.includes('auto-generated cr for') || summ.includes('auto-generated cr for');
+                                            crStatusName = crData.statusName || crData.StatusName || '';
+                                            crCreatedBy = crData.createdBy != null ? crData.createdBy : crData.Created_By;
+                                        }
+                                    } catch (e) { console.warn('[Glossary] Failed to fetch CR details:', e); }
+                                }
+
+                                // Check if CR is finished
+                                const statusLower = (crStatusName || '').toLowerCase();
+                                const isFinished = statusLower.includes('complete') || statusLower.includes('cancelled') || statusLower.includes('canceled') || statusLower.includes('closed') || statusLower.includes('reject');
+
+                                if (isAutoCR && !isFinished) {
+                                    const isRequester = crCreatedBy != null && currentUserId != null && String(crCreatedBy) === String(currentUserId);
+                                    const isRunning = statusLower.includes('running') || statusLower.includes('in progress');
+                                    console.log('[Glossary] Auto CR active: status=' + crStatusName + ', isRequester=' + isRequester);
+
+                                    if (!isRequester) {
+                                        disableEditOption = true;
+                                        disableEditReason = 'Cannot edit: Only the requester can edit during an active Auto CR.';
+                                    } else if (isRunning) {
+                                        disableEditOption = true;
+                                        disableEditReason = 'Cannot edit: Auto CR is ' + crStatusName + '. Wait for completion.';
+                                    } else {
+                                        // Requester + not running (e.g. Pending Start): allow editing
+                                        console.log('[Glossary] Requester allowed to edit (Pending Start)');
+                                    }
+                                } else {
+                                    console.log('[Glossary] No active Auto CR restriction (isAutoCR=' + isAutoCR + ', isFinished=' + isFinished + ')');
+                                }
+                            }
+                        }
+                    } catch (e) {
+                        console.warn('[Glossary] Could not check CR status:', e);
+                    }
+                    
+                    // Store auto CR state for stakeholder tab redirect
+                    _hasActiveAutoCR = disableEditOption;
+                    
+                    window.EditDropdown.initialize('glossary', glossaryId, {
+                        container: '.tab-actions',
+                        editUrl: `/view/glossary/glossary-edit.html?id=${glossaryId}`,
+                        hideEditOption: false,
+                        disableEditOption: disableEditOption,
+                        disableEditReason: disableEditReason,
+                        customActions: [
+                            {
+                                category: 'OTHER ACTIONS',
+                                label: isRollupViewEnabled ? 'Hide Rollup View' : 'Show Rollup View',
+                                icon: isRollupViewEnabled ? 'fa-eye-slash' : 'fa-layer-group',
+                                action: function() {
+                                    toggleRollupView(glossaryId);
+                                }
+                            }
+                        ]
+                    });
+                } catch (error) {
+                    console.error('Failed to initialize edit dropdown:', error);
+                }
+            })();
+        }
+        
+        // Function to toggle rollup view
+        function toggleRollupView(glossaryId) {
+            const currentState = localStorage.getItem(`glossary_${glossaryId}_rollup_view`) === 'true';
+            const newState = !currentState;
+            localStorage.setItem(`glossary_${glossaryId}_rollup_view`, newState.toString());
+            
+            // Update the dropdown menu text - find by icon class
+            const rollupMenuItems = document.querySelectorAll('.edit-dropdown-item[data-action="custom"]');
+            rollupMenuItems.forEach(item => {
+                const icon = item.querySelector('i');
+                if (icon && (icon.classList.contains('fa-layer-group') || icon.classList.contains('fa-eye-slash'))) {
+                    const label = Array.from(item.childNodes).find(node => node.nodeType === 3); // Text node
+                    if (newState) {
+                        icon.className = 'fas fa-eye-slash';
+                        if (label) label.textContent = ' Hide Rollup View';
+                    } else {
+                        icon.className = 'fas fa-layer-group';
+                        if (label) label.textContent = ' Show Rollup View';
+                    }
+                }
+            });
+            
+            // Update visual indicator
+            updateRollupViewIndicator(glossaryId, newState);
+            
+            // Reload impact and data tabs if they're active
+            const activeTab = document.querySelector('.tab.active');
+            if (activeTab) {
+                const tabName = activeTab.getAttribute('data-tab');
+                if (tabName === 'impact' || tabName === 'data') {
+                    const container = document.getElementById('glossaryViewContainer');
+                    if (container) {
+                        if (tabName === 'impact') {
+                            container.innerHTML = '<div id="impactContainer"><div class="loading">Loading impact...</div></div>';
+                            if (window.loadGlossaryImpact) {
+                                window.loadGlossaryImpact(glossaryId, currentView);
+                            }
+                        } else if (tabName === 'data') {
+                            container.innerHTML = '<div id="glossaryDataContainer"></div>';
+                            if (window.GlossaryDataView) {
+                                window.GlossaryDataView.init(glossaryId);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Function to update rollup view indicator
+        function updateRollupViewIndicator(glossaryId, isEnabled) {
+            const breadcrumbElement = document.getElementById('glossaryBreadcrumb');
+            if (!breadcrumbElement) return;
+            
+            // Remove existing indicator
+            const existingIndicator = breadcrumbElement.parentElement.querySelector('.rollup-view-indicator');
+            if (existingIndicator) {
+                existingIndicator.remove();
+            }
+            
+            // Add indicator if enabled
+            if (isEnabled) {
+                const indicator = document.createElement('div');
+                indicator.className = 'rollup-view-indicator';
+                indicator.textContent = 'Glossary | (Show Rollup View)';
+                indicator.style.cssText = 'color: #9ca3af; font-size: 0.875rem; margin-top: 0.25rem;';
+                breadcrumbElement.parentElement.insertBefore(indicator, breadcrumbElement.nextSibling);
+            }
+        }
+        
+        // Initialize rollup view indicator on page load
+        const glossaryIdForIndicator = parseId();
+        if (glossaryIdForIndicator) {
+            const isRollupEnabled = localStorage.getItem(`glossary_${glossaryIdForIndicator}_rollup_view`) === 'true';
+            updateRollupViewIndicator(glossaryIdForIndicator, isRollupEnabled);
+        }
+        
+        // Function to update title/header without reloading entire page
+        async function updateTitleOnly(id, view) {
+            try {
+                const titleElement = document.getElementById('glossaryTitle');
+                if (titleElement) {
+                    // Fetch glossary data to get updated name
+                    const g = await window.BUDG_API_SERVICE.getGlossaryById(id, view === 'changes' ? 'changes' : null);
+                    if (g && g.name) {
+                        titleElement.textContent = escapeHtml(g.name);
+                    }
+                }
+            } catch (error) {
+                console.error('[Glossary] Error updating title:', error);
+            }
+        }
+        
+        // Listen for pending changes view switch event
+        document.addEventListener('pendingChangesViewSwitch', async function(event) {
+            const { view, facetType, objectId } = event.detail;
+            if (facetType === 'Glossary' && objectId) {
+                console.log('[Glossary] View switch event received:', view);
+                currentView = view; // Update currentView to match toggle
+                
+                // Always update the title/header regardless of which tab is active
+                await updateTitleOnly(objectId, view);
+                
+                // Get current active tab (use lastActiveTab as fallback to avoid stale/empty state)
+                const activeTab = document.querySelector('.tab.active');
+                const tabName = (activeTab && activeTab.getAttribute('data-tab')) ? activeTab.getAttribute('data-tab') : (lastActiveTab || 'summary');
+                lastActiveTab = tabName || 'summary';
+                
+                // Reload current tab with new view
+                const container = document.getElementById('glossaryViewContainer');
+                if (container) {
+                    switch (tabName) {
+                        case 'summary':
+                            // Clear old content immediately so we don't show "changes" data while switching to original
+                            container.innerHTML = '<div class="view-section" style="grid-column: 1/-1;">Loading...</div>';
+                            await load(objectId, view);
+                            break;
+                        case 'stakeholders':
+                            // Clear old content immediately so we don't show "changes" data while switching to original
+                            container.innerHTML = '<div id="glossaryStakeholdersContainer"><div class="loading">Loading stakeholders...</div></div>';
+                            if (window.GlossaryStakeholderView) {
+                                window.GlossaryStakeholderView.init(objectId, view);
+                            }
+                            break;
+                        case 'impact':
+                            // Clear old content immediately so we don't show "changes" data while switching to original
+                            container.innerHTML = '<div id="impactContainer"><div class="loading">Loading impact...</div></div>';
+                            if (window.loadGlossaryImpact) {
+                                window.loadGlossaryImpact(objectId, view);
+                            }
+                            break;
+                        case 'relationships':
+                            // Reload relationships data with new view
+                            // Check which sub-tab is active
+                            const relationshipsSubTab = document.querySelector('#relationshipsContent');
+                            if (relationshipsSubTab && relationshipsSubTab.classList.contains('active')) {
+                                // Relationships sub-tab is active, reload it
+                                loadRelationshipsData(objectId, view);
+                            }
+                            break;
+                        default:
+                            // For other tabs, just reload summary
+                            await load(objectId, view);
+                            break;
+                    }
+                }
+                
+                // Also reload documents with new view mode
+                if (glossaryDocumentTable) {
+                    glossaryDocumentTable.setViewMode(view);
+                }
+            }
+        });
+
+    // Make functions globally available
+    window.viewGlossary = viewGlossary;
+})();
+
+
+

@@ -1,0 +1,569 @@
+
+.lock-indicator-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: #fff3cd;
+    border: 1px solid #ffc107;
+    border-radius: 4px;
+    color: #856404;
+    cursor: pointer;
+    font-size: 0.875rem;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    position: relative;
+}
+
+.lock-indicator-btn:hover {
+    background: #ffe69c;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.lock-indicator-btn.permanent {
+    background: #f8d7da;
+    border-color: #f44336;
+    color: #721c24;
+}
+
+.lock-indicator-btn.permanent:hover {
+    background: #f5c6cb;
+}
+
+.lock-indicator-btn i {
+    font-size: 1rem;
+}
+
+.lock-indicator-btn .lock-text {
+    display: inline-block;
+}
+
+/* My Locked Items Panel */
+.my-locked-items-panel {
+    position: absolute;
+    top: calc(100% + 0.5rem);
+    right: 0;
+    width: 800px;
+    max-width: 90vw;
+    background: white;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+    z-index: 9999;
+    display: none;
+    animation: slideDown 0.2s ease;
+}
+
+.my-locked-items-panel.show {
+    display: block;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.my-locked-items-panel .panel-header {
+    background: #248567;
+    color: white;
+    padding: 1rem 1.5rem;
+    font-weight: 600;
+    font-size: 0.875rem;
+    letter-spacing: 0.5px;
+    border-radius: 8px 8px 0 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.my-locked-items-panel .panel-header .close-btn {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 0;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    transition: background 0.2s ease;
+}
+
+.my-locked-items-panel .panel-header .close-btn:hover {
+    background: rgba(255,255,255,0.1);
+}
+
+.my-locked-items-panel .panel-content {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+/* Locked Items Table */
+.locked-items-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.locked-items-table thead {
+    position: sticky;
+    top: 0;
+    background: #f8f9fa;
+    z-index: 10;
+}
+
+.locked-items-table th {
+    padding: 1rem;
+    text-align: left;
+    font-weight: 600;
+    font-size: 0.875rem;
+    color: #2c3e50;
+    border-bottom: 2px solid #dee2e6;
+    white-space: nowrap;
+}
+
+.locked-items-table td {
+    padding: 1rem;
+    border-bottom: 1px solid #e9ecef;
+    color: #5a6c7d;
+    font-size: 0.875rem;
+}
+
+.locked-items-table tbody tr:hover {
+    background: #f8f9fa;
+}
+
+.locked-items-table tbody tr.permanent-lock {
+    background: #fff3cd;
+}
+
+.locked-items-table tbody tr.permanent-lock:hover {
+    background: #ffe69c;
+}
+
+.locked-items-table .object-name {
+    font-weight: 500;
+    color: #248567;
+    cursor: pointer;
+}
+
+.locked-items-table .object-name:hover {
+    text-decoration: underline;
+}
+
+.locked-items-table .lock-type-badge {
+    display: inline-block;
+    padding: 0.25rem 0.5rem;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.locked-items-table .lock-type-badge.temporary {
+    background: #e3f2fd;
+    color: #1976d2;
+}
+
+.locked-items-table .lock-type-badge.permanent {
+    background: #ffebee;
+    color: #c62828;
+}
+
+/* Action Buttons in Table */
+.locked-items-table .actions-cell {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.locked-items-table .action-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1.25rem;
+    padding: 0.25rem;
+    color: #6c757d;
+    transition: all 0.2s ease;
+    border-radius: 4px;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.locked-items-table .action-btn:hover {
+    background: #e9ecef;
+    color: #248567;
+    transform: scale(1.1);
+}
+
+.locked-items-table .action-btn.pin-btn.permanent {
+    color: #f44336;
+}
+
+.locked-items-table .action-btn.pin-btn.permanent:hover {
+    background: #ffebee;
+}
+
+.locked-items-table .action-btn.unlock-btn:hover {
+    color: #dc3545;
+    background: #ffebee;
+}
+
+.locked-items-table .action-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Empty State */
+.locked-items-empty {
+    padding: 3rem 2rem;
+    text-align: center;
+    color: #6c757d;
+}
+
+.locked-items-empty i {
+    font-size: 3rem;
+    color: #dee2e6;
+    margin-bottom: 1rem;
+}
+
+.locked-items-empty p {
+    margin: 0.5rem 0 0 0;
+    font-size: 0.875rem;
+}
+
+/* Loading State */
+.locked-items-loading {
+    padding: 2rem;
+    text-align: center;
+    color: #6c757d;
+}
+
+.locked-items-loading i {
+    font-size: 2rem;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* Lock Status in View Page */
+.view-lock-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-left: 1rem;
+    padding: 0.5rem 1rem;
+    background: #ffebee;
+    border: 1px solid #f44336;
+    border-radius: 4px;
+    color: #c62828;
+    font-size: 0.875rem;
+    cursor: help;
+}
+
+.view-lock-indicator i {
+    font-size: 1rem;
+}
+
+.view-lock-indicator.temporary {
+    background: #e3f2fd;
+    border-color: #2196f3;
+    color: #1565c0;
+}
+
+/* Confirmation Modal */
+.lock-confirmation-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.lock-confirmation-modal .modal-dialog {
+    background: white;
+    border-radius: 8px;
+    max-width: 500px;
+    width: 90%;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    animation: scaleIn 0.2s ease;
+}
+
+@keyframes scaleIn {
+    from { transform: scale(0.9); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+}
+
+.lock-confirmation-modal .modal-header {
+    padding: 1.5rem;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.lock-confirmation-modal .modal-header h3 {
+    margin: 0;
+    color: #2c3e50;
+    font-size: 1.25rem;
+}
+
+.lock-confirmation-modal .modal-body {
+    padding: 1.5rem;
+}
+
+.lock-confirmation-modal .modal-icon {
+    text-align: center;
+    font-size: 3rem;
+    margin-bottom: 1rem;
+}
+
+.lock-confirmation-modal .modal-message {
+    color: #5a6c7d;
+    line-height: 1.5;
+    margin-bottom: 1rem;
+}
+
+.lock-confirmation-modal .modal-warning {
+    background: #fff3cd;
+    border: 1px solid #ffc107;
+    border-radius: 4px;
+    padding: 1rem;
+    margin: 1rem 0;
+    color: #856404;
+    font-size: 0.875rem;
+}
+
+.lock-confirmation-modal .modal-footer {
+    padding: 1rem 1.5rem;
+    border-top: 1px solid #dee2e6;
+    display: flex;
+    gap: 1rem;
+    justify-content: flex-end;
+}
+
+.lock-confirmation-modal .btn {
+    padding: 0.5rem 1.5rem;
+    border: none;
+    border-radius: 4px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.lock-confirmation-modal .btn-primary {
+    background: #248567;
+    color: white;
+}
+
+.lock-confirmation-modal .btn-primary:hover {
+    background: #1d6b52;
+}
+
+.lock-confirmation-modal .btn-danger {
+    background: #dc3545;
+    color: white;
+}
+
+.lock-confirmation-modal .btn-danger:hover {
+    background: #c82333;
+}
+
+.lock-confirmation-modal .btn-secondary {
+    background: #6c757d;
+    color: white;
+}
+
+.lock-confirmation-modal .btn-secondary:hover {
+    background: #5a6268;
+}
+
+/* Lock Warning Alert */
+.lock-warning-alert {
+    position: fixed;
+    top: 80px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+    z-index: 10000;
+    min-width: 400px;
+    max-width: 600px;
+    animation: slideInDown 0.3s ease;
+}
+
+@keyframes slideInDown {
+    from {
+        opacity: 0;
+        transform: translateX(-50%) translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+    }
+}
+
+.lock-warning-alert.temporary {
+    border-left: 4px solid #2196f3;
+}
+
+.lock-warning-alert.permanent {
+    border-left: 4px solid #f44336;
+}
+
+.lock-warning-alert .alert-content {
+    padding: 1.5rem;
+    display: flex;
+    gap: 1rem;
+}
+
+.lock-warning-alert .alert-icon {
+    font-size: 2rem;
+    flex-shrink: 0;
+}
+
+.lock-warning-alert.temporary .alert-icon {
+    color: #2196f3;
+}
+
+.lock-warning-alert.permanent .alert-icon {
+    color: #f44336;
+}
+
+.lock-warning-alert .alert-body {
+    flex: 1;
+}
+
+.lock-warning-alert .alert-title {
+    font-weight: 600;
+    color: #2c3e50;
+    margin: 0 0 0.5rem 0;
+    font-size: 1rem;
+}
+
+.lock-warning-alert .alert-message {
+    color: #5a6c7d;
+    margin: 0 0 1rem 0;
+    font-size: 0.875rem;
+    line-height: 1.5;
+}
+
+.lock-warning-alert .alert-details {
+    background: #f8f9fa;
+    border-radius: 4px;
+    padding: 0.75rem;
+    font-size: 0.875rem;
+}
+
+.lock-warning-alert .alert-details p {
+    margin: 0.25rem 0;
+    color: #5a6c7d;
+}
+
+.lock-warning-alert .alert-details strong {
+    color: #2c3e50;
+}
+
+.lock-warning-alert .alert-close {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    background: none;
+    border: none;
+    color: #6c757d;
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 0;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+}
+
+.lock-warning-alert .alert-close:hover {
+    background: #e9ecef;
+    color: #2c3e50;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .my-locked-items-panel {
+        width: 95vw;
+        right: 50%;
+        transform: translateX(50%);
+    }
+    
+    .locked-items-table {
+        font-size: 0.75rem;
+    }
+    
+    .locked-items-table th,
+    .locked-items-table td {
+        padding: 0.5rem;
+    }
+    
+    .lock-warning-alert {
+        min-width: auto;
+        width: 90%;
+        max-width: 90%;
+    }
+}
+
+/* Tooltip */
+.lock-tooltip {
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    margin-bottom: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: #2c3e50;
+    color: white;
+    font-size: 0.75rem;
+    border-radius: 4px;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+}
+
+.lock-indicator-btn:hover .lock-tooltip {
+    opacity: 1;
+}
+
+.lock-tooltip::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 4px solid transparent;
+    border-top-color: #2c3e50;
+}
+

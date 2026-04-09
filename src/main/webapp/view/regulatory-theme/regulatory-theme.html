@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BUDG - Regulatory Theme View</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../../assets/css/main.css">
+    <link rel="stylesheet" href="../../view/view.css">
+    <!-- Reuse glossary styles for consistent layout -->
+    <link rel="stylesheet" href="../../assets/css/system.css">
+    <link rel="stylesheet" href="../../view/regulatory-theme/regulatory-theme.css">
+    <link rel="stylesheet" href="../../assets/css/stakeholder.css">
+    <link rel="stylesheet" href="../../view/history.css">
+    <link rel="stylesheet" href="../../assets/css/custom-fields.css">
+    <link rel="stylesheet" href="../../assets/css/edit-dropdown.css">
+    <link rel="stylesheet" href="../../assets/css/global-lock-ui.css">
+    <!-- RTL styles for Arabic (disabled by default, enabled by i18n.js) -->
+    <link rel="stylesheet" href="../../assets/css/rtl.css" id="rtl-styles" disabled>
+    <script>(function(){const t=localStorage.getItem('budg-theme')||'light';document.documentElement.setAttribute('data-theme',t);})();</script>
+    <script src="/assets/i18n/head-locale.js"></script>
+    <script src="../../assets/i18n/i18n.js"></script>
+</head>
+<body class="system-page glossary-page regulatory-theme-page" data-submenu="regulatory">
+<header class="header"></header>
+<div class="page-header">
+    <div class="page-header-container">
+        <div class="page-title">
+            <div class="page-icon"><i class="fas fa-file-contract"></i></div>
+            <div class="page-title-text">
+                <div class="page-title-main" id="glossaryTitle" data-i18n="regulatoryTheme.page.title">Regulatory Theme Name</div>
+                <div class="page-title-sub" id="glossaryBreadcrumb" data-i18n="regulatoryTheme.page.titleSub">Regulatory Theme</div>
+            </div>
+        </div>
+        <div class="form-actions">
+            <button type="button" class="btn btn-secondary" id="backBtn" data-i18n="regulatoryTheme.buttons.back">Back</button>
+        </div>
+    </div>
+</div>
+
+<main class="main-content">
+    <div class="content-card">
+        <div class="content-header">
+            <div class="tab-container">
+                <button class="tab active" data-tab="summary" data-i18n="regulatoryTheme.tabs.summary">SUMMARY</button>
+                <button class="tab" data-tab="components" data-i18n="regulatoryTheme.tabs.components">COMPONENTS</button>
+                <button class="tab" data-tab="regulations" data-i18n="regulatoryTheme.tabs.regulations">REGULATIONS</button>
+                <button class="tab" data-tab="history" data-i18n="regulatoryTheme.tabs.history">HISTORY</button>
+            </div>
+            <div class="tab-actions">
+                <!-- Edit dropdown will be inserted here by JavaScript -->
+            </div>
+        </div>
+        <div class="content-body">
+            <div id="glossaryViewContainer" class="view-grid"></div>
+        </div>
+    </div>
+</main>
+
+<script src="../../assets/js/config.js"></script>
+<script src="../../assets/js/api-service.js"></script>
+<script src="../../assets/js/view-lock-helper.js"></script>
+<script src="../../assets/js/main.js"></script>
+<script src="../../assets/js/initSearch.js"></script>
+<script src="../../assets/js/edit-dropdown.js"></script>
+<script src="../../assets/js/delete-handler.js"></script>
+
+<script src="../../assets/js/custom-fields.js"></script>
+<script src="../../view/stakeholders-table.js"></script>
+<script src="../../view/history-component.js"></script>
+<script src="../../view/regulatory-theme/regulatory-theme.js"></script>
+<script src="../../assets/js/header.js"></script>
+<script src="../../assets/js/global-lock-ui.js"></script>
+
+</body>
+</html>
+

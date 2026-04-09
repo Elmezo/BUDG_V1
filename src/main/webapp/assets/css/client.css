@@ -1,0 +1,740 @@
+/* Add missing CSS variable */
+:root {
+    --shadow-heavy: 0 8px 32px rgba(0, 0, 0, 0.2);
+}
+
+/* Client Hierarchy Styles - Following Regulatory Theme Pattern */
+
+/* Hierarchy Table Wrapper */
+.hierarchy-table-wrapper {
+    background: var(--card-bg, #ffffff);
+    border: 1px solid var(--border-color, #e5e7eb);
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* Hierarchy Table */
+.hierarchy-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+}
+
+.hierarchy-table thead {
+    background: var(--header-bg, #f9fafb);
+    border-bottom: 1px solid var(--border-color, #e5e7eb);
+}
+
+.hierarchy-table th {
+    padding: 0.75rem 1rem;
+    text-align: left;
+    font-weight: 600;
+    color: var(--text-primary, #111827);
+    border-right: 1px solid var(--border-color, #e5e7eb);
+}
+
+.hierarchy-table th:last-child {
+    border-right: none;
+}
+
+.hierarchy-table td {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--border-light, #f3f4f6);
+    vertical-align: top;
+    border-right: 1px solid var(--border-light, #f3f4f6);
+}
+
+.hierarchy-table td:last-child {
+    border-right: none;
+}
+
+.hierarchy-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+/* Tree Structure Elements */
+.tree-indent {
+    display: inline-block;
+    width: 1.5rem;
+    height: 1.5rem;
+    position: relative;
+}
+
+.tree-branch {
+    position: absolute;
+    top: 0.75rem;
+    left: 0.75rem;
+    width: 0.75rem;
+    height: 1px;
+    background: var(--border-color, #d1d5db);
+}
+
+.tree-branch::before {
+    content: '';
+    position: absolute;
+    top: -0.75rem;
+    left: 0.75rem;
+    width: 1px;
+    height: 1.5rem;
+    background: var(--border-color, #d1d5db);
+}
+
+.tree-cell {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    position: relative;
+}
+
+.tree-expander {
+    background: none;
+    border: none;
+    padding: 0.25rem;
+    cursor: pointer;
+    color: var(--text-muted, #6b7280);
+    border-radius: 4px;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.5rem;
+    height: 1.5rem;
+}
+
+.tree-expander:hover {
+    background: var(--hover-bg, #f3f4f6);
+    color: var(--text-primary, #111827);
+}
+
+.tree-expander i {
+    font-size: 0.75rem;
+    transition: transform 0.2s ease;
+}
+
+.tree-placeholder {
+    width: 1.5rem;
+    height: 1.5rem;
+    display: inline-block;
+}
+
+/* Item Icons */
+.item-icon {
+    color: var(--primary-color, #248567);
+    font-size: 1rem;
+    margin-right: 0.5rem;
+    flex-shrink: 0;
+}
+
+/* Client Names and Links */
+.client-name {
+    font-weight: 500;
+}
+
+.client-link {
+    color: var(--secondary-color, #248567);
+    text-decoration: none;
+}
+
+.client-link:hover {
+    color: var(--secondary-color, #248567);
+    text-decoration: none;
+}
+
+.current-client-link {
+    color: var(--secondary-color, #248567);
+    font-weight: 600;
+    text-decoration: none;
+    background: none !important;
+    padding: 0 !important;
+    border: none !important;
+    border-radius: 0 !important;
+}
+
+/* Current Row Highlighting */
+.current-row {
+    background: var(--background-primary, #fff) !important;
+}
+
+/* Child Count Badge */
+.child-count {
+    background: var(--primary-light, #e7f5ed);
+    color: var(--primary-color, #248567);
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 0.25rem 0.5rem;
+    border-radius: 12px;
+    margin-left: 0.5rem;
+    white-space: nowrap;
+}
+
+/* Hierarchy header styling - matching Regulatory Theme */
+.hierarchy-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--border-color, #e9ecef);
+}
+
+.hierarchy-title {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-secondary, #64748b);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.hierarchy-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.hierarchy-actions .btn {
+    padding: 0.375rem 0.75rem;
+    font-size: 0.75rem;
+    border-radius: 0.375rem;
+}
+
+/* Table footer styling */
+.table-footer {
+    padding: 0.75rem 1rem;
+    font-size: 0.75rem;
+    color: var(--text-muted, #6b7280);
+    text-align: center;
+    border-top: 1px solid var(--border-color, #e9ecef);
+    background: var(--background-secondary, #f8f9fa);
+}
+
+/* Section Title */
+.section-title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--text-primary, #111827);
+    margin-bottom: 1rem;
+    padding: 0 0.5rem;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .hierarchy-table {
+        font-size: 0.8rem;
+    }
+    
+    .hierarchy-table th,
+    .hierarchy-table td {
+        padding: 0.5rem 0.75rem;
+    }
+    
+    .tree-indent {
+        width: 1.25rem;
+    }
+    
+    .tree-expander {
+        width: 1.25rem;
+        height: 1.25rem;
+    }
+    
+    .child-count {
+        font-size: 0.7rem;
+        padding: 0.2rem 0.4rem;
+    }
+}
+
+/* Dark Theme Support */
+[data-theme="dark"] .hierarchy-table-wrapper {
+    background: var(--card-bg, #1f2937);
+    border-color: var(--border-color, #374151);
+}
+
+[data-theme="dark"] .hierarchy-table thead {
+    background: var(--header-bg, #111827);
+    border-color: var(--border-color, #374151);
+}
+
+[data-theme="dark"] .hierarchy-table th {
+    color: var(--text-primary, #f9fafb);
+    border-color: var(--border-color, #374151);
+}
+
+[data-theme="dark"] .hierarchy-table td {
+    border-color: var(--border-light, #374151);
+}
+
+[data-theme="dark"] .tree-expander:hover {
+    background: var(--hover-bg, #374151);
+    color: var(--text-primary, #f9fafb);
+}
+
+[data-theme="dark"] .current-row {
+    background: var(--background-primary, #1f2937) !important;
+}
+
+[data-theme="dark"] .child-count {
+    background: var(--primary-700, #195d48);
+    color: var(--primary-light, #e7f5ed);
+}
+
+body.client-page {
+    overflow-x: hidden;
+    overflow-y: auto;
+    min-height: 100vh;
+}
+
+body.client-page .main-content {
+    overflow-y: auto;
+}
+
+/* Narrow split-button toggle for Client view header */
+#editDropdownToggle {
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+    min-width: 36px;
+    width: 36px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Page Header moved to main.css */
+
+.page-title {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.page-icon {
+    width: 32px;
+    height: 32px;
+    background-color: #248567;
+    color: white;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+}
+
+.page-title-text {
+    display: flex;
+    flex-direction: column;
+}
+
+.page-title-main {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.page-title-sub {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+.page-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.main-content {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0.75rem 20px;
+    height: calc(100vh - 70px - 60px);
+    display: flex;
+    flex-direction: column;
+}
+
+.content-card {
+    background-color: var(--background-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    box-shadow: var(--shadow-light);
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.content-header {
+    padding: 1rem;
+    border-bottom: 1px solid var(--border-color);
+    background-color: var(--background-secondary);
+    flex-shrink: 0;
+}
+
+.tab-container {
+    display: flex;
+    gap: 0;
+}
+
+.tab {
+    padding: 0.5rem 1rem;
+    background-color: transparent;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: var(--transition);
+    font-weight: 500;
+    font-size: 0.9rem;
+}
+
+.tab.active {
+    color: #248567;
+    border-bottom-color: #248567;
+    background-color: var(--background-primary);
+}
+
+.content-body {
+    padding: 1rem;
+    flex: 1;
+    overflow-y: auto;
+    min-height: 0;
+    max-height: calc(100vh - 70px - 60px - 2rem);
+}
+
+.content-body::-webkit-scrollbar {
+    width: 8px;
+}
+
+.content-body::-webkit-scrollbar-track {
+    background: var(--background-secondary);
+    border-radius: 4px;
+}
+
+.content-body::-webkit-scrollbar-thumb {
+    background: #248567;
+    border-radius: 4px;
+}
+
+.content-body::-webkit-scrollbar-thumb:hover {
+    background: #248567;
+}
+
+.content-body {
+    scrollbar-width: auto;
+    scrollbar-color: var(--secondary-color) var(--background-secondary);
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    height: 100%;
+}
+
+.form-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: flex-end;
+    padding: 1.5rem 0;
+    border-top: 0px solid var(--border-color);
+    margin-top: 2rem;
+}
+
+.form-actions .btn { 
+    min-width: 120px; 
+}
+
+/* Buttons rely on shared styles in main.css */
+
+.form-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    height: 100%;
+    overflow-y: auto;
+    min-height: 0;
+    max-height: calc(100vh - 70px - 60px - 4rem);
+}
+
+.form-section::-webkit-scrollbar {
+    width: 8px;
+}
+
+.form-section::-webkit-scrollbar-track {
+    background: var(--background-secondary);
+    border-radius: 4px;
+}
+
+.form-section::-webkit-scrollbar-thumb {
+    background: #248567;
+    border-radius: 4px;
+}
+
+.form-section::-webkit-scrollbar-thumb:hover {
+    background: #248567;
+}
+
+.form-section {
+    scrollbar-width: auto;
+    scrollbar-color: var(--secondary-color) var(--background-secondary);
+}
+
+.section-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+}
+
+.section-title.definition,
+.section-title.optional-fields,
+.section-title.classifications {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #6c757d;
+    margin-bottom: 0.5rem;
+    background-color: #f8f9fa;
+    padding: 0.375rem 0.5rem;
+    border-radius: 4px;
+    border-left: 3px solid #248567;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.form-label {
+    font-weight: 500;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.85rem;
+    margin-bottom: 0.125rem;
+}
+
+.required {
+    color: var(--required-color);
+}
+
+.form-input {
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    background-color: var(--background-primary);
+    color: var(--text-primary);
+    font-size: 0.85rem;
+    transition: var(--transition);
+}
+
+.form-input:focus {
+    outline: none;
+    border-color: #248567;
+    box-shadow: 0 0 0 3px rgba(36, 133, 103, 0.1);
+}
+
+.form-input-group {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.form-input-group .form-input {
+    flex: 1;
+    padding-right: 2.5rem;
+}
+
+.input-icon {
+    position: absolute;
+    right: 0.75rem;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.input-icon:hover {
+    color: #248567;
+}
+
+.form-textarea {
+    min-height: 60px;
+    max-height: 120px;
+    resize: vertical;
+}
+
+.form-select {
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    background-color: var(--background-primary);
+    color: var(--text-primary);
+    font-size: 0.85rem;
+    transition: var(--transition);
+    cursor: pointer;
+}
+
+.form-select:focus {
+    outline: none;
+    border-color: #248567;
+    box-shadow: 0 0 0 3px rgba(36, 133, 103, 0.1);
+}
+
+.editor-button {
+    align-self: flex-end;
+    padding: 0.375rem 0.75rem;
+    background-color: var(--background-secondary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: var(--transition);
+    font-size: 0.75rem;
+}
+
+.editor-button:hover {
+    background-color: var(--border-color);
+}
+
+[data-theme="dark"] .section-title.definition,
+[data-theme="dark"] .section-title.optional-fields,
+[data-theme="dark"] .section-title.classifications {
+    background-color: var(--background-secondary);
+    color: var(--text-secondary);
+}
+
+/* All hierarchy, tab, and connector styles are now handled by facets.shared.css */
+
+/* Client specific overrides (if needed) */
+.client-page .relationships-hierarchy .hierarchy-item .client-icon {
+    color: var(--secondary-color, #248567);
+    font-size: .9rem;
+}
+
+@media (max-width: 768px) {
+    .main-content {
+        height: calc(100vh - 70px - 80px);
+    }
+    
+    .form-grid {
+        grid-template-columns: 1fr;
+        gap: 0.75rem;
+    }
+
+    .page-header-container {
+        flex-direction: column;
+        gap: 0.5rem;
+        align-items: flex-start;
+    }
+
+    .page-actions {
+        width: 100%;
+        justify-content: flex-end;
+    }
+
+    .content-body {
+        padding: 0.75rem;
+        max-height: calc(100vh - 70px - 80px - 2rem);
+    }
+    
+    .form-section {
+        max-height: calc(100vh - 70px - 80px - 4rem);
+    }
+}
+
+@media (max-width: 480px) {
+    .main-content {
+        padding: 0.5rem 15px;
+        height: calc(100vh - 70px - 90px);
+    }
+
+    .page-actions {
+        flex-direction: column;
+    }
+
+    .btn {
+        width: 100%;
+        text-align: center;
+    }
+    
+    .content-body {
+        padding: 0.5rem;
+        max-height: calc(100vh - 70px - 90px - 2rem);
+    }
+    
+    .form-section {
+        gap: 0.5rem;
+        max-height: calc(100vh - 70px - 90px - 4rem);
+    }
+}
+
+/* Client create/edit: force system-like side-by-side cards */
+.client-edit-page #clientViewContainer,
+.client-edit-page #clientForm,
+.client-edit-page .form-container {
+    width: 100%;
+}
+
+.client-edit-page .form-container .form-row {
+    display: flex !important;
+    gap: 2rem !important;
+    align-items: flex-start !important;
+    flex-wrap: nowrap !important;
+}
+
+.client-edit-page .form-container .form-row > .form-card,
+.client-edit-page .form-container .form-row > .form-section {
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
+}
+
+.client-edit-page .form-card,
+.client-edit-page .form-section {
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+}
+
+@media (max-width: 900px) {
+    .client-edit-page .form-container .form-row {
+        flex-direction: column !important;
+        gap: 1rem !important;
+    }
+}
+
+/* Client create page: same side-by-side card layout as system */
+.client-create-page #clientForm,
+.client-create-page .form-container {
+    width: 100%;
+}
+
+.client-create-page .form-container {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 2rem;
+}
+
+.client-create-page .form-container .form-row {
+    display: flex;
+    gap: 2rem;
+    align-items: flex-start;
+    flex-wrap: nowrap;
+}
+
+.client-create-page .form-container .form-row > .form-section {
+    flex: 1 1 0;
+    min-width: 0;
+}
+
+.client-create-page .form-container > .form-section {
+    width: 100%;
+}
+
+.client-create-page .form-section {
+    height: auto;
+    max-height: none;
+    overflow: visible;
+}
+
+@media (max-width: 900px) {
+    .client-create-page .form-container .form-row {
+        flex-direction: column;
+        gap: 1rem;
+    }
+}

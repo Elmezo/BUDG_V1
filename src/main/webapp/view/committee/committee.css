@@ -1,0 +1,672 @@
+/* Committee Edit Page Specific Styles - Override assets/css/committee.css */
+
+/* Fix form structure for edit page - override container styles */
+.committee-page .edit-form-container {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 2rem !important;
+    width: 100% !important;
+}
+
+.committee-page #committeeViewContainer {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 2rem !important;
+    width: 100% !important;
+}
+
+.committee-page #committeeViewContainer #committeeForm {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 2rem !important;
+    width: 100% !important;
+    grid-template-columns: none !important;
+    grid-column: auto !important;
+}
+
+/* Override form-row to be 2-column grid */
+.committee-page .form-row {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 2rem !important;
+    width: 100% !important;
+    align-items: start !important;
+    min-width: 0 !important;
+}
+
+/* Ensure form sections inside form-row don't shrink below minimum width */
+.committee-page .form-row > .form-section {
+    min-width: 0 !important;
+    width: 100% !important;
+}
+
+/* Ensure 2-column layout is preserved for edit page (>1024px) */
+@media (min-width: 1025px) {
+    .committee-page .form-row {
+        grid-template-columns: 1fr 1fr !important;
+    }
+}
+
+/* Remove grid layout from form-section - just make it a card */
+.committee-page .edit-form-container .form-section {
+    background: var(--background-primary, #ffffff) !important;
+    border: 1px solid var(--border-color, #e2e8f0) !important;
+    border-radius: 12px !important;
+    padding: 1.5rem !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 1rem !important;
+    grid-template-columns: none !important;
+    grid-column: auto !important;
+}
+
+/* Override form-fields-container to be flexbox column */
+.committee-page .edit-form-container .form-section .form-fields-container {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 1rem !important;
+    width: 100% !important;
+    grid-template-columns: none !important;
+    grid-column: auto !important;
+}
+
+/* Override classifications-vertical specifically */
+.committee-page .edit-form-container .form-section .form-fields-container.classifications-vertical {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 1rem !important;
+}
+
+/* Override section title styles from assets/css/committee.css */
+.committee-page .edit-form-container .section-title {
+    font-size: 0.875rem !important;
+    font-weight: 600 !important;
+    color: var(--text-primary, #1e293b) !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.05em !important;
+    margin-bottom: 1rem !important;
+    padding-bottom: 0.5rem !important;
+    background: none !important;
+    border: none !important;
+    padding: 0 !important;
+    margin-right: 0 !important;
+    grid-column: auto !important;
+}
+
+/* Override form-group margin from assets/css/committee.css */
+.committee-page .edit-form-container .form-group {
+    margin-bottom: 1rem !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 0.25rem !important;
+}
+
+.committee-page .edit-form-container .form-label {
+    display: block !important;
+    font-size: 0.875rem !important;
+    font-weight: 500 !important;
+    color: var(--text-primary, #1e293b) !important;
+    margin-bottom: 0.5rem !important;
+}
+
+/* Committee Hierarchy Styles - Following Regulatory Theme Pattern */
+
+/* Hierarchy Table Wrapper */
+.hierarchy-table-wrapper {
+    background: var(--card-bg, #ffffff);
+    border: 1px solid var(--border-color, #e5e7eb);
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* Hierarchy Table */
+.hierarchy-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+}
+
+.hierarchy-table thead {
+    background: var(--header-bg, #f9fafb);
+    border-bottom: 1px solid var(--border-color, #e5e7eb);
+}
+
+.hierarchy-table th {
+    padding: 0.75rem 1rem;
+    text-align: left;
+    font-weight: 600;
+    color: var(--text-primary, #111827);
+    border-right: 1px solid var(--border-color, #e5e7eb);
+}
+
+.hierarchy-table th:last-child {
+    border-right: none;
+}
+
+.hierarchy-table td {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--border-light, #f3f4f6);
+    vertical-align: top;
+    border-right: 1px solid var(--border-light, #f3f4f6);
+}
+
+.hierarchy-table td:last-child {
+    border-right: none;
+}
+
+.hierarchy-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+/* Tree Structure Elements */
+.tree-indent {
+    display: inline-block;
+    width: 1.5rem;
+    height: 1.5rem;
+    position: relative;
+}
+
+.tree-branch {
+    position: absolute;
+    top: 0.75rem;
+    left: 0.75rem;
+    width: 0.75rem;
+    height: 1px;
+    background: var(--border-color, #d1d5db);
+}
+
+.tree-branch::before {
+    content: '';
+    position: absolute;
+    top: -0.75rem;
+    left: 0.75rem;
+    width: 1px;
+    height: 1.5rem;
+    background: var(--border-color, #d1d5db);
+}
+
+.tree-cell {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    position: relative;
+}
+
+.tree-expander {
+    background: none;
+    border: none;
+    padding: 0.25rem;
+    cursor: pointer;
+    color: var(--text-muted, #6b7280);
+    border-radius: 4px;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.5rem;
+    height: 1.5rem;
+}
+
+.tree-expander:hover {
+    background: var(--hover-bg, #f3f4f6);
+    color: var(--text-primary, #111827);
+}
+
+.tree-expander i {
+    font-size: 0.75rem;
+    transition: transform 0.2s ease;
+}
+
+.tree-placeholder {
+    width: 1.5rem;
+    height: 1.5rem;
+    display: inline-block;
+}
+
+/* Item Icons */
+.item-icon {
+    color: var(--primary-color, #3b82f6);
+    font-size: 1rem;
+    margin-right: 0.5rem;
+    flex-shrink: 0;
+}
+
+/* Committee Names and Links */
+.committee-name {
+    font-weight: 500;
+}
+
+.committee-link {
+    color: var(--secondary-color, #248567);
+    text-decoration: none;
+}
+
+.committee-link:hover {
+    color: var(--secondary-color, #248567);
+    text-decoration: none;
+}
+
+.current-committee-link {
+    color: var(--secondary-color, #248567);
+    font-weight: 600;
+    text-decoration: none;
+    background: none !important;
+    padding: 0 !important;
+    border: none !important;
+    border-radius: 0 !important;
+}
+
+/* Current Row Highlighting */
+.current-row {
+    background: var(--background-primary, #fff) !important;
+}
+
+/* Child Count Badge */
+.child-count {
+    background: var(--primary-light, #dbeafe);
+    color: var(--primary-color, #3b82f6);
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 0.25rem 0.5rem;
+    border-radius: 12px;
+    margin-left: 0.5rem;
+    white-space: nowrap;
+}
+
+/* Hierarchy header styling - matching Regulatory Theme */
+.hierarchy-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--border-color, #e9ecef);
+}
+
+.hierarchy-title {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-secondary, #64748b);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.hierarchy-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.hierarchy-actions .btn {
+    padding: 0.375rem 0.75rem;
+    font-size: 0.75rem;
+    border-radius: 0.375rem;
+}
+
+/* Table footer styling */
+.table-footer {
+    padding: 0.75rem 1rem;
+    font-size: 0.75rem;
+    color: var(--text-muted, #6b7280);
+    text-align: center;
+    border-top: 1px solid var(--border-color, #e9ecef);
+    background: var(--background-secondary, #f8f9fa);
+}
+
+/* Section Title - inherits from assets/css/committee.css */
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .hierarchy-table {
+        font-size: 0.8rem;
+    }
+    
+    .hierarchy-table th,
+    .hierarchy-table td {
+        padding: 0.5rem 0.75rem;
+    }
+    
+    .tree-indent {
+        width: 1.25rem;
+    }
+    
+    .tree-expander {
+        width: 1.25rem;
+        height: 1.25rem;
+    }
+    
+    .child-count {
+        font-size: 0.7rem;
+        padding: 0.2rem 0.4rem;
+    }
+}
+
+/* Dark Theme Support */
+[data-theme="dark"] .hierarchy-table-wrapper {
+    background: var(--card-bg, #1f2937);
+    border-color: var(--border-color, #374151);
+}
+
+[data-theme="dark"] .hierarchy-table thead {
+    background: var(--header-bg, #111827);
+    border-color: var(--border-color, #374151);
+}
+
+[data-theme="dark"] .hierarchy-table th {
+    color: var(--text-primary, #f9fafb);
+    border-color: var(--border-color, #374151);
+}
+
+[data-theme="dark"] .hierarchy-table td {
+    border-color: var(--border-light, #374151);
+}
+
+[data-theme="dark"] .tree-expander:hover {
+    background: var(--hover-bg, #374151);
+    color: var(--text-primary, #f9fafb);
+}
+
+[data-theme="dark"] .current-row {
+    background: var(--success-dark, #064e3b) !important;
+    border-left-color: var(--success-color, #10b981) !important;
+}
+
+[data-theme="dark"] .child-count {
+    background: var(--primary-dark, #1e3a8a);
+    color: var(--primary-light, #93c5fd);
+}
+
+/* Committee Impact Tab Styling - Match common style from system.css */
+.relationships-container {
+    width: 100%;
+}
+
+/* Sub-tabs styling - match system impact exactly */
+.relationships-sub-tabs {
+    display: flex;
+    gap: 0;
+    border-bottom: 1px solid var(--border-color, #e5e7eb);
+    background: var(--background-primary, #fff);
+}
+
+.sub-tab {
+    background: none;
+    border: none;
+    padding: 1rem 1.5rem;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--text-muted, #6b7280);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border-bottom: 3px solid transparent;
+    position: relative;
+}
+
+.sub-tab:hover {
+    color: var(--text-primary, #111827);
+    background-color: var(--background-hover, #f9fafb);
+}
+
+.sub-tab.active {
+    color: var(--text-primary, #111827);
+    border-bottom-color: var(--secondary-color, #248567);
+    background: var(--background-primary, #fff);
+}
+
+.relationships-content {
+    position: relative;
+}
+
+.sub-tab-content {
+    display: none;
+}
+
+.sub-tab-content.active {
+    display: block;
+}
+
+
+.relationships-hierarchy {
+    background: var(--background-primary, #fff);
+    border: 1px solid var(--border-color, #e9ecef);
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: var(--shadow-light, 0 2px 10px rgba(0, 0, 0, 0.1));
+}
+
+.relationships-hierarchy .hierarchy-header {
+    background: var(--background-secondary, #f8f9fa);
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--border-color, #e9ecef);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.relationships-hierarchy .hierarchy-title {
+    font-weight: 600;
+    color: var(--text-secondary, #6c757d);
+    letter-spacing: 0.04em;
+    font-size: 0.9rem;
+    background-color: var(--background-secondary, #f8f9fa);
+    padding: 0.5rem 0.75rem;
+    border-radius: 6px;
+    border-left: 4px solid var(--secondary-color, #248567);
+    text-transform: uppercase;
+}
+
+.relationships-hierarchy .hierarchy-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+
+.relationships-hierarchy .hierarchy-footer {
+    padding: 0.65rem 1rem;
+    color: var(--text-secondary, #6c757d);
+    font-size: 0.85rem;
+    border-top: 1px solid var(--border-color, #e9ecef);
+    background: var(--background-secondary, #f8f9fa);
+}
+
+/* Data table styling for relationships sub-tab */
+.relationships-container .data-table-wrapper,
+.relationships-container .relationships-hierarchy .data-table-wrapper {
+    background: var(--background-primary, #fff);
+    border: 1px solid var(--border-color, #e9ecef);
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: var(--shadow-light, 0 2px 10px rgba(0, 0, 0, 0.1));
+}
+
+.relationships-container .data-table,
+.relationships-container .relationships-hierarchy .data-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.relationships-container .data-table th,
+.relationships-container .relationships-hierarchy .data-table th {
+    padding: 1rem 1rem;
+    text-align: left;
+    font-weight: 600;
+    color: var(--text-secondary, #6c757d);
+    font-size: .82rem;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    background: var(--background-secondary, #f8f9fa);
+    border-bottom: 1px solid var(--border-color, #e9ecef);
+    white-space: nowrap;
+}
+
+.relationships-container .data-table td,
+.relationships-container .relationships-hierarchy .data-table td {
+    padding: .9rem 1rem;
+    border-top: 1px solid var(--border-color, #e9ecef);
+    color: var(--text-primary, #2c3e50);
+    font-weight: 400;
+    text-transform: none;
+}
+
+.relationships-container .data-table tbody tr:hover,
+.relationships-container .relationships-hierarchy .data-table tbody tr:hover {
+    background: var(--background-hover, #f8fafc);
+}
+
+/* Action buttons in relationships table - neutral gray style */
+.relationships-container .action-buttons,
+.relationships-container .relationships-hierarchy .action-buttons {
+    display: flex;
+    gap: 0.25rem;
+    align-items: center;
+    justify-content: center;
+}
+
+.relationships-container .action-buttons .btn,
+.relationships-container .relationships-hierarchy .action-buttons .btn {
+    padding: 0.3rem 0.5rem;
+    font-size: 0.75rem;
+    border-radius: 4px;
+    border: 1px solid var(--border-color, #e9ecef);
+    background: var(--background-primary, #fff);
+    color: var(--text-secondary, #6c757d);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.relationships-container .action-buttons .btn:hover,
+.relationships-container .relationships-hierarchy .action-buttons .btn:hover {
+    background: var(--background-secondary, #f8f9fa);
+    color: var(--text-primary, #2c3e50);
+}
+
+/* Form controls in data table - scoped to relationships-container */
+.relationships-container .data-table .form-control,
+.relationships-container .relationships-hierarchy .data-table .form-control {
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--border-color, #d1d5db);
+    border-radius: 6px;
+    font-size: 0.875rem;
+    background: var(--background-primary, #fff);
+    color: var(--text-primary, #111827);
+    transition: all 0.2s ease;
+}
+
+.relationships-container .data-table select.form-control,
+.relationships-container .relationships-hierarchy .data-table select.form-control {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236b7280' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    background-size: 12px;
+    padding-right: 2.5rem;
+}
+
+.relationships-container .data-table .form-control:focus,
+.relationships-container .relationships-hierarchy .data-table .form-control:focus {
+    outline: none;
+    border-color: var(--secondary-color, #248567);
+    box-shadow: 0 0 0 3px rgba(36, 133, 103, 0.1);
+}
+
+.relationships-container .data-table .form-control:hover,
+.relationships-container .relationships-hierarchy .data-table .form-control:hover {
+    border-color: var(--text-secondary, #9ca3af);
+}
+
+/* Th content for sort icons */
+.relationships-container .th-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
+
+.relationships-container .th-content i {
+    color: var(--text-muted, #9ca3af);
+    font-size: 0.75rem;
+    opacity: 0.6;
+}
+
+/* Entity links in view - green color */
+.entity-link {
+    color: var(--secondary-color, #248567) !important;
+    text-decoration: none;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.entity-link:hover {
+    color: var(--primary-700, #1d4ed8) !important;
+    text-decoration: underline;
+    transform: translateX(2px);
+}
+
+/* ── View page: view-items inside form-section cards ── */
+.form-section .view-item {
+    display: grid;
+    grid-template-columns: 160px 1fr;
+    gap: 0.85rem;
+    padding: 0.65rem 0;
+    border-bottom: 1px dashed var(--border-color, #e5e7eb);
+    align-items: baseline;
+}
+
+.form-section .view-item:last-child {
+    border-bottom: none;
+}
+
+.form-section .view-label {
+    color: var(--text-secondary, #4a5568);
+    font-weight: 500;
+    font-size: 0.85rem;
+    white-space: nowrap;
+}
+
+.form-section .view-value {
+    color: var(--text-primary, #111827);
+    line-height: 1.5;
+    font-size: 0.875rem;
+    word-break: break-word;
+}
+
+.form-section .view-value .empty {
+    color: var(--text-muted, #9ca3af);
+    font-style: italic;
+}
+
+.form-section .view-value a {
+    color: var(--secondary-color, #248567);
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.form-section .view-value a:hover {
+    text-decoration: underline;
+}
+
+/* Custom fields view section inside left column */
+#customFieldsViewSection .view-section {
+    border: none;
+    box-shadow: none;
+    padding: 0;
+}
+
+#customFieldsViewSection .view-section .section-title {
+    display: none;
+}
+
+/* Dark theme support for view items in form-section */
+[data-theme="dark"] .form-section .view-label {
+    color: var(--text-secondary, #9ca3af);
+}
+
+[data-theme="dark"] .form-section .view-value {
+    color: var(--text-primary, #f9fafb);
+}
+
+[data-theme="dark"] .form-section .view-value .empty {
+    color: var(--text-muted, #6b7280);
+}

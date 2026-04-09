@@ -1,0 +1,611 @@
+/* Capability View Page Specific Styles */
+
+/* Professional Hierarchy Styling - Following Regulatory Theme Pattern */
+.capability-page .relationships-hierarchy {
+    background: var(--card-bg, #ffffff);
+    border: 1px solid var(--border-color, #e5e7eb);
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+}
+
+.capability-page .relationships-hierarchy .hierarchy-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.5rem;
+    background: var(--background-secondary, #f8f9fa);
+    border-bottom: 1px solid var(--border-color, #e9ecef);
+}
+
+.capability-page .relationships-hierarchy .hierarchy-title {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-primary, #1e293b);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin: 0;
+}
+
+.capability-page .relationships-hierarchy .hierarchy-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+/* Hierarchy Table Wrapper */
+.capability-page .hierarchy-table-wrapper {
+    overflow-x: auto;
+    max-height: 500px;
+    overflow-y: auto;
+}
+
+.capability-page .hierarchy-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+}
+
+.capability-page .hierarchy-table thead {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.capability-page .hierarchy-table th {
+    padding: 0.75rem 1rem;
+    text-align: left;
+    font-weight: 600;
+    font-size: 0.75rem;
+    color: var(--text-secondary, #64748b);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    background: var(--background-secondary, #f8f9fa);
+    border-bottom: 1px solid var(--border-color, #e9ecef);
+}
+
+.capability-page .hierarchy-table td {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--border-color, #e9ecef);
+    vertical-align: top;
+}
+
+.capability-page .hierarchy-table td:first-child {
+    white-space: nowrap;
+    min-width: 80px;
+    width: auto;
+}
+
+.capability-page .hierarchy-table tbody tr:nth-child(odd) {
+    background: var(--background-stripe, #fafafa);
+}
+
+.capability-page .hierarchy-table tbody tr:hover {
+    background: var(--background-hover, #f0f9ff);
+}
+
+/* Tree Structure Styling */
+.capability-page .tree-indent {
+    display: inline-block;
+    width: 1rem;
+    height: 1px;
+}
+
+.capability-page .tree-branch {
+    display: inline-block;
+    width: .75rem;
+    height: 1px;
+    background: var(--border-color, #e9ecef);
+    margin-right: .25rem;
+    vertical-align: middle;
+}
+
+.capability-page .tree-cell {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.capability-page .tree-expander {
+    width: 22px;
+    height: 22px;
+    border: 1px solid var(--border-color, #e9ecef);
+    border-radius: 4px;
+    background: var(--background-primary, #fff);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    color: var(--text-secondary, #64748b);
+    transition: background-color 0.15s ease;
+}
+
+.capability-page .tree-expander:hover {
+    background: var(--background-secondary, #f8f9fa);
+}
+
+.capability-page .tree-placeholder {
+    display: inline-block;
+    width: 22px;
+    height: 22px;
+}
+
+.capability-page .item-icon {
+    color: var(--secondary-color, #248567);
+    margin-right: 0.5rem;
+    font-size: 0.875rem;
+}
+
+.capability-page .item-name {
+    font-weight: 500;
+}
+
+.capability-page .item-link {
+    color: var(--secondary-color, #248567);
+    text-decoration: none;
+    transition: color 0.15s ease;
+}
+
+.capability-page .item-link:hover {
+    color: var(--secondary-color, #248567);
+    text-decoration: none;
+}
+
+.capability-page .current-item-link,
+.capability-page .current-capability-link {
+    color: var(--secondary-color, #248567);
+    font-weight: 600;
+    text-decoration: none;
+    background: none !important;
+    padding: 0 !important;
+    border: none !important;
+    border-radius: 0 !important;
+}
+
+.capability-page .item-ref {
+    font-size: 0.875rem;
+    color: var(--text-secondary, #64748b);
+    margin-left: 0.5rem;
+}
+
+.capability-page .child-count {
+    background: var(--secondary-color, #248567);
+    color: white;
+    font-size: 0.75rem;
+    padding: 0.125rem 0.375rem;
+    border-radius: 0.75rem;
+    margin-left: 0.5rem;
+    font-weight: 500;
+}
+
+.capability-page .current-row {
+    background: var(--background-primary, #fff) !important;
+}
+
+.capability-page .current-row td:first-child {
+    border-left: 3px solid var(--secondary-color, #248567);
+}
+
+/* Table Footer */
+.capability-page .table-footer {
+    padding: 0.75rem 1rem;
+    background: var(--background-secondary, #f8f9fa);
+    border-top: 1px solid var(--border-color, #e9ecef);
+    font-size: 0.875rem;
+    color: var(--text-secondary, #64748b);
+    text-align: center;
+}
+
+/* Apply proper layout constraints like other view pages */
+.capability-page .main-content { 
+    max-width: 1200px; 
+    margin: 0 auto; 
+    padding: 1rem 20px; 
+    height: auto; 
+    min-height: calc(100vh - 70px - 80px); 
+    display: flex; 
+    flex-direction: column; 
+    overflow: hidden; 
+}
+
+.hierarchy-connector {
+    position: relative;
+    display: flex;
+    align-items: center;
+    margin-right: 1.5rem;
+    margin-left: 2rem;
+}
+/* Apply view-page styles to capability-page */
+.capability-page .content-card { 
+    padding-bottom: 1rem; 
+}
+
+.capability-page .view-grid { 
+    display: grid; 
+    grid-template-columns: 1fr 1fr; 
+    gap: 1.25rem; 
+}
+
+.capability-page .view-section { 
+    background: var(--card-bg, #fff); 
+    border: 1px solid var(--border-color, #e5e7eb); 
+    border-radius: 12px; 
+    padding: 1.25rem; 
+    box-shadow: 0 1px 2px rgba(0,0,0,0.03); 
+}
+
+.capability-page .view-section .section-title { 
+    font-weight: 600; 
+    color: var(--text-muted, #6b7280); 
+    margin-bottom: .9rem; 
+    letter-spacing: .04em; 
+    font-size: .9rem; 
+    display: flex; 
+    align-items: center;
+}
+
+.capability-page .section-subtitle { 
+    font-size: 0.8rem; 
+    font-weight: 500; 
+    color: var(--text-muted, #6b7280); 
+    margin-bottom: 0.75rem; 
+    text-transform: uppercase; 
+    letter-spacing: 0.05em; 
+}
+
+.capability-page .view-item { 
+    display: grid; 
+    grid-template-columns: 200px 1fr; 
+    gap: .85rem; 
+    padding: .65rem 0; 
+    border-bottom: 1px dashed var(--border-color, #e5e7eb); 
+}
+
+.capability-page .view-item:last-child { 
+    border-bottom: 0; 
+}
+
+.capability-page .view-label { 
+    font-weight: 500; 
+    color: var(--text-muted, #6b7280); 
+    font-size: .9rem; 
+}
+
+.capability-page .view-value { 
+    color: var(--text-primary, #1f2937); 
+    font-size: .9rem; 
+    word-break: break-word; 
+}
+
+/* Status indicator styling */
+.capability-page .status-indicator {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-right: 0.5rem;
+}
+
+.capability-page .status-indicator.active {
+    background-color: #248567;
+}
+
+.capability-page .status-indicator.inactive {
+    background-color: #ef4444;
+}
+
+/* Lifecycle badge styling */
+.capability-page .lifecycle-badge {
+    display: inline-block;
+    background-color: #6b7280;
+    color: white;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    text-transform: uppercase;
+}
+
+/* User link styling */
+.capability-page .user-link {
+    color: var(--primary-color, #248567);
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.capability-page .user-link:hover {
+    text-decoration: underline;
+}
+
+/* Info message styling */
+.capability-page .info-message {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--text-muted, #6b7280);
+    font-style: italic;
+}
+
+.capability-page .info-message i {
+    color: var(--text-muted, #6b7280);
+}
+
+/* Relationships Hierarchy Styles - Copied from Business Area */
+.relationships-container {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+.relationships-sub-tabs {
+    display: flex;
+    gap: 0;
+    border-bottom: 1px solid var(--border-color, #e5e7eb);
+    background: var(--background-primary, #fff);
+}
+
+.sub-tab {
+    background: none;
+    border: none;
+    padding: 1rem 1.5rem;
+    font-size: .9rem;
+    font-weight: 500;
+    color: var(--text-muted, #6b7280);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border-bottom: 3px solid transparent;
+    position: relative;
+}
+
+.sub-tab:hover {
+    color: var(--text-primary, #111827);
+    background: var(--background-secondary, #f9fafb);
+}
+
+.sub-tab.active {
+    color: var(--text-primary, #111827);
+    border-bottom-color: var(--secondary-color, #248567);
+    background: var(--background-primary, #fff);
+}
+
+.relationships-content {
+    position: relative;
+}
+
+.sub-tab-content {
+    display: none;
+}
+
+.sub-tab-content.active {
+    display: block;
+}
+
+/* Relationships section styling - same as system hierarchy */
+.relationships-hierarchy {
+    background: var(--background-primary, #fff);
+    border: 1px solid var(--border-color, #e9ecef);
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: var(--shadow-light, 0 2px 10px rgba(0, 0, 0, 0.1));
+}
+
+.relationships-hierarchy .hierarchy-header {
+    background: var(--background-secondary, #f8f9fa);
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--border-color, #e9ecef);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.relationships-hierarchy .hierarchy-title {
+    font-weight: 600;
+    color: var(--text-secondary, #6c757d);
+    letter-spacing: .04em;
+    font-size: .9rem;
+    background-color: var(--background-secondary, #f8f9fa);
+    padding: 0.5rem 0.75rem;
+    border-radius: 6px;
+    border-left: 4px solid var(--secondary-color, #248567);
+    text-transform: uppercase;
+}
+
+.relationships-hierarchy .hierarchy-actions {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+}
+
+.relationships-hierarchy .hierarchy-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.relationships-hierarchy .hierarchy-table th {
+    padding: 1rem 1rem;
+    text-align: left;
+    font-weight: 600;
+    color: var(--text-secondary, #6c757d);
+    font-size: .82rem;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    background: var(--background-secondary, #f8f9fa);
+    border-bottom: 1px solid var(--border-color, #e9ecef);
+}
+
+.relationships-hierarchy .hierarchy-table td {
+    padding: .9rem 1rem;
+    border-top: 1px solid var(--border-color, #e9ecef);
+    color: var(--text-primary, #2c3e50);
+}
+
+.relationships-hierarchy .hierarchy-item {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+}
+
+.relationships-hierarchy .hierarchy-item .expand-icon {
+    color: var(--text-tertiary, #adb5bd);
+    font-size: .8rem;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+    user-select: none;
+}
+
+.relationships-hierarchy .hierarchy-item .expand-icon:hover {
+    color: var(--text-primary, #2c3e50);
+    transform: scale(1.1);
+}
+
+.relationships-hierarchy .hierarchy-item .expand-icon.expanded {
+    transform: rotate(90deg);
+}
+
+.relationships-hierarchy .hierarchy-item .expand-icon.collapsed {
+    transform: rotate(0deg);
+}
+
+.relationships-hierarchy .hierarchy-row.collapsed {
+    display: none;
+}
+
+.relationships-hierarchy .hierarchy-item .capability-icon {
+    color: var(--secondary-color, #248567);
+    font-size: .9rem;
+}
+
+.relationships-hierarchy .hierarchy-item .item-name {
+    font-weight: 500;
+}
+
+.relationships-hierarchy .hierarchy-item .parent-name {
+    font-weight: 600;
+    color: var(--text-primary, #2c3e50);
+    background: var(--secondary-color, #248567);
+    color: var(--background-primary, #fff);
+    padding: .2rem .5rem;
+    border-radius: 6px;
+    border: 1px solid var(--secondary-color, #248567);
+}
+
+.relationships-hierarchy .hierarchy-item .child-name {
+    font-weight: 400;
+    color: var(--text-secondary, #6c757d);
+    padding-left: .5rem;
+}
+
+.relationships-hierarchy .hierarchy-item .relationship-label {
+    font-size: 0.8rem;
+    color: var(--text-muted, #6b7280);
+    font-weight: 400;
+    background: var(--background-secondary, #f8f9fa);
+    padding: 0.2rem 0.5rem;
+    border-radius: 12px;
+    border: 1px solid var(--border-color, #e5e7eb);
+    margin-left: 0.5rem;
+    font-style: italic;
+}
+
+.relationships-hierarchy .hierarchy-child {
+    background: var(--background-secondary, #f8f9fa);
+    padding-left: 2rem;
+}
+
+.relationships-hierarchy .hierarchy-footer {
+    padding: .75rem 1rem;
+    color: var(--text-secondary, #6c757d);
+    font-size: .85rem;
+    border-top: 1px solid var(--border-color, #e9ecef);
+    background: var(--background-secondary, #f8f9fa);
+}
+
+/* Current capability styling */
+.relationships-hierarchy .current-capability {
+    background: var(--background-primary, #fff) !important;
+    border-left: 4px solid var(--secondary-color, #248567);
+}
+
+.relationships-hierarchy .current-name {
+    font-weight: 700;
+    color: var(--secondary-color, #248567);
+}
+
+/* Parent capability styling */
+.relationships-hierarchy .parent-capability {
+    background: var(--background-secondary, #f9fafb);
+    border-left: 2px solid var(--text-muted, #9ca3af);
+}
+
+.relationships-hierarchy .parent-name-style {
+    font-weight: 500;
+    color: var(--text-secondary, #6b7280);
+    background: var(--background-tertiary, #f3f4f6);
+    padding: .2rem .5rem;
+    border-radius: 6px;
+    border: 1px solid var(--border-color, #e5e7eb);
+}
+
+/* Hierarchy table row styling */
+.hierarchy-parent {
+    background-color: #e3f2fd !important;
+}
+
+.hierarchy-child {
+    background-color: white !important;
+}
+
+.hierarchy-child.collapsed {
+    display: none;
+}
+
+/* Loading and empty states */
+.loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem;
+    color: var(--text-secondary, #6b7280);
+    gap: 0.75rem;
+}
+
+.hierarchy-empty {
+    text-align: center;
+    padding: 3rem;
+    color: var(--text-secondary, #6b7280);
+}
+
+.hierarchy-empty i {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+}
+
+.hierarchy-empty p {
+    margin: 0;
+    font-size: 1rem;
+}
+
+.hierarchy-error {
+    text-align: center;
+    padding: 3rem;
+    color: var(--danger, #dc3545);
+}
+
+.hierarchy-error i {
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+    opacity: 0.7;
+}
+
+.hierarchy-error p {
+    margin: 0 0 1rem 0;
+    font-size: 1rem;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .capability-page .main-content { 
+        padding: 1rem 16px; 
+    }
+}

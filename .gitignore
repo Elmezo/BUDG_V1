@@ -1,0 +1,5 @@
+node_modules/
+dist/
+src/main/webapp/assets/js/bulk-upload/
+*.log
+.DS_Store

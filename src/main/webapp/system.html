@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BUDG - New System</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="assets/css/main.css">
+    <link rel="stylesheet" href="assets/css/system.css">
+    <link rel="stylesheet" href="assets/css/custom-fields.css">
+    <link rel="stylesheet" href="assets/css/global-lock-ui.css">
+    <link rel="stylesheet" href="assets/css/toast.css">
+    <link rel="stylesheet" href="assets/css/advanced-rich-text-editor.css">
+    <!-- RTL styles for Arabic (disabled by default, enabled by i18n.js) -->
+    <link rel="stylesheet" href="assets/css/rtl.css" id="rtl-styles" disabled>
+    <link rel="stylesheet" href="assets/css/segments-cube-panel.css">
+    <link rel="icon" type="image/png" href="assets/images/avatars/icon.jpg">
+    <script>
+        (function() {
+            const savedTheme = localStorage.getItem('budg-theme') || 'light';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+        })();
+    </script>
+    <script src="/assets/i18n/head-locale.js"></script>
+    <script src="assets/i18n/i18n.js"></script>
+</head>
+<body class="system-page" data-submenu="data">
+    <header class="header"></header>
+
+    <div class="page-header">
+        <div class="page-header-container">
+            <div class="page-title">
+                <div class="page-icon">
+                    <i class="fas fa-desktop"></i>
+                </div>
+                <div class="page-title-text">
+                    <div class="page-title-main" data-i18n="createPage.title.newSystem">New System</div>
+                    <div class="page-title-sub" data-i18n="label.system">System</div>
+                </div>
+            </div>
+            <div class="form-actions">
+                <button type="button" class="btn btn-secondary" id="closeBtn" data-i18n="button.close">Close</button>
+                <button type="button" class="btn btn-primary" id="saveBtn" data-i18n="button.save">Save</button>
+                <button type="button" class="btn btn-success" id="saveAndCloseBtn" data-i18n="button.saveAndClose">Save & Close</button>
+            </div>
+        </div>
+    </div>
+
+    <main class="main-content">
+        <div class="content-card">
+            <div class="content-header">
+                <div class="tab-container">
+                    <button class="tab active" data-i18n="tab.summary">SUMMARY</button>
+                </div>
+            </div>
+            <div class="content-body">
+                <form id="systemForm">
+                    <div class="system-container">
+                        <!-- DEFINITION Card -->
+                        <div class="form-card definition-card">
+                            <div class="card-header">
+                                <h3 class="card-title">DEFINITION</h3>
+                            </div>
+                            <div class="card-body">
+                                <div class="form-group">
+                                    <label class="form-label">Short Name <span class="required">*</span></label>
+                                    <input type="text" class="form-input" id="shortName" placeholder="Enter Short Name">
+                                    <span class="field-error" id="shortNameError" style="display:none"></span>
+                                </div>
+
+                                <div class="form-group">
+                                    <label class="form-label">Parent Short Name</label>
+                                    <div class="form-input-group">
+                                        <input type="text" class="form-input" id="parentShortName" placeholder="Parent Short Name" readonly>
+                                        <i class="fas fa-edit input-icon" id="parentPicker"></i>
+                                    </div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label class="form-label">Description <span class="required">*</span></label>
+                                    <textarea class="form-input form-textarea" id="description" placeholder="Enter Description"></textarea>
+                                    <button type="button" class="editor-button" id="showDescriptionEditorBtn">Show Editor</button>
+                                    <span class="field-error" id="descriptionError" style="display:none"></span>
+                                </div>
+
+                                <div class="form-group">
+                                    <label class="form-label">Type <span class="required">*</span></label>
+                                    <div class="form-grid" style="grid-template-columns: 1fr 1fr; gap: .75rem;">
+                                        <select class="form-select" id="typeSelect">
+                                            <option value="">Select Type...</option>
+                                        </select>
+                                        <select class="form-select" id="scopeSelect">
+                                            <option value="Internal">Internal</option>
+                                            <option value="External">External</option>
+                                        </select>
+                                    </div>
+                                    <span class="field-error" id="typeError" style="display:none"></span>
+                                </div>
+
+                                <h4 class="section-title optional-fields">OPTIONAL FIELDS</h4>
+
+                                <div class="form-group">
+                                    <label class="form-label">Long Name</label>
+                                    <input type="text" class="form-input" id="longName" placeholder="Enter Long Name">
+                                </div>
+
+                                <div class="form-group">
+                                    <label class="form-label">URL</label>
+                                    <input type="url" class="form-input" id="url" placeholder="Enter URL">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- CLASSIFICATIONS Card -->
+                        <div class="form-card classifications-card">
+                            <div class="card-header">
+                                <h3 class="card-title">CLASSIFICATIONS</h3>
+                            </div>
+                            <div class="card-body">
+                                <div class="form-group">
+                                    <h4 class="section-title">BASIC CLASSIFICATIONS</h4>
+                                    <label class="form-label">BUDG Status <span class="required">*</span></label>
+                                    <select class="form-select" id="BUDGStatus">
+                                        <option>Active</option>
+                                        <option>Inactive</option>
+                                    </select>
+                                    <span class="field-error" id="BUDGStatusError" style="display:none"></span>
+                                </div>
+
+                                <div class="form-group">
+                                    <label class="form-label">Lifecycle <span class="required">*</span></label>
+                                    <select class="form-select" id="lifecycle">
+
+                                    </select>
+                                    <span class="field-error" id="lifecycleError" style="display:none"></span>
+                                </div>
+
+                                <div class="form-group">
+                                    <label class="form-label">BUDG Viewing <span class="required">*</span></label>
+                                    <select class="form-select" id="BUDGViewing">
+                                        <option>Public</option>
+                                        <option>Private</option>
+                                        <option>Internal</option>
+                                    </select>
+                                    <span class="field-error" id="BUDGViewingError" style="display:none"></span>
+                                </div>
+
+                                <div class="form-group">
+                                    <h4 class="section-title">OTHER INFORMATION</h4>
+                                    <label class="form-label">CIA Rating
+                                        <i class="fas fa-question-circle" title="Confidentiality Integrity Availability (CIA) Rating"></i>
+                                    </label>
+                                    <div class="cia-inline">
+                                        <div class="cia-item"><span class="cia-caption">C</span>
+                                            <select class="form-select" id="ciaC">
+                                                <option value="">1</option>
+                                                <option>1</option>
+                                                <option>2</option>
+                                                <option>3</option>
+                                                <option>4</option>
+                                                <option>5</option>
+                                            </select>
+                                        </div>
+                                        <div class="cia-item"><span class="cia-caption">I</span>
+                                            <select class="form-select" id="ciaI">
+                                                <option value="">1</option>
+                                                <option>1</option>
+                                                <option>2</option>
+                                                <option>3</option>
+                                                <option>4</option>
+                                                <option>5</option>
+                                            </select>
+                                        </div>
+                                        <div class="cia-item"><span class="cia-caption">A</span>
+                                            <select class="form-select" id="ciaA">
+                                                <option value="">1</option>
+                                                <option>1</option>
+                                                <option>2</option>
+                                                <option>3</option>
+                                                <option>4</option>
+                                                <option>5</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label class="form-label">Asset ID</label>
+                                    <input type="text" class="form-input" id="assetId" placeholder="Enter Asset ID">
+                                </div>
+
+                                <div class="form-group">
+                                    <label class="form-label">Classification</label>
+                                    <select class="form-select" id="classification">
+                                        <option>Restricted</option>
+                                        <option>Confidential</option>
+                                        <option>Internal</option>
+                                        <option>Public</option>
+                                    </select>
+                                </div>
+
+                                <!-- Segment Field -->
+                                <div id="segmentFieldContainer" style="margin-top: 1rem;"></div>
+
+                                <div class="form-group">
+                                    <label class="form-label" style="display:flex; align-items:center; gap:.5rem;">
+                                        <input type="checkbox" id="autoLocalRules"> Automatically Control Local Rules
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+                
+                <!-- Custom Fields Section -->
+                <div class="form-section" id="customFieldsSection">
+                    <div class="section-title">CUSTOM FIELDS</div>
+                    <div id="customFieldsContainer"></div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="assets/js/config.js"></script>
+    <script src="assets/js/api-service.js"></script>
+    <script src="assets/js/admin-panel/admin-notifications.js"></script>
+    <script src="assets/js/global-lock-ui.js"></script>
+    <script src="assets/js/segments-cube-panel.js"></script>
+    <script src="assets/js/main.js"></script>
+    <script src="assets/js/initSearch.js"></script>
+    <script src="assets/js/custom-fields.js"></script>
+    <script src="assets/js/segment-field.js"></script>
+    <script src="assets/js/dfcr-utils.js"></script>
+    <script src="assets/js/advanced-rich-text-editor.js"></script>
+    <script src="assets/js/system.js"></script>
+    <script src="assets/js/header.js"></script>
+</body>
+</html>
+
+

@@ -1,0 +1,433 @@
+/* Document Upload Component Styles */
+
+.document-upload-section {
+    margin: 20px 0;
+    padding: 20px;
+    background: var(--card-bg, #fff);
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.upload-header h4 {
+    margin: 0 0 20px 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary, #333);
+}
+
+.upload-methods {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.upload-method {
+    flex: 1;
+    padding: 30px 20px;
+    border: 2px dashed var(--border-color, #ddd);
+    border-radius: 8px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background: var(--bg-light, #f9f9f9);
+}
+
+.upload-method:hover {
+    border-color: var(--primary-color, #4CAF50);
+    background: var(--bg-hover, #f0f0f0);
+}
+
+.upload-method.drag-over {
+    border-color: var(--primary-color, #4CAF50);
+    background: var(--primary-light, #e8f5e9);
+}
+
+.upload-method i {
+    display: block;
+    font-size: 32px;
+    margin-bottom: 10px;
+    color: var(--icon-color, #666);
+}
+
+.upload-method span {
+    display: block;
+    font-size: 14px;
+    color: var(--text-secondary, #666);
+}
+
+/* Upload Form */
+.upload-form {
+    margin-top: 20px;
+    padding: 20px;
+    border: 1px solid var(--border-color, #ddd);
+    border-radius: 8px;
+    background: var(--form-bg, #fafafa);
+}
+
+.form-group {
+    margin-bottom: 15px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 500;
+    font-size: 14px;
+    color: var(--text-primary, #333);
+}
+
+.form-group .required {
+    color: #f44336;
+}
+
+.form-input {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid var(--border-color, #ddd);
+    border-radius: 4px;
+    font-size: 14px;
+    font-family: inherit;
+}
+
+.form-input:focus {
+    outline: none;
+    border-color: var(--primary-color, #4CAF50);
+}
+
+.error-message {
+    display: block;
+    margin-top: 5px;
+    font-size: 12px;
+    color: #f44336;
+}
+
+.form-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-primary {
+    background: var(--primary-color, #4CAF50);
+    color: white;
+}
+
+.btn-primary:hover {
+    background: var(--primary-dark, #45a049);
+}
+
+.btn-primary:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+}
+
+.btn-secondary {
+    background: var(--secondary-color, #757575);
+    color: white;
+}
+
+.btn-secondary:hover {
+    background: var(--secondary-dark, #616161);
+}
+
+/* Progress Bar */
+.progress-bar {
+    width: 100%;
+    height: 8px;
+    background: #e0e0e0;
+    border-radius: 4px;
+    overflow: hidden;
+    margin: 10px 0;
+}
+
+.progress-fill {
+    height: 100%;
+    background: var(--primary-color, #4CAF50);
+    width: 0%;
+    transition: width 0.3s ease;
+}
+
+#progressText {
+    display: block;
+    text-align: center;
+    font-size: 14px;
+    color: var(--text-secondary, #666);
+}
+
+/* Upload Message */
+.upload-message {
+    margin-top: 15px;
+    padding: 10px;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.upload-message.success {
+    background: #e8f5e9;
+    color: #2e7d32;
+    border: 1px solid #81c784;
+}
+
+.upload-message.error {
+    background: #ffebee;
+    color: #c62828;
+    border: 1px solid #ef5350;
+}
+
+/* URL Modal */
+#documentEditModal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.5);
+    z-index: 12000;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    box-sizing: border-box;
+}
+
+#urlModal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.5);
+    z-index: 12000;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    box-sizing: border-box;
+}
+
+#urlModal .modal-content,
+#documentEditModal .modal-content {
+    background: white;
+    border-radius: 8px;
+    width: 90%;
+    max-width: 800px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    display: flex;
+    flex-direction: column;
+}
+
+#urlModal .modal-header,
+#documentEditModal .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    border-bottom: 1px solid var(--border-color, #ddd);
+}
+
+#urlModal .modal-header h3,
+#documentEditModal .modal-header h3 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+}
+
+#urlModal .close-btn,
+#documentEditModal .close-btn {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: var(--text-secondary, #666);
+}
+
+#urlModal .close-btn:hover,
+#documentEditModal .close-btn:hover {
+    color: var(--text-primary, #333);
+}
+
+#urlModal .modal-body,
+#documentEditModal .modal-body {
+    padding: 20px;
+    overflow-y: auto;
+}
+
+.url-entry {
+    padding: 20px;
+    margin-bottom: 20px;
+    border: 1px solid var(--border-color, #ddd);
+    border-radius: 8px;
+    background: var(--bg-light, #f9f9f9);
+}
+
+.url-entry h4 {
+    margin: 0 0 15px 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary, #333);
+}
+
+#urlModal .modal-footer,
+#documentEditModal .modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    padding: 20px;
+    border-top: 1px solid var(--border-color, #ddd);
+}
+
+/* Document Table Component Styles */
+
+.document-table-section {
+    margin: 20px 0;
+    position: relative;
+    z-index: 1;
+    isolation: isolate;
+}
+
+.table-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 15px;
+    background: var(--header-bg, #f5f5f5);
+    border-radius: 8px 8px 0 0;
+    border: 1px solid var(--border-color, #ddd);
+}
+
+.collapse-btn {
+    background: none;
+    border: none;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    color: var(--text-primary, #333);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.collapse-btn i {
+    font-size: 12px;
+}
+
+.record-count {
+    font-size: 14px;
+    color: var(--text-secondary, #666);
+}
+
+.settings-btn {
+    background: none;
+    border: none;
+    font-size: 16px;
+    cursor: pointer;
+    color: var(--icon-color, #666);
+    padding: 5px;
+}
+
+.settings-btn:hover {
+    color: var(--primary-color, #4CAF50);
+}
+
+.table-content {
+    border: 1px solid var(--border-color, #ddd);
+    border-top: none;
+    border-radius: 0 0 8px 8px;
+    overflow: hidden;
+}
+
+.document-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+}
+
+.document-table thead {
+    background: var(--table-header-bg, #fafafa);
+}
+
+.document-table th {
+    padding: 12px;
+    text-align: left;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary, #333);
+    border-bottom: 2px solid var(--border-color, #ddd);
+}
+
+.document-table td {
+    padding: 12px;
+    font-size: 14px;
+    color: var(--text-secondary, #666);
+    border-bottom: 1px solid var(--border-light, #f0f0f0);
+}
+
+.document-table tbody tr:hover {
+    background: var(--row-hover, #f9f9f9);
+}
+
+.document-table .no-data {
+    text-align: center;
+    color: var(--text-muted, #999);
+    font-style: italic;
+}
+
+.file-link {
+    color: var(--link-color, #1976d2);
+    text-decoration: none;
+}
+
+.file-link:hover {
+    text-decoration: underline;
+}
+
+.edit-btn {
+    background: none;
+    border: none;
+    color: var(--primary-color, #1976d2);
+    cursor: pointer;
+    font-size: 16px;
+    padding: 5px;
+    margin-right: 8px;
+}
+
+.edit-btn:hover {
+    color: var(--link-color, #1565c0);
+}
+
+.delete-btn {
+    background: none;
+    border: none;
+    color: #f44336;
+    cursor: pointer;
+    font-size: 16px;
+    padding: 5px;
+}
+
+.delete-btn:hover {
+    color: #d32f2f;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .upload-methods {
+        flex-direction: column;
+    }
+    
+    #urlModal .modal-content,
+    #documentEditModal .modal-content {
+        width: 95%;
+    }
+}

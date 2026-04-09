@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title data-i18n="committee.pageTitleEdit">BUDG - Edit Committee</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../../assets/css/main.css">
+    <link rel="stylesheet" href="../../view/view.css">
+    <link rel="stylesheet" href="../../assets/css/committee.css">
+    <link rel="stylesheet" href="../../view/committee/committee.css">
+    <link rel="stylesheet" href="../../view/edit/edit-shared.css">
+    <link rel="stylesheet" href="../../assets/css/stakeholder.css">
+    <link rel="stylesheet" href="../../assets/css/custom-fields.css">
+    <link rel="stylesheet" href="../../assets/css/global-lock-ui.css">
+    <link rel="stylesheet" href="../../assets/css/advanced-rich-text-editor.css">
+    <!-- RTL styles for Arabic (disabled by default, enabled by i18n.js) -->
+    <link rel="stylesheet" href="../../assets/css/rtl.css" id="rtl-styles" disabled>
+    <link rel="stylesheet" href="../../view/components/document-upload-component.css">
+
+    <style>
+        /* Committee Edit Page Styles - matching Capability/Legal Entity */
+        
+        /* Tab content visibility */
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+    </style>
+
+    <script>
+        // Apply theme immediately to prevent flash of unstyled content
+
+        (function() {
+            const savedTheme = localStorage.getItem('budg-theme') || 'light';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+        })();
+    </script>
+    <script src="/assets/i18n/head-locale.js"></script>
+    <script src="../../assets/i18n/i18n.js"></script>
+</head>
+<body class="committee-page edit-page">
+    <!-- Header Navigation -->
+    <header class="header"></header>
+
+    <!-- Page Header -->
+    <div class="page-header">
+        <div class="page-header-container">
+            <div class="page-title">
+                <div class="page-icon">
+                    <i class="fas fa-users"></i>
+                </div>
+                <div class="page-title-text">
+                    <div class="page-title-main" id="pageTitle" data-i18n="committee.editTitle">Edit Committee</div>
+                    <div class="page-title-sub" data-i18n="committee.title">Committee</div>
+                </div>
+            </div>
+            <!-- Action Buttons -->
+            <div class="form-actions">
+                <button type="button" class="btn btn-secondary" id="cancelBtn" data-i18n="button.close">Close</button>
+                <button type="button" class="btn btn-primary" id="saveBtn" data-i18n="button.save">Save</button>
+                <button type="button" class="btn btn-success" id="saveAndCloseBtn" data-i18n="button.saveAndClose">Save & Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="content-card">
+            <div class="content-header">
+                <div class="tab-container">
+                    <button class="tab active" data-tab="view" data-i18n="committee.summary">SUMMARY</button>
+                    <button class="tab" data-tab="relationships" data-i18n="tab.relationships">RELATIONSHIPS</button>
+                    <button class="tab" data-tab="stakeholders" data-i18n="tab.stakeholders">STAKEHOLDERS</button>
+                    <button class="tab" data-tab="impact" data-i18n="tab.impact">IMPACT</button>
+                </div>
+            </div>
+            <div class="content-body">
+                <!-- Committee Details Tab -->
+                <div id="committeeViewContainer" class="edit-form-container">
+                    <form id="committeeForm">
+                        <div class="form-row">
+                            <!-- Left Column: Definition -->
+                            <div class="form-section">
+                                <h3 class="section-title definition" data-i18n="committee.definition">DEFINITION</h3>
+                                    <div class="form-fields-container">
+                                        <div class="form-group">
+                                            <label class="form-label" data-i18n="committee.primaryName">Primary Name <span class="required">*</span></label>
+                                            <input type="text" class="form-input" id="primaryNameInput" data-i18n-placeholder="committee.edit.primaryNamePlaceholder" placeholder="Enter Primary Name">
+                                            <span class="field-error" id="primaryNameError" style="display:none"></span>
+                                        </div>
+
+                                        <div class="form-group">
+                                            <label class="form-label" data-i18n="committee.parentCommittee">Parent</label>
+                                            <select class="form-select" id="parentClientSelect">
+                                                <option value="" data-i18n="committee.edit.selectParentCommittee">Select Parent Committee</option>
+                                            </select>
+                                        </div>
+
+                                        <div class="form-group">
+                                            <label class="form-label" data-i18n="label.attributeRef">Ref.</label>
+                                            <input type="text" class="form-input" id="refNumberInput" data-i18n-placeholder="committee.edit.refPlaceholder" placeholder="Auto-generated if left empty">
+                                        </div>
+
+                                        <div class="form-group full-width">
+                                            <label class="form-label" data-i18n="committee.description">Description <span class="required">*</span></label>
+                                            <textarea class="form-input form-textarea" id="descriptionInput" data-i18n-placeholder="committee.edit.descriptionPlaceholder" placeholder="Enter Description"></textarea>
+                                            <button type="button" class="editor-button" data-i18n="button.showEditor">Show Editor</button>
+                                            <span class="field-error" id="descriptionError" style="display:none"></span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Right Column: Classifications -->
+                                <div class="form-section">
+                                    <h3 class="section-title classifications" data-i18n="committee.classifications">CLASSIFICATIONS</h3>
+                                    <div class="form-fields-container classifications-vertical">
+                                        <div class="form-group">
+                                            <label class="form-label" data-i18n="committee.budgStatus">BUDG Status <span class="required">*</span></label>
+                                            <select class="form-select" id="statusSelect">
+                                                <option value="" data-i18n="committee.edit.selectStatus">Select Status</option>
+                                            </select>
+                                            <span class="field-error" id="budgStatusError" style="display:none"></span>
+                                        </div>
+
+                                        <div class="form-group">
+                                            <label class="form-label" data-i18n="committee.budgViewing">BUDG Viewing <span class="required">*</span></label>
+                                            <select class="form-select" id="viewingSelect">
+                                                <option value="" data-i18n="committee.edit.selectViewing">Select Viewing</option>
+                                            </select>
+                                            <span class="field-error" id="budgViewingError" style="display:none"></span>
+                                        </div>
+
+                                        <div class="form-group">
+                                            <label class="form-label" data-i18n="committee.lifecycle">Lifecycle <span class="required">*</span></label>
+                                            <select class="form-select" id="lifecycleSelect">
+                                                <option value="" data-i18n="committee.edit.selectLifecycle">Select Lifecycle</option>
+                                            </select>
+                                            <span class="field-error" id="lifecycleError" style="display:none"></span>
+                                        </div>
+
+                                        <div class="form-group">
+                                            <label class="form-label" data-i18n="committee.classification">Classification <span class="required">*</span></label>
+                                            <select class="form-select" id="classificationSelect">
+                                                <option value="" data-i18n="committee.edit.selectClassification">Select Classification</option>
+                                            </select>
+                                            <span class="field-error" id="classificationError" style="display:none"></span>
+                                        </div>
+
+                                        <div class="form-group">
+                                            <label class="form-label" data-i18n="committee.committeeType">Committee Type <span class="required">*</span></label>
+                                            <select class="form-select" id="committeeTypeSelect">
+                                                <option value="" data-i18n="committee.edit.selectCommitteeType">Select Committee Type</option>
+                                            </select>
+                                            <span class="field-error" id="committeeTypeError" style="display:none"></span>
+                                        </div>
+
+                                        <!-- Segment Field -->
+                                        <div id="segmentFieldContainer"></div>
+                                    </div>
+                            </div>
+                        </div>
+
+                        <!-- Custom Fields Section - Full Width (hidden when no custom fields; custom-fields.js toggles visibility) -->
+                        <div class="form-section" id="customFieldsSection" hidden>
+                            <h3 class="section-title" data-i18n="committee.customFields">CUSTOM FIELDS</h3>
+                            <div class="form-fields-container">
+                                <div id="customFieldsContainer"></div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                
+                
+                <!-- Relationships Tab -->
+                <div id="committeeRelationshipsContainer" class="view-grid" style="display:none;">
+                    <div class="view-section" style="grid-column:1/-1;">
+                        <div class="relationships-container">
+                            <div class="relationships-sub-tabs">
+                                <button class="sub-tab active" data-sub-tab="hierarchy" data-i18n="committee.hierarchy">Hierarchy</button>
+                                <button class="sub-tab" data-sub-tab="relationships" data-i18n="committee.relationships">Relationships</button>
+                            </div>
+                            <div class="relationships-content">
+                                <div id="hierarchyContent" class="sub-tab-content active">
+                                    <div class="relationships-hierarchy">
+                                        <div class="hierarchy-header">
+                                            <div class="hierarchy-title" data-i18n="committee.committeeHierarchy">COMMITTEE HIERARCHY</div>
+                                            <div class="hierarchy-actions">
+                                                <label style="display:flex;align-items:center;gap:.5rem;font-size:.85rem;color:var(--text-muted,#6b7280);">
+                                                    <input type="checkbox" checked style="margin-right:.3rem;">
+                                                    <span data-i18n="committee.showRelationships">Show Relationships</span>
+                                                </label>
+                                                <button type="button" class="btn btn-secondary" id="editBtn2"><i class="fas fa-cog"></i></button>
+                                            </div>
+                                        </div>
+                                        <table class="hierarchy-table">
+                                            <thead>
+                                                <tr>
+                                                    <th><div class="th-content"><span>Committee</span><i class="fas fa-sort"></i></div></th>
+                                                    <th><div class="th-content"><span>Description</span><i class="fas fa-sort"></i></div></th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="relationshipsTbody">
+                                                <tr><td colspan="2" style="text-align:center;padding:2rem;color:var(--text-muted,#6b7280);">Loading...</td></tr>
+                                            </tbody>
+                                        </table>
+                                        <div class="hierarchy-footer" id="hierarchyFooter">
+                                            0 records
+                                        </div>
+                                    </div>
+                                </div>
+                                <div id="relationshipsContent" class="sub-tab-content">
+                                    <div class="relationships-hierarchy">
+                                        <div class="hierarchy-header">
+                                            <div class="hierarchy-title" data-i18n="committee.relationships">RELATIONSHIPS</div>
+                                            <div class="hierarchy-actions">
+                                                <button type="button" class="btn btn-secondary"><i class="fas fa-cog"></i><i class="fas fa-chevron-down" style="margin-left:.3rem;font-size:.7rem;"></i></button>
+                                            </div>
+                                        </div>
+                                        <div class="data-table-wrapper">
+                                            <table class="data-table">
+                                                <thead>
+                                                    <tr>
+                                                        <th><div class="th-content"><span>Relationship Type</span><i class="fas fa-sort"></i></div></th>
+                                                        <th><div class="th-content"><span>Committee</span><i class="fas fa-sort"></i></div></th>
+                                                        <th><div class="th-content"><span>Committee Type</span><i class="fas fa-sort"></i></div></th>
+                                                        <th><div class="th-content"><span>Actions</span></div></th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody id="relationshipsTableBody">
+                                                    <tr><td colspan="4" style="text-align:center;padding:2rem;color:var(--text-muted,#6b7280);">Loading...</td></tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                        <div class="hierarchy-footer">
+                                            1 record
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Stakeholders Tab -->
+                <div id="committeeStakeholdersContainer" class="view-grid" style="display:none;"></div>
+                
+                <!-- Impact Tab -->
+                <div id="impactTab" class="tab-content" style="display:none;">
+                    <div id="impact" class="relationships-container">
+                        <div class="relationships-sub-tabs">
+                            <button class="sub-tab active" data-sub-tab="capability" data-i18n="committee.capability">Capability</button>
+                        </div>
+                        <div class="relationships-content">
+                            <div id="impactCapabilityContent" class="sub-tab-content active">
+                                <div class="relationships-hierarchy">
+                                    <div class="hierarchy-header">
+                                        <div class="hierarchy-title">CAPABILITY</div>
+                                        <div class="hierarchy-actions">
+                                            <button type="button" class="btn btn-secondary">
+                                                <i class="fas fa-list"></i> List
+                                            </button>
+                                            <button type="button" class="btn btn-secondary">
+                                                <i class="fas fa-search-plus"></i> Search and Add
+                                            </button>
+                                            <button type="button" class="btn btn-secondary">
+                                                <i class="fas fa-cog"></i><i class="fas fa-chevron-down"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="data-table-wrapper">
+                                        <table class="data-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>
+                                                        <div class="th-content">
+                                                            <span data-i18n="committee.relationshipType">Relationship Type</span>
+                                                            <i class="fas fa-sort"></i>
+                                                        </div>
+                                                    </th>
+                                                    <th>
+                                                        <div class="th-content">
+                                                            <span data-i18n="committee.capability">Capability</span>
+                                                            <i class="fas fa-sort"></i>
+                                                        </div>
+                                                    </th>
+                                                    <th>
+                                                        <div class="th-content" style="justify-content: center;">
+                                                            <span data-i18n="committee.action">Action</span>
+                                                        </div>
+                                                    </th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="capabilityImpactTableBody">
+                                                <tr><td colspan="3" style="text-align:center;padding:2rem;color:var(--text-muted,#6b7280);">Loading...</td></tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    <div class="hierarchy-footer" id="capabilityImpactFooter">
+                                        0 records
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="../../assets/js/config.js"></script>
+    <script src="../../assets/js/api-service.js"></script>
+    <script src="../../assets/js/lock-manager.js"></script>
+    <script src="../../assets/js/lock-init-helper.js"></script>
+    <script src="../../assets/js/global-lock-ui.js"></script>
+    <script src="../../assets/js/main.js"></script>
+    <script src="../../assets/js/initSearch.js"></script>
+    <script src="../../assets/js/custom-fields.js"></script>
+    <script src="../../assets/js/segment-field.js"></script>
+    <script src="../../view/committee/committee-stakeholder-edit.js"></script>
+    <script src="../../view/committee/committee-impact-edit.js"></script>
+
+    <script src="../../assets/js/advanced-rich-text-editor.js"></script>
+    <script src="../../view/committee/committee-edit.js"></script>
+    <script src="../../assets/js/header.js"></script>
+</body>
+</html>
+

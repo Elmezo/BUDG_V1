@@ -1,0 +1,344 @@
+<nav class="nav-container">
+    <a href="/index.html" class="logo">
+        <div class="logo-icon">
+            <i class="fas fa-database"></i>
+        </div>
+        <span class="logo-text">BU<span class="highlight">DG</span></span>
+    </a>
+
+    <div class="nav-center">
+        <div class="nav-item">
+            <a href="/search.html" class="nav-link">
+                <i class="fas fa-search"></i>
+                <span data-i18n="nav.search">Search</span>
+            </a>
+        </div>
+
+        <div class="nav-item">
+            <a href="/search.html?view=maps" class="nav-link">
+                <i class="fas fa-map"></i>
+                <span data-i18n="nav.maps">Maps</span>
+            </a>
+        </div>
+
+        <div class="nav-item" id="itemsNavItem" style="display: none;">
+            <a href="#" class="nav-link" id="myItemsDropdownToggle">
+                <i class="fas fa-box"></i>
+                <span data-i18n="nav.myItems">My Items</span>
+                <i class="fas fa-chevron-down"></i>
+            </a>
+            <div class="dropdown-menu" id="myItemsDropdown">
+                <div class="dropdown-item has-submenu" data-submenu="my-items-recent">
+                    <span data-i18n="myItems.recent">Recent</span>
+                    <div class="sub-dropdown-menu" id="myItemsRecentSubmenu">
+                        <div class="following-filter-bar">
+                            <div class="filter-input-container">
+                                <i class="fas fa-search filter-icon"></i>
+                                <input type="text" id="recentFilter" placeholder="Filter" class="filter-input" data-i18n-placeholder="myItems.filterPlaceholder">
+                            </div>
+                            <div class="filter-dropdown-container">
+                                <button class="filter-dropdown-btn" id="recentScopeBtn">
+                                    <i class="fas fa-list"></i>
+                                    <span data-i18n="myItems.inAll">in All</span>
+                                    <i class="fas fa-chevron-down"></i>
+                                </button>
+                                <div class="facet-dropdown-menu" id="recentFacetDropdown" style="display: none;">
+                                    <div class="facet-dropdown-content"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="sub-dropdown-items recent-items"></div>
+                        <div class="pagination-dots" id="recentPaginationDots" style="display: none;">
+                            <div class="pagination-dot active" data-page="1"></div>
+                            <div class="pagination-dot" data-page="2"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="dropdown-item has-submenu" data-submenu="my-items-following">
+                    <span data-i18n="myItems.following">Following</span>
+                    <div class="sub-dropdown-menu" id="myItemsFollowingSubmenu">
+                        <div class="following-filter-bar">
+                            <div class="filter-input-container">
+                                <i class="fas fa-search filter-icon"></i>
+                                <input type="text" id="followingFilter" placeholder="Filter" class="filter-input" data-i18n-placeholder="myItems.filterPlaceholder">
+                            </div>
+                            <div class="filter-dropdown-container">
+                                <button class="filter-dropdown-btn" id="followingScopeBtn">
+                                    <i class="fas fa-list"></i>
+                                    <span data-i18n="myItems.inAll">in All</span>
+                                    <i class="fas fa-chevron-down"></i>
+                                </button>
+                                <div class="facet-dropdown-menu" id="followingFacetDropdown" style="display: none;">
+                                    <div class="facet-dropdown-content"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="sub-dropdown-items following-items"></div>
+                        <div class="pagination-dots" id="followingPaginationDots" style="display: none;">
+                            <div class="pagination-dot active" data-page="1"></div>
+                            <div class="pagination-dot" data-page="2"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="dropdown-item has-submenu" data-submenu="my-items-roles">
+                    <span data-i18n="myItems.roles">Roles</span>
+                    <div class="sub-dropdown-menu" id="myItemsRolesSubmenu">
+                        <div class="following-filter-bar">
+                            <div class="filter-input-container">
+                                <i class="fas fa-search filter-icon"></i>
+                                <input type="text" id="rolesFilter" placeholder="Filter" class="filter-input" data-i18n-placeholder="myItems.filterPlaceholder">
+                            </div>
+                            <div class="filter-dropdown-container">
+                                <button class="filter-dropdown-btn" id="rolesScopeBtn">
+                                    <i class="fas fa-list"></i>
+                                    <span data-i18n="myItems.inAll">in All</span>
+                                    <i class="fas fa-chevron-down"></i>
+                                </button>
+                                <div class="facet-dropdown-menu" id="rolesFacetDropdown" style="display: none;">
+                                    <div class="facet-dropdown-content"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="sub-dropdown-items roles-items"></div>
+                        <div class="pagination-dots" id="rolesPaginationDots" style="display: none;">
+                            <div class="pagination-dot active" data-page="1"></div>
+                            <div class="pagination-dot" data-page="2"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="nav-item" id="createNavItem" style="display: none;">
+            <a href="#" class="nav-link" id="createDropdownToggle">
+                <i class="fas fa-plus"></i>
+                <span data-i18n="nav.create">Create</span>
+                <i class="fas fa-chevron-down"></i>
+            </a>
+            <div class="dropdown-menu" id="createDropdown">
+                <div class="dropdown-item has-submenu" data-submenu="business">
+                    <span data-i18n="label.group.businessChange">Business & Change</span>
+                    <div class="sub-dropdown-menu" id="business-submenu">
+                        <a href="/committee.html" class="sub-dropdown-item">
+                            <i class="fas fa-users"></i> <span data-i18n="facet.committee">Committee</span>
+                            <i class="fas fa-question-circle menu-tooltip-icon text-muted ml-2"
+                                data-tip-link="menu-committee-tip"></i>
+                        </a>
+                        <a href="/policy.html" class="sub-dropdown-item">
+                            <i class="fas fa-file-alt"></i> <span data-i18n="facet.policy">Policy</span>
+                            <i class="fas fa-question-circle menu-tooltip-icon text-muted ml-2"
+                                data-tip-link="menu-policy-tip"></i>
+                        </a>
+                        <a href="/process.html" class="sub-dropdown-item">
+                            <i class="fas fa-sync-alt"></i> <span data-i18n="facet.process">Process</span>
+                            <i class="fas fa-question-circle menu-tooltip-icon text-muted ml-2"
+                                data-tip-link="menu-process-tip"></i>
+                        </a>
+                        <a href="/project.html" class="sub-dropdown-item">
+                            <i class="fas fa-folder"></i> <span data-i18n="nav.createMenu.project">Project</span>
+                            <i class="fas fa-question-circle menu-tooltip-icon text-muted ml-2"
+                                data-tip-link="menu-project-tip"></i>
+                        </a>
+                    </div>
+                </div>
+                <div class="dropdown-item has-submenu" data-submenu="data">
+                    <span data-i18n="label.group.dataTechnology">Data & Technology</span>
+                    <div class="sub-dropdown-menu" id="data-submenu">
+                        <a href="/dataset.html" class="sub-dropdown-item">
+                            <i class="fas fa-database"></i> <span data-i18n="nav.createMenu.dataSet">Data Set</span>
+                            <i class="fas fa-question-circle menu-tooltip-icon text-muted ml-2"
+                                data-tip-link="menu-dataset-tip"></i>
+                        </a>
+                        <a href="/system.html" class="sub-dropdown-item">
+                            <i class="fas fa-desktop"></i> <span data-i18n="facet.system">System</span>
+                            <i class="fas fa-question-circle menu-tooltip-icon text-muted ml-2"
+                                data-tip-link="menu-system-tip"></i>
+                        </a>
+                        <a href="/system-interface.html" class="sub-dropdown-item">
+                            <i class="fas fa-plug"></i> <span data-i18n="nav.createMenu.systemInterface">System Interface</span>
+                            <i class="fas fa-question-circle menu-tooltip-icon text-muted ml-2"
+                                data-tip-link="menu-interface-tip"></i>
+                        </a>
+                        <a href="/glossary.html" class="sub-dropdown-item">
+                            <i class="fas fa-book"></i> <span data-i18n="facet.glossary">Glossary</span>
+                            <i class="fas fa-question-circle menu-tooltip-icon text-muted ml-2"
+                                data-tip-link="menu-glossary-tip"></i>
+                        </a>
+                    </div>
+                </div>
+                <div class="dropdown-item has-submenu" data-submenu="organizational">
+                    <span data-i18n="label.group.organizational">Organizational</span>
+                    <div class="sub-dropdown-menu" id="organizational-submenu">
+                        <a href="/business-area.html" class="sub-dropdown-item">
+                            <i class="fas fa-building"></i> <span data-i18n="facet.businessArea">Business Area</span>
+                            <i class="fas fa-question-circle menu-tooltip-icon text-muted ml-2"
+                                data-tip-link="menu-business-tip"></i>
+                        </a>
+                        <a href="/capability.html" class="sub-dropdown-item">
+                            <i class="fas fa-tools"></i> <span data-i18n="facet.capability">Capability</span>
+                            <i class="fas fa-question-circle menu-tooltip-icon text-muted ml-2"
+                                data-tip-link="menu-capability-tip"></i>
+                        </a>
+                        <a href="/client.html" class="sub-dropdown-item">
+                            <i class="fas fa-user"></i> <span data-i18n="facet.client">Client</span>
+                            <i class="fas fa-question-circle menu-tooltip-icon text-muted ml-2"
+                                data-tip-link="menu-client-tip"></i>
+                        </a>
+                        <a href="/legal-entity.html" class="sub-dropdown-item">
+                            <i class="fas fa-gavel"></i> <span data-i18n="facet.legalEntity">Legal Entity</span>
+                            <i class="fas fa-question-circle menu-tooltip-icon text-muted ml-2"
+                                data-tip-link="menu-legalentity-tip"></i>
+                        </a>
+                        <a href="/org-unit.html" class="sub-dropdown-item">
+                            <i class="fas fa-sitemap"></i> <span data-i18n="facet.orgUnit">Org Unit</span>
+                            <i class="fas fa-question-circle menu-tooltip-icon text-muted ml-2"
+                                data-tip-link="menu-orgunit-tip"></i>
+                        </a>
+                        <a href="/people.html" class="sub-dropdown-item">
+                            <i class="fas fa-users"></i> <span data-i18n="facet.people">People</span>
+                            <i class="fas fa-question-circle menu-tooltip-icon text-muted ml-2"
+                                data-tip-link="menu-people-tip"></i>
+                        </a>
+                        <a href="/product.html" class="sub-dropdown-item">
+                            <i class="fas fa-box"></i> <span data-i18n="facet.product">Product</span>
+                            <i class="fas fa-question-circle menu-tooltip-icon text-muted ml-2"
+                                data-tip-link="menu-product-tip"></i>
+                        </a>
+                    </div>
+                </div>
+                <div class="dropdown-item has-submenu" data-submenu="regulatory">
+                    <span data-i18n="label.group.regulatory">Regulatory</span>
+                    <div class="sub-dropdown-menu" id="regulatory-submenu">
+                        <a href="/regulation.html" class="sub-dropdown-item">
+                            <i class="fas fa-balance-scale"></i> <span data-i18n="facet.regulation">Regulation</span>
+                            <i class="fas fa-question-circle menu-tooltip-icon text-muted ml-2"
+                                data-tip-link="menu-regulation-tip"></i>
+                        </a>
+                        <a href="/regulatorytheme.html" class="sub-dropdown-item">
+                            <i class="fas fa-file-contract"></i> <span data-i18n="facet.regulatoryTheme">Regulatory Theme</span>
+                            <i class="fas fa-question-circle menu-tooltip-icon text-muted ml-2"
+                                data-tip-link="menu-regulatorytheme-tip"></i>
+                        </a>
+                        <a href="/regulator.html" class="sub-dropdown-item">
+                            <i class="fas fa-landmark"></i> <span data-i18n="facet.regulator">Regulator</span>
+                            <i class="fas fa-question-circle menu-tooltip-icon text-muted ml-2"
+                                data-tip-link="menu-regulator-tip"></i>
+                        </a>
+                        <a href="/geography.html" class="sub-dropdown-item">
+                            <i class="fas fa-globe"></i> <span data-i18n="facet.geography">Geography</span>
+                            <i class="fas fa-question-circle menu-tooltip-icon text-muted ml-2"
+                                data-tip-link="menu-geography-tip"></i>
+                        </a>
+                    </div>
+                </div>
+                <div class="dropdown-separator"></div>
+                <div class="dropdown-upload-section">
+                    <a href="/bulk-upload.html" class="dropdown-item upload-item"><i class="fas fa-upload"></i> <span data-i18n="nav.createMenu.uploadFromFile">Upload from file</span></a>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="nav-right">
+        <div class="search-container">
+            <i class="fas fa-search search-icon"></i>
+            <input type="text" class="search-input" placeholder="Search...">
+        </div>
+        <button class="global-lock-toggle" id="globalLockToggle" title="My Locked Items" style="display: none; visibility: hidden;">
+            <i class="fas fa-lock"></i>
+            <span class="lock-badge" id="globalLockBadge"></span>
+        </button>
+        <button class="segments-cube-toggle" id="segmentsCubeToggle" title="My Accessible Segments" style="display: none; visibility: hidden;">
+            <i class="fas fa-cube"></i>
+            <span class="segments-badge" id="segmentsBadge"></span>
+        </button>
+        <button class="notification-toggle" id="notificationToggle" title="Notifications" style="display: none; visibility: hidden;">
+            <i class="fas fa-bell"></i>
+            <span class="notification-badge" id="notificationBadge">0</span>
+        </button>
+        <button class="theme-toggle" id="themeToggle" style="display: none;">
+            <i class="fas fa-moon"></i>
+        </button>
+
+        <div class="auth-buttons">
+            <div class="user-profile" id="userProfile" style="display: none;">
+                <div class="user-avatar" id="userAvatar">
+                    <img id="userAvatarImg" src="" alt="User Avatar" style="display: none;">
+                    <span id="userAvatarText">U</span>
+                </div>
+                <div class="profile-dropdown" id="profileDropdown">
+                    <div class="profile-header">
+                        <div class="user-avatar">
+                            <img id="userAvatarImgDropdown" src="" alt="User Avatar" style="display: none;">
+                            <span id="userAvatarTextDropdown">U</span>
+                        </div>
+                        <div class="user-info">
+                            <div class="user-name" id="userName">Loading...</div>
+                            <div class="user-role" id="userRole">Loading...</div>
+                        </div>
+                    </div>
+                    <div class="profile-menu">
+                        <a href="#" class="profile-item" id="myProfileLink"><i class="fas fa-user"></i> <span data-i18n="profile.myProfile">My Profile</span></a>
+                        <a href="#" class="profile-item"><i class="fas fa-cog"></i> <span data-i18n="profile.settings">Settings</span></a>
+                        <div class="profile-item profile-item-language has-submenu" id="profileLanguageItem" tabindex="0">
+                            <i class="fas fa-language"></i>
+                            <span class="profile-item-label" data-i18n="profile.language">Language</span>
+                            <i class="fas fa-chevron-right profile-submenu-chevron"></i>
+                            <div class="profile-submenu language-dropdown-inline" id="languageDropdownInProfile">
+                                <a href="#" class="language-option active" data-lang="en">
+                                    <span class="lang-flag">🇬🇧</span>
+                                    <span class="lang-name">English</span>
+                                </a>
+                                <a href="#" class="language-option" data-lang="ar">
+                                    <span class="lang-flag">🇸🇦</span>
+                                    <span class="lang-name">العربية</span>
+                                </a>
+                            </div>
+                        </div>
+                        <a href="#" class="profile-item" id="profileThemeItem"><i class="fas fa-moon"></i> <span data-i18n="profile.theme">Theme</span></a>
+                        <a href="/admin-panel.html" class="profile-item"><i class="fas fa-bell"></i> <span data-i18n="profile.adminPanel">Admin Panel</span></a>
+
+                        <div class="profile-divider"></div>
+                        <a href="#" class="profile-item" id="logoutButton"><i class="fas fa-sign-out-alt"></i> <span data-i18n="profile.signOut">Sign Out</span></a>
+                    </div>
+                </div>
+            </div>
+            <div class="login-inline login-avatar-wrapper" id="loginInlineContainer" style="position: relative; display: none;">
+                <button class="login-avatar" id="loginButton" type="button" title="Login" aria-label="Login">
+                    <i class="fas fa-sign-in-alt"></i>
+                </button>
+                <div class="dropdown-menu login-dropdown" id="loginDropdown">
+                    <div class="login-dropdown-header">
+                        <h3 class="login-dropdown-title">User Login</h3>
+                        <button type="button" class="login-dropdown-refresh" id="loginDropdownRefresh" title="Refresh" aria-label="Refresh">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                    </div>
+                    <form id="headerLoginForm">
+                        <div class="form-group">
+                            <label for="headerEmail" class="form-label">Your Email:</label>
+                            <div class="form-input-wrap">
+                                <input type="email" id="headerEmail" class="form-input" placeholder="email@domain.com" autocomplete="email">
+                                <i class="fas fa-at form-input-icon"></i>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="headerPassword" class="form-label">Your Password:</label>
+                            <div class="form-input-wrap">
+                                <input type="password" id="headerPassword" class="form-input" placeholder="Password" autocomplete="current-password">
+                                <i class="fas fa-lock form-input-icon"></i>
+                            </div>
+                        </div>
+                        <div id="headerLoginError" class="error-message login-error"></div>
+                        <button id="headerLoginSubmit" type="submit" class="btn btn-primary login-submit-btn">
+                            <span>Login</span>
+                            <i class="fas fa-arrow-right"></i>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <button class="mobile-menu-toggle" id="mobileMenuToggle">
+            <i class="fas fa-bars"></i>
+        </button>
+    </div>
+</nav>

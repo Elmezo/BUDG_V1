@@ -1,0 +1,301 @@
+/* ===============================================
+   MANAGE LOCKS - BUDG Style
+   =============================================== */
+
+.manage-locks-content {
+    background: var(--background-primary);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+/* Header Section */
+.locks-header {
+    background: linear-gradient(135deg, #1b857a 0%, #248567 100%);
+    color: white;
+    padding: 1.5rem 2rem;
+    border-bottom: 3px solid #1a6b5f;
+}
+
+.locks-header h2 {
+    margin: 0 0 0.5rem 0;
+    font-size: 1.75rem;
+    font-weight: 600;
+    color: white;
+}
+
+.locks-header p {
+    margin: 0;
+    font-size: 0.95rem;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+/* Controls Section */
+.locks-controls {
+    padding: 1.25rem 2rem;
+    background: var(--background-secondary);
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+}
+
+.locks-controls .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.625rem 1.25rem;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.locks-controls .btn-primary {
+    background: #248567;
+    color: white;
+}
+
+.locks-controls .btn-primary:hover {
+    background: #1b6b54;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(36, 133, 103, 0.3);
+}
+
+.locks-controls .btn-secondary {
+    background: #5a6c7d;
+    color: white;
+}
+
+.locks-controls .btn-secondary:hover {
+    background: #4a5866;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(90, 108, 125, 0.3);
+}
+
+.locks-controls .btn i {
+    font-size: 0.85rem;
+}
+
+/* Table Container */
+.locks-table-container {
+    padding: 0;
+    overflow-x: auto;
+}
+
+/* Table Styles - BUDG inspired */
+.locks-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    background: var(--background-primary);
+}
+
+.locks-table thead {
+    background: linear-gradient(to bottom, #f8f9fa 0%, #e9ecef 100%);
+    border-bottom: 2px solid #248567;
+}
+
+.locks-table thead tr {
+    border-bottom: 2px solid #248567;
+}
+
+.locks-table thead th {
+    padding: 1rem 1.5rem;
+    text-align: left;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #2c3e50;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+    border-bottom: 2px solid #248567;
+}
+
+.locks-table tbody tr {
+    border-bottom: 1px solid var(--border-color);
+    transition: background-color 0.2s;
+}
+
+.locks-table tbody tr:hover {
+    background: rgba(36, 133, 103, 0.05);
+}
+
+.locks-table tbody tr.permanent {
+    background: rgba(255, 193, 7, 0.05);
+}
+
+.locks-table tbody tr.permanent:hover {
+    background: rgba(255, 193, 7, 0.1);
+}
+
+.locks-table tbody td {
+    padding: 1rem 1.5rem;
+    font-size: 0.9rem;
+    color: var(--text-primary);
+    vertical-align: middle;
+}
+
+.locks-table tbody td:first-child {
+    font-weight: 600;
+    color: #248567;
+}
+
+.locks-table tbody td a {
+    color: #248567;
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.2s;
+}
+
+.locks-table tbody td a:hover {
+    color: #1b6b54;
+    text-decoration: underline;
+}
+
+/* Badge Styles */
+.locks-table .badge {
+    display: inline-block;
+    padding: 0.35rem 0.75rem;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.locks-table .badge-warning {
+    background: #ffc107;
+    color: #856404;
+}
+
+.locks-table .badge-info {
+    background: #17a2b8;
+    color: white;
+}
+
+/* Action Buttons */
+.locks-table .btn-sm {
+    padding: 0.5rem 1rem;
+    font-size: 0.85rem;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.locks-table .btn-danger {
+    background: #dc3545;
+    color: white;
+}
+
+.locks-table .btn-danger:hover {
+    background: #c82333;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(220, 53, 69, 0.3);
+}
+
+.locks-table .btn-sm i {
+    font-size: 0.8rem;
+}
+
+/* Empty/Loading/Error States */
+.locks-table tbody td.loading,
+.locks-table tbody td.no-data,
+.locks-table tbody td.error {
+    text-align: center;
+    padding: 3rem 1.5rem;
+    font-size: 0.95rem;
+    color: #6c757d;
+    font-style: italic;
+}
+
+.locks-table tbody td.error {
+    color: #dc3545;
+}
+
+/* Dark Theme Support */
+[data-theme="dark"] .locks-header {
+    background: linear-gradient(135deg, #1a6b5f 0%, #1b857a 100%);
+    border-bottom-color: #145147;
+}
+
+[data-theme="dark"] .locks-controls {
+    background: var(--background-secondary);
+    border-bottom-color: var(--border-color);
+}
+
+[data-theme="dark"] .locks-table thead {
+    background: linear-gradient(to bottom, #2a2e33 0%, #1e2226 100%);
+}
+
+[data-theme="dark"] .locks-table thead th {
+    color: #e0e0e0;
+    border-bottom-color: #248567;
+}
+
+[data-theme="dark"] .locks-table tbody tr:hover {
+    background: rgba(36, 133, 103, 0.15);
+}
+
+[data-theme="dark"] .locks-table tbody tr.permanent {
+    background: rgba(255, 193, 7, 0.1);
+}
+
+[data-theme="dark"] .locks-table tbody tr.permanent:hover {
+    background: rgba(255, 193, 7, 0.15);
+}
+
+[data-theme="dark"] .locks-table tbody td {
+    color: var(--text-primary);
+}
+
+[data-theme="dark"] .locks-table tbody td:first-child {
+    color: #3fb896;
+}
+
+[data-theme="dark"] .locks-table tbody td a {
+    color: #3fb896;
+}
+
+[data-theme="dark"] .locks-table tbody td a:hover {
+    color: #5dcdb0;
+}
+
+/* Responsive Design */
+@media (max-width: 1200px) {
+    .locks-table thead th,
+    .locks-table tbody td {
+        padding: 0.75rem 1rem;
+        font-size: 0.85rem;
+    }
+}
+
+@media (max-width: 768px) {
+    .locks-header {
+        padding: 1rem 1.25rem;
+    }
+    
+    .locks-header h2 {
+        font-size: 1.5rem;
+    }
+    
+    .locks-controls {
+        flex-wrap: wrap;
+        padding: 1rem 1.25rem;
+    }
+    
+    .locks-table {
+        font-size: 0.8rem;
+    }
+    
+    .locks-table thead th,
+    .locks-table tbody td {
+        padding: 0.5rem 0.75rem;
+    }
+}
+

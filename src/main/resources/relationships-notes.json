@@ -1,0 +1,2372 @@
+[
+    {
+        "File Name":"attribute-x-attribute.xlsx",
+        "Header Name":"Sourcing Logic",
+        "Note Text":"Optional.\n\nIndicates the logic that is applied to the flow of data.\n\nFor example, selections or transformations performed."
+    },
+    {
+        "File Name":"attribute-x-attribute.xlsx",
+        "Header Name":"Sourcing Type",
+        "Note Text":"Required.\n\nThe type of sourcing for the attribute.\n\nSpecify whether the sourcing type is enforced lookup, unenforced lookup, or sourced from."
+    },
+    {
+        "File Name":"attribute-x-attribute.xlsx",
+        "Header Name":"Target Attribute Ref.",
+        "Note Text":"Optional.\n\nA unique reference identifier for the target attribute.\n\nEnsure that you enter a value in the Target Attribute Ref. or Target Attribute Name column though both the columns are optional."
+    },
+    {
+        "File Name":"attribute-x-attribute.xlsx",
+        "Header Name":"Target Attribute Name",
+        "Note Text":"Optional.\n\nName of the target attribute.\n\nEnsure that you enter a value in the Target Attribute Ref. or Target Attribute Name column though both the columns are optional."
+    },
+    {
+        "File Name":"attribute-x-attribute.xlsx",
+        "Header Name":"Target Data Set Name",
+        "Note Text":"Optional.\n\nName of the target data set that contains the attribute."
+    },
+    {
+        "File Name":"attribute-x-attribute.xlsx",
+        "Header Name":"Target System Short Name",
+        "Note Text":"Optional.\n\nShort name of the target system that contains the data set and the attribute."
+    },
+    {
+        "File Name":"attribute-x-attribute.xlsx",
+        "Header Name":"Source Attribute Ref.",
+        "Note Text":"Optional.\n\nA unique reference identifier for the source attribute.\n\nEnsure that you enter a value in the Source Attribute Ref. or Source Attribute Name column though both the columns are optional."
+    },
+    {
+        "File Name":"attribute-x-attribute.xlsx",
+        "Header Name":"Source Attribute Name",
+        "Note Text":"Optional.\n\nName of the source attribute.\n\nEnsure that you enter a value in the Source Attribute Ref. or Source Attribute Name column though both the columns are optional."
+    },
+    {
+        "File Name":"attribute-x-attribute.xlsx",
+        "Header Name":"Source Data Set Name",
+        "Note Text":"Optional.\n\nName of the source data set that contains the attribute."
+    },
+    {
+        "File Name":"attribute-x-attribute.xlsx",
+        "Header Name":"Source System Short Name",
+        "Note Text":"Optional.\n\nShort name of the source system that contains the data set and the attribute."
+    },
+    {
+        "File Name":"attribute-x-attribute.xlsx",
+        "Header Name":"Scope of Data",
+        "Note Text":"Optional.\n\nThe actual scope of data.\n\nSpecify if you want all the data or a subset of data."
+    },
+    {
+        "File Name":"attribute-x-attribute.xlsx",
+        "Header Name":"Interface Name",
+        "Note Text":"Optional.\n\n Name of the system interface.If you specify the Interface Name field, you need to fill in the Interface Source System and Interface Target System fields."
+    },
+    {
+        "File Name":"attribute-x-attribute.xlsx",
+        "Header Name":"Interface Source System Short Name",
+        "Note Text":"Optional.\n\nSystem from which the information flows out."
+    },
+    {
+        "File Name":"attribute-x-attribute.xlsx",
+        "Header Name":"Interface Target System Short Name",
+        "Note Text":"Optional.\n\nSystem to which the information flows in."
+    },
+    {
+        "File Name":"attribute-x-physical-field.xlsx",
+        "Header Name":"Attribute Ref.",
+        "Note Text":"Optional.\n\nA unique reference identifier for the attribute.\n\nEnsure that you enter a value in the Attribute Ref. or Attribute Name column though both the columns are optional."
+    },
+    {
+        "File Name":"attribute-x-physical-field.xlsx",
+        "Header Name":"Attribute Name",
+        "Note Text":"Optional.\n\nName of the attribute.\n\nEnter a name that other BUDG users can recognize easily.\n\nEnsure that you enter a value in the Attribute Ref. or Attribute Name column though both the columns are optional."
+    },
+    {
+        "File Name":"attribute-x-physical-field.xlsx",
+        "Header Name":"Attribute Data Set Name",
+        "Note Text":"Optional.\n\nName of the data set that contains the attribute.\n\nIf you provide a duplicate attribute name, you must provide the data set name."
+    },
+    {
+        "File Name":"attribute-x-physical-field.xlsx",
+        "Header Name":"Attribute System Short Name",
+        "Note Text":"Optional.\n\nShort name of the system that contains the data set and attribute.\n\nIf you provide a duplicate attribute name, you must provide the system name."
+    },
+    {
+        "File Name":"attribute-x-physical-field.xlsx",
+        "Header Name":"Name",
+        "Note Text":"Required.\n\nName of the Enterprise Data Catalog field.\n\nTo know the list of values that you can enter in this field, see the Physical Field Name column in the CSV file that contains the list of Enterprise Data Catalog physical fields.\n\nNote: If you link an BUDG attribute with an Enterprise Data Catalog field that contains the $ symbol in the field name, the field will not appear in Unison Search."
+    },
+    {
+        "File Name":"attribute-x-physical-field.xlsx",
+        "Header Name":"Field ID",
+        "Note Text":"Required.\n\nIdentifier for the Enterprise Data Catalog field.\n\nTo know the list of values that you can enter in this field, see the Physical Field ID column in the CSV file that contains the list of Enterprise Data Catalog physical fields."
+    },
+    {
+        "File Name":"attribute-x-physical-field.xlsx",
+        "Header Name":"Field Type",
+        "Note Text":"Required.\n\nType of the Enterprise Data Catalog field.\n\nTo know the list of values that you can enter in this field, see the Class Type column in the CSV file that contains the list of Enterprise Data Catalog physical fields."
+    },
+    {
+        "File Name":"business-area-x-glossary.xlsx",
+        "Header Name":"Glossary Ref.",
+        "Note Text":"Optional.\n\nA unique reference identifier for the glossary.\n\nEnsure that you enter a value in the Glossary Ref. or Glossary Name column though both the columns are optional."
+    },
+    {
+        "File Name":"business-area-x-glossary.xlsx",
+        "Header Name":"Glossary Name",
+        "Note Text":"Optional.\n\nName of the glossary.\n\nEnsure that you enter a value in the Glossary Ref. or Glossary Name column though both the columns are optional."
+    },
+    {
+        "File Name":"business-area-x-glossary.xlsx",
+        "Header Name":"Parent Glossary Name",
+        "Note Text":"Optional.\n\nName of the parent glossary term.\n\nThe glossary parent name must exist in BUDG."
+    },
+    {
+        "File Name":"business-area-x-glossary.xlsx",
+        "Header Name":"Business Area Name",
+        "Note Text":"Required.\n\nName of the business area.\n\nEnter a name that other BUDG users can recognize easily."
+    },
+    {
+        "File Name":"business-area-x-glossary.xlsx",
+        "Header Name":"Parent Business Area Name",
+        "Note Text":"Optional.\n\nName of the parent business area if the business area belongs to a hierarchy."
+    },
+    {
+        "File Name":"business-area-x-glossary.xlsx",
+        "Header Name":"Relationship Type",
+        "Note Text":"Required.\n\nThe type of relationship between the business area and glossary.\n\nSelect Is related to."
+    },
+    {
+        "File Name":"business-area-x-process.xlsx",
+        "Header Name":"Description",
+        "Note Text":"Optional.\n\nDescription of the relationship between the business area and process."
+    },
+    {
+        "File Name":"business-area-x-process.xlsx",
+        "Header Name":"Process Ref.",
+        "Note Text":"Optional.\n\nA unique identifier for the process.\n\nEnsure that you enter a value in the Process Ref. or Process Name column though both the columns are optional."
+    },
+    {
+        "File Name":"business-area-x-process.xlsx",
+        "Header Name":"Process Name",
+        "Note Text":"Optional.\n\nName of the process.\n\nEnter a name that other BUDG users can recognize easily.\n\nEnsure that you enter a value in the Process Ref. or Process Name column though both the columns are optional."
+    },
+    {
+        "File Name":"business-area-x-process.xlsx",
+        "Header Name":"Parent Process Name",
+        "Note Text":"Optional.\n\nName of the parent process if the process belongs to a hierarchy."
+    },
+    {
+        "File Name":"business-area-x-process.xlsx",
+        "Header Name":"Business Area Name",
+        "Note Text":"Required.\n\nName of the business area.\n\nEnter a name that other BUDG users can recognize easily."
+    },
+    {
+        "File Name":"business-area-x-process.xlsx",
+        "Header Name":"Business Area Parent Name",
+        "Note Text":"Optional.\n\nName of the parent business area if the business area belongs to a hierarchy."
+    },
+    {
+        "File Name":"business-area-x-process.xlsx",
+        "Header Name":"Relationship Type",
+        "Note Text":"Required.\n\nThe type of relationship between the business area and process.\n\nSelect Process is related to Business Area."
+    },
+    {
+        "File Name":"business-area-x-system.xlsx",
+        "Header Name":"System Short Name",
+        "Note Text":"Required.\n\nShort name of a system or an acronym that other BUDG users can recognize easily for a system."
+    },
+    {
+        "File Name":"business-area-x-system.xlsx",
+        "Header Name":"Parent System Short Name",
+        "Note Text":"Optional.\n\nName of the parent system if the system belongs to a hierarchy."
+    },
+    {
+        "File Name":"business-area-x-system.xlsx",
+        "Header Name":"Business Area Name",
+        "Note Text":"Required.\n\nName of the business area.\n\nEnter a name that other BUDG users can recognize easily."
+    },
+    {
+        "File Name":"business-area-x-system.xlsx",
+        "Header Name":"Business Area Parent Name",
+        "Note Text":"Optional.\n\nName of the parent business area if the business area belongs to a hierarchy."
+    },
+    {
+        "File Name":"business-area-x-system.xlsx",
+        "Header Name":"Relationship Type",
+        "Note Text":"Required.\n\nThe type of relationship between the business area and system.\n\nSelect Is related to."
+    },
+    {
+        "File Name":"capability-x-business-area.xlsx",
+        "Header Name":"Capability Ref.",
+        "Note Text":"Optional.\n\nA unique identifier for the capability.\n\nEnsure that you enter a value in the Capability Ref. or Capability Name column though both the columns are optional."
+    },
+    {
+        "File Name":"capability-x-business-area.xlsx",
+        "Header Name":"Capability Name",
+        "Note Text":"Optional.\n\nName of the capability.\n\nEnter a name that other BUDG users can recognize easily.\n\nEnsure that you enter a value in the Capability Ref. or Capability Name column though both the columns are optional."
+    },
+    {
+        "File Name":"capability-x-business-area.xlsx",
+        "Header Name":"Capability Parent Name",
+        "Note Text":"Optional.\n\nName of the parent capability if the capability belongs to a hierarchy."
+    },
+    {
+        "File Name":"capability-x-business-area.xlsx",
+        "Header Name":"Business Area Name",
+        "Note Text":"Required.\n\nName of the business area.\n\nEnter a name that other BUDG users can recognize easily."
+    },
+    {
+        "File Name":"capability-x-business-area.xlsx",
+        "Header Name":"Business Area Parent Name",
+        "Note Text":"Optional.\n\nName of the parent business area if the business area belongs to a hierarchy."
+    },
+    {
+        "File Name":"capability-x-business-area.xlsx",
+        "Header Name":"Relationship Type",
+        "Note Text":"Required.\n\nThe type of relationship between the capability and business area.\n\nSelect Capability is related to Business Area."
+    },
+    {
+        "File Name":"capability-x-client.xlsx",
+        "Header Name":"Client Name",
+        "Note Text":"Required.\n\nShort name of the client.\n\nEnter a name that other BUDG users can recognize easily."
+    },
+    {
+        "File Name":"capability-x-client.xlsx",
+        "Header Name":"Client Parent Name",
+        "Note Text":"Optional.\n\nName of the parent client that you want to create."
+    },
+    {
+        "File Name":"capability-x-client.xlsx",
+        "Header Name":"Capability Ref.",
+        "Note Text":"Optional.\n\nA unique identifier for the capability.\n\nEnsure that you enter a value in the Capability Ref. or Capability Name column though both the columns are optional."
+    },
+    {
+        "File Name":"capability-x-client.xlsx",
+        "Header Name":"Capability Name",
+        "Note Text":"Optional.\n\nName of the capability.\n\nEnter a name that other BUDG users can recognize easily.\n\nEnsure that you enter a value in the Capability Ref. or Capability Name column though both the columns are optional."
+    },
+    {
+        "File Name":"capability-x-client.xlsx",
+        "Header Name":"Capability Parent Name",
+        "Note Text":"Optional.\n\nName of the parent capability if the capability belongs to a hierarchy."
+    },
+    {
+        "File Name":"capability-x-client.xlsx",
+        "Header Name":"Relationship Type",
+        "Note Text":"Required.\n\nThe type of relationship between the capability and client.\n\nSelect Is related to."
+    },
+    {
+        "File Name":"capability-x-glossary.xlsx",
+        "Header Name":"Glossary Ref.",
+        "Note Text":"Optional.\n\nA unique identifier for the glossary.\n\nEnsure that you enter a value in the Glossary Ref. or Glossary Name column though both the columns are optional."
+    },
+    {
+        "File Name":"capability-x-glossary.xlsx",
+        "Header Name":"Glossary Name",
+        "Note Text":"Optional.\n\nName of the glossary.\n\nEnsure that you enter a value in the Glossary Ref. or Glossary Name column though both the columns are optional."
+    },
+    {
+        "File Name":"capability-x-glossary.xlsx",
+        "Header Name":"Parent Glossary Name",
+        "Note Text":"Optional.\n\nName of the parent glossary term.\n\nThe glossary parent name must exist in BUDG."
+    },
+    {
+        "File Name":"capability-x-glossary.xlsx",
+        "Header Name":"Capability Ref.",
+        "Note Text":"Optional.\n\nA unique identifier for the capability.\n\nEnsure that you enter a value in the Capability Ref. or Capability Name column though both the columns are optional."
+    },
+    {
+        "File Name":"capability-x-glossary.xlsx",
+        "Header Name":"Capability Name",
+        "Note Text":"Optional.\n\nName of the capability.\n\nEnter a name that other BUDG users can recognize easily.\n\nEnsure that you enter a value in the Capability Ref. or Capability Name column though both the columns are optional."
+    },
+    {
+        "File Name":"capability-x-glossary.xlsx",
+        "Header Name":"Parent Capability Name",
+        "Note Text":"Optional.\n\nName of the parent capability if the capability belongs to a hierarchy."
+    },
+    {
+        "File Name":"capability-x-glossary.xlsx",
+        "Header Name":"Relationship Type",
+        "Note Text":"Required.\n\nThe type of relationship between the capability and glossary.\n\nSelect Is related to."
+    },
+    {
+        "File Name":"capability-x-legal-entity.xlsx",
+        "Header Name":"Capability Ref.",
+        "Note Text":"Optional.\n\nA unique identifier for the capability.\n\nEnsure that you enter a value in the Capability Ref. or Capability Name column though both the columns are optional."
+    },
+    {
+        "File Name":"capability-x-legal-entity.xlsx",
+        "Header Name":"Capability Name",
+        "Note Text":"Optional.\n\nName of the capability.\n\nEnter a name that other BUDG users can recognize easily.\n\nEnsure that you enter a value in the Capability Ref. or Capability Name column though both the columns are optional."
+    },
+    {
+        "File Name":"capability-x-legal-entity.xlsx",
+        "Header Name":"Capability Parent Name",
+        "Note Text":"Optional.\n\nName of the parent capability if the capability belongs to a hierarchy."
+    },
+    {
+        "File Name":"capability-x-legal-entity.xlsx",
+        "Header Name":"Legal Short Name",
+        "Note Text":"Required.\n\nName of the legal entity.\n\nEnter a name that other BUDG users can recognize easily."
+    },
+    {
+        "File Name":"capability-x-legal-entity.xlsx",
+        "Header Name":"Parent Legal Short Name",
+        "Note Text":"Optional.\n\nName of the parent legal entity if the legal entity belongs to a hierarchy."
+    },
+    {
+        "File Name":"capability-x-legal-entity.xlsx",
+        "Header Name":"Relationship Type",
+        "Note Text":"Required.\n\nThe type of relationship between the capability and legal entity.\n\nSelect Capability is related to Legal Entity."
+    },
+    {
+        "File Name":"capability-x-process.xlsx",
+        "Header Name":"Process Ref.",
+        "Note Text":"Optional.\n\nA unique reference identifier for the process.\n\nEnsure that you enter a value in the Process Ref. or Process Name column though both the columns are optional."
+    },
+    {
+        "File Name":"capability-x-process.xlsx",
+        "Header Name":"Process Name",
+        "Note Text":"Optional.\n\nName of the process.\n\nEnter a name that other BUDG users can recognize easily.\n\nEnsure that you enter a value in the Process Ref. or Process Name column though both the columns are optional."
+    },
+    {
+        "File Name":"capability-x-process.xlsx",
+        "Header Name":"Parent Process Name",
+        "Note Text":"Optional.\n\nName of the parent process if the process belongs to a hierarchy."
+    },
+    {
+        "File Name":"capability-x-process.xlsx",
+        "Header Name":"Capability Ref.",
+        "Note Text":"Optional.\n\nA unique identifier for the capability.\n\nEnsure that you enter a value in the Capability Ref. or Capability Name column though both the columns are optional."
+    },
+    {
+        "File Name":"capability-x-process.xlsx",
+        "Header Name":"Capability Name",
+        "Note Text":"Optional.\n\nName of the capability.\n\nEnter a name that other BUDG users can recognize easily.\n\nEnsure that you enter a value in the Capability Ref. or Capability Name column though both the columns are optional."
+    },
+    {
+        "File Name":"capability-x-process.xlsx",
+        "Header Name":"Capability Parent Name",
+        "Note Text":"Optional.\n\nParent of the capability.\n\nThe capability parent name must exist in BUDG."
+    },
+    {
+        "File Name":"capability-x-process.xlsx",
+        "Header Name":"Relationship Type",
+        "Note Text":"Required.\n\nThe type of relationship between the capability and process.\n\nSelect Is related to."
+    },
+    {
+        "File Name":"capability-x-product.xlsx",
+        "Header Name":"Product Name",
+        "Note Text":"Required.\n\nName of the product."
+    },
+    {
+        "File Name":"capability-x-product.xlsx",
+        "Header Name":"Product Parent Name",
+        "Note Text":"Optional.\n\nName of the parent product if the product belongs to a hierarchy."
+    },
+    {
+        "File Name":"capability-x-product.xlsx",
+        "Header Name":"Capability Ref.",
+        "Note Text":"Optional.\n\nA unique identifier for the capability.\n\nEnsure that you enter a value in the Capability Ref. or Capability Name column though both the columns are optional."
+    },
+    {
+        "File Name":"capability-x-product.xlsx",
+        "Header Name":"Capability Name",
+        "Note Text":"Optional.\n\nName of the capability.\n\nEnter a name that other BUDG users can recognize easily.\n\nEnsure that you enter a value in the Capability Ref. or Capability Name column though both the columns are optional."
+    },
+    {
+        "File Name":"capability-x-product.xlsx",
+        "Header Name":"Capability Parent Name",
+        "Note Text":"Optional.\n\nName of the parent capability.\n\nThe parent name must exist in BUDG."
+    },
+    {
+        "File Name":"capability-x-product.xlsx",
+        "Header Name":"Relationship Type",
+        "Note Text":"Required.\n\nThe type of relationship between the capability and product.\n\nSelect Is related to."
+    },
+    {
+        "File Name":"capability-x-system.xlsx",
+        "Header Name":"System Short Name",
+        "Note Text":"Required.\n\nShort name of a system or an acronym that other BUDG users can recognize easily for a system."
+    },
+    {
+        "File Name":"capability-x-system.xlsx",
+        "Header Name":"Parent System Short Name",
+        "Note Text":"Optional.\n\nShort name of the parent system if the system belongs to a hierarchy."
+    },
+    {
+        "File Name":"capability-x-system.xlsx",
+        "Header Name":"Capability Ref.",
+        "Note Text":"Optional.\n\nA unique identifier for the capability.\n\nEnsure that you enter a value in the Capability Ref. or Capability Name column though both the columns are optional."
+    },
+    {
+        "File Name":"capability-x-system.xlsx",
+        "Header Name":"Capability Name",
+        "Note Text":"Optional.\n\nName of the capability.\n\nEnter a name that other BUDG users can recognize easily.\n\nEnsure that you enter a value in the Capability Ref. or Capability Name column though both the columns are optional."
+    },
+    {
+        "File Name":"capability-x-system.xlsx",
+        "Header Name":"Capability Parent Name",
+        "Note Text":"Optional.\n\nName of the parent capability.\n\nThe capability parent name must exist in BUDG."
+    },
+    {
+        "File Name":"capability-x-system.xlsx",
+        "Header Name":"Relationship Type",
+        "Note Text":"Required.\n\nThe type of relationship between the capability and system.\n\nSelect Capability is supported by System."
+    },
+    {
+        "File Name":"committee-x-capability.xlsx",
+        "Header Name":"Committee Ref.",
+        "Note Text":"Optional.\n\nA unique reference identifier for the committee.\n\nEnsure that you enter a value in the Committee Ref. or Committee Name column though both the columns are optional."
+    },
+    {
+        "File Name":"committee-x-capability.xlsx",
+        "Header Name":"Committee Name",
+        "Note Text":"Optional.\n\nName of the committee.\n\nEnter a name that users can recognize easily.\n\nEnsure that you enter a value in the Committee Ref. or Committee Name column though both the columns are optional."
+    },
+    {
+        "File Name":"committee-x-capability.xlsx",
+        "Header Name":"Committee Parent Name",
+        "Note Text":"Optional.\n\nName of the parent committee that you want to create."
+    },
+    {
+        "File Name":"committee-x-capability.xlsx",
+        "Header Name":"Capability Ref.",
+        "Note Text":"Optional.\n\nA unique reference identifier for the capability.\n\nEnsure that you enter a value in the Capability Ref. or Capability Name column though both the columns are optional."
+    },
+    {
+        "File Name":"committee-x-capability.xlsx",
+        "Header Name":"Capability Name",
+        "Note Text":"Optional.\n\nName of the capability.\n\nEnter a name that other BUDG users can recognize easily.\n\nEnsure that you enter a value in the Capability Ref. or Capability Name column though both the columns are optional."
+    },
+    {
+        "File Name":"committee-x-capability.xlsx",
+        "Header Name":"Capability Parent Name",
+        "Note Text":"Optional.\n\nName of the parent capability if the capability belongs to a hierarchy."
+    },
+    {
+        "File Name":"committee-x-capability.xlsx",
+        "Header Name":"Relationship Type",
+        "Note Text":"Required.\n\nThe type of relationship between the committee and capability.\n\nSelect Is related to."
+    },
+    {
+        "File Name":"committee-x-committee.xlsx",
+        "Header Name":"Source Committee Ref.",
+        "Note Text":"Optional.\n\nA unique identifier for the source committee.\n\nEnsure that you enter a value in the Source Committee Ref. or Source Committee Name column though both the columns are optional."
+    },
+    {
+        "File Name":"committee-x-committee.xlsx",
+        "Header Name":"Source Committee Name",
+        "Note Text":"Optional.\n\nName of the source committee.\n\nEnter a name that other BUDG users can recognize easily.\n\nEnsure that you enter a value in the Source Committee Ref. or Source Committee Name column though both the columns are optional."
+    },
+    {
+        "File Name":"committee-x-committee.xlsx",
+        "Header Name":"Source Committee Parent Name",
+        "Note Text":"Optional.\n\nName of the parent source committee if the committee belongs to a hierarchy."
+    },
+    {
+        "File Name":"committee-x-committee.xlsx",
+        "Header Name":"Target Committee Ref.",
+        "Note Text":"Optional.\n\nA unique identifier for the target committee.\n\nEnsure that you enter a value in the Target Committee Ref. or Target Committee Name column though both the columns are optional."
+    },
+    {
+        "File Name":"committee-x-committee.xlsx",
+        "Header Name":"Target Committee Name",
+        "Note Text":"Optional.\n\nName of the target committee.\n\nEnter a name that other BUDG users can recognize easily.\n\nEnsure that you enter a value in the Target Committee Ref. or Target Committee Name column though both the columns are optional."
+    },
+    {
+        "File Name":"committee-x-committee.xlsx",
+        "Header Name":"Target Parent Committee Name",
+        "Note Text":"Optional.\n\nName of the parent target committee if the committee belongs to a hierarchy."
+    },
+    {
+        "File Name":"committee-x-committee.xlsx",
+        "Header Name":"Relationship Type",
+        "Note Text":"Required.\n\nThe type of relationship between the source and target committees.\n\nSelect Rolls up into."
+    },
+    {
+        "File Name":"data-set-x-client.xlsx",
+        "Header Name":"Client Name",
+        "Note Text":"Required.\n\nShort name of the client.\n\nEnter a name that other BUDG users can recognize easily."
+    },
+    {
+        "File Name":"data-set-x-client.xlsx",
+        "Header Name":"Client Parent Name",
+        "Note Text":"Optional.\n\nName of the parent client that you want to create."
+    },
+    {
+        "File Name":"data-set-x-client.xlsx",
+        "Header Name":"Data Set Ref.",
+        "Note Text":"Optional.\n\nA unique reference identifier for the data set.\n\nEnsure that you enter a value in the Data Set Ref. or Data Set Name column though both the columns are optional."
+    },
+    {
+        "File Name":"data-set-x-client.xlsx",
+        "Header Name":"Data Set Name",
+        "Note Text":"Optional.\n\nName of the data set as known in the business organization.\n\nEnsure that you enter a value in the Data Set Ref. or Data Set Name column though both the columns are optional."
+    },
+    {
+        "File Name":"data-set-x-client.xlsx",
+        "Header Name":"Data Set System Short Name",
+        "Note Text":"Optional.\n\nShort name of the system that contains the data set."
+    },
+    {
+        "File Name":"data-set-x-client.xlsx",
+        "Header Name":"Data Set Parent System Short Name",
+        "Note Text":"Optional.\n\nShort name of the parent of the system that contains the data set."
+    },
+    {
+        "File Name":"data-set-x-client.xlsx",
+        "Header Name":"Relationship Type",
+        "Note Text":"Required.\n\nThe type of relationship between the data set and client.\n\nSelect Is related to."
+    },
+    {
+        "File Name":"data-set-x-legal-entity.xlsx",
+        "Header Name":"Legal Entity Short Name",
+        "Note Text":"Required.\n\nName of the legal entity.\n\nEnter a name that other BUDG users can recognize easily."
+    },
+    {
+        "File Name":"data-set-x-legal-entity.xlsx",
+        "Header Name":"Parent Legal Entity Short Name",
+        "Note Text":"Optional.\n\nName of the parent legal entity if the legal entity belongs to a hierarchy."
+    },
+    {
+        "File Name":"data-set-x-legal-entity.xlsx",
+        "Header Name":"Data Set Ref.",
+        "Note Text":"Optional.\n\nA unique reference identifier for the data set.\n\nEnsure that you enter a value in the Data Set Ref. or Data Set Name column though both the columns are optional."
+    },
+    {
+        "File Name":"data-set-x-legal-entity.xlsx",
+        "Header Name":"Data Set Name",
+        "Note Text":"Optional.\n\nName of the data set as known in the business organization.\n\nEnsure that you enter a value in the Data Set Ref. or Data Set Name column though both the columns are optional."
+    },
+    {
+        "File Name":"data-set-x-legal-entity.xlsx",
+        "Header Name":"Data Set System Short Name",
+        "Note Text":"Optional.\n\nShort name of the system that contains the data set."
+    },
+    {
+        "File Name":"data-set-x-legal-entity.xlsx",
+        "Header Name":"Data Set Parent System Short Name",
+        "Note Text":"Optional.\n\nShort name of the parent of the system that contains the data set."
+    },
+    {
+        "File Name":"data-set-x-legal-entity.xlsx",
+        "Header Name":"Relationship Type",
+        "Note Text":"Required.\n\nThe type of relationship between the data set and legal entity.\n\nSelect Is related to."
+    },
+    {
+        "File Name":"data-set-x-product.xlsx",
+        "Header Name":"Product Name",
+        "Note Text":"Required.\n\nName of the product."
+    },
+    {
+        "File Name":"data-set-x-product.xlsx",
+        "Header Name":"Product Parent Name",
+        "Note Text":"Optional.\n\nName of the parent product if the product belongs to a hierarchy."
+    },
+    {
+        "File Name":"data-set-x-product.xlsx",
+        "Header Name":"Data Set Ref.",
+        "Note Text":"Optional.\n\nA unique reference identifier for the data set.\n\nEnsure that you enter a value in the Data Set Ref. or Data Set Name column though both the columns are optional."
+    },
+    {
+        "File Name":"data-set-x-product.xlsx",
+        "Header Name":"Data Set Name",
+        "Note Text":"Optional.\n\nName of the data set as known in the business organization.\n\nEnsure that you enter a value in the Data Set Ref. or Data Set Name column though both the columns are optional."
+    },
+    {
+        "File Name":"data-set-x-product.xlsx",
+        "Header Name":"Data Set System Short Name",
+        "Note Text":"Optional.\n\nShort name of the system that contains the data set."
+    },
+    {
+        "File Name":"data-set-x-product.xlsx",
+        "Header Name":"Data Set Parent System Short Name",
+        "Note Text":"Optional.\n\nShort name of the parent of the system that contains the data set."
+    },
+    {
+        "File Name":"data-set-x-product.xlsx",
+        "Header Name":"Relationship Type",
+        "Note Text":"Required.\n\nThe type of relationship between the data set and product.\n\nSelect Is related to."
+    },
+    {
+        "File Name":"glossary-x-client.xlsx",
+        "Header Name":"Client Name",
+        "Note Text":"Required.\n\nShort name of the client.\n\nEnter a name that other BUDG users can recognize easily."
+    },
+    {
+        "File Name":"glossary-x-client.xlsx",
+        "Header Name":"Parent Client Name",
+        "Note Text":"Optional.\n\nName of the parent client that you want to create."
+    },
+    {
+        "File Name":"glossary-x-client.xlsx",
+        "Header Name":"Glossary Ref.",
+        "Note Text":"Optional.\n\nA unique reference identifier for the glossary.\n\nEnsure that you enter a value in the Glossary Ref. or Glossary Name column though both the columns are optional."
+    },
+    {
+        "File Name":"glossary-x-client.xlsx",
+        "Header Name":"Glossary Name",
+        "Note Text":"Optional.\n\nName of the glossary.\n\nEnsure that you enter a value in the Glossary Ref. or Glossary Name column though both the columns are optional."
+    },
+    {
+        "File Name":"glossary-x-client.xlsx",
+        "Header Name":"Parent Glossary Name",
+        "Note Text":"Optional.\n\nName of the parent glossary term.\n\nThe glossary parent name must exist in BUDG."
+    },
+    {
+        "File Name":"glossary-x-client.xlsx",
+        "Header Name":"Relationship Type",
+        "Note Text":"Required.\n\nThe type of relationship between the glossary and client.\n\nSelect Is Related to."
+    },
+    {
+        "File Name":"glossary-x-glossary.xlsx",
+        "Header Name":"Source Glossary Ref.",
+        "Note Text":"Optional.\n\nA unique identifier for the source glossary.\n\nEnsure that you enter a value in the Source Glossary Ref. or Source Glossary Name column though both the columns are optional."
+    },
+    {
+        "File Name":"glossary-x-glossary.xlsx",
+        "Header Name":"Source Glossary Name",
+        "Note Text":"Optional.\n\nName of the source glossary.\n\nEnsure that you enter a value in the Source Glossary Ref. or Source Glossary Name column though both the columns are optional."
+    },
+    {
+        "File Name":"glossary-x-glossary.xlsx",
+        "Header Name":"Source Parent Glossary Name",
+        "Note Text":"Optional.\n\nName of the parent source glossary.\n\nThe source glossary parent name must exist in BUDG."
+    },
+    {
+        "File Name":"glossary-x-glossary.xlsx",
+        "Header Name":"Target Glossary Ref.",
+        "Note Text":"Optional.\n\nA unique identifier for the target glossary.\n\nEnsure that you enter a value in the Target Glossary Ref. or Target Glossary Name column though both the columns are optional."
+    },
+    {
+        "File Name":"glossary-x-glossary.xlsx",
+        "Header Name":"Target Glossary Name",
+        "Note Text":"Optional.\n\nName of the target glossary.\n\nEnsure that you enter a value in the Target Glossary Ref. or Target Glossary Name column though both the columns are optional."
+    },
+    {
+        "File Name":"glossary-x-glossary.xlsx",
+        "Header Name":"Target Parent Glossary Name",
+        "Note Text":"Optional.\n\nName of the parent target glossary.\n\nThe target glossary parent name must exist in BUDG."
+    },
+    {
+        "File Name":"glossary-x-glossary.xlsx",
+        "Header Name":"Relationship Type",
+        "Note Text":"Required.\n\nThe type of relationship between the source and target glossaries.\n\nSelect Is Related to.\n\nYou can also create relationship types if required."
+    },
+    {
+        "File Name":"glossary-x-product.xlsx",
+        "Header Name":"Product Name",
+        "Note Text":"Required.\n\nName of the product."
+    },
+    {
+        "File Name":"glossary-x-product.xlsx",
+        "Header Name":"Product Parent Name",
+        "Note Text":"Optional.\n\nName of the parent product if the product belongs to a hierarchy."
+    },
+    {
+        "File Name":"glossary-x-product.xlsx",
+        "Header Name":"Glossary Ref.",
+        "Note Text":"Optional.\n\nA unique identifier for the glossary.\n\nEnsure that you enter a value in the Glossary Ref. or Glossary Name column though both the columns are optional."
+    },
+    {
+        "File Name":"glossary-x-product.xlsx",
+        "Header Name":"Glossary Name",
+        "Note Text":"Optional.\n\nName of the glossary.\n\nEnsure that you enter a value in the Glossary Ref. or Glossary Name column though both the columns are optional."
+    },
+    {
+        "File Name":"glossary-x-product.xlsx",
+        "Header Name":"Parent Glossary Name",
+        "Note Text":"Optional.\n\nName of the parent glossary term.\n\nThe glossary parent name must exist in BUDG."
+    },
+    {
+        "File Name":"glossary-x-product.xlsx",
+        "Header Name":"Relationship Type",
+        "Note Text":"Required.\n\nThe type of relationship between the glossary and product.\n\nSelect Is Related to."
+    },
+    {
+        "File Name":"glossary-x-system.xlsx",
+        "Header Name":"Glossary Ref.",
+        "Note Text":"Optional.\n\nA unique reference identifier for the glossary.\n\nEnsure that you enter a value in the Glossary Ref. or Glossary Name column though both the columns are optional."
+    },
+    {
+        "File Name":"glossary-x-system.xlsx",
+        "Header Name":"Glossary Name",
+        "Note Text":"Optional.\n\nName of the glossary.\n\nEnsure that you enter a value in the Glossary Ref. or Glossary Name column though both the columns are optional."
+    },
+    {
+        "File Name":"glossary-x-system.xlsx",
+        "Header Name":"Parent Glossary Name",
+        "Note Text":"Optional.\n\nParent of the glossary term.\n\nThe glossary parent name must exist in BUDG."
+    },
+    {
+        "File Name":"glossary-x-system.xlsx",
+        "Header Name":"System Short Name",
+        "Note Text":"Required.\n\nShort name of a system that other BUDG users can recognize easily."
+    },
+    {
+        "File Name":"glossary-x-system.xlsx",
+        "Header Name":"Strategic Data Set Name",
+        "Note Text":"Optional.\n\nName of the data set that acts as a strategic data set."
+    },
+    {
+        "File Name":"glossary-x-system.xlsx",
+        "Header Name":"Relationship Type",
+        "Note Text":"Required.\n\nThe type of relationship between the glossary and system.\n\nSelect one of the following type:\n-Strategic Master Source for"
+    },
+    {
+        "File Name":"interface-x-glossary.xlsx",
+        "Header Name":"Relationship Type",
+        "Note Text":"Required.\n\nThe type of relationship between the interface and the glossary.\n\nSelect Expected glossary item coverage."
+    },
+    {
+        "File Name":"interface-x-glossary.xlsx",
+        "Header Name":"Interface Ref.",
+        "Note Text":"Optional.\n\nA unique identifier for the system interface.\n\nEnsure that you enter a value in the Interface Ref. or Interface Name or Interface Source System Short Name and Interface Target System Short Name column though the columns are optional."
+    },
+    {
+        "File Name":"interface-x-glossary.xlsx",
+        "Header Name":"Interface Name",
+        "Note Text":"Optional.\n\nName of the system interface.\n\nEnsure that you enter a value in the Interface Ref. or Interface Name or Interface Source System Short Name and Interface Target System Short Name column though the columns are optional."
+    },
+    {
+        "File Name":"interface-x-glossary.xlsx",
+        "Header Name":"Interface Source System Short Name",
+        "Note Text":"Optional.\n\nShort name of the system from which the information flows out.\n\nEnsure that you enter a value in the Interface Ref. or Interface Name or Interface Source System Short Name and Interface Target System Short Name column though the columns are optional."
+    },
+    {
+        "File Name":"interface-x-glossary.xlsx",
+        "Header Name":"Interface Target System Short Name",
+        "Note Text":"Optional.\n\nShort name of the system to which the information flows in.\n\nEnsure that you enter a value in the Interface Ref. or Interface Name or Interface Source System Short Name and Interface Target System Short Name column though the columns are optional."
+    },
+    {
+        "File Name":"interface-x-glossary.xlsx",
+        "Header Name":"Glossary Ref.",
+        "Note Text":"Optional.\n\nA unique identifier for the glossary.\n\nEnsure that you enter a value in the Glossary Ref. or Glossary Name column though both the columns are optional."
+    },
+    {
+        "File Name":"interface-x-glossary.xlsx",
+        "Header Name":"Glossary Name",
+        "Note Text":"Optional.\n\nName of the glossary.\n\nEnsure that you enter a value in the Glossary Ref. or Glossary Name column though both the columns are optional."
+    },
+    {
+        "File Name":"interface-x-glossary.xlsx",
+        "Header Name":"Parent Glossary Name",
+        "Note Text":"Optional.\n\nParent of the glossary term.\n\nThe glossary parent name must exist in BUDG."
+    },
+    {
+        "File Name":"legal-entity-x-geography.xlsx",
+        "Header Name":"Geography",
+        "Note Text":"Required.\n\nName of the geography.\n\nEnter a name that other BUDG users can recognize easily."
+    },
+    {
+        "File Name":"legal-entity-x-geography.xlsx",
+        "Header Name":"Parent Geography",
+        "Note Text":"Optional.\n\nName of the parent geography."
+    },
+    {
+        "File Name":"legal-entity-x-geography.xlsx",
+        "Header Name":"Legal Short Name",
+        "Note Text":"Required.\n\nShort name of the legal entity.\n\nEnter a name that other BUDG users can recognize easily."
+    },
+    {
+        "File Name":"legal-entity-x-geography.xlsx",
+        "Header Name":"Parent Legal Short Name",
+        "Note Text":"Optional.\n\nName of the parent legal entity if the legal entity belongs to a hierarchy."
+    },
+    {
+        "File Name":"legal-entity-x-geography.xlsx",
+        "Header Name":"Relationship Type",
+        "Note Text":"Required.\n\nThe type of relationship between the geography and legal entity.\n\nSelect Is related to."
+    },
+    {
+        "File Name":"local-data-quality-rule-x-technical-reference.xlsx",
+        "Header Name":"Ref.",
+        "Note Text":"Optional.\n\nThe unique identifier for the local data quality rule.\n\nEnsure that you enter a value in the Ref. or Rule Name column though both the columns are optional."
+    },
+    {
+        "File Name":"local-data-quality-rule-x-technical-reference.xlsx",
+        "Header Name":"Rule Name",
+        "Note Text":"Optional.\n\nName of the local data quality rule.\n\nEnsure that you enter a value in the Ref. or Rule Name column though both the columns are optional."
+    },
+    {
+        "File Name":"local-data-quality-rule-x-technical-reference.xlsx",
+        "Header Name":"Technical Rule Reference",
+        "Note Text":"Required.\n\nReference link to a rule in Informatica Data Quality that you can associate with the local data quality rule.\n\nInformatica Data Quality runs either a profile or scorecard that you define against the data in a column or metric.\n\nEnter the details in the following format:\n-Profile: profile:\/profilepath@profilename\n-Scorecard: scorecard:\/scorecardpath@scorecardname\n\nFor more information, refer to Linking Profiles and Scorecards to Local Data Quality Rules topic in the BUDG Data Governance User Guide."
+    },
+    {
+        "File Name":"people-x-people.xlsx",
+        "Header Name":"Manager Email",
+        "Note Text":"Optional.\n\nEmail address of the manager of the employee.\n\nEnsure that you enter a value in the Manager Email or Manager Lan ID or Manager First Name and Manager Last Name column though the columns are optional."
+    },
+    {
+        "File Name":"people-x-people.xlsx",
+        "Header Name":"Manager First Name",
+        "Note Text":"Optional.\n\nFirst name of the manager of the employee.\n\nEnsure that you enter a value in the Manager Email or Manager Lan ID or Manager First Name and Manager Last Name column though the columns are optional."
+    },
+    {
+        "File Name":"people-x-people.xlsx",
+        "Header Name":"Manager Last Name",
+        "Note Text":"Optional.\n\nLast name of the manager of the employee.\n\nEnsure that you enter a value in the Manager Email or Manager Lan ID or Manager First Name and Manager Last Name column though the columns are optional."
+    },
+    {
+        "File Name":"people-x-people.xlsx",
+        "Header Name":"Manager Lan ID",
+        "Note Text":"Optional.\n\nNetwork ID of the manager of the employee.\n\nEnsure that you enter a value in the Manager Email or Manager Lan ID or Manager First Name and Manager Last Name column though the columns are optional."
+    },
+    {
+        "File Name":"people-x-people.xlsx",
+        "Header Name":"Employee Email",
+        "Note Text":"Optional.\n\nA unique email address of the employee.\n\nBUDG sends emails to this address.\n\nEnsure that you enter a value in the Employee Email or Employee Lan ID or Employee First Name and Employee Last Name column though the columns are optional."
+    },
+    {
+        "File Name":"people-x-people.xlsx",
+        "Header Name":"Employee First Name",
+        "Note Text":"Optional.\n\nFirst name of the employee.\n\nSpecify the name as it is recorded in the LDAP directory server of your organization.\n\nEnsure that you enter a value in the Employee Email or Employee Lan ID or Employee First Name and Employee Last Name column though the columns are optional."
+    },
+    {
+        "File Name":"people-x-people.xlsx",
+        "Header Name":"Employee Last Name",
+        "Note Text":"Optional.\n\nLast name of the employee.\n\nSpecify the name as it is recorded in the LDAP directory server of your organization.\n\nEnsure that you enter a value in the Employee Email or Employee Lan ID or Employee First Name and Employee Last Name column though the columns are optional."
+    },
+    {
+        "File Name":"people-x-people.xlsx",
+        "Header Name":"Employee Lan ID",
+        "Note Text":"Optional.\n\nNetwork ID of the employee.\n\nLAN ID might be required if you want to enable Single Sign-On authentication.\n\nIf the LAN ID column is empty, you must not map the LAN ID column of the template to any field in the BUDG Field column when you perform a bulk upload.\n\nEnsure that you enter a value in the Employee Email or Employee Lan ID or Employee First Name and Employee Last Name column though the columns are optional."
+    },
+    {
+        "File Name":"people-x-people.xlsx",
+        "Header Name":"Relationship Type",
+        "Note Text":"Required.\n\nThe type of relationship between the employee and manager.\n\nSpecify one of the following relationship types:\n-Direct report\n-Dotted line"
+    },
+    {
+        "File Name":"policy-x-attribute.xlsx",
+        "Header Name":"Policy Ref.",
+        "Note Text":"Optional.\n\nA unique reference identifier for the policy.\n\nEnsure that you enter a value in the Policy Ref. or Policy Name column though both the columns are optional."
+    },
+    {
+        "File Name":"policy-x-attribute.xlsx",
+        "Header Name":"Policy Name",
+        "Note Text":"Optional.\n\nName of the policy.\n\nEnter a name that other BUDG users can recognize easily.\n\nEnsure that you enter a value in the Policy Ref. or Policy Name column though both the columns are optional."
+    },
+    {
+        "File Name":"policy-x-attribute.xlsx",
+        "Header Name":"Parent Policy Name",
+        "Note Text":"Optional.\n\nName of the parent policy if the policy belongs to a hierarchy."
+    },
+    {
+        "File Name":"policy-x-attribute.xlsx",
+        "Header Name":"Attribute Ref.",
+        "Note Text":"Optional.\n\nA unique reference identifier for the attribute.\n\nEnsure that you enter a value in the Attribute Ref. or Attribute Name column though both the columns are optional."
+    },
+    {
+        "File Name":"policy-x-attribute.xlsx",
+        "Header Name":"Attribute Name",
+        "Note Text":"Optional.\n\nName of the attribute.\n\nEnter a name that other BUDG users can recognize easily.\n\nEnsure that you enter a value in the Attribute Ref. or Attribute Name column though both the columns are optional."
+    },
+    {
+        "File Name":"policy-x-attribute.xlsx",
+        "Header Name":"Attribute Data Set Name",
+        "Note Text":"Optional.\n\nName of the data set that contains the attribute."
+    },
+    {
+        "File Name":"policy-x-attribute.xlsx",
+        "Header Name":"Attribute System Short Name",
+        "Note Text":"Optional.\n\nShort name of the system that contains the data set and attribute."
+    },
+    {
+        "File Name":"policy-x-attribute.xlsx",
+        "Header Name":"Relationship Type",
+        "Note Text":"Required.\n\nThe type of relationship between the policy and attribute.\n\nSelect Is related to."
+    },
+    {
+        "File Name":"policy-x-business-area.xlsx",
+        "Header Name":"Policy Ref.",
+        "Note Text":"Optional.\n\nA unique reference identifier for the policy.\n\nEnsure that you enter a value in the Policy Ref. or Policy Name column though both the columns are optional."
+    },
+    {
+        "File Name":"policy-x-business-area.xlsx",
+        "Header Name":"Policy Name",
+        "Note Text":"Optional.\n\nName of the policy.\n\nEnter a name that other BUDG users can recognize easily.\n\nEnsure that you enter a value in the Policy Ref. or Policy Name column though both the columns are optional."
+    },
+    {
+        "File Name":"policy-x-business-area.xlsx",
+        "Header Name":"Parent Policy Name",
+        "Note Text":"Optional.\n\nName of the parent policy if the policy belongs to a hierarchy."
+    },
+    {
+        "File Name":"policy-x-business-area.xlsx",
+        "Header Name":"Business Area Name",
+        "Note Text":"Required.\n\nName of the business area.\n\nEnter a name that other BUDG users can recognize easily."
+    },
+    {
+        "File Name":"policy-x-business-area.xlsx",
+        "Header Name":"Parent Business Area Name",
+        "Note Text":"Optional.\n\nName of the parent business area if the business area belongs to a hierarchy."
+    },
+    {
+        "File Name":"policy-x-business-area.xlsx",
+        "Header Name":"Relationship Type",
+        "Note Text":"Required.\n\nThe type of relationship between the policy and business area.\n\nSpecify whether the policy is owned by the business area or the policy is a training requirement for the business area."
+    },
+    {
+        "File Name":"policy-x-client.xlsx",
+        "Header Name":"Client Name",
+        "Note Text":"Required.\n\nShort name of the client.\n\nEnter a name that other BUDG users can recognize easily."
+    },
+    {
+        "File Name":"policy-x-client.xlsx",
+        "Header Name":"Client Parent Name",
+        "Note Text":"Optional.\n\nName of the parent client that you want to create."
+    },
+    {
+        "File Name":"policy-x-client.xlsx",
+        "Header Name":"Policy Ref.",
+        "Note Text":"Optional.\n\nA unique reference identifier for the policy.\n\nEnsure that you enter a value in the Policy Ref. or Policy Name column though both the columns are optional."
+    },
+    {
+        "File Name":"policy-x-client.xlsx",
+        "Header Name":"Policy Name",
+        "Note Text":"Optional.\n\nName of the policy.\n\nEnter a name that other BUDG users can recognize easily.\n\nEnsure that you enter a value in the Policy Ref. or Policy Name column though both the columns are optional."
+    },
+    {
+        "File Name":"policy-x-client.xlsx",
+        "Header Name":"Parent Policy Name",
+        "Note Text":"Optional.\n\nParent of the policy if the policy belongs to a hierarchy."
+    },
+    {
+        "File Name":"policy-x-client.xlsx",
+        "Header Name":"Relationship Type",
+        "Note Text":"Required.\n\nThe type of relationship between the policy and client.\n\nSelect Is Related to."
+    },
+    {
+        "File Name":"policy-x-data-set.xlsx",
+        "Header Name":"Policy Ref.",
+        "Note Text":"Optional.\n\nA unique reference identifier for the policy.\n\nEnsure that you enter a value in the Policy Ref. or Policy Name column though both the columns are optional."
+    },
+    {
+        "File Name":"policy-x-data-set.xlsx",
+        "Header Name":"Policy Name",
+        "Note Text":"Optional.\n\nName of the policy.\n\nEnter a name that other BUDG users can recognize easily.\n\nEnsure that you enter a value in the Policy Ref. or Policy Name column though both the columns are optional."
+    },
+    {
+        "File Name":"policy-x-data-set.xlsx",
+        "Header Name":"Parent Policy Name",
+        "Note Text":"Optional.\n\nName of the parent policy if the policy belongs to a hierarchy."
+    },
+    {
+        "File Name":"policy-x-data-set.xlsx",
+        "Header Name":"Data Set Ref.",
+        "Note Text":"Optional.\n\nA unique reference identifier for the data set.\n\nEnsure that you enter a value in the Data Set Ref. or Data Set Name column though both the columns are optional."
+    },
+    {
+        "File Name":"policy-x-data-set.xlsx",
+        "Header Name":"Data Set Name",
+        "Note Text":"Optional.\n\nName of the data set.\n\nEnter a name that other BUDG users can recognize easily.\n\nEnsure that you enter a value in the Data Set Ref. or Data Set Name column though both the columns are optional."
+    },
+    {
+        "File Name":"policy-x-data-set.xlsx",
+        "Header Name":"Data Set System Short Name",
+        "Note Text":"Optional.\n\nShort name of the system that contains the data set."
+    },
+    {
+        "File Name":"policy-x-data-set.xlsx",
+        "Header Name":"Relationship Type",
+        "Note Text":"Required.\n\nThe type of relationship between the policy and data set.\n\nSelect Is related to."
+    },
+    {
+        "File Name":"policy-x-glossary.xlsx",
+        "Header Name":"Description",
+        "Note Text":"Optional.\n\nDescription about the relationship between the policy and glossary."
+    },
+    {
+        "File Name":"policy-x-glossary.xlsx",
+        "Header Name":"Policy Ref.",
+        "Note Text":"Optional.\n\nA unique reference identifier for the policy.\n\nEnsure that you enter a value in the Policy Ref. or Policy Name column though both the columns are optional."
+    },
+    {
+        "File Name":"policy-x-glossary.xlsx",
+        "Header Name":"Policy Name",
+        "Note Text":"Optional.\n\nName of the policy.\n\nEnter a name that other BUDG users can recognize easily.\n\nEnsure that you enter a value in the Policy Ref. or Policy Name column though both the columns are optional."
+    },
+    {
+        "File Name":"policy-x-glossary.xlsx",
+        "Header Name":"Parent Policy Name",
+        "Note Text":"Optional.\n\nName of the parent policy if the policy belongs to a hierarchy."
+    },
+    {
+        "File Name":"policy-x-glossary.xlsx",
+        "Header Name":"Glossary Ref.",
+        "Note Text":"Optional.\n\nA unique reference identifier for the glossary.\n\nEnsure that you enter a value in the Glossary Ref. or Glossary Name column though both the columns are optional."
+    },
+    {
+        "File Name":"policy-x-glossary.xlsx",
+        "Header Name":"Glossary Name",
+        "Note Text":"Optional.\n\nName of the glossary.\n\nEnsure that you enter a value in the Glossary Ref. or Glossary Name column though both the columns are optional."
+    },
+    {
+        "File Name":"policy-x-glossary.xlsx",
+        "Header Name":"Parent Glossary Name",
+        "Note Text":"Optional.\n\nName of the parent glossary term.\n\nThe glossary parent name must exist in BUDG."
+    },
+    {
+        "File Name":"policy-x-glossary.xlsx",
+        "Header Name":"Relationship Type",
+        "Note Text":"Required.\n\nThe type of relationship between the policy and glossary.\n\nSelect Policy is regulating Glossary."
+    },
+    {
+        "File Name":"policy-x-legal-entity.xlsx",
+        "Header Name":"Policy Ref.",
+        "Note Text":"Optional.\n\nA unique reference identifier for the policy.\n\nEnsure that you enter a value in the Policy Ref. or Policy Name column though both the columns are optional."
+    },
+    {
+        "File Name":"policy-x-legal-entity.xlsx",
+        "Header Name":"Policy Name",
+        "Note Text":"Optional.\n\nName of the policy.\n\nEnter a name that other BUDG users can recognize easily.\n\nEnsure that you enter a value in the Policy Ref. or Policy Name column though both the columns are optional."
+    },
+    {
+        "File Name":"policy-x-legal-entity.xlsx",
+        "Header Name":"Parent Policy Name",
+        "Note Text":"Optional.\n\nName of the parent policy if the policy belongs to a hierarchy."
+    },
+    {
+        "File Name":"policy-x-legal-entity.xlsx",
+        "Header Name":"Legal Short Name",
+        "Note Text":"Required.\n\nShort name of the legal entity.\n\nEnter a name that other BUDG users can recognize easily."
+    },
+    {
+        "File Name":"policy-x-legal-entity.xlsx",
+        "Header Name":"Parent Legal Short Name",
+        "Note Text":"Optional.\n\nShort name of the parent legal entity if the legal entity belongs to a hierarchy."
+    },
+    {
+        "File Name":"policy-x-legal-entity.xlsx",
+        "Header Name":"Relationship Type",
+        "Note Text":"Required.\n\nThe type of relationship between the policy and legal entity.\n\nSelect Policy is related to Legal Entity."
+    },
+    {
+        "File Name":"policy-x-policy.xlsx",
+        "Header Name":"Description",
+        "Note Text":"Optional.\n\nDescription about the relationship between source and target policies."
+    },
+    {
+        "File Name":"policy-x-policy.xlsx",
+        "Header Name":"Source Policy Ref.",
+        "Note Text":"Optional.\n\nA unique reference identifier for the source policy.\n\nEnsure that you enter a value in the Source Policy Ref. or Source Policy Name column though both the columns are optional."
+    },
+    {
+        "File Name":"policy-x-policy.xlsx",
+        "Header Name":"Source Policy Name",
+        "Note Text":"Optional.\n\nName of the source policy.\n\nEnsure that you enter a value in the Source Policy Ref. or Source Policy Name column though both the columns are optional."
+    },
+    {
+        "File Name":"policy-x-policy.xlsx",
+        "Header Name":"Source Parent Policy Name",
+        "Note Text":"Optional.\n\nName of the parent of source policy.\n\nThe parent name must exist in BUDG."
+    },
+    {
+        "File Name":"policy-x-policy.xlsx",
+        "Header Name":"Target Policy Ref.",
+        "Note Text":"Optional.\n\nA unique reference identifier for the target policy.\n\nEnsure that you enter a value in the Target Policy Ref. or Target Policy Name column though both the columns are optional."
+    },
+    {
+        "File Name":"policy-x-policy.xlsx",
+        "Header Name":"Target Policy Name",
+        "Note Text":"Optional.\n\nName of the target policy.\n\nEnsure that you enter a value in the Target Policy Ref. or Target Policy Name column though both the columns are optional."
+    },
+    {
+        "File Name":"policy-x-policy.xlsx",
+        "Header Name":"Target Parent Policy Name",
+        "Note Text":"Optional.\n\nName of the parent of target policy.\n\nThe parent name must exist in BUDG."
+    },
+    {
+        "File Name":"policy-x-policy.xlsx",
+        "Header Name":"Relationship Type",
+        "Note Text":"Required.\n\nThe type of relationship between the source and target policies.\n\nSelect Is Related to."
+    },
+    {
+        "File Name":"policy-x-process.xlsx",
+        "Header Name":"Description",
+        "Note Text":"Optional.\n\nDescription about the relationship between the policy and process."
+    },
+    {
+        "File Name":"policy-x-process.xlsx",
+        "Header Name":"Policy Ref.",
+        "Note Text":"Optional.\n\nA unique reference identifier for the policy.\n\nEnsure that you enter a value in the Policy Ref. or Policy Name column though both the columns are optional."
+    },
+    {
+        "File Name":"policy-x-process.xlsx",
+        "Header Name":"Policy Name",
+        "Note Text":"Optional.\n\nName of the policy.\n\nEnter a name that other BUDG users can recognize easily.\n\nEnsure that you enter a value in the Policy Ref. or Policy Name column though both the columns are optional."
+    },
+    {
+        "File Name":"policy-x-process.xlsx",
+        "Header Name":"Parent Policy Name",
+        "Note Text":"Optional.\n\nName of the parent policy if the policy belongs to a hierarchy."
+    },
+    {
+        "File Name":"policy-x-process.xlsx",
+        "Header Name":"Process Ref.",
+        "Note Text":"Optional.\n\nA unique reference identifier for the process.\n\nEnsure that you enter a value in the Process Ref. or Process Name column though both the columns are optional."
+    },
+    {
+        "File Name":"policy-x-process.xlsx",
+        "Header Name":"Process Name",
+        "Note Text":"Optional.\n\nName of the process.\n\nEnter a name that other BUDG users can recognize easily.\n\nEnsure that you enter a value in the Process Ref. or Process Name column though both the columns are optional."
+    },
+    {
+        "File Name":"policy-x-process.xlsx",
+        "Header Name":"Parent Process Name",
+        "Note Text":"Optional.\n\nName of the parent process if the process belongs to a hierarchy."
+    },
+    {
+        "File Name":"policy-x-process.xlsx",
+        "Header Name":"Relationship Type",
+        "Note Text":"Required.\n\nThe type of relationship between the policy and process.\n\nSelect Policy is regulating Process."
+    },
+    {
+        "File Name":"policy-x-product.xlsx",
+        "Header Name":"Product Name",
+        "Note Text":"Required.\n\nName of the product."
+    },
+    {
+        "File Name":"policy-x-product.xlsx",
+        "Header Name":"Product Parent Name",
+        "Note Text":"Optional.\n\nName of the parent product if the product belongs to a hierarchy."
+    },
+    {
+        "File Name":"policy-x-product.xlsx",
+        "Header Name":"Policy Ref.",
+        "Note Text":"Optional.\n\nA unique reference identifier for the policy.\n\nEnsure that you enter a value in the Policy Ref. or Policy Name column though both the columns are optional."
+    },
+    {
+        "File Name":"policy-x-product.xlsx",
+        "Header Name":"Policy Name",
+        "Note Text":"Optional.\n\nName of the policy.\n\nEnter a name that other BUDG users can recognize easily.\n\nEnsure that you enter a value in the Policy Ref. or Policy Name column though both the columns are optional."
+    },
+    {
+        "File Name":"policy-x-product.xlsx",
+        "Header Name":"Parent Policy Name",
+        "Note Text":"Optional.\n\nName of the parent policy if the policy belongs to a hierarchy."
+    },
+    {
+        "File Name":"policy-x-product.xlsx",
+        "Header Name":"Relationship Type",
+        "Note Text":"Required.\n\nThe type of relationship between the policy and product.\n\nSelect Is Related to."
+    },
+    {
+        "File Name":"policy-x-project.xlsx",
+        "Header Name":"Description",
+        "Note Text":"Optional.\n\nDescription about the relationship between the policy and project."
+    },
+    {
+        "File Name":"policy-x-project.xlsx",
+        "Header Name":"Policy Ref.",
+        "Note Text":"Optional.\n\nA unique reference identifier for the policy.\n\nEnsure that you enter a value in the Policy Ref. or Policy Name column though both the columns are optional."
+    },
+    {
+        "File Name":"policy-x-project.xlsx",
+        "Header Name":"Policy Name",
+        "Note Text":"Optional.\n\nName of the policy.\n\nEnter a name that other BUDG users can recognize easily.\n\nEnsure that you enter a value in the Policy Ref. or Policy Name column though both the columns are optional."
+    },
+    {
+        "File Name":"policy-x-project.xlsx",
+        "Header Name":"Parent Policy Name",
+        "Note Text":"Optional.\n\nParent of the policy if the policy belongs to a hierarchy."
+    },
+    {
+        "File Name":"policy-x-project.xlsx",
+        "Header Name":"Project Ref.",
+        "Note Text":"Optional.\n\nA unique reference identifier for the project.\n\nEnsure that you enter a value in the Project Ref. or Project Name column though both the columns are optional."
+    },
+    {
+        "File Name":"policy-x-project.xlsx",
+        "Header Name":"Project Name",
+        "Note Text":"Optional.\n\nName of the project.\n\nEnter a name that users can recognize easily.\n\nEnsure that you enter a value in the Project Ref. or Project Name column though both the columns are optional."
+    },
+    {
+        "File Name":"policy-x-project.xlsx",
+        "Header Name":"Parent Project Name",
+        "Note Text":"Optional.\n\nParent of the project if the project belongs to a hierarchy."
+    },
+    {
+        "File Name":"policy-x-project.xlsx",
+        "Header Name":"Relationship Type",
+        "Note Text":"Required.\n\nThe type of relationship between the policy and project.\n\nSelect Is related to"
+    },
+    {
+        "File Name":"policy-x-system.xlsx",
+        "Header Name":"Policy Ref.",
+        "Note Text":"Optional.\n\nA unique reference identifier for the policy.\n\nEnsure that you enter a value in the Policy Ref. or Policy Name column though both the columns are optional."
+    },
+    {
+        "File Name":"policy-x-system.xlsx",
+        "Header Name":"Policy Name",
+        "Note Text":"Optional.\n\nName of the policy.\n\nEnter a name that other BUDG users can recognize easily.\n\nEnsure that you enter a value in the Policy Ref. or Policy Name column though both the columns are optional."
+    },
+    {
+        "File Name":"policy-x-system.xlsx",
+        "Header Name":"Parent Policy Name",
+        "Note Text":"Optional.\n\nName of the parent policy if the policy belongs to a hierarchy."
+    },
+    {
+        "File Name":"policy-x-system.xlsx",
+        "Header Name":"System Short Name",
+        "Note Text":"Required.\n\nShort name of a system or an acronym that other BUDG users can recognize easily for a system."
+    },
+    {
+        "File Name":"policy-x-system.xlsx",
+        "Header Name":"Parent System Short Name",
+        "Note Text":"Optional.\n\nShort name of the parent system if the system belongs to a hierarchy."
+    },
+    {
+        "File Name":"policy-x-system.xlsx",
+        "Header Name":"Relationship Type",
+        "Note Text":"Required.\n\nThe type of relationship between the policy and system.\n\nSelect Policy is regulating System."
+    },
+    {
+        "File Name":"process-x-attribute.xlsx",
+        "Header Name":"Process Ref.",
+        "Note Text":"Optional.\n\nA unique reference identifier for the process.\n\nEnsure that you enter a value in the Process Ref. or Process Name column though both the columns are optional."
+    },
+    {
+        "File Name":"process-x-attribute.xlsx",
+        "Header Name":"Process Name",
+        "Note Text":"Optional.\n\nName of the process.\n\nEnter a name that other BUDG users can recognize easily.\n\nEnsure that you enter a value in the Process Ref. or Process Name column though both the columns are optional."
+    },
+    {
+        "File Name":"process-x-attribute.xlsx",
+        "Header Name":"Parent Process Name",
+        "Note Text":"Optional.\n\nName of the parent process if the process belongs to a hierarchy."
+    },
+    {
+        "File Name":"process-x-attribute.xlsx",
+        "Header Name":"Attribute Ref.",
+        "Note Text":"Optional.\n\nA unique reference identifier for the attribute.\n\nEnsure that you enter a value in the Attribute Ref. or Attribute Name column though both the columns are optional."
+    },
+    {
+        "File Name":"process-x-attribute.xlsx",
+        "Header Name":"Attribute Name",
+        "Note Text":"Optional.\n\nName of the attribute.\n\nEnter a name that other BUDG users can recognize easily.\n\nEnsure that you enter a value in the Attribute Ref. or Attribute Name column though both the columns are optional."
+    },
+    {
+        "File Name":"process-x-attribute.xlsx",
+        "Header Name":"Attribute Data Set Name",
+        "Note Text":"Optional.\n\nName of the data set that contains the attribute."
+    },
+    {
+        "File Name":"process-x-attribute.xlsx",
+        "Header Name":"Attribute System Short Name",
+        "Note Text":"Optional.\n\nShort name of the system that contains the data set and attribute."
+    },
+    {
+        "File Name":"process-x-attribute.xlsx",
+        "Header Name":"Relationship Type",
+        "Note Text":"Required.\n\nThe type of relationship between the process and attribute.\n\nSelect Is related to."
+    },
+    {
+        "File Name":"process-x-client.xlsx",
+        "Header Name":"Client Name",
+        "Note Text":"Required.\n\nShort name of the client.\n\nEnter a name that other BUDG users can recognize easily."
+    },
+    {
+        "File Name":"process-x-client.xlsx",
+        "Header Name":"Client Parent Name",
+        "Note Text":"Optional.\n\nName of the parent client that you want to create."
+    },
+    {
+        "File Name":"process-x-client.xlsx",
+        "Header Name":"Process Ref.",
+        "Note Text":"Optional.\n\nA unique reference identifier for the process.\n\nEnsure that you enter a value in the Process Ref. or Process Name column though both the columns are optional."
+    },
+    {
+        "File Name":"process-x-client.xlsx",
+        "Header Name":"Process Name",
+        "Note Text":"Optional.\n\nName of the process.\n\nEnter a name that other BUDG users can recognize easily.\n\nEnsure that you enter a value in the Process Ref. or Process Name column though both the columns are optional."
+    },
+    {
+        "File Name":"process-x-client.xlsx",
+        "Header Name":"Parent Process Name",
+        "Note Text":"Optional.\n\nName of the parent process if the process belongs to a hierarchy."
+    },
+    {
+        "File Name":"process-x-client.xlsx",
+        "Header Name":"Relationship Type",
+        "Note Text":"Required.\n\nThe type of relationship between the process and client.\n\nSelect Is related to."
+    },
+    {
+        "File Name":"process-x-data-set.xlsx",
+        "Header Name":"Process Ref.",
+        "Note Text":"Optional.\n\nA unique reference identifier for the process.\n\nEnsure that you enter a value in the Process Ref. or Process Name column though both the columns are optional."
+    },
+    {
+        "File Name":"process-x-data-set.xlsx",
+        "Header Name":"Process Name",
+        "Note Text":"Optional.\n\nName of the process.\n\nEnter a name that other BUDG users can recognize easily.\n\nEnsure that you enter a value in the Process Ref. or Process Name column though both the columns are optional."
+    },
+    {
+        "File Name":"process-x-data-set.xlsx",
+        "Header Name":"Parent Process Name",
+        "Note Text":"Optional.\n\nName of the parent process if the process belongs to a hierarchy."
+    },
+    {
+        "File Name":"process-x-data-set.xlsx",
+        "Header Name":"Data Set Ref.",
+        "Note Text":"Optional.\n\nA unique reference identifier for the data set.\n\nEnsure that you enter a value in the Data Set Ref. or Data Set Name column though both the columns are optional."
+    },
+    {
+        "File Name":"process-x-data-set.xlsx",
+        "Header Name":"Data Set Name",
+        "Note Text":"Optional.\n\nName of the data set.\n\nEnter a name that other BUDG users can recognize easily.\n\nEnsure that you enter a value in the Data Set Ref. or Data Set Name column though both the columns are optional."
+    },
+    {
+        "File Name":"process-x-data-set.xlsx",
+        "Header Name":"Data Set System Short Name",
+        "Note Text":"Optional.\n\nShort name of the system that contains the data set."
+    },
+    {
+        "File Name":"process-x-data-set.xlsx",
+        "Header Name":"Relationship Type",
+        "Note Text":"Required.\n\nThe type of relationship between the process and data set.\n\nSelect Is related to."
+    },
+    {
+        "File Name":"process-x-glossary.xlsx",
+        "Header Name":"Description",
+        "Note Text":"Optional.\n\nDescription of relationship between the process and glossary."
+    },
+    {
+        "File Name":"process-x-glossary.xlsx",
+        "Header Name":"Glossary Ref.",
+        "Note Text":"Optional.\n\nA unique reference identifier for the glossary.\n\nEnsure that you enter a value in the Glossary Ref. or Glossary Name column though both the columns are optional."
+    },
+    {
+        "File Name":"process-x-glossary.xlsx",
+        "Header Name":"Glossary Name",
+        "Note Text":"Optional.\n\nName of the glossary.\n\nEnsure that you enter a value in the Glossary Ref. or Glossary Name column though both the columns are optional."
+    },
+    {
+        "File Name":"process-x-glossary.xlsx",
+        "Header Name":"Parent Glossary Name",
+        "Note Text":"Optional.\n\nName of the parent glossary term.\n\nThe glossary parent name must exist in BUDG."
+    },
+    {
+        "File Name":"process-x-glossary.xlsx",
+        "Header Name":"Process Ref.",
+        "Note Text":"Optional.\n\nA unique reference identifier for the process.\n\nEnsure that you enter a value in the Process Ref. or Process Name column though both the columns are optional."
+    },
+    {
+        "File Name":"process-x-glossary.xlsx",
+        "Header Name":"Process Name",
+        "Note Text":"Optional.\n\nName of the process.\n\nEnter a name that other BUDG users can recognize easily.\n\nEnsure that you enter a value in the Process Ref. or Process Name column though both the columns are optional."
+    },
+    {
+        "File Name":"process-x-glossary.xlsx",
+        "Header Name":"Parent Process Name",
+        "Note Text":"Optional.\n\nName of the parent process if the process belongs to a hierarchy."
+    },
+    {
+        "File Name":"process-x-glossary.xlsx",
+        "Header Name":"Relationship Type",
+        "Note Text":"Required.\n\nThe type of relationship between the process and glossary.\n\nSelect one of the following types:\n-Is used for Process\n-Is KDE for Process"
+    },
+    {
+        "File Name":"process-x-legal-entity.xlsx",
+        "Header Name":"Process Ref.",
+        "Note Text":"Optional.\n\nA unique reference identifier for the process.\n\nEnsure that you enter a value in the Process Ref. or Process Name column though both the columns are optional."
+    },
+    {
+        "File Name":"process-x-legal-entity.xlsx",
+        "Header Name":"Process Name",
+        "Note Text":"Optional.\n\nName of the process.\n\nEnter a name that other BUDG users can recognize easily.\n\nEnsure that you enter a value in the Process Ref. or Process Name column though both the columns are optional."
+    },
+    {
+        "File Name":"process-x-legal-entity.xlsx",
+        "Header Name":"Parent Process Name",
+        "Note Text":"Optional.\n\nName of the parent process if the process belongs to a hierarchy."
+    },
+    {
+        "File Name":"process-x-legal-entity.xlsx",
+        "Header Name":"Legal Short Name",
+        "Note Text":"Required.\n\nShort name of the legal entity.\n\nEnter a name that other BUDG users can recognize easily."
+    },
+    {
+        "File Name":"process-x-legal-entity.xlsx",
+        "Header Name":"Parent Legal Short Name",
+        "Note Text":"Optional.\n\nName of the parent legal entity if the legal entity belongs to a hierarchy."
+    },
+    {
+        "File Name":"process-x-legal-entity.xlsx",
+        "Header Name":"Relationship Type",
+        "Note Text":"Required.\n\nThe type of relationship between the process and legal entity.\n\nSelect one of the following types: \n-Legal Entity is Data Controller\n-Legal Entity is Data Processor"
+    },
+    {
+        "File Name":"process-x-process.xlsx",
+        "Header Name":"Condition",
+        "Note Text":"Optional.\n\nThe condition that you can specify only for a Control type process.\n\nThe condition that you enter appears as annotation text on the output in Process maps when the predecessor is a Control type process."
+    },
+    {
+        "File Name":"process-x-process.xlsx",
+        "Header Name":"Process Ref.",
+        "Note Text":"Optional.\n\nA unique reference identifier for the process.\n\nEnsure that you enter a value in the Process Ref. or Process Name column though both the columns are optional."
+    },
+    {
+        "File Name":"process-x-process.xlsx",
+        "Header Name":"Process Name",
+        "Note Text":"Optional.\n\nName of the process.\n\nEnter a name that other BUDG users can recognize easily.\n\nEnsure that you enter a value in the Process Ref. or Process Name column though both the columns are optional."
+    },
+    {
+        "File Name":"process-x-process.xlsx",
+        "Header Name":"Parent Process Name",
+        "Note Text":"Optional.\n\nParent of the process."
+    },
+    {
+        "File Name":"process-x-process.xlsx",
+        "Header Name":"Predecessor Process Ref.",
+        "Note Text":"Optional.\n\nA unique reference identifier for the predecessor process.\n\nEnsure that you enter a value in the Predecessor Process Ref. or Predecessor Process Name column though both the columns are optional."
+    },
+    {
+        "File Name":"process-x-process.xlsx",
+        "Header Name":"Predecessor Process Name",
+        "Note Text":"Optional.\n\nName of the predecessor process.\n\nEnsure that you enter a value in the Predecessor Process Ref. or Predecessor Process Name column though both the columns are optional."
+    },
+    {
+        "File Name":"process-x-process.xlsx",
+        "Header Name":"Predecessor Parent Process Name",
+        "Note Text":"Optional.\n\nParent of the predecessor process."
+    },
+    {
+        "File Name":"process-x-product.xlsx",
+        "Header Name":"Product Name",
+        "Note Text":"Required.\n\nName of the product."
+    },
+    {
+        "File Name":"process-x-product.xlsx",
+        "Header Name":"Product Parent Name",
+        "Note Text":"Optional.\n\nName of the parent product if the product belongs to a hierarchy."
+    },
+    {
+        "File Name":"process-x-product.xlsx",
+        "Header Name":"Process Ref.",
+        "Note Text":"Optional.\n\nA unique reference identifier for the process.\n\nEnsure that you enter a value in the Process Ref. or Process Name column though both the columns are optional."
+    },
+    {
+        "File Name":"process-x-product.xlsx",
+        "Header Name":"Process Name",
+        "Note Text":"Optional.\n\nName of the process.\n\nEnter a name that other BUDG users can recognize easily.\n\nEnsure that you enter a value in the Process Ref. or Process Name column though both the columns are optional."
+    },
+    {
+        "File Name":"process-x-product.xlsx",
+        "Header Name":"Parent Process Name",
+        "Note Text":"Optional.\n\nName of the parent process if the process belongs to a hierarchy."
+    },
+    {
+        "File Name":"process-x-product.xlsx",
+        "Header Name":"Relationship Type",
+        "Note Text":"Required.\n\nThe type of relationship between the process and product.\n\nSelect Is related to."
+    },
+    {
+        "File Name":"process-x-system-interface.xlsx",
+        "Header Name":"Process Ref.",
+        "Note Text":"Optional.\n\nA unique reference identifier for the process.\n\nEnsure that you enter a value in the Process Ref. or Process Name column though both the columns are optional."
+    },
+    {
+        "File Name":"process-x-system-interface.xlsx",
+        "Header Name":"Process Name",
+        "Note Text":"Optional.\n\nName of the process.\n\nEnter a name that other BUDG users can recognize easily.\n\nEnsure that you enter a value in the Process Ref. or Process Name column though both the columns are optional."
+    },
+    {
+        "File Name":"process-x-system-interface.xlsx",
+        "Header Name":"Parent Process Name",
+        "Note Text":"Optional.\n\nName of the parent process if the process belongs to a hierarchy."
+    },
+    {
+        "File Name":"process-x-system-interface.xlsx",
+        "Header Name":"Interface Ref.",
+        "Note Text":"Optional.\n\nReference ID for the interface.\n\nThe reference ID must be a string data type.\n\nIf you enter a number, you must format the column to Text type.\n\nEnsure that you enter a value in the Interface Ref. or Interface Name or Interface Source System Short Name and Interface Target System Short Name column though the columns are optional."
+    },
+    {
+        "File Name":"process-x-system-interface.xlsx",
+        "Header Name":"Interface Name",
+        "Note Text":"Optional.\n\nName of the system interface.\n\nEnsure that you enter a value in the Interface Ref. or Interface Name or Interface Source System Short Name and Interface Target System Short Name column though the columns are optional."
+    },
+    {
+        "File Name":"process-x-system-interface.xlsx",
+        "Header Name":"Interface Source System Short Name",
+        "Note Text":"Optional.\n\nShort name of the system from which the information flows out.\n\nEnsure that you enter a value in the Interface Ref. or Interface Name or Interface Source System Short Name and Interface Target System Short Name column though the columns are optional."
+    },
+    {
+        "File Name":"process-x-system-interface.xlsx",
+        "Header Name":"Interface Target System Short Name",
+        "Note Text":"Optional.\n\nShort name of the system to which the information flows in.\n\nEnsure that you enter a value in the Interface Ref. or Interface Name or Interface Source System Short Name and Interface Target System Short Name column though the columns are optional."
+    },
+    {
+        "File Name":"process-x-system-interface.xlsx",
+        "Header Name":"Relationship Type",
+        "Note Text":"Required.\n\nThe type of relationship between the process and system interface.\n\nSelect Process supports Interface."
+    },
+    {
+        "File Name":"process-x-system.xlsx",
+        "Header Name":"Process Ref.",
+        "Note Text":"Optional.\n\nA unique reference identifier for the process.\n\nEnsure that you enter a value in the Process Ref. or Process Name column though both the columns are optional."
+    },
+    {
+        "File Name":"process-x-system.xlsx",
+        "Header Name":"Process Name",
+        "Note Text":"Optional.\n\nName of the process.\n\nEnter a name that other BUDG users can recognize easily.\n\nEnsure that you enter a value in the Process Ref. or Process Name column though both the columns are optional."
+    },
+    {
+        "File Name":"process-x-system.xlsx",
+        "Header Name":"Parent Process Name",
+        "Note Text":"Optional.\n\nName of the parent process if the process belongs to a hierarchy."
+    },
+    {
+        "File Name":"process-x-system.xlsx",
+        "Header Name":"System Short Name",
+        "Note Text":"Required.\n\nShort name of a system or an acronym that other BUDG users can recognize easily for a system."
+    },
+    {
+        "File Name":"process-x-system.xlsx",
+        "Header Name":"Parent System Short Name",
+        "Note Text":"Optional.\n\nShort name of the parent system if the system belongs to a hierarchy."
+    },
+    {
+        "File Name":"process-x-system.xlsx",
+        "Header Name":"Relationship Type",
+        "Note Text":"Required.\n\nThe type of relationship between the process and system.\n\nSelect Process is applicable to System."
+    },
+    {
+        "File Name":"product-x-business-area.xlsx",
+        "Header Name":"Product Ref.",
+        "Note Text":"Optional.\n\nA unique reference identifier for the product.\n\nEnsure that you enter a value in the Product Ref. or Product Name column though both the columns are optional."
+    },
+    {
+        "File Name":"product-x-business-area.xlsx",
+        "Header Name":"Product Name",
+        "Note Text":"Optional.\n\nName of the product.\n\nEnter a name that other BUDG users can recognize easily.\n\nEnsure that you enter a value in the Product Ref. or Product Name column though both the columns are optional."
+    },
+    {
+        "File Name":"product-x-business-area.xlsx",
+        "Header Name":"Product Parent Name",
+        "Note Text":"Optional.\n\nName of the parent product if the product belongs to a hierarchy."
+    },
+    {
+        "File Name":"product-x-business-area.xlsx",
+        "Header Name":"Business Area Name",
+        "Note Text":"Required.\n\nName of the business area.\n\nEnter a name that other BUDG users can recognize easily."
+    },
+    {
+        "File Name":"product-x-business-area.xlsx",
+        "Header Name":"Business Area Parent Name",
+        "Note Text":"Optional.\n\nName of the parent business area if the business area belongs to a hierarchy."
+    },
+    {
+        "File Name":"product-x-business-area.xlsx",
+        "Header Name":"Relationship Type",
+        "Note Text":"Required.\n\nThe type of relationship between the product and business area.\n\nSelect Is related to."
+    },
+    {
+        "File Name":"product-x-client.xlsx",
+        "Header Name":"Product Ref.",
+        "Note Text":"Optional.\n\nA unique reference identifier for the product.\n\nEnsure that you enter a value in the Product Ref. or Product Name column though both the columns are optional."
+    },
+    {
+        "File Name":"product-x-client.xlsx",
+        "Header Name":"Product Name",
+        "Note Text":"Optional.\n\nName of the product.\n\nEnter a name that other BUDG users can recognize easily.\n\nEnsure that you enter a value in the Product Ref. or Product Name column though both the columns are optional."
+    },
+    {
+        "File Name":"product-x-client.xlsx",
+        "Header Name":"Product Parent Name",
+        "Note Text":"Optional.\n\nName of the parent product if the product belongs to a hierarchy."
+    },
+    {
+        "File Name":"product-x-client.xlsx",
+        "Header Name":"Client Name",
+        "Note Text":"Required.\n\nShort name of the client.\n\nEnter a name that other BUDG users can recognize easily."
+    },
+    {
+        "File Name":"product-x-client.xlsx",
+        "Header Name":"Parent Client Name",
+        "Note Text":"Optional.\n\nName of the parent client that you want to create."
+    },
+    {
+        "File Name":"product-x-client.xlsx",
+        "Header Name":"Relationship Type",
+        "Note Text":"Required.\n\nThe type of relationship between the product and client.\n\nSelect Is related to."
+    },
+    {
+        "File Name":"product-x-legal-entity.xlsx",
+        "Header Name":"Product Ref.",
+        "Note Text":"Optional.\n\nA unique reference identifier for the product.\n\nEnsure that you enter a value in the Product Ref. or Product Name column though both the columns are optional."
+    },
+    {
+        "File Name":"product-x-legal-entity.xlsx",
+        "Header Name":"Product Name",
+        "Note Text":"Optional.\n\nName of the product.\n\nEnter a name that other BUDG users can recognize easily.\n\nEnsure that you enter a value in the Product Ref. or Product Name column though both the columns are optional."
+    },
+    {
+        "File Name":"product-x-legal-entity.xlsx",
+        "Header Name":"Product Parent Name",
+        "Note Text":"Optional.\n\nName of the parent product if the product belongs to a hierarchy."
+    },
+    {
+        "File Name":"product-x-legal-entity.xlsx",
+        "Header Name":"Legal Short Name",
+        "Note Text":"Required.\n\nShort name of the legal entity.\n\nEnter a name that other BUDG users can recognize easily."
+    },
+    {
+        "File Name":"product-x-legal-entity.xlsx",
+        "Header Name":"Parent Legal Short Name",
+        "Note Text":"Optional.\n\nShort name of the parent legal entity if the legal entity belongs to a hierarchy."
+    },
+    {
+        "File Name":"product-x-legal-entity.xlsx",
+        "Header Name":"Relationship Type",
+        "Note Text":"Required.\n\nThe type of relationship between the product and legal entity.\n\nSelect Is related to."
+    },
+    {
+        "File Name":"project-x-attribute.xlsx",
+        "Header Name":"Project Ref.",
+        "Note Text":"Optional.\n\nA unique reference identifier for the project.\n\nEnsure that you enter a value in the Project Ref. or Project Name column though both the columns are optional."
+    },
+    {
+        "File Name":"project-x-attribute.xlsx",
+        "Header Name":"Project Name",
+        "Note Text":"Optional.\n\nName of the project.\n\nEnter a name that other BUDG users can recognize easily.\n\nEnsure that you enter a value in the Project Ref. or Project Name column though both the columns are optional."
+    },
+    {
+        "File Name":"project-x-attribute.xlsx",
+        "Header Name":"Project Parent Name",
+        "Note Text":"Optional.\n\nName of the parent project if the project belongs to a hierarchy."
+    },
+    {
+        "File Name":"project-x-attribute.xlsx",
+        "Header Name":"Attribute Ref.",
+        "Note Text":"Optional.\n\nA unique reference identifier for the attribute.\n\nEnsure that you enter a value in the Attribute Ref. or Attribute Name column though both the columns are optional."
+    },
+    {
+        "File Name":"project-x-attribute.xlsx",
+        "Header Name":"Attribute Name",
+        "Note Text":"Optional.\n\nName of the attribute.\n\nEnter a name that other BUDG users can recognize easily.\n\nEnsure that you enter a value in the Attribute Ref. or Attribute Name column though both the columns are optional."
+    },
+    {
+        "File Name":"project-x-attribute.xlsx",
+        "Header Name":"Attribute Data Set Name",
+        "Note Text":"Optional.\n\nName of the data set that contains the attribute."
+    },
+    {
+        "File Name":"project-x-attribute.xlsx",
+        "Header Name":"Attribute System Short Name",
+        "Note Text":"Optional.\n\nName of the system that contains the data set and attribute."
+    },
+    {
+        "File Name":"project-x-attribute.xlsx",
+        "Header Name":"Relationship Type",
+        "Note Text":"Required.\n\nThe type of relationship between the project and attribute.\n\nSelect Is related to."
+    },
+    {
+        "File Name":"project-x-business-area.xlsx",
+        "Header Name":"Project Ref.",
+        "Note Text":"Optional.\n\nA unique reference identifier for the project.\n\nEnsure that you enter a value in the Project Ref. or Project Name column though both the columns are optional."
+    },
+    {
+        "File Name":"project-x-business-area.xlsx",
+        "Header Name":"Project Name",
+        "Note Text":"Optional.\n\nName of the project.\n\nEnter a name that other BUDG users can recognize easily.\n\nEnsure that you enter a value in the Project Ref. or Project Name column though both the columns are optional."
+    },
+    {
+        "File Name":"project-x-business-area.xlsx",
+        "Header Name":"Project Parent Name",
+        "Note Text":"Optional.\n\nName of the parent project if the project belongs to a hierarchy."
+    },
+    {
+        "File Name":"project-x-business-area.xlsx",
+        "Header Name":"Business Area Name",
+        "Note Text":"Required.\n\nName of the business area.\n\nEnter a name that other BUDG users can recognize easily."
+    },
+    {
+        "File Name":"project-x-business-area.xlsx",
+        "Header Name":"Business Area Parent Name",
+        "Note Text":"Optional.\n\nName of the parent business area if the business area belongs to a hierarchy."
+    },
+    {
+        "File Name":"project-x-business-area.xlsx",
+        "Header Name":"Relationship Type",
+        "Note Text":"Required.\n\nThe type of relationship between the project and business area.\n\nSelect Project is related to Business Area."
+    },
+    {
+        "File Name":"project-x-capability.xlsx",
+        "Header Name":"Project Ref.",
+        "Note Text":"Optional.\n\nA unique reference identifier for the project.\n\nEnsure that you enter a value in the Project Ref. or Project Name column though both the columns are optional."
+    },
+    {
+        "File Name":"project-x-capability.xlsx",
+        "Header Name":"Project Name",
+        "Note Text":"Optional.\n\nName of the project.\n\nEnter a name that other BUDG users can recognize easily.\n\nEnsure that you enter a value in the Project Ref. or Project Name column though both the columns are optional."
+    },
+    {
+        "File Name":"project-x-capability.xlsx",
+        "Header Name":"Project Parent Name",
+        "Note Text":"Optional.\n\nName of the parent project if the project belongs to a hierarchy."
+    },
+    {
+        "File Name":"project-x-capability.xlsx",
+        "Header Name":"Capability Ref.",
+        "Note Text":"Optional.\n\nA unique reference identifier for the capability.\n\nEnsure that you enter a value in the Capability Ref. or Capability Name column though both the columns are optional."
+    },
+    {
+        "File Name":"project-x-capability.xlsx",
+        "Header Name":"Capability Name",
+        "Note Text":"Optional.\n\nName of the capability.\n\nEnter a name that other BUDG users can recognize easily.\n\nEnsure that you enter a value in the Capability Ref. or Capability Name column though both the columns are optional."
+    },
+    {
+        "File Name":"project-x-capability.xlsx",
+        "Header Name":"Capability Parent Name",
+        "Note Text":"Optional.\n\nName of the parent capability if the capability belongs to a hierarchy."
+    },
+    {
+        "File Name":"project-x-capability.xlsx",
+        "Header Name":"Relationship Type",
+        "Note Text":"Required.\n\nThe type of relationship between the project and capability.\n\nSelect Is related to."
+    },
+    {
+        "File Name":"project-x-client.xlsx",
+        "Header Name":"Client Name",
+        "Note Text":"Required.\n\nShort name of the client.\n\nEnter a name that other BUDG users can recognize easily."
+    },
+    {
+        "File Name":"project-x-client.xlsx",
+        "Header Name":"Client Parent Name",
+        "Note Text":"Optional.\n\nName of the parent client that you want to create."
+    },
+    {
+        "File Name":"project-x-client.xlsx",
+        "Header Name":"Project Ref.",
+        "Note Text":"Optional.\n\nA unique reference identifier for the project.\n\nEnsure that you enter a value in the Project Ref. or Project Name column though both the columns are optional."
+    },
+    {
+        "File Name":"project-x-client.xlsx",
+        "Header Name":"Project Name",
+        "Note Text":"Optional.\n\nName of the project.\n\nEnter a name that other BUDG users can recognize easily.\n\nEnsure that you enter a value in the Project Ref. or Project Name column though both the columns are optional."
+    },
+    {
+        "File Name":"project-x-client.xlsx",
+        "Header Name":"Project Parent Name",
+        "Note Text":"Optional.\n\nName of the parent project if the project belongs to a hierarchy."
+    },
+    {
+        "File Name":"project-x-client.xlsx",
+        "Header Name":"Relationship Type",
+        "Note Text":"Required.\n\nThe type of relationship between the project and client.\n\nSelect Is related to."
+    },
+    {
+        "File Name":"project-x-data-set.xlsx",
+        "Header Name":"Project Ref.",
+        "Note Text":"Optional.\n\nA unique reference identifier for the project.\n\nEnsure that you enter a value in the Project Ref. or Project Name column though both the columns are optional."
+    },
+    {
+        "File Name":"project-x-data-set.xlsx",
+        "Header Name":"Project Name",
+        "Note Text":"Optional.\n\nName of the project.\n\nEnter a name that other BUDG users can recognize easily.\n\nEnsure that you enter a value in the Project Ref. or Project Name column though both the columns are optional."
+    },
+    {
+        "File Name":"project-x-data-set.xlsx",
+        "Header Name":"Project Parent Name",
+        "Note Text":"Optional.\n\nName of the parent project if the project belongs to a hierarchy."
+    },
+    {
+        "File Name":"project-x-data-set.xlsx",
+        "Header Name":"Data Set Ref.",
+        "Note Text":"Optional.\n\nA unique reference identifier for the data set.\n\nEnsure that you enter a value in the Data Set Ref. or Data Set Name column though both the columns are optional."
+    },
+    {
+        "File Name":"project-x-data-set.xlsx",
+        "Header Name":"Data Set Name",
+        "Note Text":"Optional.\n\nName of the data set as known in the business organization.\n\nEnsure that you enter a value in the Data Set Ref. or Data Set Name column though both the columns are optional."
+    },
+    {
+        "File Name":"project-x-data-set.xlsx",
+        "Header Name":"Data Set System Short Name",
+        "Note Text":"Optional.\n\nShort name of the system that contains the data set."
+    },
+    {
+        "File Name":"project-x-data-set.xlsx",
+        "Header Name":"Relationship Type",
+        "Note Text":"Required.\n\nThe type of relationship between the process and data set.\n\nSelect Is related to."
+    },
+    {
+        "File Name":"project-x-glossary.xlsx",
+        "Header Name":"Description",
+        "Note Text":"Optional.\n\nThe description about the relationship between the glossary and project."
+    },
+    {
+        "File Name":"project-x-glossary.xlsx",
+        "Header Name":"Glossary Ref.",
+        "Note Text":"Optional.\n\nA unique identifier for the glossary.\n\nEnsure that you enter a value in the Glossary Ref. or Glossary Name column though both the columns are optional."
+    },
+    {
+        "File Name":"project-x-glossary.xlsx",
+        "Header Name":"Glossary Name",
+        "Note Text":"Optional.\n\nName of the glossary.\n\nEnsure that you enter a value in the Glossary Ref. or Glossary Name column though both the columns are optional."
+    },
+    {
+        "File Name":"project-x-glossary.xlsx",
+        "Header Name":"Parent Glossary Name",
+        "Note Text":"Optional.\n\nName of the parent glossary term.\n\nThe glossary parent name must exist in BUDG."
+    },
+    {
+        "File Name":"project-x-glossary.xlsx",
+        "Header Name":"Project Ref.",
+        "Note Text":"Optional.\n\nA unique reference identifier for the project.\n\nEnsure that you enter a value in the Project Ref. or Project Name column though both the columns are optional."
+    },
+    {
+        "File Name":"project-x-glossary.xlsx",
+        "Header Name":"Project Name",
+        "Note Text":"Optional.\n\nName of the project.\n\nEnter a name that other BUDG users can recognize easily.\n\nEnsure that you enter a value in the Project Ref. or Project Name column though both the columns are optional."
+    },
+    {
+        "File Name":"project-x-glossary.xlsx",
+        "Header Name":"Parent Project Name",
+        "Note Text":"Optional.\n\nName of the parent project if the project belongs to a hierarchy."
+    },
+    {
+        "File Name":"project-x-glossary.xlsx",
+        "Header Name":"Relationship Type",
+        "Note Text":"Required.\n\nThe type of relationship between the glossary and project.\n\nSelect Glossary is used by Project."
+    },
+    {
+        "File Name":"project-x-process.xlsx",
+        "Header Name":"Description",
+        "Note Text":"Optional.\n\nThe description about the relationship between the project and process."
+    },
+    {
+        "File Name":"project-x-process.xlsx",
+        "Header Name":"Process Ref.",
+        "Note Text":"Optional.\n\nA unique reference identifier for the process.\n\nEnsure that you enter a value in the Process Ref. or Process Name column though both the columns are optional."
+    },
+    {
+        "File Name":"project-x-process.xlsx",
+        "Header Name":"Process Name",
+        "Note Text":"Optional.\n\nName of the process.\n\nEnter a name that other BUDG users can recognize easily.\n\nEnsure that you enter a value in the Process Ref. or Process Name column though both the columns are optional."
+    },
+    {
+        "File Name":"project-x-process.xlsx",
+        "Header Name":"Parent Process Name",
+        "Note Text":"Optional.\n\nName of the parent process if the process belongs to a hierarchy."
+    },
+    {
+        "File Name":"project-x-process.xlsx",
+        "Header Name":"Project Ref.",
+        "Note Text":"Optional.\n\nA unique reference identifier for the project.\n\nEnsure that you enter a value in the Project Ref. or Project Name column though both the columns are optional."
+    },
+    {
+        "File Name":"project-x-process.xlsx",
+        "Header Name":"Project Name",
+        "Note Text":"Optional.\n\nName of the project.\n\nEnter a name that other BUDG users can recognize easily.\n\nEnsure that you enter a value in the Project Ref. or Project Name column though both the columns are optional."
+    },
+    {
+        "File Name":"project-x-process.xlsx",
+        "Header Name":"Project Parent Name",
+        "Note Text":"Optional.\n\nName of the parent project if the project belongs to a hierarchy."
+    },
+    {
+        "File Name":"project-x-process.xlsx",
+        "Header Name":"Relationship Type",
+        "Note Text":"Required.\n\nThe type of relationship between the project and process.\n\nSelect Project is affecting Process."
+    },
+    {
+        "File Name":"project-x-product.xlsx",
+        "Header Name":"Description",
+        "Note Text":"Optional.\n\nThe description about the relationship between the project and product."
+    },
+    {
+        "File Name":"project-x-product.xlsx",
+        "Header Name":"Product Name",
+        "Note Text":"Required.\n\nName of the product.\n\nEnter a name that other BUDG users can recognize easily."
+    },
+    {
+        "File Name":"project-x-product.xlsx",
+        "Header Name":"Product Parent Name",
+        "Note Text":"Optional.\n\nName of the parent product if the product belongs to a hierarchy."
+    },
+    {
+        "File Name":"project-x-product.xlsx",
+        "Header Name":"Project Ref.",
+        "Note Text":"Optional.\n\nA unique reference identifier for the project.\n\nEnsure that you enter a value in the Project Ref. or Project Name column though both the columns are optional."
+    },
+    {
+        "File Name":"project-x-product.xlsx",
+        "Header Name":"Project Name",
+        "Note Text":"Optional.\n\nName of the project.\n\nEnter a name that other BUDG users can recognize easily.\n\nEnsure that you enter a value in the Project Ref. or Project Name column though both the columns are optional."
+    },
+    {
+        "File Name":"project-x-product.xlsx",
+        "Header Name":"Project Parent Name",
+        "Note Text":"Optional.\n\nName of the parent project if the project belongs to a hierarchy."
+    },
+    {
+        "File Name":"project-x-product.xlsx",
+        "Header Name":"Relationship Type",
+        "Note Text":"Required.\n\nThe type of relationship between the project and product.\n\nSelect Is related to to indicate that the project is related to product."
+    },
+    {
+        "File Name":"project-x-project.xlsx",
+        "Header Name":"Description",
+        "Note Text":"Optional.\n\nDescription about the relationship between source and target projects."
+    },
+    {
+        "File Name":"project-x-project.xlsx",
+        "Header Name":"Source Project Ref.",
+        "Note Text":"Optional.\n\nA unique reference identifier for the source project.\n\nEnsure that you enter a value in the Source Project Ref. or Source Project Name column though both the columns are optional."
+    },
+    {
+        "File Name":"project-x-project.xlsx",
+        "Header Name":"Source Project Name",
+        "Note Text":"Optional.\n\nName of the source project.\n\nEnsure that you enter a value in the Source Project Ref. or Source Project Name column though both the columns are optional."
+    },
+    {
+        "File Name":"project-x-project.xlsx",
+        "Header Name":"Source Project Parent Name",
+        "Note Text":"Optional.\n\nName of the parent of source project.\n\nThe parent name must exist in BUDG."
+    },
+    {
+        "File Name":"project-x-project.xlsx",
+        "Header Name":"Target Project Ref.",
+        "Note Text":"Optional.\n\nA unique reference identifier for the target project.\n\nEnsure that you enter a value in the Target Project Ref. or Target Project Name column though both the columns are optional."
+    },
+    {
+        "File Name":"project-x-project.xlsx",
+        "Header Name":"Target Project Name",
+        "Note Text":"Optional.\n\nName of the target project.\n\nEnsure that you enter a value in the Target Project Ref. or Target Project Name column though both the columns are optional."
+    },
+    {
+        "File Name":"project-x-project.xlsx",
+        "Header Name":"Target Project Parent Name",
+        "Note Text":"Optional.\n\nName of the parent of target project.\n\nThe parent name must exist in BUDG."
+    },
+    {
+        "File Name":"project-x-project.xlsx",
+        "Header Name":"Relationship Type",
+        "Note Text":"Required.\n\nThe type of relationship between the source and target projects.\n\nSelect one of the following values:\n-Is related to \n-Is predecessor to\n-Is dependent on"
+    },
+    {
+        "File Name":"project-x-system.xlsx",
+        "Header Name":"Description",
+        "Note Text":"Optional.\n\nDescription about the relationship between the project and system."
+    },
+    {
+        "File Name":"project-x-system.xlsx",
+        "Header Name":"Project Ref.",
+        "Note Text":"Optional.\n\nA unique reference identifier for the project.\n\nEnsure that you enter a value in the Project Ref. or Project Name column though both the columns are optional."
+    },
+    {
+        "File Name":"project-x-system.xlsx",
+        "Header Name":"Project Name",
+        "Note Text":"Optional.\n\nName of the project.\n\nEnter a name that other BUDG users can recognize easily.\n\nEnsure that you enter a value in the Project Ref. or Project Name column though both the columns are optional."
+    },
+    {
+        "File Name":"project-x-system.xlsx",
+        "Header Name":"Project Parent Name",
+        "Note Text":"Optional.\n\nName of the parent project if the project belongs to a hierarchy."
+    },
+    {
+        "File Name":"project-x-system.xlsx",
+        "Header Name":"System Short Name",
+        "Note Text":"Required.\n\nShort name of a system or an acronym that other BUDG users can recognize easily for a system."
+    },
+    {
+        "File Name":"project-x-system.xlsx",
+        "Header Name":"Relationship Type",
+        "Note Text":"Required.\n\nThe type of relationship between the project and system.\n\nSelect one of the following values:\n-Project is affecting System\n-Project is sourcing from System"
+    },
+    {
+        "File Name":"regulation-x-policy.xlsx",
+        "Header Name":"Regulation Ref.",
+        "Note Text":"Optional.\n\nA unique reference identifier for the regulation.\n\nEnsure that you enter a value in the Regulation Ref. or Regulation Name column though both the columns are optional."
+    },
+    {
+        "File Name":"regulation-x-policy.xlsx",
+        "Header Name":"Regulation Name",
+        "Note Text":"Optional.\n\nName of the regulation.\n\nEnter a name that other BUDG users can recognize easily.\n\nEnsure that you enter a value in the Regulation Ref. or Regulation Name column though both the columns are optional."
+    },
+    {
+        "File Name":"regulation-x-policy.xlsx",
+        "Header Name":"Parent Regulation Name",
+        "Note Text":"Optional.\n\nName of the parent regulation if the regulation belongs to a hierarchy."
+    },
+    {
+        "File Name":"regulation-x-policy.xlsx",
+        "Header Name":"Policy Ref.",
+        "Note Text":"Optional.\n\nA unique reference identifier for the policy.\n\nEnsure that you enter a value in the Policy Ref. or Policy Name column though both the columns are optional."
+    },
+    {
+        "File Name":"regulation-x-policy.xlsx",
+        "Header Name":"Policy Name",
+        "Note Text":"Optional.\n\nName of the policy.\n\nEnter a name that other BUDG users can recognize easily.\n\nEnsure that you enter a value in the Policy Ref. or Policy Name column though both the columns are optional."
+    },
+    {
+        "File Name":"regulation-x-policy.xlsx",
+        "Header Name":"Parent Policy Name",
+        "Note Text":"Optional.\n\nName of the parent policy if the policy belongs to a hierarchy."
+    },
+    {
+        "File Name":"regulation-x-policy.xlsx",
+        "Header Name":"Relationship Type",
+        "Note Text":"Required.\n\nThe type of relationship between the regulation and policy.\n\nSelect Regulation affects Policy."
+    },
+    {
+        "File Name":"regulation-x-product.xlsx",
+        "Header Name":"Regulation Ref.",
+        "Note Text":"Optional.\n\nA unique reference identifier for the regulation.\n\nEnsure that you enter a value in the Regulation Ref. or Regulation Name column though both the columns are optional."
+    },
+    {
+        "File Name":"regulation-x-product.xlsx",
+        "Header Name":"Regulation Name",
+        "Note Text":"Optional.\n\nName of the regulation.\n\nEnter a name that other BUDG users can recognize easily.\n\nEnsure that you enter a value in the Regulation Ref. or Regulation Name column though both the columns are optional."
+    },
+    {
+        "File Name":"regulation-x-product.xlsx",
+        "Header Name":"Parent Regulation Name",
+        "Note Text":"Optional.\n\nName of the parent regulation if the regulation belongs to a hierarchy."
+    },
+    {
+        "File Name":"regulation-x-product.xlsx",
+        "Header Name":"Product Name",
+        "Note Text":"Required.\n\nName of the product."
+    },
+    {
+        "File Name":"regulation-x-product.xlsx",
+        "Header Name":"Product Parent Name",
+        "Note Text":"Optional.\n\nName of the parent product if the product belongs to a hierarchy."
+    },
+    {
+        "File Name":"regulation-x-product.xlsx",
+        "Header Name":"Relationship Type",
+        "Note Text":"Required.\n\nThe type of relationship between the regulation and product.\n\nSelect Is related to."
+    },
+    {
+        "File Name":"regulation-x-project.xlsx",
+        "Header Name":"Regulation Ref.",
+        "Note Text":"Optional.\n\nA unique reference identifier for the regulation.\n\nEnsure that you enter a value in the Regulation Ref. or Regulation Name column though both the columns are optional."
+    },
+    {
+        "File Name":"regulation-x-project.xlsx",
+        "Header Name":"Regulation Name",
+        "Note Text":"Optional.\n\nName of the regulation.\n\nEnter a name that other BUDG users can recognize easily.\n\nEnsure that you enter a value in the Regulation Ref. or Regulation Name column though both the columns are optional."
+    },
+    {
+        "File Name":"regulation-x-project.xlsx",
+        "Header Name":"Parent Regulation Name",
+        "Note Text":"Optional.\n\nName of the parent regulation if the regulation belongs to a hierarchy."
+    },
+    {
+        "File Name":"regulation-x-project.xlsx",
+        "Header Name":"Project Ref.",
+        "Note Text":"Optional.\n\nA unique reference identifier for the project.\n\nEnsure that you enter a value in the Project Ref. or Project Name column though both the columns are optional."
+    },
+    {
+        "File Name":"regulation-x-project.xlsx",
+        "Header Name":"Project Name",
+        "Note Text":"Optional.\n\nName of the project.\n\nEnter a name that users can recognize easily.\n\nEnsure that you enter a value in the Project Ref. or Project Name column though both the columns are optional."
+    },
+    {
+        "File Name":"regulation-x-project.xlsx",
+        "Header Name":"Project Parent Name",
+        "Note Text":"Optional.\n\nName of the parent project if the project belongs to a hierarchy."
+    },
+    {
+        "File Name":"regulation-x-project.xlsx",
+        "Header Name":"Relationship Type",
+        "Note Text":"Required.\n\nThe type of relationship between the regulation and project.\n\nSelect Project is implementing Regulation."
+    },
+    {
+        "File Name":"regulation-x-regulator.xlsx",
+        "Header Name":"Regulator Reg Reference",
+        "Note Text":"Required.\n\nReference identifier for the relationship between a regulator and regulation."
+    },
+    {
+        "File Name":"regulation-x-regulator.xlsx",
+        "Header Name":"Regulation Ref.",
+        "Note Text":"Optional.\n\nA unique reference identifier for the regulation.\n\nEnsure that you enter a value in the Regulation Ref. or Regulation Name column though both the columns are optional."
+    },
+    {
+        "File Name":"regulation-x-regulator.xlsx",
+        "Header Name":"Regulation Name",
+        "Note Text":"Optional.\n\nName of the regulation.\n\nEnter a name that other BUDG users can recognize easily.\n\nEnsure that you enter a value in the Regulation Ref. or Regulation Name column though both the columns are optional."
+    },
+    {
+        "File Name":"regulation-x-regulator.xlsx",
+        "Header Name":"Parent Regulation Name",
+        "Note Text":"Optional.\n\nName of the parent regulation if the regulation belongs to a hierarchy."
+    },
+    {
+        "File Name":"regulation-x-regulator.xlsx",
+        "Header Name":"Regulator Name",
+        "Note Text":"Required.\n\nFull name of the regulator."
+    },
+    {
+        "File Name":"regulation-x-regulatory-theme.xlsx",
+        "Header Name":"Regulation Ref.",
+        "Note Text":"Optional.\n\nA unique reference identifier for the regulation.\n\nEnsure that you enter a value in the Regulation Ref. or Regulation Name column though both the columns are optional."
+    },
+    {
+        "File Name":"regulation-x-regulatory-theme.xlsx",
+        "Header Name":"Regulation Name",
+        "Note Text":"Optional.\n\nName of the regulation.\n\nEnter a name that other BUDG users can recognize easily.\n\nEnsure that you enter a value in the Regulation Ref. or Regulation Name column though both the columns are optional."
+    },
+    {
+        "File Name":"regulation-x-regulatory-theme.xlsx",
+        "Header Name":"Parent Regulation Name",
+        "Note Text":"Optional.\n\nName of the parent regulation if the regulation belongs to a hierarchy."
+    },
+    {
+        "File Name":"regulation-x-regulatory-theme.xlsx",
+        "Header Name":"Regulatory Theme Ref.",
+        "Note Text":"Optional.\n\nA unique reference identifier for the regulatory theme.\n\nEnsure that you enter a value in the Regulatory Theme Ref. or Regulatory Theme Name column though both the columns are optional."
+    },
+    {
+        "File Name":"regulation-x-regulatory-theme.xlsx",
+        "Header Name":"Regulatory Theme Name",
+        "Note Text":"Optional.\n\nFull name of the regulatory theme.\n\nEnsure that you enter a value in the Regulatory Theme Ref. or Regulatory Theme Name column though both the columns are optional."
+    },
+    {
+        "File Name":"regulation-x-regulatory-theme.xlsx",
+        "Header Name":"Parent Regulatory Theme Name",
+        "Note Text":"Optional.\n\nParent object of the regulatory theme."
+    },
+    {
+        "File Name":"regulation-x-regulatory-theme.xlsx",
+        "Header Name":"Relationship Type",
+        "Note Text":"Required.\n\nThe type of relationship between the regulation and regulatory theme.\n\nSelect Is related to."
+    },
+    {
+        "File Name":"regulator-x-geography.xlsx",
+        "Header Name":"Description",
+        "Note Text":"Optional.\n\nDescription about the relationship between the regulator and geography."
+    },
+    {
+        "File Name":"regulator-x-geography.xlsx",
+        "Header Name":"Regulator Name",
+        "Note Text":"Required.\n\nName of the regulator."
+    },
+    {
+        "File Name":"regulator-x-geography.xlsx",
+        "Header Name":"Geography Name",
+        "Note Text":"Required.\n\nName of the geography."
+    },
+    {
+        "File Name":"regulator-x-geography.xlsx",
+        "Header Name":"Parent Geography Name",
+        "Note Text":"Optional.\n\nName of the parent geography if the geography belongs to a hierarchy."
+    },
+    {
+        "File Name":"standard-data-quality-rule-x-technical-reference.xlsx",
+        "Header Name":"Automation",
+        "Note Text":"Optional.\n\nThe option to automatically generate a local data quality rule.\n\nSelect one of the following values:\n-True.\nGenerates local data quality rules automatically.\n\n-False.\nDoes not generate local data quality rules automatically."
+    },
+    {
+        "File Name":"standard-data-quality-rule-x-technical-reference.xlsx",
+        "Header Name":"Ref.",
+        "Note Text":"Optional.\n\nThe unique reference number for the standard data quality rule.\n\nEnsure that you enter a value in the Ref. or Rule Name column though both the columns are optional."
+    },
+    {
+        "File Name":"standard-data-quality-rule-x-technical-reference.xlsx",
+        "Header Name":"Rule Name",
+        "Note Text":"Optional.\n\nName of the standard data quality rule.\n\nEnsure that you enter a value in the Ref. or Rule Name column though both the columns are optional."
+    },
+    {
+        "File Name":"standard-data-quality-rule-x-technical-reference.xlsx",
+        "Header Name":"Glossary Reference list",
+        "Note Text":"Optional.\n\nA comma-separated list that contains unique reference values for the glossary."
+    },
+    {
+        "File Name":"standard-data-quality-rule-x-technical-reference.xlsx",
+        "Header Name":"Technical Rule Reference",
+        "Note Text":"Required.\n\nReference link to a rule in Informatica Data Quality that you can associate with the standard data quality rule.\n\nEnter the input in the below format: rulespecification:<folder name in Informatica Data Quality>\/<rule specification name> For more information, refer to the Link Standard Data Quality Rule to a Rule in Informatica Data Quality topic in the BUDG Data Governance 7.3.1 User Guide."
+    },
+    {
+        "File Name":"system-x-client.xlsx",
+        "Header Name":"Client Name",
+        "Note Text":"Required.\n\nShort name of the client.\n\nEnter a name that other BUDG users can recognize easily."
+    },
+    {
+        "File Name":"system-x-client.xlsx",
+        "Header Name":"Client Parent Name",
+        "Note Text":"Optional.\n\nName of the parent client if the client belongs to a hierarchy."
+    },
+    {
+        "File Name":"system-x-client.xlsx",
+        "Header Name":"System Short Name",
+        "Note Text":"Required.\n\nShort name of a system or an acronym that other BUDG users can recognize easily for a system."
+    },
+    {
+        "File Name":"system-x-client.xlsx",
+        "Header Name":"Parent System Short Name",
+        "Note Text":"Optional.\n\nName of the parent system if the system belongs to a hierarchy."
+    },
+    {
+        "File Name":"system-x-client.xlsx",
+        "Header Name":"Relationship Type",
+        "Note Text":"Required.\n\nThe type of relationship between the system and client.\n\nSelect Is related to."
+    },
+    {
+        "File Name":"system-x-data-onboarding-rule.xlsx",
+        "Header Name":"Enable Automated Onboarding",
+        "Note Text":"Optional.\n\nEnable automated onboarding of objects from Enterprise Data Catalog to BUDG.\n\nSelect one of the following values:\n-TRUE.\nOnboards objects from Enterprise Data Catalog to BUDG automatically.\n\n-FALSE.\nDoes not onboard objects from Enterprise Data Catalog to BUDG automatically."
+    },
+    {
+        "File Name":"system-x-data-onboarding-rule.xlsx",
+        "Header Name":"Accept Onboarded Objects",
+        "Note Text":"Optional.\n\nAutomatically accept onboarded objects.\n\nSelect one of the following values:\n-TRUE.\nAutomatically accepts objects onboarded from Enterprise Data Catalog to BUDG.\n\n-FALSE.\nDoes not automatically accept objects onboarded from Enterprise Data Catalog to BUDG."
+    },
+    {
+        "File Name":"system-x-data-onboarding-rule.xlsx",
+        "Header Name":"System ID",
+        "Note Text":"Optional.\n\nThe unique identifier for the system.\n\nEnsure that you enter a value in the System ID or System Short Name column though both the columns are optional."
+    },
+    {
+        "File Name":"system-x-data-onboarding-rule.xlsx",
+        "Header Name":"System Short Name",
+        "Note Text":"Optional.\n\nShort name of the system.\n\nEnsure that you enter a value in the System ID or System Short Name column though both the columns are optional."
+    },
+    {
+        "File Name":"system-x-data-onboarding-rule.xlsx",
+        "Header Name":"Parent System Short Name",
+        "Note Text":"Optional.\n\nShort name of the parent system."
+    },
+    {
+        "File Name":"system-x-data-onboarding-rule.xlsx",
+        "Header Name":"Data Onboarding Rule Name",
+        "Note Text":"Required.\n\nName of the data onboarding rule."
+    },
+    {
+        "File Name":"system-x-data-onboarding-rule.xlsx",
+        "Header Name":"Data Set Lifecycle",
+        "Note Text":"Optional.\n\nStage of the system interface in the production lifecycle.\n\nYou can select one of the following default stages:\n-Draft\n-Approved\n-Obsolete.\n\nYou can also create lifecycle stages."
+    },
+    {
+        "File Name":"system-x-data-onboarding-rule.xlsx",
+        "Header Name":"Data Set Status",
+        "Note Text":"Optional.\n\nStatus of the data set that contains the attribute.\n\nYou can select one of the following statuses:\n-Active\n-Inactive\n-Pending Review\n-Obsolete\n-Deleted"
+    },
+    {
+        "File Name":"system-x-glossary.xlsx",
+        "Header Name":"System Short Name",
+        "Note Text":"Required.\n\nShort name of a system that other BUDG users can recognize easily."
+    },
+    {
+        "File Name":"system-x-glossary.xlsx",
+        "Header Name":"Glossary Ref.",
+        "Note Text":"Required.\n\nA unique reference identifier for the glossary.\n\nEnsure that you enter a value in the Glossary Ref. or Glossary Name column though both the columns are optional."
+    },
+    {
+        "File Name":"system-x-glossary.xlsx",
+        "Header Name":"Glossary Name",
+        "Note Text":"Required.\n\nName of the glossary.\n\nNote: If duplicate Glossary Name is available, the Glossary Ref.\n\nfield values should be entered.\n\nEnsure that you enter a value in the Glossary Ref. or Glossary Name column though both the columns are optional."
+    },
+    {
+        "File Name":"system-x-glossary.xlsx",
+        "Header Name":"Parent Glossary Name",
+        "Note Text":"Optional.\n\nParent of the glossary term.\n\nThe glossary parent name must exist in BUDG."
+    },
+    {
+        "File Name":"system-x-glossary.xlsx",
+        "Header Name":"Relationship Type",
+        "Note Text":"Required.\n\nThe type of relationship between the system and glossary.\n\nSelect one of the following type:\n-Expected glossary item coverage"
+    },
+    {
+        "File Name":"system-x-legal-entity.xlsx",
+        "Header Name":"System Short Name",
+        "Note Text":"Required.\n\nName of the system.\n\nEnter a name that other BUDG users can recognize easily."
+    },
+    {
+        "File Name":"system-x-legal-entity.xlsx",
+        "Header Name":"Parent System Short Name",
+        "Note Text":"Optional.\n\nName of the parent system if the system belongs to a hierarchy."
+    },
+    {
+        "File Name":"system-x-legal-entity.xlsx",
+        "Header Name":"Legal Entity Short Name",
+        "Note Text":"Required.\n\nName of the legal entity.\n\nEnter a name that other BUDG users can recognize easily."
+    },
+    {
+        "File Name":"system-x-legal-entity.xlsx",
+        "Header Name":"Parent Legal Entity Short Name",
+        "Note Text":"Optional.\n\nName of the parent legal entity if the legal entity belongs to a hierarchy."
+    },
+    {
+        "File Name":"system-x-legal-entity.xlsx",
+        "Header Name":"Relationship Type",
+        "Note Text":"Required.\n\nThe type of relationship between the system and legal entity.\n\nYou can select one of the following values:\n-Is Supported By\n-Is Used By\n-License is Owned by"
+    },
+    {
+        "File Name":"system-x-product.xlsx",
+        "Header Name":"Product Name",
+        "Note Text":"Required.\n\nName of the product."
+    },
+    {
+        "File Name":"system-x-product.xlsx",
+        "Header Name":"Product Parent Name",
+        "Note Text":"Optional.\n\nName of the parent product if the product belongs to a hierarchy."
+    },
+    {
+        "File Name":"system-x-product.xlsx",
+        "Header Name":"System Short Name",
+        "Note Text":"Required.\n\nShort name of a system that other BUDG users can recognize easily."
+    },
+    {
+        "File Name":"system-x-product.xlsx",
+        "Header Name":"Relationship Type",
+        "Note Text":"Required.\n\nThe type of relationship between the system and product.\n\nSelect Is related to."
+    },
+    {
+        "File Name":"system-x-product.xlsx",
+        "Header Name":"Product x Legal Entity Rel Type",
+        "Note Text":"Optional.\n\nThe type of relationship between the product and the legal entity.\n\nSelect Risk Owning Entity or Booking Entity."
+    },
+    {
+        "File Name":"system-x-product.xlsx",
+        "Header Name":"Legal Entity Short Name",
+        "Note Text":"Optional.\n\nShort name of the legal entity."
+    },
+    {
+        "File Name":"system-x-product.xlsx",
+        "Header Name":"Legal Entity Parent Name",
+        "Note Text":"Optional.\n\nName of the parent legal entity if the legal entity belongs to a hierarchy."
+    },
+    {
+        "File Name":"system-x-resource.xlsx",
+        "Header Name":"System Short Name",
+        "Note Text":"Required.\n\nShort name of a system that other BUDG users can recognize easily."
+    },
+    {
+        "File Name":"system-x-resource.xlsx",
+        "Header Name":"Parent System Short Name",
+        "Note Text":"Optional.\n\nShort name of the parent system if the system belongs to a hierarchy."
+    },
+    {
+        "File Name":"system-x-resource.xlsx",
+        "Header Name":"Name",
+        "Note Text":"Required.\n\nName of the Enterprise Data Catalog resource."
+    },
+    {
+        "File Name":"system-x-resource.xlsx",
+        "Header Name":"Resource ID",
+        "Note Text":"Required.\n\nIdentifier for the Enterprise Data Catalog resource."
+    },
+    {
+        "File Name":"SegmentXObject_BulkUpload_Template.xlsx",
+        "Header Name":"Object ID",
+        "Note Text":"Required.\n\nThe unique identifier for the object that you want to move to a target segment."
+    },
+    {
+        "File Name":"SegmentXObject_BulkUpload_Template.xlsx",
+        "Header Name":"Object Type",
+        "Note Text":"Required.\n\nThe type for the object that you want to move to a target segment."
+    },
+    {
+        "File Name":"SegmentXObject_BulkUpload_Template.xlsx",
+        "Header Name":"Target Segment",
+        "Note Text":"Required.\n\nThe target segment to which you want to move all the objects to."
+    }
+]

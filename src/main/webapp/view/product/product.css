@@ -1,0 +1,408 @@
+/* Product View Page Specific Styles */
+
+/* Apply proper layout constraints like other view pages */
+.product-page .main-content { 
+    max-width: 1200px; 
+    margin: 0 auto; 
+    padding: 1rem 20px; 
+    height: auto; 
+    min-height: calc(100vh - 70px - 80px); 
+    display: flex; 
+    flex-direction: column; 
+    overflow: visible !important;
+}
+
+/* Ensure view-grid and content-body show all content (STAKEHOLDERS + STAKEHOLDER COMMUNITY) */
+
+.product-page .content-card { 
+    padding-bottom: 1rem; 
+    overflow: visible !important;
+}
+
+.product-page .content-body {
+    overflow: visible !important;
+    min-height: auto !important;
+}
+
+.product-page .view-grid { 
+    display: grid; 
+    grid-template-columns: 1fr 1fr; 
+    gap: 1.25rem; 
+    overflow: visible !important;
+    min-height: auto !important;
+}
+
+/* STAKEHOLDER COMMUNITY container spans full width in grid and is not clipped */
+#productStakeholderCommunityContainer {
+    grid-column: 1 / -1;
+    min-height: 0;
+}
+
+/* Make definition section span both columns for better layout */
+.product-page .view-section:first-child {
+    grid-column: 1 / -1;
+}
+
+.product-page .view-section { 
+    background: var(--card-bg, #fff); 
+    border: 1px solid var(--border-color, #e5e7eb); 
+    border-radius: 12px; 
+    padding: 1.25rem; 
+    box-shadow: 0 1px 2px rgba(0,0,0,0.03); 
+}
+
+.product-page .view-section .section-title { 
+    font-weight: 600; 
+    color: var(--text-muted, #6b7280); 
+    margin-bottom: .9rem; 
+    letter-spacing: .04em; 
+    font-size: .9rem; 
+    display: flex; 
+    align-items: center; 
+    justify-content: space-between; 
+}
+
+.product-page .section-subtitle { 
+    font-size: 0.8rem; 
+    font-weight: 500; 
+    color: var(--text-muted, #6b7280); 
+    margin-bottom: 0.75rem; 
+    text-transform: uppercase; 
+    letter-spacing: 0.05em; 
+}
+
+.product-page .view-item { 
+    display: grid; 
+    grid-template-columns: 200px 1fr; 
+    gap: .85rem; 
+    padding: .65rem 0; 
+    border-bottom: 1px dashed var(--border-color, #e5e7eb); 
+}
+
+.product-page .view-item:last-child { 
+    border-bottom: 0; 
+}
+
+.product-page .view-label { 
+    font-weight: 500; 
+    color: var(--text-muted, #6b7280); 
+    font-size: .9rem; 
+}
+
+.product-page .view-value { 
+    color: var(--text-primary, #1f2937); 
+    font-size: .9rem; 
+    word-break: break-word; 
+}
+
+/* Product Hierarchy Styles - Following Regulatory Theme Pattern */
+
+/* Hierarchy Table Wrapper */
+.hierarchy-table-wrapper {
+    background: var(--card-bg, #ffffff);
+    border: 1px solid var(--border-color, #e5e7eb);
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* Hierarchy Table */
+.hierarchy-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+}
+
+.hierarchy-table thead {
+    background: var(--header-bg, #f9fafb);
+    border-bottom: 1px solid var(--border-color, #e5e7eb);
+}
+
+.hierarchy-table th {
+    padding: 0.75rem 1rem;
+    text-align: left;
+    font-weight: 600;
+    color: var(--text-primary, #111827);
+    border-right: 1px solid var(--border-color, #e5e7eb);
+}
+
+.hierarchy-table th:last-child {
+    border-right: none;
+}
+
+.hierarchy-table td {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--border-light, #f3f4f6);
+    vertical-align: top;
+    border-right: 1px solid var(--border-light, #f3f4f6);
+}
+
+.hierarchy-table td:last-child {
+    border-right: none;
+}
+
+.hierarchy-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+/* Professional Styling - Sticky Header */
+.hierarchy-table thead {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.hierarchy-table tbody tr:nth-child(odd) {
+    background: var(--background-stripe, #fafafa);
+}
+
+.hierarchy-table tbody tr:hover {
+    background: var(--background-hover, #f0f9ff);
+}
+
+/* Current Row Highlighting */
+.hierarchy-table .current-row {
+    background: var(--success-100, #d1fae5) !important;
+}
+
+.hierarchy-table .current-row td:first-child {
+    border-left: 3px solid var(--secondary-color, #248567);
+}
+
+/* Enhanced Tree Elements */
+.tree-cell {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+/* Tree Structure Elements */
+.tree-indent {
+    display: inline-block;
+    width: 1.5rem;
+    height: 1.5rem;
+    position: relative;
+}
+
+.tree-branch {
+    position: absolute;
+    top: 0.75rem;
+    left: 0.75rem;
+    width: 0.75rem;
+    height: 1px;
+    background: var(--border-color, #d1d5db);
+}
+
+.tree-branch::before {
+    content: '';
+    position: absolute;
+    top: -0.75rem;
+    left: 0.75rem;
+    width: 1px;
+    height: 1.5rem;
+    background: var(--border-color, #d1d5db);
+}
+
+.tree-cell {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    position: relative;
+}
+
+.tree-expander {
+    background: none;
+    border: none;
+    padding: 0.25rem;
+    cursor: pointer;
+    color: var(--text-muted, #6b7280);
+    border-radius: 4px;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.5rem;
+    height: 1.5rem;
+}
+
+.tree-expander:hover {
+    background: var(--hover-bg, #f3f4f6);
+    color: var(--text-primary, #111827);
+}
+
+.tree-expander i {
+    font-size: 0.75rem;
+    transition: transform 0.2s ease;
+}
+
+.tree-placeholder {
+    width: 1.5rem;
+    height: 1.5rem;
+    display: inline-block;
+}
+
+/* Item Icons */
+.item-icon {
+    color: var(--primary-color, #3b82f6);
+    font-size: 1rem;
+    margin-right: 0.5rem;
+    flex-shrink: 0;
+}
+
+/* Product Names and Links */
+.product-name {
+    font-weight: 500;
+    color: var(--text-primary, #111827);
+}
+
+.product-link {
+    color: var(--secondary-color, #248567);
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+
+.product-link:hover {
+    color: var(--secondary-color, #248567);
+    text-decoration: none;
+}
+
+.current-product-link {
+    color: var(--secondary-color, #248567);
+    font-weight: 600;
+    text-decoration: none;
+    background: none !important;
+    padding: 0 !important;
+    border: none !important;
+    border-radius: 0 !important;
+}
+
+/* Child Count Badge */
+.child-count {
+    background: var(--secondary-color, #248567);
+    color: white;
+    font-size: 0.75rem;
+    padding: 0.125rem 0.375rem;
+    border-radius: 0.75rem;
+    margin-left: 0.5rem;
+    font-weight: 500;
+}
+
+/* Table Footer */
+.hierarchy-table-wrapper + .table-footer,
+.table-footer {
+    padding: 0.75rem 1rem;
+    background: var(--background-secondary, #f8f9fa);
+    border-top: 1px solid var(--border-color, #e9ecef);
+    font-size: 0.875rem;
+    color: var(--text-secondary, #64748b);
+    text-align: center;
+}
+
+.current-row td {
+    border-color: var(--success-light, #ecfdf5) !important;
+}
+
+/* Enhanced tree styling to match Regulatory Theme */
+.tree-expander {
+    background: var(--background-primary, #fff);
+    border: 1px solid var(--border-color, #e9ecef);
+    border-radius: 4px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    color: var(--text-secondary, #64748b);
+    transition: background-color 0.15s ease;
+    width: 22px;
+    height: 22px;
+}
+
+.tree-expander:hover {
+    background: var(--background-secondary, #f8f9fa);
+}
+
+.tree-placeholder {
+    display: inline-block;
+    width: 22px;
+    height: 22px;
+}
+
+/* Section Title */
+.section-title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--text-primary, #111827);
+    margin-bottom: 1rem;
+    padding: 0 0.5rem;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .product-page .main-content { 
+        padding: 1rem 16px; 
+    }
+    
+    .product-page .view-grid { 
+        grid-template-columns: 1fr; 
+        gap: 1rem; 
+    }
+    
+    .hierarchy-table {
+        font-size: 0.8rem;
+    }
+    
+    .hierarchy-table th,
+    .hierarchy-table td {
+        padding: 0.5rem 0.75rem;
+    }
+    
+    .tree-indent {
+        width: 1.25rem;
+    }
+    
+    .tree-expander {
+        width: 1.25rem;
+        height: 1.25rem;
+    }
+    
+    .child-count {
+        font-size: 0.7rem;
+        padding: 0.2rem 0.4rem;
+    }
+}
+
+/* Dark Theme Support */
+[data-theme="dark"] .hierarchy-table-wrapper {
+    background: var(--card-bg, #1f2937);
+    border-color: var(--border-color, #374151);
+}
+
+[data-theme="dark"] .hierarchy-table thead {
+    background: var(--header-bg, #111827);
+    border-color: var(--border-color, #374151);
+}
+
+[data-theme="dark"] .hierarchy-table th {
+    color: var(--text-primary, #f9fafb);
+    border-color: var(--border-color, #374151);
+}
+
+[data-theme="dark"] .hierarchy-table td {
+    border-color: var(--border-light, #374151);
+}
+
+[data-theme="dark"] .tree-expander:hover {
+    background: var(--hover-bg, #374151);
+    color: var(--text-primary, #f9fafb);
+}
+
+[data-theme="dark"] .current-row {
+    background: var(--success-dark, #064e3b) !important;
+    border-left-color: var(--success-color, #10b981) !important;
+}
+
+[data-theme="dark"] .child-count {
+    background: var(--primary-dark, #1e3a8a);
+    color: var(--primary-light, #93c5fd);
+}

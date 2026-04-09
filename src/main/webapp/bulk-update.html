@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bulk Update - BUDG</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="assets/css/main.css">
+    <link rel="stylesheet" href="assets/css/bulk-update.css">
+    <link rel="stylesheet" href="assets/css/rtl.css" id="rtl-styles" disabled>
+    <link rel="icon" type="image/png" href="assets/images/avatars/icon.jpg">
+    <script>
+        // Apply theme immediately to prevent flash of unstyled content
+        (function() {
+            const savedTheme = localStorage.getItem('budg-theme') || 'light';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+        })();
+    </script>
+    <script src="/assets/i18n/head-locale.js"></script>
+    <script src="assets/i18n/i18n.js"></script>
+</head>
+<body>
+    <!-- Main Application Header -->
+    <header class="header"></header>
+
+    <!-- Bulk Update Header -->
+    <header class="bulk-update-header">
+        <div class="header-left">
+            <i class="fas fa-sync-alt header-icon"></i>
+            <div class="header-title">
+                <h1 data-i18n="bulkUpdate.headerTitle">Bulk Update</h1>
+                <span class="header-subtitle" data-i18n="nav.search">Search</span>
+            </div>
+        </div>
+        <div class="header-right">
+            <button class="btn btn-primary" id="saveBtn" disabled data-i18n="button.save">Save</button>
+            <button class="btn btn-primary" id="saveCloseBtn" disabled data-i18n="button.saveAndClose">Save & Close</button>
+            <button class="btn btn-secondary" id="closeBtn" data-i18n="button.close">Close</button>
+        </div>
+    </header>
+
+    <!-- Tab Navigation -->
+    <nav class="bulk-update-tabs">
+        <button class="tab active" data-tab="summary" data-i18n="bulkUpdate.tabSummary">SUMMARY</button>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="bulk-update-main">
+        <!-- Summary Tab Content -->
+        <section id="summary-tab" class="tab-content active">
+            <!-- Bulk Update Items Card -->
+            <div class="card bulk-items-card">
+                <div class="card-header">
+                    <h2 data-i18n="bulkUpdate.cardItemsTitle">BULK UPDATE ITEMS</h2>
+                    <div class="card-actions">
+                        <button class="settings-btn"><i class="fas fa-cog"></i></button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <table class="items-table" id="itemsTable">
+                        <thead>
+                            <tr id="itemsTableHeader">
+                                <!-- Headers will be populated dynamically -->
+                            </tr>
+                        </thead>
+                        <tbody id="itemsTableBody">
+                            <!-- Rows will be populated dynamically -->
+                        </tbody>
+                    </table>
+                    <div class="no-items-message" id="noItemsMessage" style="display: none;">
+                        <i class="fas fa-info-circle"></i>
+                        <span data-i18n="bulkUpdate.noItemsMessage">No items selected for bulk update</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Definition Card -->
+            <div class="card definition-card">
+                <div class="card-header">
+                    <h2 data-i18n="bulkUpdate.cardDefinitionTitle">DEFINITION</h2>
+                </div>
+                <div class="card-body" id="definitionFields">
+                    <!-- Definition fields will be populated dynamically -->
+                    <div class="loading-message" id="definitionLoading">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        <span data-i18n="bulkUpdate.loadingDefinitions">Loading definitions...</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Message Toast -->
+    <div class="toast" id="toast" style="display: none;">
+        <span class="toast-message" id="toastMessage"></span>
+    </div>
+
+    <!-- Scripts -->
+    <script src="assets/js/config.js"></script>
+    <script src="assets/js/api-service.js"></script>
+    <!-- Load main.js first to inject header -->
+    <script src="assets/js/main.js"></script>
+    <!-- Load header.js after main.js -->
+    <script src="assets/js/header.js"></script>
+    <script src="assets/js/bulk-update.js"></script>
+
+</body>
+</html>

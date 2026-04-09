@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title data-i18n="legalEntity.page.editTitle">BUDG - Edit Legal Entity</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../../assets/css/main.css">
+    <link rel="stylesheet" href="../../view/view.css">
+    <link rel="stylesheet" href="../../view/LegalEntity/legal-entity.css">
+    <link rel="stylesheet" href="../../view/edit/edit-shared.css">
+    <link rel="stylesheet" href="../../assets/css/stakeholder.css">
+    <link rel="stylesheet" href="../../assets/css/custom-fields.css">
+    <link rel="stylesheet" href="../../assets/css/global-lock-ui.css">
+    <link rel="stylesheet" href="../../assets/css/advanced-rich-text-editor.css">
+    <!-- RTL styles for Arabic (disabled by default, enabled by i18n.js) -->
+    <link rel="stylesheet" href="../../assets/css/rtl.css" id="rtl-styles" disabled>
+    <link rel="stylesheet" href="../../view/components/document-upload-component.css">
+
+    <style>
+        /* Page header styling */
+        .page-header {
+            background: var(--background-primary, #ffffff);
+            padding: 1rem 0;
+        }
+
+        .page-header-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 1.75rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .page-title {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .page-icon {
+            width: 3rem;
+            height: 3rem;
+            background: #248567;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.25rem;
+        }
+
+        .page-title-text {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .page-title-main {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-primary, #1e293b);
+            margin: 0;
+        }
+
+        .page-title-sub {
+            font-size: 0.875rem;
+            color: var(--text-secondary, #64748b);
+            margin: 0;
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 0.75rem;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+        }
+
+        .btn-primary {
+            background: var(--primary-color, #248567);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #248567;
+        }
+
+        .btn-success {
+            background: var(--success-color, #248567);
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: var(--success-dark, #059669);
+        }
+
+        .btn-secondary {
+            background: var(--background-secondary, #f1f5f9);
+            color: var(--text-primary, #1e293b);
+            border: 1px solid var(--border-color, #e2e8f0);
+        }
+
+        .btn-secondary:hover {
+            background: var(--background-tertiary, #e2e8f0);
+        }
+
+        /* Form card styles */
+        .form-card {
+            background: var(--background-primary, #ffffff);
+            border: 1px solid var(--border-color, #e2e8f0);
+            border-radius: 12px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .legal-entity-page .card-header {
+            background: var(--background-secondary, #f8f9fa);
+            border-bottom: 1px solid var(--border-color, #e5e7eb);
+            padding: 1rem 1.5rem;
+        }
+
+        .legal-entity-page .card-title {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: #248567;
+            margin: 0;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .legal-entity-page .card-body {
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+        }
+
+        /* Tab content styling */
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+    </style>
+
+    <script>
+        // Apply theme immediately to prevent flash of unstyled content
+        (function() {
+            const savedTheme = localStorage.getItem('budg-theme') || 'light';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+        })();
+    </script>
+    <script src="/assets/i18n/head-locale.js"></script>
+    <script src="../../assets/i18n/i18n.js"></script>
+</head>
+<body class="legal-entity-page">
+    <!-- Header Navigation -->
+    <header class="header"></header>
+
+    <!-- Page Header -->
+    <div class="page-header">
+        <div class="page-header-container">
+            <div class="page-title">
+                <div class="page-icon">
+                    <i class="fas fa-building"></i>
+                </div>
+                <div class="page-title-text">
+                    <div class="page-title-main" id="pageTitle">Edit Legal Entity</div>
+                    <div class="page-title-sub" data-i18n="legalEntity.page.title">Legal Entity</div>
+                </div>
+            </div>
+            <!-- Action Buttons -->
+            <div class="form-actions" id="editActionsBar">
+                <button type="button" class="btn btn-secondary" id="cancelBtn" data-i18n="legalEntity.buttons.close">Close</button>
+                <button type="button" class="btn btn-primary" id="saveBtn" data-i18n="legalEntity.buttons.save">Save</button>
+                <button type="button" class="btn btn-success" id="saveAndCloseBtn" data-i18n="legalEntity.buttons.saveAndClose">Save & Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="content-card">
+            <div class="content-header">
+                <div class="tab-container">
+                    <button class="tab active" data-tab="view" data-i18n="legalEntity.tabs.details">DETAILS</button>
+                    <button class="tab" data-tab="relationships" data-i18n="legalEntity.tabs.relationships">RELATIONSHIPS</button>
+                    <button class="tab" data-tab="stakeholders" data-i18n="legalEntity.tabs.stakeholders">STAKEHOLDERS</button>
+                    <button class="tab" data-tab="impact" data-i18n="legalEntity.tabs.impact">IMPACT</button>
+                </div>
+            </div>
+            <div class="content-body">
+                <!-- Legal Entity Details Tab -->
+                <div id="legalEntityViewContainer" class="edit-form-container">
+                    <form id="legalEntityForm">
+                        <div class="form-row">
+                            <!-- Left Panel - Definition -->
+                            <div class="form-section">
+                                <h3 class="section-title definition" data-i18n="legalEntity.labels.definition">DEFINITION</h3>
+                                    
+                                    <div class="form-group">
+                                        <label class="form-label">
+                                            <span data-i18n="legalEntity.labels.longName">Long Name</span>
+                                            <span class="required">*</span>
+                                        </label>
+                                        <input type="text" class="form-input" id="nameInput" data-i18n-placeholder="legalEntity.placeholders.enterName" placeholder="Enter Name">
+                                    </div>
+                                    
+                                    <div class="form-group">
+                                        <label class="form-label">
+                                            <span data-i18n="legalEntity.labels.shortName">Short Name</span>
+                                            <span class="required">*</span>
+                                        </label>
+                                        <input type="text" class="form-input" id="shortNameInput" data-i18n-placeholder="legalEntity.placeholders.enterShortName" placeholder="Enter Short Name">
+                                    </div>
+                                    
+                                    <div class="form-group">
+                                        <h4 class="section-title optional-fields" data-i18n="legalEntity.labels.optionalFields">OPTIONAL FIELDS</h4>
+                                        <label class="form-label" data-i18n="legalEntity.labels.parentLegalEntity">Parent Legal Entity</label>
+                                        <select class="form-select" id="parentLegalEntitySelect">
+                                            <option value="" data-i18n="legalEntity.messages.loadingParentLegalEntities">Loading parent legal entities...</option>
+                                        </select>
+                                    </div>
+                                    
+                                    <div class="form-group">
+                                        <label class="form-label" data-i18n="legalEntity.labels.description">Description</label>
+                                        <textarea class="form-input form-textarea" id="descriptionInput" data-i18n-placeholder="legalEntity.placeholders.enterDescription" placeholder="Enter Description"></textarea>
+                                        <button type="button" class="editor-button" data-i18n="legalEntity.buttons.showEditor">Show Editor</button>
+                                    </div>
+                                </div>
+                                
+                                <!-- Right Panel - Classifications -->
+                                <div class="form-section">
+                                    <h3 class="section-title classifications" data-i18n="legalEntity.labels.classifications">CLASSIFICATIONS</h3>
+                                    
+                                    <div class="form-group">
+                                        <h4 class="section-title" data-i18n="legalEntity.labels.basicClassifications">BASIC CLASSIFICATIONS</h4>
+                                        <label class="form-label">
+                                            <span data-i18n="legalEntity.labels.budgStatus">BUDG Status</span>
+                                            <span class="required">*</span>
+                                        </label>
+                                        <select class="form-select" id="statusSelect">
+                                            <option value="" data-i18n="legalEntity.messages.loadingStatuses">Loading statuses...</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label class="form-label">
+                                            <span data-i18n="legalEntity.labels.budgViewing">BUDG Viewing</span>
+                                            <span class="required">*</span>
+                                        </label>
+                                        <select class="form-select" id="viewingSelect">
+                                            <option value="" data-i18n="legalEntity.messages.loadingViewingOptions">Loading viewing options...</option>
+                                        </select>
+                                    </div>
+                                    
+                                    <!-- Segment Field -->
+                                    <div id="segmentFieldContainer" style="margin-top: 1rem;"></div>
+                            </div>
+                        </div>
+                        
+                        <!-- Custom Fields Section - Full Width -->
+                        <div class="form-section">
+                            <h3 class="section-title" data-i18n="legalEntity.labels.customFields">CUSTOM FIELDS</h3>
+                            <div id="customFieldsContainer"></div>
+                        </div>
+                    </form>
+                </div>
+                
+                <!-- Relationships Tab -->
+                <div id="legalEntityRelationshipsContainer" style="display: none;">
+                    <div class="view-section" style="grid-column:1/-1;">
+                        <div class="relationships-hierarchy">
+                            <div class="hierarchy-header">
+                                <div class="hierarchy-title" data-i18n="legalEntity.relationships.title">LEGAL ENTITY HIERARCHY</div>
+                                <div class="hierarchy-actions">
+                                    <label style="display:flex;align-items:center;gap:.5rem;font-size:.85rem;color:var(--text-muted,#6b7280);">
+                                        <input type="checkbox" checked style="margin-right:.3rem;">
+                                        <span data-i18n="legalEntity.relationships.showRelationships">Show Relationships</span>
+                                    </label>
+                                    <button type="button" class="btn btn-secondary" id="editBtn2"><i class="fas fa-cog"></i></button>
+                                </div>
+                            </div>
+                            <table class="hierarchy-table">
+                                <thead>
+                                    <tr>
+                                        <th><div class="th-content"><span data-i18n="legalEntity.relationships.legalEntity">Legal Entity</span><i class="fas fa-sort"></i></div></th>
+                                        <th><div class="th-content"><span data-i18n="legalEntity.relationships.description">Description</span><i class="fas fa-sort"></i></div></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="relationshipsTbody">
+                                    <tr><td colspan="2" style="text-align:center;padding:2rem;color:var(--text-muted,#6b7280);" data-i18n="legalEntity.messages.loading">Loading...</td></tr>
+                                </tbody>
+                            </table>
+                            <div class="hierarchy-footer" id="hierarchyFooter" data-i18n="legalEntity.relationships.zeroRecords">
+                                0 records
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Stakeholders Tab -->
+                <div id="legalEntityStakeholdersContainer" class="view-grid" style="display:none;">            </div>
+                
+                <!-- Impact Tab -->
+                <div id="impactTab" class="tab-content" style="display:none;">
+                    <div id="impact" class="relationships-container">
+                        <div class="relationships-sub-tabs">
+                            <button class="sub-tab active" data-sub-tab="geography">Geography</button>
+                        </div>
+                        <div class="relationships-content">
+                            <div id="impactGeographyContent" class="sub-tab-content active">
+                                    <div class="relationships-hierarchy">
+                                        <div class="hierarchy-header">
+                                            <div class="hierarchy-title" data-i18n="legalEntity.impact.headers.geography">GEOGRAPHY</div>
+                                            <div class="hierarchy-actions">
+                                                <button type="button" class="btn btn-secondary">
+                                                    <i class="fas fa-list"></i> <span data-i18n="legalEntity.buttons.list">List</span>
+                                                </button>
+                                                <button type="button" class="btn btn-secondary">
+                                                    <i class="fas fa-search-plus"></i> <span data-i18n="legalEntity.buttons.searchAndAdd">Search and Add</span>
+                                                </button>
+                                                <button type="button" class="btn btn-secondary">
+                                                    <i class="fas fa-cog"></i><i class="fas fa-chevron-down"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div class="data-table-wrapper">
+                                            <table class="data-table">
+                                                <thead>
+                                                    <tr>
+                                                        <th>
+                                                            <div class="th-content">
+                                                                <span data-i18n="legalEntity.impact.columns.relationshipType">Relationship Type</span>
+                                                                <i class="fas fa-sort"></i>
+                                                            </div>
+                                                        </th>
+                                                        <th>
+                                                            <div class="th-content">
+                                                                <span data-i18n="legalEntity.impact.columns.geography">Geography</span>
+                                                                <i class="fas fa-sort"></i>
+                                                            </div>
+                                                        </th>
+                                                        <th>
+                                                            <div class="th-content" style="justify-content: center;">
+                                                                <span data-i18n="legalEntity.impact.columns.action">Action</span>
+                                                            </div>
+                                                        </th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody id="geographyImpactTableBody">
+                                                    <tr>
+                                                        <td colspan="3" style="text-align: center; padding: 2rem;">
+                                                            <i class="fas fa-spinner fa-spin" style="font-size: 1.5rem; color: var(--secondary-color, #248567);"></i>
+                                                            <p style="margin-top: 0.5rem;" data-i18n="legalEntity.messages.loadingGeographyRelationships">Loading geography relationships...</p>
+                                                        </td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                        <div class="hierarchy-footer" id="geographyImpactFooter" data-i18n="legalEntity.relationships.zeroRecords">
+                                            0 records
+                                        </div>
+                                    </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            
+        </div>
+    </div>
+</main>
+
+    <script src="../../assets/js/config.js"></script>
+    <script src="../../assets/js/api-service.js"></script>
+    <script src="../../assets/js/save-error-helper.js"></script>
+    <script src="../../assets/js/lock-manager.js"></script>
+    <script src="../../assets/js/lock-init-helper.js"></script>
+    <script src="../../assets/js/global-lock-ui.js"></script>
+    <script src="../../assets/js/main.js"></script>
+    <script src="../../assets/js/initSearch.js"></script>
+    <script src="../../assets/js/custom-fields.js"></script>
+    <script src="../../assets/js/segment-field.js"></script>
+    <script src="../../view/LegalEntity/legal-entity-stakeholder-edit.js"></script>
+    <script src="../../view/LegalEntity/legal-impact-edit.js"></script>
+    
+    <script src="../../assets/js/advanced-rich-text-editor.js"></script>
+    <script src="../../view/LegalEntity/legal-entity-edit.js"></script>
+    <script src="../../assets/js/header.js"></script>
+
+</body>
+</html>
+

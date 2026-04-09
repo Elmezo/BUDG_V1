@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BUDG - Edit System</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../../assets/css/main.css">
+    <link rel="stylesheet" href="../../view/view.css">
+    <link rel="stylesheet" href="../../assets/css/system.css">
+    <link rel="stylesheet" href="../../assets/css/stakeholder.css">
+    <link rel="stylesheet" href="../../assets/css/global-lock-ui.css">
+	    <link rel="stylesheet" href="../../assets/css/custom-fields.css">
+    <link rel="stylesheet" href="../../assets/css/advanced-rich-text-editor.css">
+    <!-- RTL styles for Arabic (disabled by default, enabled by i18n.js) -->
+    <link rel="stylesheet" href="../../assets/css/rtl.css" id="rtl-styles" disabled>
+    <link rel="stylesheet" href="../../view/components/document-upload-component.css">
+
+    <style>
+        /* Sub-tabs styling - match process impact exactly */
+        .relationships-sub-tabs {
+            display: flex;
+            border-bottom: 1px solid var(--border-color, #e5e7eb);
+            margin-bottom: 1rem;
+        }
+
+        .sub-tab {
+            background: none;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--text-muted, #6b7280);
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s ease;
+        }
+
+        .sub-tab:hover {
+            color: var(--text-primary, #374151);
+            background-color: var(--background-hover, #f9fafb);
+        }
+
+        .sub-tab.active {
+            color: var(--primary-color, #248567);
+            border-bottom-color: var(--primary-color, #248567);
+            background-color: var(--background-primary, #ffffff);
+        }
+
+        /* Sub-tab content visibility */
+        .sub-tab-content {
+            display: none;
+        }
+
+        .sub-tab-content.active {
+            display: block;
+        }
+    </style>
+
+    <link rel="stylesheet" href="../../assets/css/grid-settings.css">
+    <link rel="stylesheet" href="../../assets/css/toast.css">
+    <script>(function () { const t = localStorage.getItem('budg-theme') || 'light'; document.documentElement.setAttribute('data-theme', t); })();</script>
+    <script src="/assets/i18n/head-locale.js"></script>
+    <script src="../../assets/i18n/i18n.js"></script>
+</head>
+
+<body class="system-edit-page" data-submenu="data">
+    <header class="header"></header>
+
+    <div class="page-header">
+        <div class="page-header-container">
+            <div class="page-title">
+                <div class="page-icon"><i class="fas fa-desktop"></i></div>
+                <div class="page-title-text">
+                    <div class="page-title-main">Edit System</div>
+                    <div class="page-title-sub" data-i18n="label.system">System</div>
+                </div>
+            </div>
+            <div class="form-actions" id="editActionsBar">
+                <button type="button" class="btn btn-primary" id="editSaveBtn" data-i18n="button.save">Save</button>
+                <button type="button" class="btn btn-primary" id="editSaveCloseBtn" data-i18n="button.saveAndClose">Save
+                    & Close</button>
+                <button type="button" class="btn btn-workflow" id="saveAndSubmitBtn" data-i18n="button.saveAndSubmit"
+                    style="display: none; background-color: #248567; color: white;" title="Save your changes and automatically create/submit a change request for workflow approval. The changes will be applied once the change request is approved.">
+                    <i class="fas fa-paper-plane"></i> Save & Submit
+                </button>
+                <button type="button" class="btn btn-secondary" id="editCancelBtn"
+                    data-i18n="button.cancel">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <main class="main-content">
+        <div class="content-card">
+            <div class="content-header">
+                <div class="tab-container">
+                    <button class="tab active" data-tab="summary" data-i18n="tab.summary">SUMMARY</button>
+                    <button class="tab" data-tab="relationships" data-i18n="tab.relationships">RELATIONSHIPS</button>
+                    <button class="tab" data-tab="stakeholders" data-i18n="tab.stakeholders">STAKEHOLDERS</button>
+                    <button class="tab" data-tab="impact" data-i18n="tab.impact">IMPACT</button>
+                </div>
+            </div>
+            <div class="content-body">
+                <div id="systemEditContainer" class="view-grid">
+                    <div class="view-section" style="grid-column:1/-1;">
+                        <form id="systemEditForm">
+                            <div class="system-container">
+                                <!-- DEFINITION Card -->
+                                <div class="form-card definition-card">
+                                    <div class="card-header">
+                                        <h3 class="card-title">DEFINITION</h3>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="form-group">
+                                            <label class="form-label">Short Name <span class="required">*</span></label>
+                                            <input type="text" class="form-input" id="shortName"
+                                                placeholder="Enter Short Name">
+                                        </div>
+                                        <div class="form-group">
+                                            <label class="form-label">Long Name</label>
+                                            <input type="text" class="form-input" id="longName"
+                                                placeholder="Enter Long Name">
+                                        </div>
+                                        <div class="form-group">
+                                            <label class="form-label">Type <span class="required">*</span></label>
+                                            <div class="form-grid" style="grid-template-columns: 1fr 1fr; gap: .75rem;">
+                                                <select class="form-select" id="typeSelect"></select>
+                                                <select class="form-select" id="scopeSelect">
+                                                    <option value="Internal">Internal</option>
+                                                    <option value="External">External</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div class="form-group">
+                                            <label class="form-label">Description <span
+                                                    class="required">*</span></label>
+                                            <textarea class="form-input form-textarea" id="description"
+                                                placeholder="Enter Description"></textarea>
+                                            <button type="button" class="editor-button">Show Editor</button>
+                                        </div>
+                                        <div class="form-group">
+                                            <label class="form-label">URL</label>
+                                            <input type="url" class="form-input" id="url" placeholder="Enter URL">
+                                        </div>
+                                        <div class="form-group">
+                                            <label class="form-label"
+                                                style="display: flex; align-items: center; gap: 0.5rem;">
+                                                <input type="checkbox" id="dqAutomation"
+                                                    style="width: auto; margin: 0;">
+                                                Automatically Control Local Rules
+                                            </label>
+                                        </div>
+                                        <div class="form-group">
+                                            <label class="form-label">Hierarchy</label>
+                                            <div class="form-input-group">
+                                                <input type="text" class="form-input" id="parentShortName"
+                                                    placeholder="No parent" readonly>
+                                                <i class="fas fa-edit input-icon" id="parentPicker"></i>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- CLASSIFICATIONS Card -->
+                                <div class="form-card classifications-card">
+                                    <div class="card-header">
+                                        <h3 class="card-title">CLASSIFICATIONS</h3>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="form-group">
+                                            <label class="form-label">BUDG Status <span
+                                                    class="required">*</span></label>
+                                            <select class="form-select" id="BUDGStatus"></select>
+                                        </div>
+                                        <div class="form-group">
+                                            <label class="form-label">Lifecycle <span class="required">*</span></label>
+                                            <select class="form-select" id="lifecycle"></select>
+                                        </div>
+                                        <div class="form-group">
+                                            <label class="form-label">BUDG Viewing <span
+                                                    class="required">*</span></label>
+                                            <select class="form-select" id="BUDGViewing"></select>
+                                        </div>
+                                        <div class="form-group">
+                                            <label class="form-label">Classification</label>
+                                            <select class="form-select" id="classification"></select>
+                                        </div>
+                                        <div class="form-group">
+                                            <label class="form-label">CIA Rating
+                                                <i class="fas fa-question-circle"
+                                                    title="Confidentiality Integrity Availability (CIA) Rating"></i>
+                                            </label>
+                                            <div class="cia-inline">
+                                                <div class="cia-item"><span class="cia-caption">C</span>
+                                                    <select class="form-select" id="ciaC">
+                                                        <option value="">1</option>
+                                                        <option>1</option>
+                                                        <option>2</option>
+                                                        <option>3</option>
+                                                        <option>4</option>
+                                                        <option>5</option>
+                                                    </select>
+                                                </div>
+                                                <div class="cia-item"><span class="cia-caption">I</span>
+                                                    <select class="form-select" id="ciaI">
+                                                        <option value="">1</option>
+                                                        <option>1</option>
+                                                        <option>2</option>
+                                                        <option>3</option>
+                                                        <option>4</option>
+                                                        <option>5</option>
+                                                    </select>
+                                                </div>
+                                                <div class="cia-item"><span class="cia-caption">A</span>
+                                                    <select class="form-select" id="ciaA">
+                                                        <option value="">1</option>
+                                                        <option>1</option>
+                                                        <option>2</option>
+                                                        <option>3</option>
+                                                        <option>4</option>
+                                                        <option>5</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="form-group">
+                                            <label class="form-label">Created By</label>
+                                            <input type="text" class="form-input" id="createdBy" placeholder="-"
+                                                readonly>
+                                        </div>
+                                        <div class="form-group">
+                                            <label class="form-label">Created</label>
+                                            <input type="text" class="form-input" id="createdDate" placeholder="-"
+                                                readonly>
+                                        </div>
+                                        <div class="form-group">
+                                            <label class="form-label">Last Updated By</label>
+                                            <input type="text" class="form-input" id="lastUpdatedBy" placeholder="-"
+                                                readonly>
+                                        </div>
+                                        <div class="form-group">
+                                            <label class="form-label">Last Updated</label>
+                                            <input type="text" class="form-input" id="lastUpdatedDate" placeholder="-"
+                                                readonly>
+                                        </div>
+
+                                        <!-- Segment Field Container -->
+                                        <div id="segmentFieldContainer"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- DATA CONTENT SUMMARY Section - Full Width (editable inline) -->
+                    <div class="view-section" style="grid-column: 1/-1; margin-top: 2rem;">
+                        <div class="form-card">
+                            <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+                                <h3 class="card-title">DATA CONTENT SUMMARY</h3>
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <button type="button" class="btn btn-primary btn-sm" id="addDataContentBtn">
+                                        <i class="fas fa-plus"></i> Add Relationship
+                                    </button>
+                                    <div class="grid-settings-wrapper">
+                                        <button type="button" class="grid-settings-btn" data-grid-target="dataContentContainer"><i class="fas fa-cog"></i> <i class="fas fa-chevron-down" style="font-size:0.6rem;"></i></button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card-body" style="padding: 0;">
+                                <div id="dataContentContainer" class="data-table-wrapper">
+                                    <div class="empty">Loading data content...</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- DOCUMENTS Section - Full Width -->
+                    <div class="view-section" style="grid-column: 1/-1; margin-top: 2rem;">
+                        <div class="form-card documents-card">
+                            <div class="card-header">
+                                <h3 class="card-title" data-i18n="card.documents">DOCUMENTS</h3>
+                            </div>
+                            <div class="card-body">
+                                <div id="documentUploadContainer"></div>
+                                <div id="documentTableContainer" style="margin-top: 20px;"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- CUSTOM FIELDS Section - Full Width (form-section: custom-fields.js show/hide) -->
+                    <div class="view-section form-section" style="grid-column: 1/-1; margin-top: 2rem;">
+                        <div class="form-card">
+                            <div class="card-header">
+                                <h3 class="card-title">CUSTOM FIELDS</h3>
+                            </div>
+                            <div class="card-body">
+                                <div id="customFieldsContainer"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Relationships Tab -->
+                <div id="relationshipsTab" class="tab-panel" style="display: none;">
+                    <div class="form-section">
+                        <h3 class="section-title">SYSTEM HIERARCHY</h3>
+                        <div class="relationships-hierarchy">
+                            <div class="hierarchy-header">
+                                <div class="hierarchy-title">SYSTEM HIERARCHY</div>
+                                <div class="hierarchy-actions">
+                                    <div class="grid-settings-wrapper">
+                                        <button type="button" class="grid-settings-btn" data-grid-target="relationshipsTableBody"><i class="fas fa-cog"></i> <i class="fas fa-chevron-down" style="font-size:0.6rem;"></i></button>
+                                    </div>
+                                </div>
+                            </div>
+                            <table class="hierarchy-table">
+                                <thead>
+                                    <tr>
+                                        <th>
+                                            <div class="th-content"><span>Short Name</span><i class="fas fa-sort"></i>
+                                            </div>
+                                        </th>
+                                        <th>
+                                            <div class="th-content"><span>Description</span><i class="fas fa-sort"></i>
+                                            </div>
+                                        </th>
+                                        <th>
+                                            <div class="th-content"><span>Type</span><i class="fas fa-sort"></i></div>
+                                        </th>
+                                        <th>
+                                            <div class="th-content"><span>Long Name</span><i class="fas fa-sort"></i>
+                                            </div>
+                                        </th>
+                                        <th>
+                                            <div class="th-content"><span>Classification</span><i
+                                                    class="fas fa-sort"></i></div>
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody id="relationshipsTableBody">
+                                    <tr>
+                                        <td colspan="5"
+                                            style="text-align:center;padding:2rem;color:var(--text-muted,#6b7280);">
+                                            Loading...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                            <div class="hierarchy-footer" id="hierarchyFooter">
+                                0 records
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Stakeholders Tab -->
+                <div id="stakeholdersTab" class="tab-panel" style="display: none;">
+                    <div id="systemStakeholdersContainer" class="view-section" style="grid-column:1/-1;"></div>
+                </div>
+
+                <!-- Impact Tab -->
+                <div id="impactTab" class="tab-panel" style="display: none;">
+                    <div id="impact" class="relationships-container">
+                        <!-- Sub-tabs Navigation -->
+                        <div class="relationships-sub-tabs">
+                            <button class="sub-tab active" data-sub-tab="product">Product</button>
+                            <button class="sub-tab" data-sub-tab="client">Client</button>
+                            <button class="sub-tab" data-sub-tab="legal">Legal Entity</button>
+                        </div>
+
+                        <!-- Sub-tab Content Area -->
+                        <div class="relationships-content">
+                            <!-- Product Sub-tab (Special - includes Legal Entity relationship) -->
+                            <div id="impactProductContent" class="sub-tab-content active">
+                                <div class="relationships-hierarchy">
+                                    <div class="hierarchy-header">
+                                        <div class="hierarchy-title">PRODUCT</div>
+                                        <div class="hierarchy-actions">
+                                            <div class="grid-settings-wrapper">
+                                                <button type="button" class="grid-settings-btn" data-grid-target="productImpactTableBody"><i class="fas fa-cog"></i> <i class="fas fa-chevron-down" style="font-size:0.6rem;"></i></button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="data-table-wrapper">
+                                        <table class="data-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>
+                                                        <div class="th-content"><span>Relationship Type <span class="required" style="color:#dc2626;">*</span></span><i
+                                                                class="fas fa-sort"></i></div>
+                                                    </th>
+                                                    <th>
+                                                        <div class="th-content"><span>Product Name <span class="required" style="color:#dc2626;">*</span></span><i
+                                                                class="fas fa-sort"></i></div>
+                                                    </th>
+                                                    <th>
+                                                        <div class="th-content" style="justify-content: center;">
+                                                            <span>Product Owner</span><i class="fas fa-sort"></i>
+                                                        </div>
+                                                    </th>
+                                                    <th>
+                                                        <div class="th-content"><span>Legal Entity Relationship
+                                                                Type</span><i class="fas fa-sort"></i></div>
+                                                    </th>
+                                                    <th>
+                                                        <div class="th-content"><span>Legal Entity</span><i
+                                                                class="fas fa-sort"></i></div>
+                                                    </th>
+                                                    <th>
+                                                        <div class="th-content" style="justify-content: center;">
+                                                            <span>Action</span>
+                                                        </div>
+                                                    </th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="productImpactTableBody">
+                                                <tr>
+                                                    <td colspan="6" style="text-align: center; padding: 2rem;">
+                                                        <i class="fas fa-spinner fa-spin"
+                                                            style="font-size: 1.5rem; color: var(--secondary-color, #248567);"></i>
+                                                        <p style="margin-top: 0.5rem;">Loading product relationships...
+                                                        </p>
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    <div class="hierarchy-footer" id="productImpactFooter">
+                                        0 records
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Client Sub-tab -->
+                            <div id="impactClientContent" class="sub-tab-content">
+                                <div class="relationships-hierarchy">
+                                    <div class="hierarchy-header">
+                                        <div class="hierarchy-title">CLIENT</div>
+                                        <div class="hierarchy-actions">
+                                            <div class="grid-settings-wrapper">
+                                                <button type="button" class="grid-settings-btn" data-grid-target="clientImpactTableBody"><i class="fas fa-cog"></i> <i class="fas fa-chevron-down" style="font-size:0.6rem;"></i></button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="data-table-wrapper">
+                                        <table class="data-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>
+                                                        <div class="th-content"><span>Relationship Type <span class="required" style="color:#dc2626;">*</span></span><i
+                                                                class="fas fa-sort"></i></div>
+                                                    </th>
+                                                    <th>
+                                                        <div class="th-content"><span>Client <span class="required" style="color:#dc2626;">*</span></span><i
+                                                                class="fas fa-sort"></i></div>
+                                                    </th>
+                                                    <th>
+                                                        <div class="th-content" style="justify-content: center;">
+                                                            <span>Client Owner</span><i class="fas fa-sort"></i>
+                                                        </div>
+                                                    </th>
+                                                    <th>
+                                                        <div class="th-content" style="justify-content: center;">
+                                                            <span>Action</span>
+                                                        </div>
+                                                    </th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="clientImpactTableBody">
+                                                <tr>
+                                                    <td colspan="4" style="text-align: center; padding: 2rem;">
+                                                        <i class="fas fa-spinner fa-spin"
+                                                            style="font-size: 1.5rem; color: var(--secondary-color, #248567);"></i>
+                                                        <p style="margin-top: 0.5rem;">Loading client relationships...
+                                                        </p>
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    <div class="hierarchy-footer" id="clientImpactFooter">
+                                        0 records
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Legal Entity Sub-tab -->
+                            <div id="impactLegalContent" class="sub-tab-content">
+                                <div class="relationships-hierarchy">
+                                    <div class="hierarchy-header">
+                                        <div class="hierarchy-title">LEGAL ENTITY</div>
+                                        <div class="hierarchy-actions">
+                                            <div class="grid-settings-wrapper">
+                                                <button type="button" class="grid-settings-btn" data-grid-target="legalImpactTableBody"><i class="fas fa-cog"></i> <i class="fas fa-chevron-down" style="font-size:0.6rem;"></i></button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="data-table-wrapper">
+                                        <table class="data-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>
+                                                        <div class="th-content"><span>Relationship Type <span class="required" style="color:#dc2626;">*</span></span><i
+                                                                class="fas fa-sort"></i></div>
+                                                    </th>
+                                                    <th>
+                                                        <div class="th-content"><span>Legal Entity <span class="required" style="color:#dc2626;">*</span></span><i
+                                                                class="fas fa-sort"></i></div>
+                                                    </th>
+                                                    <th>
+                                                        <div class="th-content" style="justify-content: center;">
+                                                            <span>Legal Entity Owner</span><i class="fas fa-sort"></i>
+                                                        </div>
+                                                    </th>
+                                                    <th>
+                                                        <div class="th-content" style="justify-content: center;">
+                                                            <span>Action</span>
+                                                        </div>
+                                                    </th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="legalImpactTableBody">
+                                                <tr>
+                                                    <td colspan="4" style="text-align: center; padding: 2rem;">
+                                                        <i class="fas fa-spinner fa-spin"
+                                                            style="font-size: 1.5rem; color: var(--secondary-color, #248567);"></i>
+                                                        <p style="margin-top: 0.5rem;">Loading legal entity
+                                                            relationships...</p>
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    <div class="hierarchy-footer" id="legalImpactFooter">
+                                        0 records
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Documents Tab: same IDs as main card would duplicate DOM; documents live in Details tab card above -->
+                <div id="documentsTab" class="tab-panel" style="display: none;">
+                    <p style="padding:1rem;color:var(--text-muted,#6b7280);">Documents are managed in the <strong>DOCUMENTS</strong> section on the Details tab.</p>
+                </div>
+
+            </div>
+        </div>
+    </main>
+
+    <script src="../../assets/js/grid-settings.js"></script>
+    <script src="../../assets/js/config.js"></script>
+    <script src="../../assets/js/api-service.js"></script>
+    <script src="../../assets/js/admin-panel/admin-notifications.js"></script>
+    <script src="../../assets/js/save-error-helper.js"></script>
+    <script src="../../assets/js/global-lock-ui.js"></script>
+    <script src="../../assets/js/lock-manager.js"></script>
+    <script src="../../assets/js/lock-init-helper.js"></script>
+    <script src="../../assets/js/main.js"></script>
+    <script src="../../assets/js/initSearch.js"></script>
+    <script src="../../assets/js/system.js"></script>
+    <script src="../../assets/js/segment-field.js"></script>
+    <script src="../../assets/js/custom-fields.js"></script>
+    <script src="../../assets/js/dfcr-utils.js"></script>
+
+    <script src="../../view/components/document-upload-component.js"></script>
+    <script src="../../view/components/document-table-component.js"></script>
+    <script src="../../view/system/system-documents-init.js"></script>
+    <script src="../../assets/js/advanced-rich-text-editor.js"></script>
+    <script src="../../view/system/system-edit.js"></script>
+    <script src="../../view/system/system-stakeholder.js"></script>
+    <script src="../../view/system/system-stakeholder-edit.js"></script>
+    <script src="../../view/system/system-impact-edit.js"></script>
+    <script src="../../assets/js/header.js"></script>
+    <script>
+    // Initialize grid settings for all static gear buttons on the page
+    if (window.GridSettings) GridSettings.init(document);
+    </script>
+</body>
+
+</html>

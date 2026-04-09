@@ -1,0 +1,213 @@
+/* ============================================
+   Grid Settings Dropdown - Reusable Component
+   ============================================ */
+
+/* Wrapper – default: push to right via margin in flex containers */
+.grid-settings-wrapper {
+    position: relative;
+    display: inline-block;
+    margin-left: auto !important;
+}
+
+/* Inside section-title: use absolute positioning to guarantee far-right */
+.section-title {
+    position: relative !important;
+}
+.section-title .grid-settings-wrapper {
+    position: absolute !important;
+    right: 0.75rem !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    margin-left: 0 !important;
+}
+
+/* Trigger button */
+.grid-settings-btn {
+    background: #fff;
+    border: 1px solid var(--border-color, #d1d5db);
+    padding: 5px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    color: var(--text-secondary, #6b7280);
+    font-size: 0.85rem;
+    transition: background 0.15s, color 0.15s;
+}
+.grid-settings-btn:hover {
+    background: var(--background-hover, #f3f4f6);
+    color: var(--text-primary, #374151);
+}
+
+/* Main dropdown menu – portal: lives in document.body with position:absolute */
+.grid-settings-menu {
+    display: none;
+    position: absolute;
+    background: #fff;
+    border: 1px solid var(--border-color, #e5e7eb);
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+    min-width: 230px;
+    z-index: 999999;
+    padding: 6px 0;
+}
+.grid-settings-menu.open {
+    display: block;
+}
+
+/* Menu items */
+.grid-settings-menu .gs-item {
+    padding: 9px 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+    color: var(--text-primary, #333);
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: background 0.15s;
+    white-space: nowrap;
+}
+.grid-settings-menu .gs-item:hover {
+    background: var(--background-hover, #f3f4f6);
+}
+.grid-settings-menu .gs-item .gs-arrow {
+    margin-left: auto;
+    font-size: 0.7rem;
+    color: var(--text-muted, #9ca3af);
+}
+.grid-settings-menu .gs-item i.fa-chevron-right {
+    margin-left: auto;
+    font-size: 0.7rem;
+    color: var(--text-muted, #9ca3af);
+}
+
+/* Divider */
+.grid-settings-menu .gs-divider {
+    border-top: 1px solid var(--border-color, #e5e7eb);
+    margin: 4px 0;
+}
+
+/* ---- Sub-panel (used by Columns, Export, Group By) ---- */
+.gs-sub-panel {
+    display: none;
+    position: absolute;
+    background: #fff;
+    border: 1px solid var(--border-color, #e5e7eb);
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+    min-width: 230px;
+    z-index: 1000000;
+    padding: 0;
+    max-height: 400px;
+    overflow-y: auto;
+}
+.gs-sub-panel.open {
+    display: block;
+}
+
+/* Panel header */
+.gs-sub-panel .gs-panel-header {
+    padding: 10px 14px;
+    font-weight: 600;
+    font-size: 0.82rem;
+    color: var(--text-primary, #374151);
+    border-bottom: 1px solid var(--border-color, #e5e7eb);
+    background: var(--background-secondary, #f9fafb);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-radius: 8px 8px 0 0;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+.gs-sub-panel .gs-panel-header .gs-panel-action {
+    background: none;
+    border: none;
+    color: var(--primary-color, #4f46e5);
+    cursor: pointer;
+    font-size: 0.78rem;
+    text-decoration: underline;
+    padding: 0;
+}
+.gs-sub-panel .gs-panel-header .gs-panel-action:hover {
+    color: var(--primary-700, #4338ca);
+}
+
+/* Checkbox row (columns, group-by) */
+.gs-sub-panel .gs-check-item {
+    padding: 7px 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.83rem;
+    color: var(--text-primary, #333);
+    cursor: pointer;
+    transition: background 0.15s;
+}
+.gs-sub-panel .gs-check-item:hover {
+    background: var(--background-hover, #f3f4f6);
+}
+.gs-sub-panel .gs-check-item:last-child {
+    border-radius: 0 0 8px 8px;
+}
+.gs-sub-panel .gs-check-item input[type="checkbox"] {
+    accent-color: var(--secondary-color, #248567);
+    width: 15px;
+    height: 15px;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+.gs-sub-panel .gs-check-item label {
+    cursor: pointer;
+    flex: 1;
+    margin: 0;
+    user-select: none;
+}
+
+/* Simple action rows in sub-panel (export format choices) */
+.gs-sub-panel .gs-action-item {
+    padding: 9px 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.83rem;
+    color: var(--text-primary, #333);
+    cursor: pointer;
+    transition: background 0.15s;
+}
+.gs-sub-panel .gs-action-item:hover {
+    background: var(--background-hover, #f3f4f6);
+}
+.gs-sub-panel .gs-action-item:last-child {
+    border-radius: 0 0 8px 8px;
+}
+
+/* ---- Filter row (inline search/filter on top of table) ---- */
+.gs-filter-row th {
+    padding: 4px 6px !important;
+    background: var(--background-secondary, #f9fafb) !important;
+}
+.gs-filter-row input {
+    width: 100%;
+    padding: 4px 8px;
+    border: 1px solid var(--border-color, #d1d5db);
+    border-radius: 4px;
+    font-size: 0.8rem;
+    color: var(--text-primary, #333);
+    background: #fff;
+    outline: none;
+    transition: border-color 0.15s;
+}
+.gs-filter-row input:focus {
+    border-color: var(--primary-color, #4f46e5);
+    box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.1);
+}
+.gs-filter-row input::placeholder {
+    color: var(--text-muted, #9ca3af);
+}
+
+/* ---- Legacy class compatibility ---- */
+.gs-columns-panel { /* alias for .gs-sub-panel */ }

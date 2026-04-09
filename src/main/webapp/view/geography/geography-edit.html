@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Geography - BUDG</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../../assets/css/main.css">
+    <link rel="stylesheet" href="../../view/view.css">
+    <link rel="stylesheet" href="../../view/geography/geography.css">
+    <link rel="stylesheet" href="../../view/edit/edit-shared.css">
+    <link rel="stylesheet" href="../../view/geography/geography-edit.css">
+    <link rel="stylesheet" href="../../assets/css/custom-fields.css">
+    <link rel="stylesheet" href="../../assets/css/global-lock-ui.css">
+    <link rel="stylesheet" href="../../assets/css/advanced-rich-text-editor.css">
+    <!-- RTL styles for Arabic (disabled by default, enabled by i18n.js) -->
+    <link rel="stylesheet" href="../../assets/css/rtl.css" id="rtl-styles" disabled>
+    <script>(function(){const t=localStorage.getItem('budg-theme')||'light';document.documentElement.setAttribute('data-theme',t);})();</script>
+    <script src="/assets/i18n/head-locale.js"></script>
+    <script src="../../assets/i18n/i18n.js"></script>
+</head>
+<body class="geography-edit-page" data-submenu="regulatory">
+    <div class="app-container">
+        <!-- Header -->
+        <header class="header"></header>
+
+        <div class="page-header">
+            <div class="page-header-container">
+                <div class="page-title">
+                    <div class="page-icon"><i class="fas fa-globe"></i></div>
+                    <div class="page-title-text">
+                        <div class="page-title-main" id="geographyTitle">Geography Name</div>
+                        <div class="page-title-sub" data-i18n="geography.page.titleSub">Geography</div>
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-primary" id="saveBtn">
+                        <i class="fas fa-save"></i> Save
+                    </button>
+                    <button type="button" class="btn btn-success" id="saveAndCloseBtn">
+                        <i class="fas fa-save"></i> Save & Close
+                    </button>
+                    <button type="button" class="btn btn-secondary" id="closeBtn">
+                        <i class="fas fa-times"></i> Close
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <main class="main-content">
+            <div class="content-card">
+                <div class="content-header">
+                    <div class="tab-container">
+                        <button class="tab active" data-tab="summary" data-i18n="geography.tabs.summary">SUMMARY</button>
+                    </div>
+                </div>
+                <div class="content-body">
+                    <!-- Summary Tab -->
+                    <div id="summaryContainer" class="tab-content active">
+                        <div class="edit-form-container">
+                            <div class="geography-container">
+                                <!-- Left Column -->
+                                <div class="left-column">
+                                    <!-- Definition Section -->
+                                    <div class="form-section">
+                                        <div class="section-title" data-i18n="geography.sections.definition">DEFINITION</div>
+                                        
+                                        <div class="form-group">
+                                            <label for="geographyName" class="form-label required" data-i18n="geography.labels.name">Name</label>
+                                            <input type="text" id="geographyName" class="form-input" required>
+                                        </div>
+                                        
+                                        <div class="form-group">
+                                            <label for="parentName" class="form-label" data-i18n="geography.labels.parent">Parent</label>
+                                            <div class="input-group">
+                                                <input type="text" id="parentName" class="form-input" data-i18n-placeholder="geography.labels.parent" readonly>
+                                                <button type="button" class="btn btn-sm btn-secondary" id="selectParentBtn">
+                                                    <i class="fas fa-pencil-alt"></i>
+                                                </button>
+                                                <button type="button" class="btn btn-sm btn-outline" id="clearParentBtn" data-i18n-title="regulatoryTheme.buttons.clearParent">
+                                                    <i class="fas fa-times"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="subsection-title" data-i18n="regulatoryTheme.sections.optionalFields">OPTIONAL FIELDS</div>
+                                        
+                                        <div class="form-group">
+                                            <label for="geographyDescription" class="form-label" data-i18n="geography.labels.description">Description</label>
+                                            <textarea id="geographyDescription" class="form-textarea" data-i18n-placeholder="regulator.placeholders.enterDescription" rows="4"></textarea>
+                                            <button type="button" class="btn btn-sm btn-outline editor-button" id="showEditorBtn">Show Editor</button>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Right Column -->
+                                <div class="right-column">
+                                    <!-- Classifications Section -->
+                                    <div class="form-section">
+                                        <div class="section-title">CLASSIFICATIONS</div>
+                                        
+                                        <div class="subsection-title">OTHER INFORMATION</div>
+
+                                        <!-- Segment Field -->
+                                        <div id="segmentFieldContainer" style="margin-top: 1rem;"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                    <!-- Custom Fields Section -->
+                    <div class="form-section" style="grid-column: 1/-1; margin-top: 2rem;">
+                        <div class="section-title" data-i18n="regulatoryTheme.sections.customFields">CUSTOM FIELDS</div>
+                        <div id="customFieldsContainer"></div>
+                    </div>
+                    
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Parent Selection Modal -->
+    <div id="parentSelectionModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Select Parent Geography</h3>
+                <button type="button" class="modal-close" id="closeParentModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="search-container">
+                    <input type="text" id="parentSearchInput" class="form-input" data-i18n-placeholder="geography.placeholders.searchGeographies" placeholder="Search geographies...">
+                </div>
+                <div class="geography-list" id="geographyList">
+                    <!-- Geographies will be loaded here -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" id="cancelParentSelection" data-i18n="button.cancel">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="../../assets/js/config.js"></script>
+    <script src="../../assets/js/api-service.js"></script>
+    <script src="../../assets/js/save-error-helper.js"></script>
+    <script src="../../assets/js/lock-manager.js"></script>
+    <script src="../../assets/js/lock-init-helper.js"></script>
+    <script src="../../assets/js/global-lock-ui.js"></script>
+    <script src="../../assets/js/main.js"></script>
+    <script src="../../assets/js/initSearch.js"></script>
+    
+    <script src="../../assets/js/custom-fields.js"></script>
+    <script src="../../assets/js/segment-field.js"></script>
+    <script src="../../assets/js/header.js"></script>
+    <script src="../../assets/js/advanced-rich-text-editor.js"></script>
+    <script src="../../view/geography/geography-edit.js"></script>
+</body>
+</html>
+

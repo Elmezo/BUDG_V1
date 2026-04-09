@@ -1,0 +1,610 @@
+{
+    "attribute-x-attribute.xlsx": [
+        "Sourcing Logic",
+        "Sourcing Type (list + required)" -> attribute_x_attribute_relationtype.PrimaryName	 ,
+        "Target Attribute Ref.",
+        "Target Attribute Name",
+        "Target Data Set Name",
+        "Target System Short Name",
+        "Source Attribute Ref.",
+        "Source Attribute Name",
+        "Source Data Set Name",
+        "Source System Short Name",
+        "Scope of Data (list)" -> attribute_x_attribute_relationscope.PrimaryName	,
+        "Interface Name",
+        "Interface Source System Short Name",
+        "Interface Target System Short Name"
+    ],
+    "attribute-x-physical-field.xlsx": [
+        "Attribute Ref.",
+        "Attribute Name",
+        "Attribute Data Set Name",
+        "Attribute System Short Name",
+        "Name (required)",
+        "Field ID (required)",
+        "Field Type (required)"
+    ],
+    "business-area-x-glossary.xlsx": [
+        "Glossary Ref.",
+        "Glossary Name",
+        "Parent Glossary Name",
+        "Business Area Name (required)",
+        "Parent Business Area Name",
+        "Relationship Type (list + required)" -> businessarea_x_glossary_relationtype.PrimaryName
+    ],
+    "business-area-x-process.xlsx": [
+        "Description",
+        "Process Ref.",
+        "Process Name",
+        "Parent Process Name",
+        "Business Area Name (required)",
+        "Business Area Parent Name",
+        "Relationship Type (list + required)" -> businessarea_x_process_relationtype.PrimaryName
+    ],
+    "business-area-x-system.xlsx": [
+        "System Short Name (required)",
+        "Parent System Short Name",
+        "Business Area Name (required)",
+        "Business Area Parent Name",
+        "Relationship Type (list + required)" -> businessarea_x_system_relationtype.PrimaryName
+    ],
+    "capability-x-business-area.xlsx": [
+        "Capability Ref.",
+        "Capability Name",
+        "Capability Parent Name",
+        "Business Area Name (required)",
+        "Business Area Parent Name",
+        "Relationship Type (list + required)" -> capability_x_businessarea_relationtype
+    ],
+    "capability-x-client.xlsx": [
+        "Client Name (required)",
+        "Client Parent Name",
+        "Capability Ref.",
+        "Capability Name",
+        "Capability Parent Name",
+        "Relationship Type (list + required)" -> capability_x_client_relationtype.PrimaryName
+    ],
+    "capability-x-glossary.xlsx": [
+        "Glossary Ref.",
+        "Glossary Name",
+        "Parent Glossary Name",
+        "Capability Ref.",
+        "Capability Name",
+        "Parent Capability Name",
+        "Relationship Type (list + required)" -> capability_x_glossary_relationtype.PrimaryName
+    ],
+    "capability-x-legal-entity.xlsx": [
+        "Capability Ref.",
+        "Capability Name",
+        "Capability Parent Name",
+        "Legal Short Name (required)",
+        "Parent Legal Short Name",
+        "Relationship Type (list + required)" -> capability_x_legal_relationtype.PrimaryName
+    ],
+    "capability-x-process.xlsx": [
+        "Process Ref.",
+        "Process Name",
+        "Parent Process Name",
+        "Capability Ref.",
+        "Capability Name",
+        "Capability Parent Name",
+        "Relationship Type (list + required)" -> capability_x_process_relationtype.PrimaryName
+    ],
+    "capability-x-product.xlsx": [
+        "Product Name (required)",
+        "Product Parent Name",
+        "Capability Ref.",
+        "Capability Name",
+        "Capability Parent Name",
+        "Relationship Type (list + required)" -> capability_x_product_relationtype.PrimaryName
+    ],
+    "capability-x-system.xlsx": [
+        "System Short Name (required)",
+        "Parent System Short Name",
+        "Capability Ref.",
+        "Capability Name",
+        "Capability Parent Name",
+        "Relationship Type (list + required)" -> capability_x_system_relationtype.PrimaryName
+    ],
+    "committee-x-capability.xlsx": [
+        "Committee Ref.",
+        "Committee Name",
+        "Committee Parent Name",
+        "Capability Ref.",
+        "Capability Name",
+        "Capability Parent Name",
+        "Relationship Type (list + required)" -> committee_x_capability_relationtype.PrimaryName
+    ],
+    "committee-x-committee.xlsx": [
+        "Source Committee Ref.",
+        "Source Committee Name",
+        "Source Committee Parent Name",
+        "Target Committee Ref.",
+        "Target Committee Name",
+        "Target Parent Committee Name",
+        "Relationship Type (list + required)" -> committee_x_committee_relationtype.PrimaryName
+    ],
+    "data-set-x-client.xlsx": [
+        "Client Name (required)",
+        "Client Parent Name",
+        "Data Set Ref.",
+        "Data Set Name",
+        "Data Set System Short Name",
+        "Data Set Parent System Short Name",
+        "Relationship Type (list + required)" -> client_x_dataset_relationtype.PrimaryName
+    ],
+    "data-set-x-legal-entity.xlsx": [
+        "Legal Entity Short Name (required)",
+        "Parent Legal Entity Short Name",
+        "Data Set Ref.",
+        "Data Set Name",
+        "Data Set System Short Name",
+        "Data Set Parent System Short Name",
+        "Relationship Type (list + required)" -> dataset_x_legalentity_relationtype.PrimaryName
+    ],
+    "data-set-x-product.xlsx": [
+        "Product Name (required)",
+        "Product Parent Name",
+        "Data Set Ref.",
+        "Data Set Name",
+        "Data Set System Short Name",
+        "Data Set Parent System Short Name",
+        "Relationship Type (list + required)" -> product_x_dataset_relationtype.PrimaryName
+    ],
+    "glossary-x-client.xlsx": [
+        "Client Name (required)",
+        "Parent Client Name",
+        "Glossary Ref.",
+        "Glossary Name",
+        "Parent Glossary Name",
+        "Relationship Type (list + required)" -> client_x_glossary_relationtype.PrimaryName
+    ],
+    "glossary-x-glossary.xlsx": [
+        "Source Glossary Ref.",
+        "Source Glossary Name",
+        "Source Parent Glossary Name",
+        "Target Glossary Ref.",
+        "Target Glossary Name",
+        "Target Parent Glossary Name",
+        "Relationship Type (list + required)" -> glossary_x_glossary_reltype.PrimaryName
+    ],
+    "glossary-x-product.xlsx": [
+        "Product Name (required)",
+        "Product Parent Name",
+        "Glossary Ref.",
+        "Glossary Name",
+        "Parent Glossary Name",
+        "Relationship Type (list + required)" -> product_x_glossary_relationtype.primaryname
+    ],
+    "glossary-x-system.xlsx": [
+        "Glossary Ref.",
+        "Glossary Name",
+        "Parent Glossary Name",
+        "System Short Name (required)",
+        "Strategic Data Set Name",
+        "Relationship Type (list + required)" -> glossary_x_system_relationtype.PrimaryName
+    ],
+    "interface-x-glossary.xlsx": [
+        "Relationship Type (list + required)" -> interface_x_glossary_relationtype.PrimaryName ,
+        "Interface Ref.",
+        "Interface Name",
+        "Interface Source System Short Name",
+        "Interface Target System Short Name",
+        "Glossary Ref.",
+        "Glossary Name",
+        "Parent Glossary Name"
+    ],
+    "legal-entity-x-geography.xlsx": [
+        "Geography (required)",
+        "Parent Geography",
+        "Legal Short Name (required)",
+        "Parent Legal Short Name",
+        "Relationship Type (list + required)" -> legal_x_geo_relationtype.PrimaryName
+    ],
+    "local-data-quality-rule-x-technical-reference.xlsx": [
+        "Ref.",
+        "Rule Name",
+        "Technical Rule Reference (required)"
+    ],
+    "policy-x-attribute.xlsx": [
+        "Policy Ref.",
+        "Policy Name",
+        "Parent Policy Name",
+        "Attribute Ref.",
+        "Attribute Name",
+        "Attribute Data Set Name",
+        "Attribute System Short Name",
+        "Relationship Type (list + required)" -> policy_x_attribute_relationtype.primaryname
+    ],
+    "policy-x-business-area.xlsx": [
+        "Policy Ref.",
+        "Policy Name",
+        "Parent Policy Name",
+        "Business Area Name (required)",
+        "Parent Business Area Name",
+        "Relationship Type (list + required)" -> policy_x_businessarea_relationtype.PrimaryName
+    ],
+    "policy-x-client.xlsx": [
+        "Client Name (required)",
+        "Client Parent Name",
+        "Policy Ref.",
+        "Policy Name",
+        "Parent Policy Name",
+        "Relationship Type (list + required)" -> client_x_policy_relationtypePrimaryName
+    ],
+    "policy-x-data-set.xlsx": [
+        "Policy Ref.",
+        "Policy Name",
+        "Parent Policy Name",
+        "Data Set Ref.",
+        "Data Set Name",
+        "Data Set System Short Name",
+        "Relationship Type (list + required)" -> policy_x_dataset_relationtype.PrimaryName
+    ],
+    "policy-x-glossary.xlsx": [
+        "Description",
+        "Policy Ref.",
+        "Policy Name",
+        "Parent Policy Name",
+        "Glossary Ref.",
+        "Glossary Name",
+        "Parent Glossary Name",
+        "Relationship Type (list + required)" -> policy_x_glossary_relationtype.PrimaryName
+    ],
+    "policy-x-legal-entity.xlsx": [
+        "Policy Ref.",
+        "Policy Name",
+        "Parent Policy Name",
+        "Legal Short Name (required)",
+        "Parent Legal Short Name",
+        "Relationship Type (list + required)" -> policy_x_legal_relationtype.PrimaryName
+    ],
+    "policy-x-policy.xlsx": [
+        "Description",
+        "Source Policy Ref.",
+        "Source Policy Name",
+        "Source Parent Policy Name",
+        "Target Policy Ref.",
+        "Target Policy Name",
+        "Target Parent Policy Name",
+        "Relationship Type (list + required)" -> policy_x_policy_relation_type.PrimaryName
+    ],
+    "policy-x-process.xlsx": [
+        "Description",
+        "Policy Ref.",
+        "Policy Name",
+        "Parent Policy Name",
+        "Process Ref.",
+        "Process Name",
+        "Parent Process Name",
+        "Relationship Type (list + required)" -> policy_x_process_relationtype.PrimaryName
+    ],
+    "policy-x-product.xlsx": [
+        "Product Name (required)",
+        "Product Parent Name",
+        "Policy Ref.",
+        "Policy Name",
+        "Parent Policy Name",
+        "Relationship Type (list + required)" -> product_x_policy_relationtype.primaryname
+    ],
+    "policy-x-project.xlsx": [
+        "Description",
+        "Policy Ref.",
+        "Policy Name",
+        "Parent Policy Name",
+        "Project Ref.",
+        "Project Name",
+        "Parent Project Name",
+        "Relationship Type (list + required)" -> policy_x_project_relationtype.PrimaryName
+    ],
+    "policy-x-system.xlsx": [
+        "Policy Ref.",
+        "Policy Name",
+        "Parent Policy Name",
+        "System Short Name (required)",
+        "Parent System Short Name",
+        "Relationship Type (list + required)" -> policy_x_system_relationtype.PrimaryName
+    ],
+    "process-x-client.xlsx": [
+        "Client Name (required)",
+        "Client Parent Name",
+        "Process Ref.",
+        "Process Name",
+        "Parent Process Name",
+        "Relationship Type (list + required)" -> client_x_process_relationtype.PrimaryName
+    ],
+    "process-x-data-set.xlsx": [
+        "Process Ref.",
+        "Process Name",
+        "Parent Process Name",
+        "Data Set Ref.",
+        "Data Set Name",
+        "Data Set System Short Name",
+        "Relationship Type (list + required)" -> process_x_dataset_relationtype.primaryname
+    ],
+    "process-x-glossary.xlsx": [
+        "Description",
+        "Glossary Ref.",
+        "Glossary Name",
+        "Parent Glossary Name",
+        "Process Ref.",
+        "Process Name",
+        "Parent Process Name",
+        "Relationship Type (list + required)" -> glossary_x_process_relationtype.PrimaryName
+    ],
+    "process-x-legal-entity.xlsx": [
+        "Process Ref.",
+        "Process Name",
+        "Parent Process Name",
+        "Legal Short Name (required)",
+        "Parent Legal Short Name",
+        "Relationship Type (list + required)" -> process_x_legal_relationtype.PrimaryName
+    ],
+    "process-x-process.xlsx": [
+        "Condition",
+        "Process Ref.",
+        "Process Name",
+        "Parent Process Name",
+        "Predecessor Process Ref.",
+        "Predecessor Process Name",
+        "Predecessor Parent Process Name"
+    ],
+    "process-x-product.xlsx": [
+        "Product Name (required)",
+        "Product Parent Name",
+        "Process Ref.",
+        "Process Name",
+        "Parent Process Name",
+        "Relationship Type (list + required)" -> product_x_process_relationtype.primaryname
+    ],
+    "process-x-system-interface.xlsx": [
+        "Process Ref.",
+        "Process Name",
+        "Parent Process Name",
+        "Interface Ref.",
+        "Interface Name",
+        "Interface Source System Short Name",
+        "Interface Target System Short Name",
+        "Relationship Type (list + required)" -> process_x_interface_relationtype.primaryname
+    ],
+    "process-x-system.xlsx": [
+        "Process Ref.",
+        "Process Name",
+        "Parent Process Name",
+        "System Short Name (required)",
+        "Parent System Short Name",
+        "Relationship Type (list + required)" -> process_x_system_relationtype.primaryname
+    ],
+    "product-x-business-area.xlsx": [
+        "Product Ref.",
+        "Product Name",
+        "Product Parent Name",
+        "Business Area Name",
+        "Business Area Parent Name",
+        "Relationship Type (list + required)" -> product_x_businessarea_relationtype.PrimaryName
+    ],
+    "product-x-client.xlsx": [
+        "Product Ref.",
+        "Product Name",
+        "Product Parent Name",
+        "Client Name (required)",
+        "Parent Client Name",
+        "Relationship Type (list + required)" -> product_x_client_relationtype.PrimaryName
+    ],
+    "product-x-legal-entity.xlsx": [
+        "Product Ref.",
+        "Product Name",
+        "Product Parent Name",
+        "Legal Short Name (required)",
+        "Parent Legal Short Name",
+        "Relationship Type (list + required)" -> product_x_legalentity_relationtype.PrimaryName
+    ],
+    "project-x-attribute.xlsx": [
+        "Project Ref.",
+        "Project Name",
+        "Project Parent Name",
+        "Attribute Ref.",
+        "Attribute Name",
+        "Attribute Data Set Name",
+        "Attribute System Short Name",
+        "Relationship Type (list + required)" -> project_x_attribute_relationtype.primaryname
+    ],
+    "project-x-process.xlsx": [
+        "Description",
+        "Process Ref.",
+        "Process Name",
+        "Parent Process Name",
+        "Project Ref.",
+        "Project Name",
+        "Project Parent Name",
+        "Relationship Type (list + required)" -> project_x_process_relationtype.primaryname
+    ],
+    "project-x-product.xlsx": [
+        "Description",
+        "Product Name (required)",
+        "Product Parent Name",
+        "Project Ref.",
+        "Project Name",
+        "Project Parent Name",
+        "Relationship Type (list + required)" -> product_x_project_relationtype.primaryname
+    ],
+    "project-x-project.xlsx": [
+        "Description",
+        "Source Project Ref.",
+        "Source Project Name",
+        "Source Project Parent Name",
+        "Target Project Ref.",
+        "Target Project Name",
+        "Target Project Parent Name",
+        "Relationship Type (list + required)" -> project_x_project_relationtype.primaryname
+    ],
+    "project-x-system.xlsx": [
+        "Description",
+        "Project Ref.",
+        "Project Name",
+        "Project Parent Name",
+        "System Short Name (required)",
+        "Relationship Type (list + required)" -> project_x_system_relationtype.primaryname
+    ],
+    "regulation-x-policy.xlsx": [
+        "Regulation Ref.",
+        "Regulation Name",
+        "Parent Regulation Name",
+        "Policy Ref.",
+        "Policy Name",
+        "Parent Policy Name",
+        "Relationship Type (list + required)" -> regulation_x_policy_relationtype.primaryName
+    ],
+    "regulation-x-project.xlsx": [
+        "Regulation Ref.",
+        "Regulation Name",
+        "Parent Regulation Name",
+        "Project Ref.",
+        "Project Name",
+        "Project Parent Name",
+        "Relationship Type (list + required)" -> regulation_x_project_relationtype.primaryName
+    ],
+    "regulation-x-regulator.xlsx": [
+        "Regulator Reg Reference (required)",
+        "Regulation Ref.",
+        "Regulation Name",
+        "Parent Regulation Name",
+        "Regulator Name (required)"
+    ],
+    "regulation-x-regulatory-theme.xlsx": [
+        "Regulation Ref.",
+        "Regulation Name",
+        "Parent Regulation Name",
+        "Regulatory Theme Ref.",
+        "Regulatory Theme Name",
+        "Parent Regulatory Theme Name",
+        "Relationship Type (list + required)" -> regulation_x_regulatorytheme_relationtype.PrimaryName
+    ],
+    "regulator-x-geography.xlsx": [
+        "Description",
+        "Regulator Name (required)",
+        "Geography Name (required)",
+        "Parent Geography Name"
+    ],
+    "standard-data-quality-rule-x-technical-reference.xlsx": [
+        "Automation (list)",
+        "Ref.",
+        "Rule Name",
+        "Glossary Reference list" ,
+        "Technical Rule Reference (required)"
+    ],
+    "system-x-client.xlsx": [
+        "Client Name (required)",
+        "Client Parent Name",
+        "System Short Name (required)",
+        "Parent System Short Name",
+        "Relationship Type (list + required)" -> client_x_system_relationtype.PrimaryName
+    ],
+    "system-x-legal-entity.xlsx": [
+        "System Short Name (required)",
+        "Parent System Short Name",
+        "Legal Entity Short Name (required)",
+        "Parent Legal Entity Short Name",
+        "Relationship Type (list + required)" -> system_x_legal_relationtype.PrimaryName
+    ],
+    "system-x-product.xlsx": [
+        "Product Name (required)",
+        "Product Parent Name",
+        "System Short Name (required)",
+        "Relationship Type (list + required)"-> product_x_system_relationtype.PrimaryName	 ,
+        "Product x Legal Entity Rel Type (list)" -> product_x_legal_relationtype.PrimaryName,
+        "Legal Entity Short Name",
+        "Legal Entity Parent Name"
+    ],
+    "system-x-resource.xlsx": [
+        "System Short Name (required)",
+        "Parent System Short Name",
+        "Name (required)",
+        "Resource ID (required)"
+    ],
+    "SegmentXObject_BulkUpload_Template.xlsx": [
+        "Object ID (required)",
+        "Object Type (list + required)" -> segment_object_type.Type ,
+        "Target Segment (required)"
+    ]
+    ,"Axon_SourcingTemplate_people-x-people.xlsx": [
+            "Manager Email",
+            "Manager First Name",
+            "Manager Last Name",
+            "Manager Lan ID",
+            "Employee Email",
+            "Employee First Name",
+            "Employee Last Name",
+            "Employee Lan ID",
+            "Relationship Type (list + required)" -> people_x_people_relationtype.PrimaryName
+        ],
+        "Axon_SourcingTemplate_process-x-attribute.xlsx": [
+            "Process Ref.",
+            "Process Name",
+            "Parent Process Name",
+            "Attribute Ref.",
+            "Attribute Name",
+            "Attribute Data Set Name",
+            "Attribute System Short Name",
+            "Relationship Type (list + required)" -> process_x_attribute_relationtype.primaryname
+        ],
+        "Axon_SourcingTemplate_project-x-business-area.xlsx": [
+            "Project Ref.",
+            "Project Name",
+            "Project Parent Name",
+            "Business Area Name (required)",
+            "Business Area Parent Name",
+            "Relationship Type (list + required)" -> project_x_businessarea_relationtype.PrimaryName
+        ],
+        "Axon_SourcingTemplate_project-x-capability.xlsx": [
+            "Project Ref.",
+            "Project Name",
+            "Project Parent Name",
+            "Capability Ref.",
+            "Capability Name",
+            "Capability Parent Name",
+            "Relationship Type (list + required)" -> project_x_capability_relationtype.PrimaryName
+        ],
+        "Axon_SourcingTemplate_project-x-client.xlsx": [
+            "Client Name (required)",
+            "Client Parent Name",
+            "Project Ref.",
+            "Project Name",
+            "Project Parent Name",
+            "Relationship Type (list + required)" -> client_x_project_relationtype.PrimaryName
+        ],
+        "Axon_SourcingTemplate_project-x-data-set.xlsx": [
+            "Project Ref.",
+            "Project Name",
+            "Project Parent Name",
+            "Data Set Ref.",
+            "Data Set Name",
+            "Data Set System Short Name",
+            "Relationship Type (list + required)" -> project_x_dataset_relationtype.primaryname
+        ],
+        "Axon_SourcingTemplate_project-x-glossary.xlsx": [
+            "Description",
+            "Glossary Ref.",
+            "Glossary Name",
+            "Parent Glossary Name",
+            "Project Ref.", 
+            "Project Name",
+            "Parent Project Name",
+            "Relationship Type (list + required)" -> glossary_x_project_relationtype.PrimaryName
+        ],
+        "Axon_SourcingTemplate_regulation-x-product.xlsx": [
+            "Regulation Ref.",
+            "Regulation Name",
+            "Parent Regulation Name",
+            "Product Name (required)",
+            "Product Parent Name",
+            "Relationship Type (list + required)" -> regulation_x_product_relationtype.primaryName
+        ],
+        "Axon_SourcingTemplate_system-x-glossary.xlsx": [
+            "System Short Name (required)",
+            "Glossary Ref.",
+            "Glossary Name",
+            "Parent Glossary Name",
+            "Relationship Type (list + required)" -> glossary_x_system_relationtype.PrimaryName
+        ]
+    }

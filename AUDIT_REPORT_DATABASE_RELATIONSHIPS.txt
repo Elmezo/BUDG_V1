@@ -1,0 +1,362 @@
+================================================================================
+تقرير تدقيق قاعدة البيانات - جداول العلاقات
+================================================================================
+تاريخ التدقيق: ديسمبر 2025
+الملف المرجعي: projectbackup.sql
+
+================================================================================
+الملخص التنفيذي
+================================================================================
+
+✅ إجمالي الجداول الموجودة: 9 من 12 مطلوب (75%)
+❌ إجمالي الجداول المفقودة: 3 من 12 (25%)
+
+================================================================================
+القسم 1: جداول العلاقات المباشرة - PROCESS
+================================================================================
+
+1.1 process_x_dataset ✅
+    - الحالة: موجود
+    - الموقع: السطر 10748-10782 في projectbackup.sql
+    - البنية:
+      * id (PK)
+      * processid (FK → process.id)
+      * datasetid (FK → dataset.ID)
+      * relation_type (FK → process_x_dataset_relationtype.id)
+      * description
+      * CreateDatetime, LastUpdateDatetime, LastUpdate_UserID
+    - البيانات: يحتوي على سجل واحد (process_id=1, dataset_id=1)
+
+1.2 process_x_attribute ✅
+    - الحالة: موجود
+    - الموقع: السطر 10645-10679 في projectbackup.sql
+    - البنية:
+      * id (PK)
+      * processid (FK → process.id)
+      * attributeid (FK → attribute.ID)
+      * relation_type (FK → process_x_attribute_relationtype.id)
+      * description
+      * CreateDatetime, LastUpdateDatetime, LastUpdate_UserID
+    - البيانات: يحتوي على سجل واحد (process_id=1, attribute_id=1)
+
+1.3 process_x_system ✅
+    - الحالة: موجود
+    - الموقع: السطر 11244-11277 في projectbackup.sql
+    - البنية:
+      * id (PK)
+      * processid (FK → process.id)
+      * systemid (FK → system.id)
+      * relationtype (FK → process_x_system_relationtype.id)
+      * CreateDatetime, LastUpdateDatetime, LastUpdate_UserID
+    - البيانات: يحتوي على سجل واحد (process_id=1, system_id=20)
+
+1.4 process_x_glossary ❌
+    - الحالة: مفقود
+    - الملاحظات: لا يوجد جدول process_x_glossary في قاعدة البيانات
+    - التأثير: لا يمكن إنشاء علاقة مباشرة بين Process و Glossary
+    - الحل المطلوب: إنشاء الجدول بالبنية التالية:
+      CREATE TABLE process_x_glossary (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        processid INT,
+        glossaryid INT,
+        relationtype INT,
+        description TEXT,
+        CreateDatetime DATETIME,
+        LastUpdateDatetime DATETIME,
+        LastUpdate_UserID INT,
+        FOREIGN KEY (processid) REFERENCES process(id),
+        FOREIGN KEY (glossaryid) REFERENCES glossary(ID),
+        FOREIGN KEY (relationtype) REFERENCES process_x_glossary_relationtype(id)
+      );
+
+================================================================================
+القسم 2: جداول العلاقات المباشرة - PROJECT
+================================================================================
+
+2.1 project_x_dataset ✅
+    - الحالة: موجود
+    - الموقع: السطر 13124-13157 في projectbackup.sql
+    - البنية:
+      * id (PK)
+      * projectid (FK → project.id)
+      * datasetid (FK → dataset.ID)
+      * relationtype (FK → project_x_dataset_relationtype.id)
+      * description
+      * CreateDatetime, LastUpdateDatetime, LastUpdate_UserID
+    - البيانات: فارغ حالياً
+
+2.2 project_x_attribute ✅
+    - الحالة: موجود
+    - الموقع: السطر 12839-12873 في projectbackup.sql
+    - البنية:
+      * id (PK)
+      * projectid (FK → project.id)
+      * attributeid (FK → attribute.ID)
+      * relationtype (FK → project_x_attribute_relationtype.id)
+      * description
+      * CreateDatetime, LastUpdateDatetime, LastUpdate_UserID
+    - البيانات: يحتوي على سجل واحد (project_id=5, attribute_id=1)
+
+2.3 project_x_system ✅
+    - الحالة: موجود
+    - الموقع: السطر 13532-13566 في projectbackup.sql
+    - البنية:
+      * id (PK)
+      * projectid (FK → project.id)
+      * systemid (FK → system.id)
+      * relationtype (FK → project_x_system_relationtype.id)
+      * description
+      * CreateDatetime, LastUpdateDatetime, LastUpdate_UserID
+    - البيانات: يحتوي على سجل واحد (project_id=9, system_id=1)
+
+2.4 project_x_glossary ❌
+    - الحالة: مفقود
+    - الملاحظات: لا يوجد جدول project_x_glossary في قاعدة البيانات
+    - التأثير: لا يمكن إنشاء علاقة مباشرة بين Project و Glossary
+    - الحل المطلوب: إنشاء الجدول بالبنية التالية:
+      CREATE TABLE project_x_glossary (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        projectid INT,
+        glossaryid INT,
+        relationtype INT,
+        description TEXT,
+        CreateDatetime DATETIME,
+        LastUpdateDatetime DATETIME,
+        LastUpdate_UserID INT,
+        FOREIGN KEY (projectid) REFERENCES project(id),
+        FOREIGN KEY (glossaryid) REFERENCES glossary(ID),
+        FOREIGN KEY (relationtype) REFERENCES project_x_glossary_relationtype(id)
+      );
+
+================================================================================
+القسم 3: جداول العلاقات المباشرة - POLICY
+================================================================================
+
+3.1 policy_x_dataset ✅
+    - الحالة: موجود
+    - الموقع: السطر 9322-9360 في projectbackup.sql
+    - البنية:
+      * id (PK)
+      * PolicyID (FK → policy.ID)
+      * DatasetID (FK → dataset.ID)
+      * Relation_Type (FK → policy_x_dataset_relationtype.ID)
+      * Description
+      * CreateDatetime, LastUpdateDatetime, LastUpdate_UserID
+    - البيانات: يحتوي على سجل واحد (policy_id=1, dataset_id=1)
+
+3.2 policy_x_attribute ✅
+    - الحالة: موجود
+    - الموقع: السطر 9118-9152 في projectbackup.sql
+    - البنية:
+      * id (PK)
+      * policyid (FK → policy.ID)
+      * attributeid (FK → attribute.ID)
+      * relation_type (FK → policy_x_attribute_relationtype.id)
+      * description
+      * CreateDatetime, LastUpdateDatetime, LastUpdate_UserID
+    - البيانات: يحتوي على سجلين (policy_id=1 مع attribute_id=1 و 21)
+
+3.3 policy_x_system ✅
+    - الحالة: موجود
+    - الموقع: السطر 10077-10093 في projectbackup.sql
+    - البنية:
+      * id (PK)
+      * Policy_ID (FK → policy.ID)
+      * System_ID (FK → system.id)
+      * Relation_Type (FK → policy_x_system_relationtype.id)
+      * Description
+      * CreateDatetime, LastUpdateDatetime, LastUpdate_UserID
+    - البيانات: فارغ حالياً
+
+3.4 policy_x_glossary ✅
+    - الحالة: موجود
+    - الموقع: السطر 9468-9506 في projectbackup.sql
+    - البنية:
+      * id (PK)
+      * Policy_ID (FK → policy.ID)
+      * Glossary_ID (FK → glossary.ID)
+      * Relation_Type (FK → policy_x_glossary_relationtype.ID)
+      * Description
+      * CreateDatetime, LastUpdateDatetime, LastUpdate_UserID
+    - البيانات: يحتوي على سجل واحد (policy_id=1, glossary_id=1)
+
+================================================================================
+القسم 4: جداول العلاقات العامة (_x_object)
+================================================================================
+
+4.1 process_x_object ✅
+    - الحالة: موجود (مذكور في database.sql)
+    - البنية العامة:
+      * ID (PK)
+      * Process_ID (FK)
+      * Object_ID
+      * Object_Type (VARCHAR - يحدد نوع الكائن المرتبط)
+      * Relation_Type_ID
+    - الاستخدام: يمكن استخدامه كحل بديل للعلاقات المفقودة
+
+4.2 project_x_object ✅
+    - الحالة: موجود (مذكور في database.sql)
+    - البنية العامة: مشابهة لـ process_x_object
+    - الاستخدام: يمكن استخدامه كحل بديل للعلاقات المفقودة
+
+4.3 policy_x_object ✅
+    - الحالة: موجود (مذكور في database.sql)
+    - البنية العامة: مشابهة لـ process_x_object
+    - الاستخدام: متوفر ويعمل
+
+================================================================================
+القسم 5: ملخص الحالة حسب المتطلبات
+================================================================================
+
+الجداول المطلوبة حسب مواصفات Axon:
+---------------------------------------
+
+PROCESS Relationships:
+  ✅ process_x_dataset       - موجود وجاهز
+  ✅ process_x_attribute     - موجود وجاهز
+  ✅ process_x_system        - موجود وجاهز
+  ❌ process_x_glossary      - مفقود (يجب إنشاؤه)
+
+PROJECT Relationships:
+  ✅ project_x_dataset       - موجود وجاهز
+  ✅ project_x_attribute     - موجود وجاهز
+  ✅ project_x_system        - موجود وجاهز
+  ❌ project_x_glossary      - مفقود (يجب إنشاؤه)
+
+POLICY Relationships:
+  ✅ policy_x_dataset        - موجود وجاهز
+  ✅ policy_x_attribute      - موجود وجاهز
+  ✅ policy_x_system         - موجود وجاهز
+  ✅ policy_x_glossary       - موجود وجاهز
+
+================================================================================
+القسم 6: التوصيات والإجراءات المطلوبة
+================================================================================
+
+أولوية عالية:
+--------------
+1. إنشاء جدول process_x_glossary
+   - SQL Script متضمن في هذا التقرير
+   - يجب إنشاء جدول relation type المصاحب
+
+2. إنشاء جدول project_x_glossary
+   - SQL Script متضمن في هذا التقرير
+   - يجب إنشاء جدول relation type المصاحب
+
+أولوية متوسطة:
+---------------
+3. التحقق من indexes على الجداول الموجودة لضمان الأداء
+4. التأكد من تطابق أسماء الأعمدة عبر جميع الجداول (ملاحظة: يوجد تباين في التسمية)
+
+أولوية منخفضة:
+---------------
+5. توحيد naming conventions (PolicyID vs policy_id, DatasetID vs datasetid)
+6. إضافة audit tables للجداول الجديدة
+
+================================================================================
+القسم 7: سكريبت SQL لإنشاء الجداول المفقودة
+================================================================================
+
+-- ===== process_x_glossary =====
+
+CREATE TABLE `process_x_glossary` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `processid` int(11) DEFAULT NULL,
+  `glossaryid` int(11) DEFAULT NULL,
+  `relationtype` int(11) DEFAULT NULL,
+  `description` text DEFAULT NULL,
+  `CreateDatetime` datetime DEFAULT NULL,
+  `LastUpdateDatetime` datetime DEFAULT NULL,
+  `LastUpdate_UserID` int(11) DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `fk_pxg_process_idx` (`processid`),
+  KEY `fk_pxg_glossary_idx` (`glossaryid`),
+  KEY `fk_pxg_reltype_idx` (`relationtype`),
+  KEY `fk_pxg_user_idx` (`LastUpdate_UserID`),
+  CONSTRAINT `fk_pxg_process` FOREIGN KEY (`processid`) REFERENCES `process` (`id`),
+  CONSTRAINT `fk_pxg_glossary` FOREIGN KEY (`glossaryid`) REFERENCES `glossary` (`ID`),
+  CONSTRAINT `fk_pxg_reltype` FOREIGN KEY (`relationtype`) REFERENCES `process_x_glossary_relationtype` (`id`),
+  CONSTRAINT `fk_pxg_user` FOREIGN KEY (`LastUpdate_UserID`) REFERENCES `people` (`ID`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+CREATE TABLE `process_x_glossary_relationtype` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `PrimaryName` varchar(90) DEFAULT NULL,
+  `Description` varchar(255) DEFAULT NULL,
+  `Priority` int(11) DEFAULT NULL,
+  `ReverseName` varchar(128) DEFAULT NULL,
+  `CreateDatetime` datetime DEFAULT NULL,
+  `LastUpdateDatetime` datetime DEFAULT NULL,
+  `LastUpdate_UserID` int(11) DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+INSERT INTO `process_x_glossary_relationtype` 
+VALUES (1, 'Process is related to Glossary', 'The text that describes the relationship between these objects', NULL, NULL, NOW(), NOW(), 1);
+
+-- ===== project_x_glossary =====
+
+CREATE TABLE `project_x_glossary` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `projectid` int(11) DEFAULT NULL,
+  `glossaryid` int(11) DEFAULT NULL,
+  `relationtype` int(11) DEFAULT NULL,
+  `description` text DEFAULT NULL,
+  `CreateDatetime` datetime DEFAULT NULL,
+  `LastUpdateDatetime` datetime DEFAULT NULL,
+  `LastUpdate_UserID` int(11) DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `fk_prjxg_project_idx` (`projectid`),
+  KEY `fk_prjxg_glossary_idx` (`glossaryid`),
+  KEY `fk_prjxg_reltype_idx` (`relationtype`),
+  KEY `fk_prjxg_user_idx` (`LastUpdate_UserID`),
+  CONSTRAINT `fk_prjxg_project` FOREIGN KEY (`projectid`) REFERENCES `project` (`id`),
+  CONSTRAINT `fk_prjxg_glossary` FOREIGN KEY (`glossaryid`) REFERENCES `glossary` (`ID`),
+  CONSTRAINT `fk_prjxg_reltype` FOREIGN KEY (`relationtype`) REFERENCES `project_x_glossary_relationtype` (`id`),
+  CONSTRAINT `fk_prjxg_user` FOREIGN KEY (`LastUpdate_UserID`) REFERENCES `people` (`ID`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+CREATE TABLE `project_x_glossary_relationtype` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `PrimaryName` varchar(90) DEFAULT NULL,
+  `Description` varchar(255) DEFAULT NULL,
+  `Priority` int(11) DEFAULT NULL,
+  `ReverseName` varchar(128) DEFAULT NULL,
+  `CreateDatetime` datetime DEFAULT NULL,
+  `LastUpdateDatetime` datetime DEFAULT NULL,
+  `LastUpdate_UserID` int(11) DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+INSERT INTO `project_x_glossary_relationtype` 
+VALUES (1, 'Project is related to Glossary', 'The text that describes the relationship between these objects', NULL, NULL, NOW(), NOW(), 1);
+
+================================================================================
+القسم 8: ملاحظات إضافية
+================================================================================
+
+1. تباين في naming conventions:
+   - Policy tables تستخدم: Policy_ID, Glossary_ID (PascalCase + Underscore)
+   - Process tables تستخدم: processid, datasetid (camelCase)
+   - Project tables تستخدم: projectid, systemid (camelCase)
+   
+2. جميع الجداول تتبع نفس البنية الأساسية:
+   - ID/id (Primary Key)
+   - [SourceObject]_id (Foreign Key للكائن الأول)
+   - [TargetObject]_id (Foreign Key للكائن الثاني)
+   - relationtype/Relation_Type (Foreign Key لنوع العلاقة)
+   - description/Description (نص وصفي)
+   - CreateDatetime (تاريخ الإنشاء)
+   - LastUpdateDatetime (تاريخ آخر تحديث)
+   - LastUpdate_UserID (المستخدم الذي قام بآخر تحديث)
+
+3. كل جدول relationship له جدول relationtype مصاحب يحتوي على:
+   - PrimaryName (اسم العلاقة)
+   - Description (وصف العلاقة)
+   - Priority (الأولوية)
+   - ReverseName (اسم العلاقة العكسية)
+
+================================================================================
+نهاية التقرير
+================================================================================
+

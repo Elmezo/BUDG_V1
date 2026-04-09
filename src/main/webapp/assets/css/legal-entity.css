@@ -1,0 +1,407 @@
+/* Add missing CSS variable */
+:root {
+    --shadow-heavy: 0 8px 32px rgba(0, 0, 0, 0.2);
+}
+
+body.legal-entity-page {
+    overflow-x: hidden;
+    overflow-y: auto;
+    min-height: 100vh;
+}
+
+/* Create page: committee-style cards — override legacy .form-section scroll clipping so custom fields stay visible */
+body.legal-entity-page .legal-entity-create-grid .form-section,
+body.legal-entity-page .committee-container .left-column .form-section,
+body.legal-entity-page .committee-container .right-column .form-section {
+    max-height: none;
+    height: auto;
+    overflow: visible;
+    min-height: 0;
+}
+
+body.legal-entity-page .committee-container {
+    width: 100%;
+    max-width: 100%;
+}
+
+body.legal-entity-page .main-content {
+    overflow-y: auto;
+}
+
+/* Narrow split-button toggle for Legal Entity view header */
+#editDropdownToggle {
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+    min-width: 36px;
+    width: 36px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Page Header moved to main.css */
+
+.page-title {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.page-icon {
+    width: 32px;
+    height: 32px;
+    background-color: #248567;
+    color: white;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+}
+
+.page-title-text {
+    display: flex;
+    flex-direction: column;
+}
+
+.page-title-main {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.page-title-sub {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+.page-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.main-content {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0.75rem 20px;
+    height: calc(100vh - 70px - 60px);
+    display: flex;
+    flex-direction: column;
+}
+
+.content-card {
+    background-color: var(--background-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    box-shadow: var(--shadow-light);
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.content-header {
+    padding: 1rem;
+    border-bottom: 1px solid var(--border-color);
+    background-color: var(--background-secondary);
+    flex-shrink: 0;
+}
+
+.tab-container {
+    display: flex;
+    gap: 0;
+}
+
+.tab {
+    padding: 0.5rem 1rem;
+    background-color: transparent;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: var(--transition);
+    font-weight: 500;
+    font-size: 0.9rem;
+}
+
+.tab.active {
+    color: #248567;
+    border-bottom-color: #248567;
+    background-color: var(--background-primary);
+}
+
+.content-body {
+    padding: 1rem;
+    flex: 1;
+    overflow-y: auto;
+    min-height: 0;
+    max-height: calc(100vh - 70px - 60px - 2rem);
+}
+
+.content-body::-webkit-scrollbar {
+    width: 8px;
+}
+
+.content-body::-webkit-scrollbar-track {
+    background: var(--background-secondary);
+    border-radius: 4px;
+}
+
+.content-body::-webkit-scrollbar-thumb {
+    background: #248567;
+    border-radius: 4px;
+}
+
+.content-body::-webkit-scrollbar-thumb:hover {
+    background: #248567;
+}
+
+.content-body {
+    scrollbar-width: auto;
+    scrollbar-color: var(--secondary-color) var(--background-secondary);
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    height: 100%;
+}
+
+.form-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: flex-end;
+    padding: 1.5rem 0;
+    border-top: 0px solid var(--border-color);
+    margin-top: 2rem;
+}
+
+.form-actions .btn { 
+    min-width: 120px; 
+}
+
+/* Buttons rely on shared styles in main.css */
+
+.form-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    height: 100%;
+    overflow-y: auto;
+    min-height: 0;
+    max-height: calc(100vh - 70px - 60px - 4rem);
+}
+
+.form-section::-webkit-scrollbar {
+    width: 8px;
+}
+
+.form-section::-webkit-scrollbar-track {
+    background: var(--background-secondary);
+    border-radius: 4px;
+}
+
+.form-section::-webkit-scrollbar-thumb {
+    background: #248567;
+    border-radius: 4px;
+}
+
+.form-section::-webkit-scrollbar-thumb:hover {
+    background: #248567;
+}
+
+.form-section {
+    scrollbar-width: auto;
+    scrollbar-color: var(--secondary-color) var(--background-secondary);
+}
+
+.section-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+}
+
+.section-title.definition,
+.section-title.optional-fields,
+.section-title.classifications {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #6c757d;
+    margin-bottom: 0.5rem;
+    background-color: #f8f9fa;
+    padding: 0.375rem 0.5rem;
+    border-radius: 4px;
+    border-left: 3px solid #248567;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.form-label {
+    font-weight: 500;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.85rem;
+    margin-bottom: 0.125rem;
+}
+
+.required {
+    color: var(--required-color);
+}
+
+.form-input {
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    background-color: var(--background-primary);
+    color: var(--text-primary);
+    font-size: 0.85rem;
+    transition: var(--transition);
+}
+
+.form-input:focus {
+    outline: none;
+    border-color: #248567;
+    box-shadow: 0 0 0 3px rgba(36, 133, 103, 0.1);
+}
+
+.form-input-group {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.form-input-group .form-input {
+    flex: 1;
+    padding-right: 2.5rem;
+}
+
+.input-icon {
+    position: absolute;
+    right: 0.75rem;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.input-icon:hover {
+    color: #248567;
+}
+
+.form-textarea {
+    min-height: 60px;
+    max-height: 120px;
+    resize: vertical;
+}
+
+.form-select {
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    background-color: var(--background-primary);
+    color: var(--text-primary);
+    font-size: 0.85rem;
+    transition: var(--transition);
+    cursor: pointer;
+}
+
+.form-select:focus {
+    outline: none;
+    border-color: #248567;
+    box-shadow: 0 0 0 3px rgba(36, 133, 103, 0.1);
+}
+
+.editor-button {
+    align-self: flex-end;
+    padding: 0.375rem 0.75rem;
+    background-color: var(--background-secondary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: var(--transition);
+    font-size: 0.75rem;
+}
+
+.editor-button:hover {
+    background-color: var(--border-color);
+}
+
+[data-theme="dark"] .section-title.definition,
+[data-theme="dark"] .section-title.optional-fields,
+[data-theme="dark"] .section-title.classifications {
+    background-color: var(--background-secondary);
+    color: var(--text-secondary);
+}
+
+/* All hierarchy, tab, and connector styles are now handled by facets.shared.css */
+
+/* Legal Entity specific overrides (if needed) */
+.legal-entity-page .relationships-hierarchy .hierarchy-item .legal-icon {
+    color: var(--secondary-color, #248567);
+    font-size: .9rem;
+}
+
+@media (max-width: 768px) {
+    .main-content {
+        height: calc(100vh - 70px - 80px);
+    }
+    
+    .form-grid {
+        grid-template-columns: 1fr;
+        gap: 0.75rem;
+    }
+
+    .page-header-container {
+        flex-direction: column;
+        gap: 0.5rem;
+        align-items: flex-start;
+    }
+
+    .page-actions {
+        width: 100%;
+        justify-content: flex-end;
+    }
+
+    .content-body {
+        padding: 0.75rem;
+        max-height: calc(100vh - 70px - 80px - 2rem);
+    }
+    
+    .form-section {
+        max-height: calc(100vh - 70px - 80px - 4rem);
+    }
+}
+
+@media (max-width: 480px) {
+    .main-content {
+        padding: 0.5rem 15px;
+        height: calc(100vh - 70px - 90px);
+    }
+
+    .page-actions {
+        flex-direction: column;
+    }
+
+    .btn {
+        width: 100%;
+        text-align: center;
+    }
+    
+    .content-body {
+        padding: 0.5rem;
+        max-height: calc(100vh - 70px - 90px - 2rem);
+    }
+    
+    .form-section {
+        gap: 0.5rem;
+        max-height: calc(100vh - 70px - 90px - 4rem);
+    }
+}

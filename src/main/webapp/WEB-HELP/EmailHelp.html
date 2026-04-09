@@ -1,0 +1,1100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Email Configuration Guide</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="../assets/css/main.css">
+    <style>
+        :root {
+            --primary-green: #10b981;
+            --dark-green: #059669;
+            --light-green: #d1fae5;
+            --white: #ffffff;
+            --gray-light: #f9fafb;
+            --gray-medium: #6b7280;
+            --gray-dark: #374151;
+            --warning: #f59e0b;
+            --info: #3b82f6;
+            --shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            --shadow-hover: 0 15px 35px rgba(0, 0, 0, 0.15);
+            --transition: all 0.3s ease;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #f0f9ff 0%, #f0fdf4 100%);
+            color: var(--gray-dark);
+            line-height: 1.6;
+            transition: var(--transition);
+        }
+
+        body[dir="rtl"] {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            margin-top: 70px; /* Account for fixed header */
+        }
+
+        /* Navigation Header Styles - Override main.css to match page theme */
+        header.header {
+            background-color: #ffffff !important;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1) !important;
+        }
+
+        header.header .nav-container {
+            background-color: transparent;
+        }
+
+        header.header .logo-text,
+        header.header .nav-link {
+            color: var(--gray-dark) !important;
+        }
+
+        header.header .nav-link:hover {
+            color: var(--primary-green) !important;
+            background-color: rgba(16, 185, 129, 0.1) !important;
+        }
+
+        header.header .logo-icon {
+            color: var(--primary-green) !important;
+        }
+
+        header.header .logo-text .highlight {
+            color: var(--primary-green) !important;
+        }
+
+        /* Header Styles - Only for page header, not navigation header */
+        header.page-header {
+            background: linear-gradient(135deg, var(--primary-green) 0%, var(--dark-green) 100%);
+            color: var(--white);
+            padding: 40px 0;
+            text-align: center;
+            border-radius: 0 0 20px 20px;
+            margin-bottom: 40px;
+            box-shadow: var(--shadow);
+            position: relative;
+            overflow: hidden;
+        }
+
+        header.page-header::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 5px;
+            background: linear-gradient(90deg, var(--white), transparent);
+            opacity: 0.2;
+        }
+
+        .header-content {
+            position: relative;
+            z-index: 1;
+        }
+
+        .header-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.2);
+            width: 80px;
+            height: 80px;
+            line-height: 80px;
+            border-radius: 50%;
+            backdrop-filter: blur(5px);
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.9;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        /* Language Toggle Button */
+        .lang-toggle {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+
+        body[dir="rtl"] .lang-toggle {
+            right: auto;
+            left: 20px;
+        }
+
+        .lang-btn {
+            background: var(--white);
+            color: var(--dark-green);
+            border: 2px solid var(--primary-green);
+            padding: 10px 20px;
+            border-radius: 25px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: var(--transition);
+            box-shadow: var(--shadow);
+        }
+
+        .lang-btn:hover {
+            background: linear-gradient(135deg, var(--primary-green) 0%, var(--dark-green) 100%);
+            color: var(--white);
+            transform: translateY(-3px);
+            box-shadow: var(--shadow-hover);
+        }
+
+        .lang-btn i {
+            font-size: 1.1rem;
+        }
+
+        /* Main Content */
+        main {
+            margin-bottom: 60px;
+        }
+
+        .section {
+            background: var(--white);
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: var(--shadow);
+            transition: var(--transition);
+            border-left: 5px solid var(--primary-green);
+        }
+
+        body[dir="rtl"] .section {
+            border-left: none;
+            border-right: 5px solid var(--primary-green);
+        }
+
+        .section:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-hover);
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+            gap: 15px;
+        }
+
+        .section-icon {
+            font-size: 28px;
+            background: linear-gradient(135deg, var(--primary-green) 0%, var(--dark-green) 100%);
+            color: var(--white);
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 12px;
+            flex-shrink: 0;
+        }
+
+        body[dir="rtl"] .section-header {
+            flex-direction: row-reverse;
+        }
+
+        h2 {
+            font-size: 1.8rem;
+            color: var(--dark-green);
+            font-weight: 600;
+        }
+
+        h3 {
+            font-size: 1.4rem;
+            color: var(--dark-green);
+            margin: 25px 0 15px 0;
+            padding-bottom: 8px;
+            border-bottom: 2px dashed var(--light-green);
+        }
+
+        p {
+            margin-bottom: 15px;
+            font-size: 1.05rem;
+        }
+
+        /* Table Styles */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            background: var(--gray-light);
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+        }
+
+        th, td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        body[dir="rtl"] th,
+        body[dir="rtl"] td {
+            text-align: right;
+        }
+
+        th {
+            background: linear-gradient(135deg, var(--primary-green) 0%, var(--dark-green) 100%);
+            color: var(--white);
+            font-weight: 600;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tr:hover {
+            background-color: rgba(16, 185, 129, 0.05);
+        }
+
+        /* Code Block */
+        .code-block {
+            background: #1a1f2e;
+            color: #e5e7eb;
+            padding: 20px;
+            border-radius: 10px;
+            font-family: 'Courier New', monospace;
+            margin: 15px 0;
+            line-height: 1.6;
+            overflow-x: auto;
+            border-left: 4px solid var(--primary-green);
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5);
+        }
+
+        body[dir="rtl"] .code-block {
+            border-left: none;
+            border-right: 4px solid var(--primary-green);
+        }
+
+        /* Alert Boxes */
+        .alert {
+            padding: 18px;
+            border-radius: 10px;
+            margin: 20px 0;
+            display: flex;
+            align-items: flex-start;
+            gap: 15px;
+        }
+
+        .alert-icon {
+            font-size: 22px;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+
+        .alert-content {
+            flex: 1;
+        }
+
+        .warning {
+            background: #fef3c7;
+            border-left: 4px solid var(--warning);
+        }
+
+        body[dir="rtl"] .warning {
+            border-left: none;
+            border-right: 4px solid var(--warning);
+        }
+
+        .info {
+            background: #dbeafe;
+            border-left: 4px solid var(--info);
+        }
+
+        body[dir="rtl"] .info {
+            border-left: none;
+            border-right: 4px solid var(--info);
+        }
+
+        .success {
+            background: var(--light-green);
+            border-left: 4px solid var(--primary-green);
+        }
+
+        body[dir="rtl"] .success {
+            border-left: none;
+            border-right: 4px solid var(--primary-green);
+        }
+
+        /* List Styles */
+        ul, ol {
+            margin: 15px 0;
+            padding-left: 25px;
+        }
+
+        body[dir="rtl"] ul,
+        body[dir="rtl"] ol {
+            padding-left: 0;
+            padding-right: 25px;
+        }
+
+        ul li, ol li {
+            margin-bottom: 10px;
+            position: relative;
+        }
+
+        ul li::before {
+            content: "✓";
+            position: absolute;
+            left: -25px;
+            color: var(--primary-green);
+            font-weight: bold;
+        }
+
+        body[dir="rtl"] ul li::before {
+            left: auto;
+            right: -25px;
+        }
+
+        ol {
+            counter-reset: item;
+        }
+
+        ol li {
+            counter-increment: item;
+        }
+
+        ol li::before {
+            content: counter(item) ". ";
+            position: absolute;
+            left: -25px;
+            color: var(--primary-green);
+            font-weight: bold;
+        }
+
+        body[dir="rtl"] ol li::before {
+            left: auto;
+            right: -25px;
+        }
+
+        /* Links */
+        a {
+            color: var(--dark-green);
+            text-decoration: none;
+            font-weight: 600;
+            border-bottom: 1px dotted var(--primary-green);
+            transition: var(--transition);
+        }
+
+        a:hover {
+            color: var(--primary-green);
+            border-bottom: 1px solid var(--primary-green);
+        }
+
+        /* Footer */
+        footer {
+            text-align: center;
+            padding: 30px;
+            margin-top: 40px;
+            background: linear-gradient(135deg, var(--primary-green) 0%, var(--dark-green) 100%);
+            color: #298d63;
+            border-radius: 20px 20px 0 0;
+            box-shadow: var(--shadow);
+        }
+
+        .footer-content {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        /* Divider */
+        .divider {
+            height: 3px;
+            background: linear-gradient(90deg, transparent, var(--primary-green), transparent);
+            margin: 40px 0;
+            border: none;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+            
+            header.page-header {
+                padding: 30px 0;
+                margin-bottom: 30px;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+            
+            .section {
+                padding: 20px;
+            }
+            
+            .section-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+            
+            body[dir="rtl"] .section-header {
+                align-items: flex-end;
+            }
+            
+            h2 {
+                font-size: 1.5rem;
+            }
+            
+            h3 {
+                font-size: 1.2rem;
+            }
+            
+            th, td {
+                padding: 10px;
+                font-size: 0.9rem;
+            }
+            
+            .lang-toggle {
+                bottom: 15px;
+                right: 15px;
+            }
+            
+            body[dir="rtl"] .lang-toggle {
+                right: auto;
+                left: 15px;
+            }
+            
+            .lang-btn {
+                padding: 8px 15px;
+                font-size: 0.9rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            h1 {
+                font-size: 1.6rem;
+            }
+            
+            .header-icon {
+                width: 60px;
+                height: 60px;
+                line-height: 60px;
+                font-size: 36px;
+            }
+            
+            .section-icon {
+                width: 40px;
+                height: 40px;
+                font-size: 22px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="header"></header>
+
+    <!-- Header -->
+    <header class="page-header">
+        <div class="header-content">
+            <div class="header-icon">
+                <i class="fas fa-envelope"></i>
+            </div>
+            <h1 id="pageTitle">📧 Email Configuration Guide (SMTP)</h1>
+            <p class="subtitle" id="pageSubtitle">for Automatic Notifications</p>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <div class="container">
+        <main>
+            <!-- Section 1: Why -->
+            <section class="section">
+                <div class="section-header">
+                    <div class="section-icon">
+                        <i class="fas fa-cogs"></i>
+                    </div>
+                    <h2 id="section1Title">⚙️ Why Do You Need to Configure Email Settings?</h2>
+                </div>
+                <p id="section1Content">To enable the application to send automatic notifications and emails to other users, you need to add your Outgoing Mail Server (SMTP) information.</p>
+            </section>
+
+            <hr class="divider">
+
+            <!-- Section 2: Required Information -->
+            <section class="section">
+                <div class="section-header">
+                    <div class="section-icon">
+                        <i class="fas fa-tools"></i>
+                    </div>
+                    <h2 id="section2Title">🔧 Required Information for Setup</h2>
+                </div>
+                <p id="section2Content">To configure correctly, you'll need to provide the following information in the <strong>Email Settings</strong> section:</p>
+                
+                <table>
+                    <thead>
+                        <tr>
+                            <th id="tableHeader1">Information</th>
+                            <th id="tableHeader2">Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong id="info1">Email</strong></td>
+                            <td id="desc1">Full email address (e.g., user@gmail.com)</td>
+                        </tr>
+                        <tr>
+                            <td><strong id="info2">Password</strong></td>
+                            <td id="desc2">Password (Note: For most services, you need an App Password, not your regular password)</td>
+                        </tr>
+                        <tr>
+                            <td><strong id="info3">SMTP Server</strong></td>
+                            <td id="desc3">Outgoing mail server name (e.g., smtp.gmail.com)</td>
+                        </tr>
+                        <tr>
+                            <td><strong id="info4">Port</strong></td>
+                            <td id="desc4">Port number (Most common: 587 or 465)</td>
+                        </tr>
+                        <tr>
+                            <td><strong id="info5">Encryption</strong></td>
+                            <td id="desc5">Encryption type (SSL or TLS/STARTTLS)</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </section>
+
+            <hr class="divider">
+
+            <!-- Section 3: Recommended Settings -->
+            <section class="section">
+                <div class="section-header">
+                    <div class="section-icon">
+                        <i class="fas fa-clipboard-list"></i>
+                    </div>
+                    <h2 id="section3Title">📋 Recommended Settings for Major Services (Updated 2025)</h2>
+                </div>
+
+                <h3 id="service1Title">1. Gmail / Google Workspace</h3>
+                <div class="code-block" id="service1Code">
+SMTP Server: smtp.gmail.com
+Port: 587 (Recommended with STARTTLS) or 465 (with SSL)
+Email: Your full email address
+Password: Must create an App Password
+Encryption: TLS (for Port 587) or SSL (for Port 465)
+                </div>
+                
+                <div class="alert warning">
+                    <div class="alert-icon">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+                    <div class="alert-content">
+                        <strong id="warningTitle">Important for Gmail:</strong>
+                        <ul>
+                            <li id="warning1">If Two-Factor Authentication (2FA) is enabled: Create an App Password from <a href="https://myaccount.google.com/apppasswords" target="_blank">Google Account Settings</a></li>
+                            <li id="warning2">Select "Mail" as the app type</li>
+                            <li id="warning3">You'll receive a 16-character password (use this instead of your regular password)</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <h3 id="service2Title">2. Outlook / Hotmail / Microsoft</h3>
+                <div class="code-block" id="service2Code">
+SMTP Server: smtp-mail.outlook.com
+Port: 587 (with STARTTLS)
+Email: Your full email address
+Password: Regular password (or App Password if 2FA is enabled)
+Encryption: STARTTLS
+                </div>
+
+                <h3 id="service3Title">3. Yahoo Mail</h3>
+                <div class="code-block" id="service3Code">
+SMTP Server: smtp.mail.yahoo.com
+Port: 465 (with SSL) or 587 (with TLS)
+Email: Your full email address
+Password: Create App Password from Yahoo security settings
+Encryption: SSL (for Port 465) or TLS (for Port 587)
+                </div>
+            </section>
+
+            <hr class="divider">
+
+            <!-- Section 4: Corporate Email -->
+            <section class="section">
+                <div class="section-header">
+                    <div class="section-icon">
+                        <i class="fas fa-search"></i>
+                    </div>
+                    <h2 id="section4Title">🔍 For Corporate Email or Other Services</h2>
+                </div>
+                <p id="section4Content1">If you're using email from:</p>
+                <ul>
+                    <li id="corporate1">Your company (e.g., name@company.com)</li>
+                    <li id="corporate2">Hosting provider (Bluehost, GoDaddy, etc.)</li>
+                    <li id="corporate3">Other services (iCloud, AOL, etc.)</li>
+                </ul>
+                <p id="section4Content2">You can:</p>
+                <ol>
+                    <li id="corporateAction1">Search for: "SMTP settings for [your service provider name]"</li>
+                    <li id="corporateAction2">Check your email provider's documentation</li>
+                    <li id="corporateAction3">Contact your service provider's technical support</li>
+                </ol>
+            </section>
+
+            <hr class="divider">
+
+            <!-- Section 5: Troubleshooting -->
+            <section class="section">
+                <div class="section-header">
+                    <div class="section-icon">
+                        <i class="fas fa-lightbulb"></i>
+                    </div>
+                    <h2 id="section5Title">💡 Troubleshooting Tips</h2>
+                </div>
+
+                <h3 id="troubleshoot1Title">Initial Testing:</h3>
+                <ol>
+                    <li id="troubleshoot1-1"><strong>Start with Port 587 with TLS/STARTTLS</strong> - This is the most secure and widely supported</li>
+                    <li id="troubleshoot1-2">If it doesn't work, try <strong>Port 465 with SSL</strong></li>
+                    <li id="troubleshoot1-3">Make sure to use <strong>App Password</strong> if the service supports it</li>
+                </ol>
+
+                <h3 id="troubleshoot2Title">Common Errors and Solutions:</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th id="errorHeader1">Issue</th>
+                            <th id="errorHeader2">Possible Solution</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td id="error1">"Authentication failed"</td>
+                            <td id="solution1">Verify you're using App Password, not your regular password</td>
+                        </tr>
+                        <tr>
+                            <td id="error2">"Connection refused"</td>
+                            <td id="solution2">Check if port and server settings are correct</td>
+                        </tr>
+                        <tr>
+                            <td id="error3">"SSL/TLS required"</td>
+                            <td id="solution3">Ensure the correct encryption option is enabled</td>
+                        </tr>
+                        <tr>
+                            <td id="error4">Cannot send test email</td>
+                            <td id="solution4">Check firewall or antivirus settings</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3 id="troubleshoot3Title">Verification Steps:</h3>
+                <ol>
+                    <li id="verify1">Confirm email address is correct</li>
+                    <li id="verify2">Verify you're using the right password (App Password if required)</li>
+                    <li id="verify3">Check port and encryption settings</li>
+                    <li id="verify4">Use the "Test Connection" or "Send Test Email" button in the application</li>
+                </ol>
+            </section>
+
+            <hr class="divider">
+
+            <!-- Section 6: After Configuration -->
+            <section class="section">
+                <div class="section-header">
+                    <div class="section-icon">
+                        <i class="fas fa-rocket"></i>
+                    </div>
+                    <h2 id="section6Title">🚀 After Successful Configuration</h2>
+                </div>
+                <ol>
+                    <li id="after1"><strong>Send a test email</strong> to confirm settings are working</li>
+                    <li id="after2"><strong>Save your App Password</strong> in a secure place (you won't be able to see it again)</li>
+                    <li id="after3"><strong>Remember to update settings</strong> if you change your account password</li>
+                </ol>
+            </section>
+
+            <hr class="divider">
+
+            <!-- Section 7: Help -->
+            <section class="section">
+                <div class="section-header">
+                    <div class="section-icon">
+                        <i class="fas fa-question-circle"></i>
+                    </div>
+                    <h2 id="section7Title">❓ Getting Additional Help</h2>
+                </div>
+                <p id="section7Content1">If you're experiencing issues or need specific settings:</p>
+                <ul>
+                    <li id="help1">Tell us which email service you're using</li>
+                    <li id="help2">Share any error messages you're receiving</li>
+                    <li id="help3">We'll help you get the exact settings for your service</li>
+                </ul>
+                
+                <div class="alert info">
+                    <div class="alert-icon">
+                        <i class="fas fa-info-circle"></i>
+                    </div>
+                    <div class="alert-content">
+                        <strong id="noteTitle">Note:</strong> <span id="noteContent">Most connection issues are related to security settings or App Passwords.</span>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+        <div class="footer-content">
+            <div class="alert success">
+                <div class="alert-icon">
+                    <i class="fas fa-calendar-check"></i>
+                </div>
+                <div class="alert-content">
+                    <p><strong id="footerTitle">Last Updated:</strong> <span id="footerDate">December 2025</span></p>
+                    <p id="footerText">For any additional inquiries, feel free to contact our technical support team.</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Language Toggle Button -->
+    <div class="lang-toggle">
+        <button class="lang-btn" id="langBtn">
+            <i class="fas fa-language"></i>
+            <span id="langText">العربية</span>
+        </button>
+    </div>
+
+    <script>
+        // Translation data
+        const translations = {
+            en: {
+                langText: "العربية",
+                pageTitle: "📧 Email Configuration Guide (SMTP)",
+                pageSubtitle: "for Automatic Notifications",
+                
+                section1Title: "⚙️ Why Do You Need to Configure Email Settings?",
+                section1Content: "To enable the application to send automatic notifications and emails to other users, you need to add your Outgoing Mail Server (SMTP) information.",
+                
+                section2Title: "🔧 Required Information for Setup",
+                section2Content: "To configure correctly, you'll need to provide the following information in the <strong>Email Settings</strong> section:",
+                tableHeader1: "Information",
+                tableHeader2: "Description",
+                info1: "Email",
+                desc1: "Full email address (e.g., user@gmail.com)",
+                info2: "Password",
+                desc2: "Password (Note: For most services, you need an App Password, not your regular password)",
+                info3: "SMTP Server",
+                desc3: "Outgoing mail server name (e.g., smtp.gmail.com)",
+                info4: "Port",
+                desc4: "Port number (Most common: 587 or 465)",
+                info5: "Encryption",
+                desc5: "Encryption type (SSL or TLS/STARTTLS)",
+                
+                section3Title: "📋 Recommended Settings for Major Services (Updated 2025)",
+                service1Title: "1. Gmail / Google Workspace",
+                service1Code: "SMTP Server: smtp.gmail.com\nPort: 587 (Recommended with STARTTLS) or 465 (with SSL)\nEmail: Your full email address\nPassword: Must create an App Password\nEncryption: TLS (for Port 587) or SSL (for Port 465)",
+                warningTitle: "Important for Gmail:",
+                warning1: "If Two-Factor Authentication (2FA) is enabled: Create an App Password from <a href='https://myaccount.google.com/apppasswords' target='_blank'>Google Account Settings</a>",
+                warning2: 'Select "Mail" as the app type',
+                warning3: "You'll receive a 16-character password (use this instead of your regular password)",
+                service2Title: "2. Outlook / Hotmail / Microsoft",
+                service2Code: "SMTP Server: smtp-mail.outlook.com\nPort: 587 (with STARTTLS)\nEmail: Your full email address\nPassword: Regular password (or App Password if 2FA is enabled)\nEncryption: STARTTLS",
+                service3Title: "3. Yahoo Mail",
+                service3Code: "SMTP Server: smtp.mail.yahoo.com\nPort: 465 (with SSL) or 587 (with TLS)\nEmail: Your full email address\nPassword: Create App Password from Yahoo security settings\nEncryption: SSL (for Port 465) or TLS (for Port 587)",
+                
+                section4Title: "🔍 For Corporate Email or Other Services",
+                section4Content1: "If you're using email from:",
+                corporate1: "Your company (e.g., name@company.com)",
+                corporate2: "Hosting provider (Bluehost, GoDaddy, etc.)",
+                corporate3: "Other services (iCloud, AOL, etc.)",
+                section4Content2: "You can:",
+                corporateAction1: 'Search for: "SMTP settings for [your service provider name]"',
+                corporateAction2: "Check your email provider's documentation",
+                corporateAction3: "Contact your service provider's technical support",
+                
+                section5Title: "💡 Troubleshooting Tips",
+                troubleshoot1Title: "Initial Testing:",
+                troubleshoot1_1: "<strong>Start with Port 587 with TLS/STARTTLS</strong> - This is the most secure and widely supported",
+                troubleshoot1_2: "If it doesn't work, try <strong>Port 465 with SSL</strong>",
+                troubleshoot1_3: "Make sure to use <strong>App Password</strong> if the service supports it",
+                troubleshoot2Title: "Common Errors and Solutions:",
+                errorHeader1: "Issue",
+                errorHeader2: "Possible Solution",
+                error1: '"Authentication failed"',
+                solution1: "Verify you're using App Password, not your regular password",
+                error2: '"Connection refused"',
+                solution2: "Check if port and server settings are correct",
+                error3: '"SSL/TLS required"',
+                solution3: "Ensure the correct encryption option is enabled",
+                error4: "Cannot send test email",
+                solution4: "Check firewall or antivirus settings",
+                troubleshoot3Title: "Verification Steps:",
+                verify1: "Confirm email address is correct",
+                verify2: "Verify you're using the right password (App Password if required)",
+                verify3: "Check port and encryption settings",
+                verify4: 'Use the "Test Connection" or "Send Test Email" button in the application',
+                
+                section6Title: "🚀 After Successful Configuration",
+                after1: "<strong>Send a test email</strong> to confirm settings are working",
+                after2: "<strong>Save your App Password</strong> in a secure place (you won't be able to see it again)",
+                after3: "<strong>Remember to update settings</strong> if you change your account password",
+                
+                section7Title: "❓ Getting Additional Help",
+                section7Content1: "If you're experiencing issues or need specific settings:",
+                help1: "Tell us which email service you're using",
+                help2: "Share any error messages you're receiving",
+                help3: "We'll help you get the exact settings for your service",
+                noteTitle: "Note:",
+                noteContent: "Most connection issues are related to security settings or App Passwords.",
+                
+                footerTitle: "Last Updated:",
+                footerDate: "December 2025",
+                footerText: "For any additional inquiries, feel free to contact our technical support team."
+            },
+            
+            ar: {
+                langText: "English",
+                pageTitle: "📧 دليل إعدادات البريد الإلكتروني (SMTP)",
+                pageSubtitle: "للإشعارات التلقائية",
+                
+                section1Title: "⚙️ لماذا تحتاج لإعداد البريد الإلكتروني؟",
+                section1Content: "لتمكين التطبيق من إرسال الإشعارات والرسائل التلقائية للمستخدمين الآخرين، تحتاج إلى إضافة معلومات خادم البريد الصادر (SMTP) الخاص بك.",
+                
+                section2Title: "🔧 المعلومات المطلوبة للإعداد",
+                section2Content: "لإعداد صحيح، ستحتاج إلى توفير المعلومات التالية في قسم <strong>إعدادات البريد الإلكتروني</strong>:",
+                tableHeader1: "المعلومة",
+                tableHeader2: "الوصف",
+                info1: "البريد الإلكتروني",
+                desc1: "عنوان البريد الإلكتروني الكامل (مثل: user@gmail.com)",
+                info2: "كلمة المرور",
+                desc2: "كلمة المرور (ملاحظة: معظم الخدمات تتطلب App Password وليس كلمة المرور العادية)",
+                info3: "خادم SMTP",
+                desc3: "اسم خادم البريد الصادر (مثل: smtp.gmail.com)",
+                info4: "المنفذ",
+                desc4: "رقم المنفذ (الأكثر شيوعاً: 587 أو 465)",
+                info5: "التشفير",
+                desc5: "نوع التشفير (SSL أو TLS/STARTTLS)",
+                
+                section3Title: "📋 الإعدادات الموصى بها للخدمات الرئيسية (محدّث 2025)",
+                service1Title: "1. Gmail / Google Workspace",
+                service1Code: "خادم SMTP: smtp.gmail.com\nالمنفذ: 587 (موصى به مع STARTTLS) أو 465 (مع SSL)\nالبريد الإلكتروني: بريدك الإلكتروني الكامل\nكلمة المرور: يجب إنشاء App Password\nالتشفير: TLS (للمنفذ 587) أو SSL (للمنفذ 465)",
+                warningTitle: "مهم لـ Gmail:",
+                warning1: "إذا كانت المصادقة الثنائية (2FA) مفعّلة: أنشئ App Password من <a href='https://myaccount.google.com/apppasswords' target='_blank'>إعدادات حساب Google</a>",
+                warning2: 'اختر "البريد" كنوع التطبيق',
+                warning3: "ستحصل على كلمة مرور من 16 حرفاً (استخدمها بدلاً من كلمة المرور العادية)",
+                service2Title: "2. Outlook / Hotmail / Microsoft",
+                service2Code: "خادم SMTP: smtp-mail.outlook.com\nالمنفذ: 587 (مع STARTTLS)\nالبريد الإلكتروني: بريدك الإلكتروني الكامل\nكلمة المرور: كلمة المرور العادية (أو App Password إذا كانت 2FA مفعّلة)\nالتشفير: STARTTLS",
+                service3Title: "3. Yahoo Mail",
+                service3Code: "خادم SMTP: smtp.mail.yahoo.com\nالمنفذ: 465 (مع SSL) أو 587 (مع TLS)\nالبريد الإلكتروني: بريدك الإلكتروني الكامل\nكلمة المرور: أنشئ App Password من إعدادات أمان Yahoo\nالتشفير: SSL (للمنفذ 465) أو TLS (للمنفذ 587)",
+                
+                section4Title: "🔍 للبريد الإلكتروني الخاص بالشركات أو الخدمات الأخرى",
+                section4Content1: "إذا كنت تستخدم بريد إلكتروني من:",
+                corporate1: "شركتك (مثل: name@company.com)",
+                corporate2: "مزود استضافة (Bluehost، GoDaddy، إلخ)",
+                corporate3: "خدمات أخرى (iCloud، AOL، إلخ)",
+                section4Content2: "يمكنك:",
+                corporateAction1: 'البحث عن: "إعدادات SMTP لـ [اسم مزود الخدمة الخاص بك]"',
+                corporateAction2: "التحقق من وثائق مزود البريد الإلكتروني الخاص بك",
+                corporateAction3: "الاتصال بالدعم الفني لمزود الخدمة الخاص بك",
+                
+                section5Title: "💡 نصائح لحل المشكلات",
+                troubleshoot1Title: "الاختبار الأولي:",
+                troubleshoot1_1: "<strong>ابدأ بالمنفذ 587 مع TLS/STARTTLS</strong> - هذا هو الأكثر أماناً ودعماً",
+                troubleshoot1_2: "إذا لم ينجح، جرب <strong>المنفذ 465 مع SSL</strong>",
+                troubleshoot1_3: "تأكد من استخدام <strong>App Password</strong> إذا كانت الخدمة تدعمها",
+                troubleshoot2Title: "الأخطاء الشائعة والحلول:",
+                errorHeader1: "المشكلة",
+                errorHeader2: "الحل المحتمل",
+                error1: '"فشل في المصادقة"',
+                solution1: "تحقق من أنك تستخدم App Password، وليس كلمة المرور العادية",
+                error2: '"تم رفض الاتصال"',
+                solution2: "تحقق من صحة إعدادات المنفذ والخادم",
+                error3: '"مطلوب SSL/TLS"',
+                solution3: "تأكد من تفعيل خيار التشفير الصحيح",
+                error4: "لا يمكن إرسال بريد اختباري",
+                solution4: "تحقق من إعدادات جدار الحماية أو برنامج مكافحة الفيروسات",
+                troubleshoot3Title: "خطوات التحقق:",
+                verify1: "تأكد من صحة عنوان البريد الإلكتروني",
+                verify2: "تحقق من استخدامك لكلمة المرور الصحيحة (App Password إذا لزم الأمر)",
+                verify3: "راجع إعدادات المنفذ والتشفير",
+                verify4: 'استخدم زر "اختبار الاتصال" أو "إرسال بريد اختباري" في التطبيق',
+                
+                section6Title: "🚀 بعد التكوين الناجح",
+                after1: "<strong>أرسل بريد اختباري</strong> للتأكد من أن الإعدادات تعمل",
+                after2: "<strong>احفظ App Password الخاص بك</strong> في مكان آمن (لن تتمكن من رؤيته مرة أخرى)",
+                after3: "<strong>تذكر تحديث الإعدادات</strong> إذا قمت بتغيير كلمة مرور حسابك",
+                
+                section7Title: "❓ الحصول على مساعدة إضافية",
+                section7Content1: "إذا كنت تواجه مشكلات أو تحتاج إلى إعدادات محددة:",
+                help1: "أخبرنا بخدمة البريد الإلكتروني التي تستخدمها",
+                help2: "شارك أي رسائل خطأ تتلقاها",
+                help3: "سنساعدك في الحصول على الإعدادات الدقيقة لخدمتك",
+                noteTitle: "ملاحظة:",
+                noteContent: "معظم مشاكل الاتصال مرتبطة بإعدادات الأمان أو App Passwords.",
+                
+                footerTitle: "آخر تحديث:",
+                footerDate: "ديسمبر 2025",
+                footerText: "لأي استفسارات إضافية، لا تتردد في الاتصال بفريق الدعم الفني الخاص بنا."
+            }
+        };
+
+        // Initialize current language
+        let currentLang = 'en';
+        
+        // When DOM is loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize the page with English
+            updateContent();
+            
+            // Add click event to language button
+            document.getElementById('langBtn').addEventListener('click', toggleLanguage);
+        });
+        
+        // Toggle language function
+        function toggleLanguage() {
+            currentLang = currentLang === 'en' ? 'ar' : 'en';
+            
+            // Update direction and language attribute
+            document.body.setAttribute('dir', currentLang === 'ar' ? 'rtl' : 'ltr');
+            document.documentElement.setAttribute('lang', currentLang === 'ar' ? 'ar' : 'en');
+            
+            // Update content
+            updateContent();
+        }
+        
+        // Update all content based on current language
+        function updateContent() {
+            const t = translations[currentLang];
+            
+            // Update language button text
+            document.getElementById('langText').textContent = t.langText;
+            
+            // Update page title and subtitle
+            document.getElementById('pageTitle').textContent = t.pageTitle;
+            document.getElementById('pageSubtitle').textContent = t.pageSubtitle;
+            
+            // Section 1: Why
+            document.getElementById('section1Title').textContent = t.section1Title;
+            document.getElementById('section1Content').innerHTML = t.section1Content;
+            
+            // Section 2: Required Information
+            document.getElementById('section2Title').textContent = t.section2Title;
+            document.getElementById('section2Content').innerHTML = t.section2Content;
+            document.getElementById('tableHeader1').textContent = t.tableHeader1;
+            document.getElementById('tableHeader2').textContent = t.tableHeader2;
+            document.getElementById('info1').textContent = t.info1;
+            document.getElementById('desc1').textContent = t.desc1;
+            document.getElementById('info2').textContent = t.info2;
+            document.getElementById('desc2').textContent = t.desc2;
+            document.getElementById('info3').textContent = t.info3;
+            document.getElementById('desc3').textContent = t.desc3;
+            document.getElementById('info4').textContent = t.info4;
+            document.getElementById('desc4').textContent = t.desc4;
+            document.getElementById('info5').textContent = t.info5;
+            document.getElementById('desc5').textContent = t.desc5;
+            
+            // Section 3: Services
+            document.getElementById('section3Title').textContent = t.section3Title;
+            document.getElementById('service1Title').textContent = t.service1Title;
+            document.getElementById('service1Code').textContent = t.service1Code;
+            document.getElementById('warningTitle').textContent = t.warningTitle;
+            document.getElementById('warning1').innerHTML = t.warning1;
+            document.getElementById('warning2').innerHTML = t.warning2;
+            document.getElementById('warning3').innerHTML = t.warning3;
+            document.getElementById('service2Title').textContent = t.service2Title;
+            document.getElementById('service2Code').textContent = t.service2Code;
+            document.getElementById('service3Title').textContent = t.service3Title;
+            document.getElementById('service3Code').textContent = t.service3Code;
+            
+            // Section 4: Corporate
+            document.getElementById('section4Title').textContent = t.section4Title;
+            document.getElementById('section4Content1').textContent = t.section4Content1;
+            document.getElementById('corporate1').textContent = t.corporate1;
+            document.getElementById('corporate2').textContent = t.corporate2;
+            document.getElementById('corporate3').textContent = t.corporate3;
+            document.getElementById('section4Content2').textContent = t.section4Content2;
+            document.getElementById('corporateAction1').textContent = t.corporateAction1;
+            document.getElementById('corporateAction2').textContent = t.corporateAction2;
+            document.getElementById('corporateAction3').textContent = t.corporateAction3;
+            
+            // Section 5: Troubleshooting
+            document.getElementById('section5Title').textContent = t.section5Title;
+            document.getElementById('troubleshoot1Title').textContent = t.troubleshoot1Title;
+            document.getElementById('troubleshoot1-1').innerHTML = t.troubleshoot1_1;
+            document.getElementById('troubleshoot1-2').innerHTML = t.troubleshoot1_2;
+            document.getElementById('troubleshoot1-3').innerHTML = t.troubleshoot1_3;
+            document.getElementById('troubleshoot2Title').textContent = t.troubleshoot2Title;
+            document.getElementById('errorHeader1').textContent = t.errorHeader1;
+            document.getElementById('errorHeader2').textContent = t.errorHeader2;
+            document.getElementById('error1').textContent = t.error1;
+            document.getElementById('solution1').textContent = t.solution1;
+            document.getElementById('error2').textContent = t.error2;
+            document.getElementById('solution2').textContent = t.solution2;
+            document.getElementById('error3').textContent = t.error3;
+            document.getElementById('solution3').textContent = t.solution3;
+            document.getElementById('error4').textContent = t.error4;
+            document.getElementById('solution4').textContent = t.solution4;
+            document.getElementById('troubleshoot3Title').textContent = t.troubleshoot3Title;
+            document.getElementById('verify1').textContent = t.verify1;
+            document.getElementById('verify2').textContent = t.verify2;
+            document.getElementById('verify3').textContent = t.verify3;
+            document.getElementById('verify4').textContent = t.verify4;
+            
+            // Section 6: After Configuration
+            document.getElementById('section6Title').textContent = t.section6Title;
+            document.getElementById('after1').innerHTML = t.after1;
+            document.getElementById('after2').innerHTML = t.after2;
+            document.getElementById('after3').innerHTML = t.after3;
+            
+            // Section 7: Help
+            document.getElementById('section7Title').textContent = t.section7Title;
+            document.getElementById('section7Content1').textContent = t.section7Content1;
+            document.getElementById('help1').textContent = t.help1;
+            document.getElementById('help2').textContent = t.help2;
+            document.getElementById('help3').textContent = t.help3;
+            document.getElementById('noteTitle').textContent = t.noteTitle;
+            document.getElementById('noteContent').textContent = t.noteContent;
+            
+            // Footer
+            document.getElementById('footerTitle').textContent = t.footerTitle;
+            document.getElementById('footerDate').textContent = t.footerDate;
+            document.getElementById('footerText').textContent = t.footerText;
+        }
+    </script>
+    <script src="../assets/js/main.js"></script>
+    <script src="../assets/js/header.js"></script>
+    <script>
+        // Inject header when page loads
+        document.addEventListener('DOMContentLoaded', async function() {
+            // Wait for main.js to load injectSharedHeader function
+            if (typeof injectSharedHeader === 'function') {
+                await injectSharedHeader();
+            } else {
+                // If not loaded yet, wait a bit and try again
+                setTimeout(async function() {
+                    if (typeof injectSharedHeader === 'function') {
+                        await injectSharedHeader();
+                    }
+                }, 100);
+            }
+        });
+    </script>
+</body>
+</html>

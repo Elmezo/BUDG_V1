@@ -1,0 +1,636 @@
+/* Regulator Edit Page Styles */
+
+/* Consistent Section Styling for Geography and Definition */
+.geography-section-top,
+.form-section {
+    width: 100%;
+    margin-bottom: 2rem;
+    background: var(--bg-primary, #ffffff);
+    border-radius: 8px;
+    padding: 0;
+    border: 1px solid var(--border-color, #e2e8f0);
+    overflow: hidden;
+}
+
+.geography-section-top .section-title,
+.form-section .section-title {
+    background-color: var(--background-secondary, #f8fafc);
+    color: var(--text-secondary, #475569);
+    font-weight: 600;
+    font-size: 0.82rem;
+    padding: 0.75rem 1rem;
+    margin: 0;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    border-bottom: 1px solid var(--border-color, #e2e8f0);
+    position: relative;
+}
+
+/* Section content padding */
+.geography-section-top .geography-table-container,
+.form-section .section-content {
+    padding: 0.5rem;
+}
+
+/* Force the geography table area to span the whole section width */
+.geography-section-top .section-content {
+    padding: 0 !important;
+    width: 100% !important;
+    display: block !important;
+}
+
+.geography-section-top .geography-table-container {
+    padding: 0 !important;
+    width: 100% !important;
+    display: block !important;
+}
+
+.geography-section-top .geography-table-container .table-wrapper {
+    width: 100% !important;
+    display: block !important;
+}
+
+.geography-section-top .geography-table-container .data-table {
+    width: 100% !important;
+    table-layout: fixed;
+}
+
+/* Geography table column widths */
+.geography-section-top .data-table th:nth-child(1),
+.geography-section-top .data-table td:nth-child(1) {
+    width: 30%;
+}
+
+.geography-section-top .data-table th:nth-child(2),
+.geography-section-top .data-table td:nth-child(2) {
+    width: 55%;
+}
+
+.geography-section-top .data-table th:nth-child(3),
+.geography-section-top .data-table td:nth-child(3) {
+    width: 15%;
+    text-align: center;
+}
+
+/* Override any flex or grid on geography section */
+.geography-section-top,
+.geography-section-top * {
+    box-sizing: border-box;
+}
+
+.geography-section-top {
+    display: block !important;
+    flex: none !important;
+}
+
+.geography-section-top .section-content,
+.geography-section-top .geography-table-container,
+.geography-section-top .table-wrapper {
+    display: block !important;
+    flex: none !important;
+}
+
+.form-section .section-content {
+    background: var(--bg-primary, #ffffff);
+    /* Ensure all section contents default to full width (override global view.css) */
+    width: 100% !important;
+    max-width: none !important;
+    display: block !important;
+    flex: 0 0 100% !important;
+    align-self: stretch !important;
+}
+
+/* Geography Table Container */
+/* Make geography table fill the full section width without inner card chrome */
+.geography-table-container {
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    overflow: visible;
+}
+
+.table-header {
+    background-color: var(--table-header-bg, #f8fafc);
+    padding: 1rem;
+    border-bottom: 1px solid var(--border-color, #e2e8f0);
+}
+
+.table-controls {
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.table-wrapper {
+    overflow-x: auto;
+}
+
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+}
+
+.data-table th {
+    background-color: var(--table-header-bg, #f8fafc);
+    color: var(--text-primary, #374151);
+    font-weight: 600;
+    text-align: left;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--border-color, #e2e8f0);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.data-table td {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--border-color, #e2e8f0);
+    color: var(--text-primary, #374151);
+}
+
+.data-table tbody tr:hover {
+    background-color: var(--hover-bg, #f9fafb);
+}
+
+.table-footer {
+    background-color: var(--table-footer-bg, #f8fafc);
+    padding: 0.75rem 1rem;
+    border-top: 1px solid var(--border-color, #e2e8f0);
+    font-size: 0.875rem;
+    color: var(--text-secondary, #6b7280);
+    text-align: right;
+}
+
+/* Geography section - full area above other sections */
+.geography-section-top {
+    width: 100%;
+    margin: 0 0 1.5rem 0;
+    padding: 0;
+    background: transparent;
+}
+
+.geography-section-top .section-title {
+    background: var(--background-secondary, #f8fafc);
+    padding: 0.75rem 0;
+    font-weight: 600;
+    font-size: 0.82rem;
+    color: var(--text-secondary, #475569);
+    margin: 0 0 0.5rem 0;
+    border-left: 4px solid var(--border-color, #e2e8f0);
+    padding-left: 1rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+.geography-section-top .section-content {
+    padding: 0;
+    margin: 0;
+    display: block !important;
+    width: 100% !important;
+    max-width: none !important;
+}
+
+.geography-table-container {
+    width: 100% !important;
+    margin: 0 !important;
+    background: var(--section-bg, #ffffff);
+    border: 1px solid var(--border-color, #e2e8f0);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.geography-table-container .table-wrapper {
+    width: 100% !important;
+    overflow-x: auto;
+    padding: 0 !important;
+    margin: 0 !important;
+}
+
+.geography-table-container .data-table {
+    width: 100% !important;
+    min-width: 100% !important;
+    table-layout: fixed;
+    border-collapse: separate;
+    border-spacing: 0;
+    background: var(--table-bg, #ffffff);
+}
+
+.geography-table-container .data-table th:first-child,
+.geography-table-container .data-table td:first-child {
+    width: 35%;
+    padding-left: 1.5rem;
+}
+
+.geography-table-container .data-table th:nth-child(2),
+.geography-table-container .data-table td:nth-child(2) {
+    width: 50%;
+    padding-left: 1rem;
+    padding-right: 1rem;
+}
+
+.geography-table-container .data-table th:last-child,
+.geography-table-container .data-table td:last-child {
+    width: 15%;
+    text-align: center;
+    padding-right: 1.5rem;
+}
+
+.geography-table-container .data-table th {
+    background: var(--table-header-bg, #f1f5f9);
+    padding-top: 1rem;
+    padding-bottom: 1rem;
+    font-weight: 600;
+    font-size: 0.875rem;
+    color: var(--text-primary, #374151);
+    border-bottom: 1px solid var(--border-color, #e2e8f0);
+    text-align: left;
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+}
+
+.geography-table-container .data-table td {
+    padding-top: 1rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border-color, #f3f4f6);
+    vertical-align: middle;
+    background: var(--table-cell-bg, #ffffff);
+}
+
+.geography-table-container .data-table tbody tr:hover td {
+    background: var(--table-hover-bg, #f9fafb);
+}
+
+.geography-table-container .data-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+/* Geography inline editing styles */
+.geography-row {
+    transition: background-color 0.2s;
+}
+
+.geography-row.row-changed {
+    background-color: var(--warning-bg, #fef3c7);
+}
+
+.geography-actions {
+    display: flex;
+    gap: 0.25rem;
+    justify-content: center;
+    align-items: center;
+}
+
+.action-btn {
+    padding: 0.25rem;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+}
+
+.action-btn.add-btn {
+    background-color: var(--success-color, #10b981);
+    color: white;
+}
+
+.action-btn.add-btn:hover {
+    background-color: var(--success-hover, #059669);
+}
+
+.action-btn.remove-btn {
+    background-color: var(--error-color, #ef4444);
+    color: white;
+}
+
+.action-btn.remove-btn:hover {
+    background-color: var(--error-hover, #dc2626);
+}
+
+.action-btn i {
+    font-size: 0.75rem;
+}
+
+/* Form controls in table */
+.geography-row .form-select,
+.geography-row .form-control {
+    width: 100%;
+    border: 1px solid var(--input-border, #d1d5db);
+    border-radius: 6px;
+    padding: 0.625rem 0.875rem;
+    font-size: 0.875rem;
+    box-sizing: border-box;
+    background: var(--input-bg, #ffffff);
+    color: var(--text-primary, #1f2937);
+    min-height: 42px;
+    transition: all 0.2s ease;
+}
+
+.geography-row .form-select:focus,
+.geography-row .form-control:focus {
+    outline: none;
+    border-color: var(--primary-color, #3b82f6);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    background: var(--input-focus-bg, #ffffff);
+    transform: translateY(-1px);
+}
+
+.geography-row .form-select:hover,
+.geography-row .form-control:hover {
+    border-color: var(--input-hover-border, #9ca3af);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+/* Ensure proper spacing within table cells */
+.geography-table-container .data-table td .form-select,
+.geography-table-container .data-table td .form-control {
+    margin: 0.25rem 0;
+}
+
+/* Better visual distribution for table content */
+.geography-table-container .data-table td:first-child .form-select {
+    max-width: calc(100% - 0.5rem);
+}
+
+.geography-table-container .data-table td:nth-child(2) .form-control {
+    max-width: calc(100% - 0.5rem);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .geography-section-top {
+        margin-bottom: 1rem;
+    }
+    
+    .regulator-container {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+    }
+    
+    .edit-form-container {
+        padding: 1rem;
+    }
+    
+    .table-wrapper {
+        overflow-x: auto;
+    }
+}
+
+.regulator-edit-page {
+    background-color: var(--bg-secondary, #f8fafc);
+}
+
+.edit-form-container {
+    padding: 1rem;
+}
+
+.regulator-container {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 1.5rem;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+/* Make the geography top section span the full card width regardless of grid */
+.form-section.geography-section-top {
+    grid-column: 1 / -1;
+    margin-bottom: 1rem;
+    width: 100% !important;
+    max-width: 100% !important;
+}
+
+/* Form Sections */
+.form-section {
+    margin-bottom: 1rem;
+    background: var(--bg-primary, #ffffff);
+    border-radius: 8px;
+    padding: 1rem;
+    border: 1px solid var(--border-color, #e2e8f0);
+}
+
+.section-title {
+    font-size: 0.82rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-secondary, #475569);
+    margin-bottom: 0.75rem;
+}
+
+.subsection-title {
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-secondary, #64748b);
+    margin: 1rem 0 0.75rem 0;
+}
+
+/* Form Groups */
+.form-group {
+    margin-bottom: 1rem;
+}
+
+.form-label {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--text-primary, #374151);
+    margin-bottom: 0.5rem;
+}
+
+.form-label.required::after {
+    content: ' *';
+    color: var(--error-color, #ef4444);
+}
+
+.form-input,
+.form-textarea,
+.form-select {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid var(--border-color, #d1d5db);
+    border-radius: 6px;
+    font-size: 0.875rem;
+    background-color: var(--bg-primary, #ffffff);
+    color: var(--text-primary, #111827);
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.form-input:focus,
+.form-textarea:focus,
+.form-select:focus {
+    outline: none;
+    border-color: var(--primary-color, #3b82f6);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.form-textarea {
+    resize: vertical;
+    min-height: 100px;
+}
+
+/* Remove duplicate styles - using styles defined above */
+
+/* Action Buttons in Table */
+.action-buttons {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.btn-icon {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+    min-width: auto;
+}
+
+/* Modal Styles */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background: var(--bg-primary, #ffffff);
+    border-radius: 8px;
+    width: 90%;
+    max-width: 500px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.5rem;
+    border-bottom: 1px solid var(--border-color, #e2e8f0);
+}
+
+.modal-header h3 {
+    margin: 0;
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--text-primary, #111827);
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    color: var(--text-secondary, #6b7280);
+    cursor: pointer;
+    padding: 0;
+    width: 2rem;
+    height: 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+}
+
+.modal-close:hover {
+    background-color: var(--bg-secondary, #f3f4f6);
+}
+
+.modal-body {
+    padding: 1.5rem;
+}
+
+.modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    padding: 1.5rem;
+    border-top: 1px solid var(--border-color, #e2e8f0);
+    background-color: var(--bg-secondary, #f8fafc);
+}
+
+    margin-top: 2rem;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+    .regulator-container {
+        grid-template-columns: 1fr;
+        gap: 2rem;
+    }
+}
+
+@media (max-width: 768px) {
+    .edit-form-container {
+        padding: 1rem;
+    }
+    
+    .form-section {
+        padding: 1rem;
+    }
+    
+    .modal-content {
+        width: 95%;
+        margin: 1rem;
+    }
+    
+    .modal-header,
+    .modal-body,
+    .modal-footer {
+        padding: 1rem;
+    }
+}
+
+/* Success Message */
+.success-message {
+    position: fixed;
+    top: 80px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: var(--success-color, #10b981);
+    color: white;
+    padding: 12px 24px;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 14px;
+    z-index: 10000;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.success-message.error {
+    background-color: var(--error-color, #ef4444);
+}
+
+/* Loading States */
+.btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.loading {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+/* Empty State */
+.empty-state {
+    text-align: center;
+    padding: 2rem;
+    color: var(--text-secondary, #6b7280);
+    font-style: italic;
+}
+

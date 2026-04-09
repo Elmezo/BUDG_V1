@@ -1,0 +1,98 @@
+/* Client Edit Page Specific Styles */
+/* Using unique selectors to avoid conflicts with other CSS files */
+
+/* Main content wrapper - limit width for better readability */
+.client-page.client-edit-page .main-content {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 2rem;
+}
+
+/* Content card - ensure it has proper flex layout */
+.client-page.client-edit-page .content-card {
+    background-color: var(--background-primary, #ffffff);
+    border: 1px solid var(--border-color, #e9ecef);
+    border-radius: 8px;
+    box-shadow: var(--shadow-light, 0 2px 10px rgba(0, 0, 0, 0.1));
+    flex: 1;
+    max-width: 100%;
+    overflow: hidden;
+}
+
+/* Content body - proper padding and layout */
+.client-page.client-edit-page .content-body {
+    padding: 1.5rem;
+    flex: 1;
+    overflow-y: auto;
+    min-height: 0;
+}
+
+/* Stakeholders container - ensure proper width constraint */
+.client-page.client-edit-page #clientStakeholdersContainer {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+/* View grid - single column by default; two columns on wide screens */
+.client-page.client-edit-page .view-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+    width: 100%;
+}
+
+/* Form container - single column by default; two columns on wide screens */
+.client-page.client-edit-page .form-container {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 2rem;
+    width: 100%;
+}
+
+/* Form sections - no inner scroll so only content-body scrolls (avoids double scrollbar) */
+.client-page.client-edit-page .form-section {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    overflow-y: visible;
+    overflow-x: visible;
+    height: auto;
+    min-height: 0;
+    max-height: none;
+}
+
+/* Wide screens: two columns so form doesn't look like two sidebars on small viewports */
+@media (min-width: 1200px) {
+    .client-page.client-edit-page .view-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+    
+    .client-page.client-edit-page .form-container {
+        grid-template-columns: 1fr 1fr;
+        gap: 2rem;
+    }
+}
+
+/* Responsive adjustments */
+@media (max-width: 1200px) {
+    .client-page.client-edit-page .main-content {
+        max-width: 100%;
+        padding: 1.5rem;
+    }
+    
+    .client-page.client-edit-page .form-container {
+        gap: 1.5rem;
+    }
+}
+
+@media (max-width: 768px) {
+    .client-page.client-edit-page .main-content {
+        padding: 1rem;
+    }
+    
+    .client-page.client-edit-page .content-body {
+        padding: 1rem;
+    }
+}
+

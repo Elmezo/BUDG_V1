@@ -1,0 +1,27 @@
+/* Glossary Data Tab Styling */
+
+/* Orange row styling for child glossary attributes */
+.relationships-table tbody tr.child-glossary-row {
+    background-color: #fff3e0 !important;
+}
+
+[data-theme="dark"] .relationships-table tbody tr.child-glossary-row {
+    background-color: #4a3200 !important;
+}
+
+.relationships-table tbody tr.child-glossary-row:nth-child(even) {
+    background-color: #ffe0b2 !important;
+}
+
+[data-theme="dark"] .relationships-table tbody tr.child-glossary-row:nth-child(even) {
+    background-color: #6a4a00 !important;
+}
+
+.relationships-table tbody tr.child-glossary-row:hover {
+    background-color: #ffcc80 !important;
+}
+
+[data-theme="dark"] .relationships-table tbody tr.child-glossary-row:hover {
+    background-color: #8a5a00 !important;
+}
+

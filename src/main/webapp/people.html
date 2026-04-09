@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BUDG - New Person</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="assets/css/main.css">
+    <link rel="stylesheet" href="assets/css/people.css">
+    <link rel="stylesheet" href="assets/css/custom-fields.css">
+    <link rel="stylesheet" href="assets/css/toast.css">
+    <link rel="stylesheet" href="assets/css/advanced-rich-text-editor.css">
+    <link rel="icon" type="image/png" href="assets/images/avatars/icon.jpg">
+    
+    <script>
+        // Apply theme immediately to prevent flash of unstyled content
+        (function() {
+            const savedTheme = localStorage.getItem('budg-theme') || 'light';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+        })();
+    </script>
+    <script src="/assets/i18n/head-locale.js"></script>
+    <script src="assets/i18n/i18n.js"></script>
+</head>
+<body class="people-page">
+    <!-- Header Navigation -->
+    <header class="header"></header>
+
+    <!-- Page Header -->
+    <div class="page-header">
+        <div class="page-header-container">
+            <div class="page-title">
+                <div class="page-icon">
+                    <i class="fas fa-sitemap"></i>
+                </div>
+                <div class="page-title-text">
+                    <div class="page-title-main" data-i18n="createPage.title.newPerson">New Person</div>
+                    <div class="page-title-sub" data-i18n="facet.people">People</div>
+                </div>
+            </div>
+            <div class="page-actions">
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" id="closeBtn" data-i18n="button.close">Close</button>
+                    <button type="button" class="btn btn-primary" id="saveBtn" data-i18n="button.save">Save</button>
+                    <button type="button" class="btn btn-success" id="saveAndCloseBtn" data-i18n="button.saveAndClose">Save & Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="content-card">
+            <div class="content-header">
+                <div class="tab-container">
+                    <button class="tab active" data-i18n="tab.details">DETAILS</button>
+                </div>
+            </div>
+            
+            <!-- Form Actions - Moved to top of content body -->
+
+            <div class="content-body">
+                <form id="peopleForm">
+                    <div class="people-container">
+                        <!-- DESCRIPTION Section -->
+                        <div class="form-section">
+                            <h4 class="section-title" data-i18n="card.description_upper">DESCRIPTION</h4>
+                            <div class="form-fields-container">
+                                <div class="form-group">
+                                    <label class="form-label" data-i18n="createPage.label.description">Description</label>
+                                    <textarea class="form-input form-textarea" id="descriptionInput" data-i18n-placeholder="createPage.placeholder.enterDescription" placeholder="Enter Description"></textarea>
+                                    <button type="button" class="editor-button" id="showDescriptionEditorBtn" data-i18n="button.showEditor">Show Editor</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- BUDG DETAILS Section -->
+                        <div class="form-section">
+                            <h4 class="section-title" data-i18n="card.budgDetails">BUDG DETAILS</h4>
+                            <div class="form-fields-container two-column">
+                                <div class="form-column">
+                                    <div class="form-group">
+                                        <label class="form-label">
+                                            <span data-i18n="createPage.label.email">Email</span>
+                                            <span class="required">*</span>
+                                        </label>
+                                        <input type="email" class="form-input" id="emailInput" data-i18n-placeholder="createPage.placeholder.enterEmail" placeholder="Enter Your Email">
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label class="form-label" data-i18n="createPage.label.password">Password</label>
+                                        <input type="password" class="form-input" id="passwordInput" data-i18n-placeholder="createPage.placeholder.enterPassword" placeholder="Your Password">
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label class="form-label" data-i18n="label.confirmPassword">Confirm</label>
+                                        <input type="password" class="form-input" id="confirmPassword" data-i18n-placeholder="createPage.placeholder.enterPassword" placeholder="Repeat Password">
+                                    </div>
+                                </div>
+
+                                <div class="form-column">
+                                    <div class="form-group">
+                                        <label class="form-label">
+                                            <span data-i18n="createPage.label.profile">Profile</span>
+                                            <span class="required">*</span>
+                                        </label>
+                                        <select class="form-select" id="profileSelect">
+                                            <option value="" data-i18n="createPage.message.loading">Loading roles...</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label class="form-label">
+                                            <span data-i18n="createPage.label.budgStatus">BUDG Status</span>
+                                            <span class="required">*</span>
+                                        </label>
+                                        <select class="form-select" id="statusSelect">
+                                            <option value="Active">Active</option>
+                                            <option value="Inactive">Inactive</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- PERSONAL DETAILS Section -->
+                        <div class="form-section">
+                            <h4 class="section-title" data-i18n="card.personalDetails">PERSONAL DETAILS</h4>
+                            <div class="form-fields-container two-column">
+                                <div class="form-column">
+                                    <div class="form-group">
+                                        <label class="form-label">
+                                            <span data-i18n="createPage.label.firstName">First Name</span>
+                                            <span class="required">*</span>
+                                        </label>
+                                        <input type="text" class="form-input" id="firstNameInput" data-i18n-placeholder="createPage.placeholder.enterPrimaryName" placeholder="Enter First Name">
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label class="form-label">
+                                            <span data-i18n="createPage.label.lastName">Last Name</span>
+                                            <span class="required">*</span>
+                                        </label>
+                                        <input type="text" class="form-input" id="lastNameInput" data-i18n-placeholder="createPage.placeholder.enterPrimaryName" placeholder="Enter Last Name">
+                                    </div>
+                                </div>
+
+                                <div class="form-column">
+                                    <div class="form-group">
+                                        <label class="form-label">
+                                            <span data-i18n="createPage.label.orgUnit">Org Unit</span>
+                                            <span class="required">*</span>
+                                        </label>
+                                        <div class="select-dropdown-container">
+                                            <div class="select-dropdown-input" id="orgUnitSelectDropdown">
+                                                <input type="text" class="select-dropdown-display" id="orgUnitSelectDisplay" data-i18n-placeholder="createPage.placeholder.selectOrgUnit" placeholder="Select an org unit..." readonly>
+                                                <i class="fas fa-chevron-down select-dropdown-arrow" id="orgUnitSelectArrow" title="Click to open dropdown"></i>
+                                            </div>
+                                            <div class="select-dropdown-menu" id="orgUnitSelectMenu">
+                                                <div class="select-dropdown-search">
+                                                    <input type="text" class="select-dropdown-search-input" id="orgUnitSelectSearch" data-i18n-placeholder="placeholder.search" placeholder="Search org units...">
+                                                </div>
+                                                <div class="select-dropdown-items" id="orgUnitSelectItems">
+                                                    <!-- Items will be populated dynamically -->
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label class="form-label" data-i18n="createPage.label.functionName">Function Name</label>
+                                        <input type="text" class="form-input" id="functionNameInput" data-i18n-placeholder="createPage.placeholder.enterFunctionName" placeholder="Enter Function Name">
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label class="form-label" data-i18n="createPage.label.functionDescription">Function Description</label>
+                                        <textarea class="form-input form-textarea" id="functionDescriptionInput" data-i18n-placeholder="createPage.placeholder.enterDescription" placeholder="Enter Description"></textarea>
+                                        <button type="button" class="editor-button" id="showFunctionDescriptionEditorBtn" data-i18n="button.showEditor">Show Editor</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Custom Fields Section -->
+                    <div class="form-section" style="grid-column: 1/-1; margin-top: 2rem;">
+                        <h4 class="section-title" data-i18n="createPage.section.customFields">CUSTOM FIELDS</h4>
+                        <div id="customFieldsContainer"></div>
+                    </div>
+                </form>
+                
+
+            </div>
+        </div>
+    </main>
+
+    <script src="assets/js/config.js"></script>
+    <script src="assets/js/api-service.js"></script>
+    <script src="assets/js/admin-panel/admin-notifications.js"></script>
+    <script src="assets/js/main.js"></script>
+    <script src="assets/js/initSearch.js"></script>
+    
+    <script src="assets/js/custom-fields.js"></script>
+    <script src="assets/js/advanced-rich-text-editor.js"></script>
+    <script src="assets/js/people.js"></script>
+    <script src="assets/js/header.js"></script>
+</body>
+</html>
+

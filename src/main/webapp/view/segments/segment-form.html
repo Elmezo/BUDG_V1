@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<div class="segment-form-page">
+    <!-- Segment Form Header -->
+    <div class="segment-detail-header">
+        <div class="segment-detail-header-left">
+            <button class="back-button" id="backToSegmentsBtn">
+                <i class="fas fa-arrow-left"></i>
+            </button>
+            <div class="segment-detail-title-section">
+                <h2 class="segment-detail-title" id="segmentDetailTitle">Create Segment</h2>
+                <p class="segment-detail-description">Create and manage segments here. SuperAdmin users can assign users and Segment Admin users to a segment.</p>
+            </div>
+        </div>
+        <div class="segment-detail-actions">
+            <button class="btn btn-primary" id="saveSegmentBtn">Save</button>
+            <button class="btn btn-primary" id="saveCloseSegmentBtn">Save & Close</button>
+            <button class="btn btn-secondary" id="closeSegmentBtn">Close</button>
+            <button class="btn btn-danger" id="deleteSegmentBtn" style="display:none;">Delete</button>
+        </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="segment-tabs">
+        <button class="segment-tab active" data-tab="summary" id="summaryTab" data-i18n="tab.summary">SUMMARY</button>
+        <button class="segment-tab" data-tab="assigned-users" id="assignedUsersTab" disabled title="Save the segment first to assign users" data-i18n="tab.assignedUsers">ASSIGNED USERS</button>
+    </div>
+
+    <!-- Tab Content -->
+    <div class="segment-tab-content">
+        <!-- SUMMARY Tab Content -->
+        <div class="tab-pane active" id="summaryTabContent">
+            <!-- Section 1: Summary -->
+            <div class="segment-section">
+                <div class="section-header">
+                    <h4 data-i18n="tab.summary">SUMMARY</h4>
+                </div>
+                <div class="segment-form-group">
+                    <label>Name <span class="required">*</span></label>
+                    <input type="text" id="segmentName" placeholder="Enter segment name" required>
+                </div>
+                <div class="segment-form-group">
+                    <label>Description <span class="required">*</span></label>
+                    <textarea id="segmentDescription" placeholder="Enter segment description" required></textarea>
+                </div>
+            </div>
+
+            <!-- Section 2: Segment Admin Users -->
+            <div class="segment-section">
+                <div class="section-header">
+                    <h4>SEGMENT ADMIN USERS <span class="required" title="At least one admin user is required">*</span></h4>
+                    <small class="text-muted">You must assign at least one admin user to manage this segment</small>
+                </div>
+                <div class="assignment-tabs">
+                    <button class="assignment-tab active" data-assignment-type="manual" id="adminUsersManualTab">
+                        Manual
+                    </button>
+                    <button class="assignment-tab" data-assignment-type="sso" id="adminUsersSSOTab">
+                        SSO
+                    </button>
+                </div>
+                <div class="assignment-actions">
+                    <button class="btn btn-add" id="addSegmentAdminUserBtn">
+                        <i class="fas fa-plus"></i> Add
+                    </button>
+                    <button class="btn btn-delete" id="deleteSegmentAdminUserBtn" disabled>
+                        <i class="fas fa-trash"></i> Delete
+                    </button>
+                </div>
+                <div class="assignment-table-container">
+                    <table class="assignment-table">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Org Unit</th>
+                                <th>Profile</th>
+                                <th>Function</th>
+                                <th>Email</th>
+                            </tr>
+                        </thead>
+                        <tbody id="segmentAdminUsersTableBody">
+                            <tr class="empty-row">
+                                <td colspan="5">No segment admin users assigned</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ASSIGNED USERS Tab Content -->
+        <div class="tab-pane" id="assignedUsersTabContent" style="display:none;">
+            <div class="segment-section">
+                <div class="section-header">
+                    <h4>ASSIGNED USERS</h4>
+                    <p class="section-description">Assign users to this segment using one of three methods below.</p>
+                </div>
+                <div class="assignment-tabs">
+                    <button class="assignment-tab active" data-assignment-type="org-units" id="assignedOrgUnitsTab">
+                        Assigned by Org Units <i class="fas fa-info-circle" title="Assigning an org unit grants segment access to all users inside that org unit"></i>
+                    </button>
+                    <button class="assignment-tab" data-assignment-type="manual" id="assignedUsersManualTab">
+                        Assigned Manually
+                    </button>
+                    <button class="assignment-tab" data-assignment-type="sso" id="assignedUsersSSOTab">
+                        Assigned via SSO
+                    </button>
+                </div>
+                <div class="assignment-actions">
+                    <button class="btn btn-add" id="addAssignedEntityBtn">
+                        <i class="fas fa-plus"></i> Add
+                    </button>
+                    <button class="btn btn-delete" id="deleteAssignedEntityBtn" disabled>
+                        <i class="fas fa-trash"></i> Delete
+                    </button>
+                </div>
+                <div class="assignment-table-container">
+                    <table class="assignment-table">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Description</th>
+                                <th>Parent</th>
+                            </tr>
+                        </thead>
+                        <tbody id="assignedEntitiesTableBody">
+                            <tr class="empty-row">
+                                <td colspan="3">No entities assigned</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="record-count" id="assignedEntitiesCount">0 records</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modals -->
+<!-- Select Segment Admin Users Modal -->
+<div class="segment-modal-overlay" id="selectAdminUsersModal">
+    <div class="segment-modal">
+        <div class="segment-modal-header">
+            <h3>Select Segment Admin Users</h3>
+            <button class="segment-modal-close" id="closeAdminUsersModal">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="segment-modal-body">
+            <div class="modal-filters">
+                <div class="modal-filter-group">
+                    <label>Name</label>
+                    <input type="text" id="filterAdminUserName" placeholder="Filter by name">
+                </div>
+                <div class="modal-filter-group">
+                    <label>Org Unit</label>
+                    <input type="text" id="filterAdminUserOrgUnit" placeholder="Filter by org unit">
+                </div>
+                <div class="modal-filter-group">
+                    <label>Profile</label>
+                    <input type="text" id="filterAdminUserProfile" placeholder="Filter by profile">
+                </div>
+                <div class="modal-filter-group">
+                    <label>Function</label>
+                    <input type="text" id="filterAdminUserFunction" placeholder="Filter by function">
+                </div>
+                <div class="modal-filter-group">
+                    <label>Email</label>
+                    <input type="text" id="filterAdminUserEmail" placeholder="Filter by email">
+                </div>
+            </div>
+            <div class="modal-table-container">
+                <table class="modal-table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Org Unit</th>
+                            <th>Profile</th>
+                            <th>Function</th>
+                            <th>Email</th>
+                        </tr>
+                    </thead>
+                    <tbody id="adminUsersModalTableBody">
+                        <tr class="loading-row">
+                            <td colspan="5"><i class="fas fa-spinner fa-spin"></i> Loading users...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="segment-modal-footer">
+            <button class="help-icon" title="Help">
+                <i class="fas fa-question"></i>
+            </button>
+            <div class="modal-actions">
+                <button class="btn btn-primary" id="selectAdminUsersBtn">Select</button>
+                <button class="btn btn-secondary" id="cancelAdminUsersBtn">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Select Org Units Modal -->
+<div class="segment-modal-overlay" id="selectOrgUnitsModal">
+    <div class="segment-modal">
+        <div class="segment-modal-header">
+            <h3>Select Org Units</h3>
+            <button class="segment-modal-close" id="closeOrgUnitsModal">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="segment-modal-body">
+            <div class="modal-table-container">
+                <table class="modal-table">
+                    <thead>
+                        <tr>
+                            <th>
+                                Org Unit
+                                <input type="text" class="filter-input" id="filterOrgUnitName" placeholder="Filter...">
+                            </th>
+                            <th>
+                                Description
+                                <input type="text" class="filter-input" id="filterOrgUnitDesc" placeholder="Filter...">
+                            </th>
+                            <th>
+                                Parent
+                                <input type="text" class="filter-input" id="filterOrgUnitParent" placeholder="Filter...">
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody id="orgUnitsModalTableBody">
+                        <tr class="loading-row">
+                            <td colspan="3"><i class="fas fa-spinner fa-spin"></i> Loading org units...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="segment-modal-footer">
+            <button class="help-icon" title="Help">
+                <i class="fas fa-question"></i>
+            </button>
+            <div class="modal-actions">
+                <button class="btn btn-primary" id="selectOrgUnitsBtn">Select</button>
+                <button class="btn btn-secondary" id="cancelOrgUnitsBtn">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Select Users Modal -->
+<div class="segment-modal-overlay" id="selectUsersModal">
+    <div class="segment-modal">
+        <div class="segment-modal-header">
+            <h3>Select Users</h3>
+            <button class="segment-modal-close" id="closeUsersModal">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="segment-modal-body">
+            <div class="modal-filters">
+                <div class="modal-filter-group">
+                    <label>Name</label>
+                    <input type="text" id="filterUserName" placeholder="Filter by name">
+                </div>
+                <div class="modal-filter-group">
+                    <label>Org Unit</label>
+                    <input type="text" id="filterUserOrgUnit" placeholder="Filter by org unit">
+                </div>
+                <div class="modal-filter-group">
+                    <label>Profile</label>
+                    <input type="text" id="filterUserProfile" placeholder="Filter by profile">
+                </div>
+                <div class="modal-filter-group">
+                    <label>Function</label>
+                    <input type="text" id="filterUserFunction" placeholder="Filter by function">
+                </div>
+                <div class="modal-filter-group">
+                    <label>Email</label>
+                    <input type="text" id="filterUserEmail" placeholder="Filter by email">
+                </div>
+            </div>
+            <div class="modal-table-container">
+                <table class="modal-table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Org Unit</th>
+                            <th>Profile</th>
+                            <th>Function</th>
+                            <th>Email</th>
+                        </tr>
+                    </thead>
+                    <tbody id="usersModalTableBody">
+                        <tr class="loading-row">
+                            <td colspan="5"><i class="fas fa-spinner fa-spin"></i> Loading users...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="segment-modal-footer">
+            <button class="help-icon" title="Help">
+                <i class="fas fa-question"></i>
+            </button>
+            <div class="modal-actions">
+                <button class="btn btn-primary" id="selectUsersBtn">Select</button>
+                <button class="btn btn-secondary" id="cancelUsersBtn">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+

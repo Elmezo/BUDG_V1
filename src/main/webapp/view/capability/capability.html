@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BUDG - Capability View</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../../assets/css/main.css">
+    <link rel="stylesheet" href="../../view/view.css">
+    <link rel="stylesheet" href="../../view/capability/capability.css">
+    <link rel="stylesheet" href="../../assets/css/stakeholder.css">
+    <link rel="stylesheet" href="../../assets/css/follow-modal.css">
+    <link rel="stylesheet" href="../../assets/css/custom-fields.css">
+    <link rel="stylesheet" href="../../assets/css/edit-dropdown.css">
+    <link rel="stylesheet" href="../../view/components/document-upload-component.css">
+    <link rel="stylesheet" href="../../assets/css/global-lock-ui.css">
+    <!-- RTL styles for Arabic (disabled by default, enabled by i18n.js) -->
+    <link rel="stylesheet" href="../../assets/css/rtl.css" id="rtl-styles" disabled>
+    <link rel="stylesheet" href="../../view/shared/map/map.css">
+
+    <link rel="stylesheet" href="../../view/history.css">
+    <script>(function(){const t=localStorage.getItem('budg-theme')||'light';document.documentElement.setAttribute('data-theme',t);})();</script>
+    <script src="/assets/i18n/head-locale.js"></script>
+    <script src="../../assets/i18n/i18n.js"></script>
+</head>
+<body class="capability-page" data-submenu="business">
+<header class="header"></header>
+
+<div class="page-header">
+    <div class="page-header-container">
+        <div class="page-title">
+            <div class="page-icon"><i class="fas fa-puzzle-piece"></i></div>
+            <div class="page-title-text">
+                <div class="page-title-main" id="capabilityTitle">Capability View</div>
+                <div class="page-title-sub" id="capabilityBreadcrumb">Capability</div>
+            </div>
+        </div>
+        <div class="form-actions">
+            <button type="button" class="btn btn-secondary" id="backBtn" data-i18n="button.back">Back</button>
+            
+        </div>
+    </div>
+</div>
+
+<main class="main-content">
+    <div class="content-card">
+        <div class="content-header">
+            <div class="tab-container">
+                <button class="tab active" data-tab="summary" data-i18n="tab.summary">SUMMARY</button>
+                <button class="tab" data-tab="relationships" data-i18n="tab.relationships">RELATIONSHIPS</button>
+                <button class="tab" data-tab="stakeholders" data-i18n="tab.stakeholders">STAKEHOLDERS</button>
+                <button class="tab" data-tab="impact" data-i18n="tab.impact">IMPACT</button>
+                <button class="tab" data-tab="history" data-i18n="tab.history">HISTORY</button>
+                <button class="tab" data-tab="change" data-i18n="tab.change">CHANGE</button>
+            </div>
+            <div class="tab-actions">
+                <!-- Edit dropdown will be inserted here by JavaScript -->
+            </div>
+        </div>
+        <div class="content-body">
+            <div id="capabilityViewContainer" class="view-grid">
+                <!-- Summary content will be loaded here by JavaScript -->
+                
+            </div>
+            <div id="capabilityRelationshipsContainer" class="view-grid" style="display:none;"></div>
+            <div id="capabilityStakeholdersContainer" class="view-grid" style="display:none;"></div>
+            <div id="capabilityImpactContainer" class="view-grid" style="display:none;"></div>
+            <div id="capabilityHistoryContainer" class="view-grid" style="display:none;"></div>
+            <div id="capabilityChangeContainer" class="view-grid" style="display:none;"></div>
+        </div>
+    </div>
+</main>
+
+<script src="../../assets/js/config.js"></script>
+<script src="../../assets/js/api-service.js"></script>
+<script src="../../assets/js/view-lock-helper.js"></script>
+<script src="../../assets/js/main.js"></script>
+<script src="../../assets/js/initSearch.js"></script>
+<script src="../../assets/js/edit-dropdown.js"></script>
+<script src="../../assets/js/delete-handler.js"></script>
+    
+    <script src="../../view/history-component.js"></script>
+    <!-- BPMN Viewer for Workflow View -->
+    <link rel="stylesheet" href="../../assets/js/libs/bpmn-js/assets/bpmn-font/css/bpmn.css">
+    <link rel="stylesheet" href="../../assets/js/libs/bpmn-js/assets/bpmn-js.css">
+    <link rel="stylesheet" href="../../assets/js/libs/bpmn-js/assets/diagram-js.css">
+    <script src="../../assets/js/libs/bpmn-js/bpmn-viewer.production.min.js"></script>
+    <script src="../../view/workflow-view.js"></script>
+    <script src="../../view/change-tab-component.js"></script>
+    <script src="../../assets/js/follow-modal.js"></script>
+    <script src="../../assets/js/follow-button.js"></script>
+    <script src="../../assets/js/custom-fields.js"></script>
+    <!-- Map dependencies -->
+    <script src="../../assets/js/cytoscape.min.js"></script>
+    <script src="../../assets/js/dagre.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/cytoscape-dagre@2.5.0/cytoscape-dagre.js"></script>
+    <!-- Shared Map Components -->
+    <script src="../../view/shared/map/map-styles.js"></script>
+    <script src="../../view/shared/map/map-icons.js"></script>
+    <!-- Unified Map System: map-ui.js bundles overlay UI -->
+    <script src="../../view/shared/map-ui.js"></script>
+    <script src="../../view/shared/map-configs.js"></script>
+<script src="../../view/shared/map-render-utils.js"></script>
+<script src="../../view/shared/map-engine.js"></script>
+<script src="../../view/shared/map-graph-utils.js"></script>
+    <script src="../../view/shared/map/system-lineage-network-interactions.js"></script>
+    <script src="../../view/shared/map/capability-facet-lineage-graph.js"></script>
+    <!-- Unified Map Controller (replaces map-component.js + shared-map-html.js + shared-map-controls.js) -->
+    <script src="../../view/shared/unified-map-controller.js"></script>
+    <!-- Capability Relationships Map -->
+    <script src="../../view/capability/capability-relationships-map.js"></script>
+    <script src="../../view/capability/capability-stakeholder.js"></script>
+    <script src="../../view/capability/capability-impact.js"></script>
+    <script src="../../view/components/document-table-component.js"></script>
+    <script src="../../view/capability/capability.js"></script>
+    <script src="../../assets/js/header.js"></script>
+    <script src="../../assets/js/global-lock-ui.js"></script>
+</body>
+</html>
+

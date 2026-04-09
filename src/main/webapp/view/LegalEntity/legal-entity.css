@@ -1,0 +1,695 @@
+/* Legal Entity View Page Specific Styles - Using global view.css styles */
+
+/* Form styling to match other edit pages */
+.legal-entity-page .edit-form-container {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+}
+
+.legal-entity-page .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+}
+
+.legal-entity-page .form-column {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.legal-entity-page .form-section {
+    background: var(--background-primary, #ffffff);
+    border: 1px solid var(--border-color, #e2e8f0);
+    border-radius: 12px;
+    padding: 1.5rem;
+}
+
+.legal-entity-page .form-row .form-section:nth-child(1),
+.legal-entity-page .form-row .form-section:nth-child(2) {
+    grid-column: auto;
+}
+
+.legal-entity-page .section-title {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-primary, #1e293b);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+}
+
+.legal-entity-page .form-group {
+    margin-bottom: 1.5rem;
+}
+
+.legal-entity-page .form-label {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--text-primary, #1e293b);
+    margin-bottom: 0.5rem;
+}
+
+.legal-entity-page .form-label.required::after {
+    content: " *";
+    color: var(--error-color, #ef4444);
+}
+
+.legal-entity-page .form-input,
+.legal-entity-page .form-textarea,
+.legal-entity-page .form-select {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid var(--border-color, #e2e8f0);
+    border-radius: 8px;
+    font-size: 0.875rem;
+    color: var(--text-primary, #1e293b);
+    background: var(--background-primary, #ffffff);
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.legal-entity-page .form-input:focus,
+.legal-entity-page .form-textarea:focus,
+.legal-entity-page .form-select:focus {
+    outline: none;
+    border-color: var(--primary-color, #248567);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* Single scrollbar: let description textarea grow with content so only main content-body scrolls */
+.legal-entity-page .form-textarea,
+.legal-entity-page #descriptionInput {
+    max-height: none;
+    min-height: 100px;
+    resize: vertical;
+    overflow-y: visible;
+}
+
+/* Apply proper layout constraints like other view pages */
+.legal-entity-page .main-content { 
+    max-width: 1200px; 
+    margin: 0 auto; 
+    padding: 1.5rem 1.75rem 3rem; 
+    height: auto; 
+    min-height: calc(100vh - 70px - 80px); 
+    display: flex; 
+    flex-direction: column; 
+    gap: 1.5rem;
+    overflow: visible !important;
+}
+
+/* Ensure view-grid and content-body show all content (STAKEHOLDERS + STAKEHOLDER COMMUNITY) */
+
+/* Apply view-page styles to legal-entity-page */
+.legal-entity-page .content-card { 
+    background: var(--background-primary, #ffffff);
+    border-radius: 18px;
+    box-shadow: var(--shadow-medium, 0 18px 40px rgba(15, 23, 42, 0.12));
+    border: 1px solid var(--border-color, #e2e8f0);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.legal-entity-page .content-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.25rem 1.75rem;
+    background: var(--background-secondary, #f8fafc);
+}
+
+.legal-entity-page .content-body {
+    padding: 1.75rem;
+    overflow: visible !important;
+    min-height: auto !important;
+}
+
+.legal-entity-page .view-grid { 
+    display: grid; 
+    grid-template-columns: 1fr 1fr; 
+    gap: 1.25rem; 
+    overflow: visible !important;
+    min-height: auto !important;
+    width: 100%;
+}
+
+/* STAKEHOLDER COMMUNITY container spans full width in grid and is not clipped */
+#legalEntityStakeholderCommunityContainer {
+    grid-column: 1 / -1;
+    min-height: 0;
+}
+
+/* Override grid for history section - needs full width */
+.legal-entity-page .view-grid .history-section {
+    grid-column: 1 / -1;
+    width: 100%;
+    max-width: 100%;
+}
+
+/* Remove padding override from history section to use history.css defaults */
+.legal-entity-page .history-section {
+    padding: 0 !important;
+}
+
+.legal-entity-page .view-section { 
+    background: var(--card-bg, #fff); 
+    border: 1px solid var(--border-color, #e5e7eb); 
+    border-radius: 12px; 
+    padding: 1.25rem; 
+    box-shadow: 0 1px 2px rgba(0,0,0,0.03); 
+}
+
+.legal-entity-page .view-section .section-title { 
+    font-weight: 600; 
+    color: var(--text-muted, #6b7280); 
+    margin-bottom: .9rem; 
+    letter-spacing: .04em; 
+    font-size: .9rem; 
+    display: flex; 
+    align-items: center; 
+    justify-content: space-between; 
+}
+
+.legal-entity-page .section-subtitle { 
+    font-size: 0.8rem; 
+    font-weight: 500; 
+    color: var(--text-muted, #6b7280); 
+    margin-bottom: 0.75rem; 
+    text-transform: uppercase; 
+    letter-spacing: 0.05em; 
+}
+
+.legal-entity-page .view-item { 
+    display: grid; 
+    grid-template-columns: 200px 1fr; 
+    gap: .85rem; 
+    padding: .65rem 0; 
+    border-bottom: 1px dashed var(--border-color, #e5e7eb); 
+}
+
+.legal-entity-page .view-item:last-child { 
+    border-bottom: 0; 
+}
+
+.legal-entity-page .view-label { 
+    font-weight: 500; 
+    color: var(--text-muted, #6b7280); 
+    font-size: .9rem; 
+}
+
+.legal-entity-page .view-value { 
+    color: var(--text-primary, #1f2937); 
+    font-size: .9rem; 
+    word-break: break-word; 
+}
+
+/* Hierarchy table wrapper - following Regulatory Theme pattern */
+.legal-entity-page .hierarchy-table-wrapper {
+    overflow-x: auto;
+    max-height: 500px;
+    overflow-y: auto;
+}
+
+.legal-entity-page .hierarchy-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+}
+
+.legal-entity-page .hierarchy-table thead {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.legal-entity-page .hierarchy-table th {
+    padding: 0.75rem 1rem;
+    text-align: left;
+    font-weight: 600;
+    font-size: 0.75rem;
+    color: var(--text-secondary, #64748b);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    background: var(--background-secondary, #f8f9fa);
+    border-bottom: 1px solid var(--border-color, #e9ecef);
+}
+
+.legal-entity-page .hierarchy-table td {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--border-color, #e9ecef);
+    vertical-align: top;
+}
+
+.legal-entity-page .hierarchy-table td:first-child {
+    white-space: nowrap;
+    min-width: 80px;
+    width: auto;
+}
+
+.legal-entity-page .hierarchy-table tbody tr:nth-child(odd) {
+    background: var(--background-stripe, #fafafa);
+}
+
+.legal-entity-page .hierarchy-table tbody tr:hover {
+    background: var(--background-hover, #f0f9ff);
+}
+
+/* Tree structure styling - matching Regulatory Theme hierarchy */
+.legal-entity-page .tree-indent {
+    display: inline-block;
+    width: 1rem;
+    height: 1px;
+}
+
+.legal-entity-page .tree-branch {
+    display: inline-block;
+    width: .75rem;
+    height: 1px;
+    background: var(--border-color, #e9ecef);
+    margin-right: .25rem;
+    vertical-align: middle;
+}
+
+.legal-entity-page .tree-cell {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.legal-entity-page .tree-expander {
+    width: 22px;
+    height: 22px;
+    border: 1px solid var(--border-color, #e9ecef);
+    border-radius: 4px;
+    background: var(--background-primary, #fff);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    color: var(--text-secondary, #64748b);
+    transition: background-color 0.15s ease;
+}
+
+.legal-entity-page .tree-expander:hover {
+    background: var(--background-secondary, #f8f9fa);
+}
+
+.legal-entity-page .tree-placeholder {
+    display: inline-block;
+    width: 22px;
+    height: 22px;
+}
+
+.legal-entity-page .item-icon {
+    color: var(--secondary-color, #248567);
+    margin-right: 0.5rem;
+    font-size: 0.875rem;
+}
+
+.legal-entity-page .le-name {
+    font-weight: 500;
+}
+
+.legal-entity-page .le-link {
+    color: var(--text-primary, #1e293b);
+    text-decoration: none;
+    transition: color 0.15s ease;
+}
+
+.legal-entity-page .le-link:hover {
+    color: var(--secondary-color, #248567);
+    text-decoration: underline;
+}
+
+.legal-entity-page .current-le-link {
+    color: var(--secondary-color, #248567);
+    font-weight: 600;
+}
+
+.legal-entity-page .child-count {
+    background: var(--secondary-color, #248567);
+    color: white;
+    font-size: 0.75rem;
+    padding: 0.125rem 0.375rem;
+    border-radius: 0.75rem;
+    margin-left: 0.5rem;
+    font-weight: 500;
+}
+
+.legal-entity-page .current-row {
+    background: var(--success-100, #d1fae5);
+}
+
+.legal-entity-page .current-row td:first-child {
+    border-left: 3px solid var(--secondary-color, #248567);
+}
+
+/* Hierarchy header styling - matching Regulatory Theme */
+.legal-entity-page .hierarchy-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--border-color, #e9ecef);
+}
+
+.legal-entity-page .hierarchy-title {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-secondary, #64748b);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.legal-entity-page .hierarchy-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.legal-entity-page .hierarchy-actions .btn {
+    padding: 0.375rem 0.75rem;
+    font-size: 0.75rem;
+    border-radius: 0.375rem;
+}
+
+/* Table footer styling */
+.legal-entity-page .table-footer {
+    padding: 0.75rem 1rem;
+    font-size: 0.75rem;
+    color: var(--text-muted, #6b7280);
+    text-align: center;
+    border-top: 1px solid var(--border-color, #e9ecef);
+    background: var(--background-secondary, #f8f9fa);
+}
+
+/* Ensure links have no underline and proper color */
+.legal-entity-page .le-link {
+    color: var(--secondary-color, #248567);
+    text-decoration: none;
+}
+
+.legal-entity-page .le-link:hover {
+    color: var(--secondary-color, #248567);
+    text-decoration: none;
+}
+
+.legal-entity-page .current-le-link {
+    color: var(--secondary-color, #248567);
+    font-weight: 600;
+    text-decoration: none;
+    background: none !important;
+    padding: 0 !important;
+    border: none !important;
+    border-radius: 0 !important;
+}
+
+.legal-entity-page .current-row {
+    background: var(--background-primary, #fff) !important;
+}
+
+/* Tab and content styling */
+.legal-entity-page .tab-container {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.legal-entity-page .tab {
+    background: var(--chip-bg, #f3f4f6);
+    color: var(--text-muted, #6b7280);
+    border: 1px solid var(--border-color, #e2e8f0);
+    border-radius: 8px;
+    padding: 0.4rem 0.8rem;
+    font-weight: 500;
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.legal-entity-page .tab.active {
+    background: #e5e7eb;
+    color: #248567;
+    border-color: var(--primary-100, #e0e7ff);
+}
+
+.legal-entity-page .tab:hover:not(.active) {
+    background: var(--background-secondary, #f9fafb);
+}
+
+/* Responsive design for legal entity page */
+@media (max-width: 768px) {
+    .legal-entity-page .view-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    
+    .legal-entity-page .view-item {
+        grid-template-columns: 1fr;
+        gap: 0.5rem;
+    }
+    
+    .legal-entity-page .view-label {
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+    }
+}
+
+/* Legal Entity Impact Tab Styling - Match common style from system.css */
+.relationships-container {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+/* Sub-tabs styling - match system impact exactly */
+.relationships-sub-tabs {
+    display: flex;
+    gap: 0;
+    border-bottom: 1px solid var(--border-color, #e5e7eb);
+    background: var(--background-primary, #fff);
+}
+
+.sub-tab {
+    background: none;
+    border: none;
+    padding: 1rem 1.5rem;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--text-muted, #6b7280);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border-bottom: 3px solid transparent;
+    position: relative;
+}
+
+.sub-tab:hover {
+    color: var(--text-primary, #111827);
+    background: var(--background-secondary, #f9fafb);
+}
+
+.sub-tab.active {
+    color: var(--text-primary, #111827);
+    border-bottom-color: var(--secondary-color, #248567);
+    background: var(--background-primary, #fff);
+}
+
+.relationships-content {
+    position: relative;
+}
+
+.sub-tab-content {
+    display: none;
+}
+
+.sub-tab-content.active {
+    display: block;
+}
+
+
+.relationships-hierarchy {
+    background: var(--background-primary, #fff);
+    border: 1px solid var(--border-color, #e9ecef);
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: var(--shadow-light, 0 2px 10px rgba(0, 0, 0, 0.1));
+}
+
+.relationships-hierarchy .hierarchy-header {
+    background: var(--background-secondary, #f8f9fa);
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--border-color, #e9ecef);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.relationships-hierarchy .hierarchy-title {
+    font-weight: 600;
+    color: var(--text-secondary, #6c757d);
+    letter-spacing: 0.04em;
+    font-size: 0.9rem;
+    background-color: var(--background-secondary, #f8f9fa);
+    padding: 0.5rem 0.75rem;
+    border-radius: 6px;
+    border-left: 4px solid var(--secondary-color, #248567);
+    text-transform: uppercase;
+}
+
+.relationships-hierarchy .hierarchy-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+
+.relationships-hierarchy .hierarchy-footer {
+    padding: 0.65rem 1rem;
+    color: var(--text-secondary, #6c757d);
+    font-size: 0.85rem;
+    border-top: 1px solid var(--border-color, #e9ecef);
+    background: var(--background-secondary, #f8f9fa);
+}
+
+.legal-entity-page .relationships-hierarchy .hierarchy-item .legal-icon {
+    color: var(--secondary-color, #248567);
+    font-size: .9rem;
+}
+
+/* Data table styling for relationships sub-tab */
+.relationships-container .data-table-wrapper,
+.relationships-container .relationships-hierarchy .data-table-wrapper {
+    background: var(--background-primary, #fff);
+    border: 1px solid var(--border-color, #e9ecef);
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: var(--shadow-light, 0 2px 10px rgba(0, 0, 0, 0.1));
+}
+
+.relationships-container .data-table,
+.relationships-container .relationships-hierarchy .data-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.relationships-container .data-table th,
+.relationships-container .relationships-hierarchy .data-table th {
+    padding: 1rem 1rem;
+    text-align: left;
+    font-weight: 600;
+    color: var(--text-secondary, #6c757d);
+    font-size: .82rem;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    background: var(--background-secondary, #f8f9fa);
+    border-bottom: 1px solid var(--border-color, #e9ecef);
+    white-space: nowrap;
+}
+
+.relationships-container .data-table td,
+.relationships-container .relationships-hierarchy .data-table td {
+    padding: .9rem 1rem;
+    border-top: 1px solid var(--border-color, #e9ecef);
+    color: var(--text-primary, #2c3e50);
+    font-weight: 400;
+    text-transform: none;
+}
+
+.relationships-container .data-table tbody tr:hover,
+.relationships-container .relationships-hierarchy .data-table tbody tr:hover {
+    background: var(--background-hover, #f8fafc);
+}
+
+/* Action buttons in relationships table - neutral gray style */
+.relationships-container .action-buttons,
+.relationships-container .relationships-hierarchy .action-buttons {
+    display: flex;
+    gap: 0.25rem;
+    align-items: center;
+    justify-content: center;
+}
+
+.relationships-container .action-buttons .btn,
+.relationships-container .relationships-hierarchy .action-buttons .btn {
+    padding: 0.3rem 0.5rem;
+    font-size: 0.75rem;
+    border-radius: 4px;
+    border: 1px solid var(--border-color, #e9ecef);
+    background: var(--background-primary, #fff);
+    color: var(--text-secondary, #6c757d);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.relationships-container .action-buttons .btn:hover,
+.relationships-container .relationships-hierarchy .action-buttons .btn:hover {
+    background: var(--background-secondary, #f8f9fa);
+    color: var(--text-primary, #2c3e50);
+}
+
+/* Form controls in data table - scoped to relationships-container */
+.relationships-container .data-table .form-control,
+.relationships-container .relationships-hierarchy .data-table .form-control {
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--border-color, #d1d5db);
+    border-radius: 6px;
+    font-size: 0.875rem;
+    background: var(--background-primary, #fff);
+    color: var(--text-primary, #111827);
+    transition: all 0.2s ease;
+}
+
+.relationships-container .data-table select.form-control,
+.relationships-container .relationships-hierarchy .data-table select.form-control {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236b7280' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    background-size: 12px;
+    padding-right: 2.5rem;
+}
+
+.relationships-container .data-table .form-control:focus,
+.relationships-container .relationships-hierarchy .data-table .form-control:focus {
+    outline: none;
+    border-color: var(--secondary-color, #248567);
+    box-shadow: 0 0 0 3px rgba(36, 133, 103, 0.1);
+}
+
+.relationships-container .data-table .form-control:hover,
+.relationships-container .relationships-hierarchy .data-table .form-control:hover {
+    border-color: var(--text-secondary, #9ca3af);
+}
+
+/* Th content for sort icons */
+.relationships-container .th-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
+
+.relationships-container .th-content i {
+    color: var(--text-muted, #9ca3af);
+    font-size: 0.75rem;
+    opacity: 0.6;
+}
+
+/* Entity links in view - green color */
+.entity-link {
+    color: var(--secondary-color, #248567) !important;
+    text-decoration: none;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.entity-link:hover {
+    color: var(--primary-700, #1d4ed8) !important;
+    text-decoration: underline;
+    transform: translateX(2px);
+}

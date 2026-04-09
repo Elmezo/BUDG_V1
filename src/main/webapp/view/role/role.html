@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BUDG - Role View</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../../assets/css/main.css">
+    <link rel="stylesheet" href="../../view/view.css">
+    <link rel="stylesheet" href="../../assets/css/follow-modal.css">
+    <link rel="stylesheet" href="../../assets/css/custom-fields.css">
+    <link rel="stylesheet" href="../../assets/css/global-lock-ui.css">
+    <!-- RTL styles for Arabic (disabled by default, enabled by i18n.js) -->
+    <link rel="stylesheet" href="../../assets/css/rtl.css" id="rtl-styles" disabled>
+    <script>(function(){const t=localStorage.getItem('budg-theme')||'light';document.documentElement.setAttribute('data-theme',t);})();</script>
+    <style>
+        body.role-page { overflow: hidden; height: 100vh; }
+        .page-title { display: flex; align-items: center; gap: .75rem; }
+        .page-icon { width: 32px; height: 32px; background: #248567; color: #fff; border-radius: 6px; display:flex; align-items:center; justify-content:center; }
+        .page-title-text { display:flex; flex-direction:column; }
+        .page-title-main { font-weight:600; color: var(--text-primary); }
+        .page-title-sub { font-size:.8rem; color: var(--text-secondary); }
+        .main-content { max-width: 1200px; margin: 0 auto; padding: 1rem 20px; height: calc(100vh - 70px - 80px); display:flex; flex-direction:column; overflow:hidden; }
+        .content-card { background: var(--background-primary); border:1px solid var(--border-color); border-radius:8px; box-shadow: var(--shadow-light); flex:1; display:flex; flex-direction:column; overflow:hidden; }
+        .content-header { padding:1rem; border-bottom:1px solid var(--border-color); background: var(--background-secondary); }
+        .tab-container { display:flex; }
+        .tab { padding:.5rem 1rem; background: transparent; border:none; color: var(--text-secondary); border-bottom:2px solid transparent; font-weight:500; }
+        .tab.active { color: #248567; border-bottom-color: #248567; }
+        .content-body { padding:1.5rem; flex:1; overflow:auto; }
+    </style>
+        <script src="/assets/i18n/head-locale.js"></script>
+        <script src="../../assets/i18n/i18n.js"></script>
+</head>
+<body class="role-page" data-submenu="organizational">
+<header class="header"></header>
+
+<div class="page-header">
+    <div class="page-header-container">
+        <div class="page-title">
+            <div class="page-icon"><i class="fas fa-user-shield"></i></div>
+            <div class="page-title-text">
+                <div class="page-title-main" data-i18n="facet.role">Role</div>
+                <div class="page-title-sub" data-i18n="orgUnit.pageSubtitle">Organizational</div>
+            </div>
+        </div>
+        <div class="form-actions">
+            <button type="button" class="btn btn-secondary" id="backBtn" data-i18n="button.back">Back</button>
+        </div>
+    </div>
+</div>
+
+<main class="main-content">
+    <div class="content-card">
+        <div class="content-header">
+            <div class="tab-container">
+                <button class="tab active" data-tab="summary" data-i18n="tab.summary">SUMMARY</button>
+            </div>
+            <div class="tab-actions">
+                <button type="button" class="btn btn-primary btn-sm" id="tabEditBtn" title="Edit">
+                    <i class="fas fa-pen"></i>
+                    Edit
+                </button>
+            </div>
+        </div>
+        <div class="content-body">
+            <div id="roleViewContainer" class="view-grid"></div>
+            
+        </div>
+    </div>
+</main>
+
+<script src="../../assets/js/config.js"></script>
+<script src="../../assets/js/api-service.js"></script>
+<script src="../../assets/js/view-lock-helper.js"></script>
+<script src="../../assets/js/main.js"></script>
+<script src="../../assets/js/initSearch.js"></script>
+
+<script src="../../assets/js/custom-fields.js"></script>
+<script src="../../view/role/role.js"></script>
+<script src="../../assets/js/follow-modal.js"></script>
+<script src="../../assets/js/follow-button.js"></script>
+<script src="../../view/role/role-edit.js"></script>
+<script src="../../assets/js/header.js"></script>
+<script src="../../assets/js/global-lock-ui.js"></script>
+</body>
+</html>
+
+

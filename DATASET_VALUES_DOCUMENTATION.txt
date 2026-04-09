@@ -1,0 +1,1410 @@
+================================================================================
+                    توثيق شامل لقيم Dataset في نظام BUDG
+================================================================================
+
+تاريخ الإنشاء: 2025
+الغرض: شرح شامل لقيم الـ dataset، الشروط، الأوامر، الأزرار، وقاعدة البيانات
+
+================================================================================
+1. هيكل قاعدة البيانات (Database Schema)
+================================================================================
+
+النظام يستخدم 6 جداول رئيسية لتخزين وإدارة قيم الـ dataset:
+
+--------------------------------------------------------------------------------
+1.1 جدول values_datastore (جدول تخزين البيانات الرئيسي)
+--------------------------------------------------------------------------------
+الوصف: الجدول الرئيسي الذي يخزن البيانات الوصفية (metadata) لكل dataset
+
+الأعمدة:
+---------
+- id (SERIAL PRIMARY KEY)
+  * المعرف الفريد للـ datastore
+  * يتم إنشاؤه تلقائياً
+  
+- dataset_id (INTEGER NOT NULL)
+  * المعرف الخاص بالـ dataset المرتبط
+  * Foreign Key يشير إلى جدول dataset(id)
+  * إلزامي - يجب أن يكون موجوداً
+  
+- frequency (VARCHAR(50))
+  * تردد تحديث القيم
+  * القيم المحتملة:
+    * Daily (يومي)
+    * Weekly (أسبوعي)
+    * Monthly (شهري)
+    * Quarterly (ربع سنوي)
+    * Yearly (سنوي)
+    * Ad-hoc (عند الحاجة)
+    * Other (أخرى)
+  * اختياري
+  
+- frequency_comments (TEXT)
+  * تعليقات إضافية حول تردد التحديث
+  * يمكن أن يحتوي على نصوص طويلة
+  * اختياري
+  
+- availability (VARCHAR(100))
+  * طريقة توفر البيانات
+  * القيم المحتملة:
+    * "Via Application UI - record per record" (عبر واجهة التطبيق - سجل بسجل)
+    * "Via Application UI - bulk extract" (عبر واجهة التطبيق - استخراج مجمع)
+    * "Via Ad-Hoc IT extract" (عبر استخراج IT عند الحاجة)
+    * "Via data warehouse" (عبر مستودع البيانات)
+  * اختياري
+  
+- availability_comments (TEXT)
+  * تعليقات إضافية حول طريقة التوفر
+  * يمكن أن يحتوي على نصوص طويلة
+  * اختياري
+  
+- values_in_axon (BOOLEAN DEFAULT FALSE)
+  * هل القيم موجودة في BUDG
+  * القيم:
+    * true: القيم موجودة في BUDG
+    * false: القيم غير موجودة في BUDG
+  * القيمة الافتراضية: false
+  
+- created_at (TIMESTAMP DEFAULT CURRENT_TIMESTAMP)
+  * تاريخ ووقت إنشاء السجل
+  * يتم تعيينه تلقائياً عند الإنشاء
+  
+- updated_at (TIMESTAMP DEFAULT CURRENT_TIMESTAMP)
+  * تاريخ ووقت آخر تحديث
+  * يتم تحديثه تلقائياً عند التعديل
+
+--------------------------------------------------------------------------------
+1.2 جدول values_field (جدول الحقول/الأعمدة)
+--------------------------------------------------------------------------------
+الوصف: يخزن تعريفات الحقول (الأعمدة) لكل datastore
+
+الأعمدة:
+---------
+- id (SERIAL PRIMARY KEY)
+  * المعرف الفريد للحقل
+  * يتم إنشاؤه تلقائياً
+  
+- datastore_id (INTEGER NOT NULL)
+  * المعرف الخاص بالـ datastore المرتبط
+  * Foreign Key يشير إلى values_datastore(id)
+  * إلزامي
+  
+- column_name (VARCHAR(255) NOT NULL)
+  * اسم العمود/الحقل
+  * يجب أن يطابق اسم الـ attribute في جدول attribute
+  * إلزامي
+  * مثال: "Active", "CMD ID", "age", "gender", "Consent Type"
+  
+- data_type (VARCHAR(50))
+  * نوع البيانات المخزنة في هذا الحقل
+  * القيم المحتملة:
+    * String (نص)
+    * Integer (رقم صحيح)
+    * Decimal (رقم عشري)
+    * Date (تاريخ)
+    * Boolean (منطقي)
+    * وغيرها
+  * اختياري - القيمة الافتراضية: 'String'
+  
+- dataset_attribute_id (INTEGER)
+  * رابط اختياري إلى الـ attribute الأصلي في جدول attribute
+  * يمكن أن يكون NULL إذا لم يكن مرتبطاً
+  * Foreign Key يشير إلى attribute(id)
+
+--------------------------------------------------------------------------------
+1.3 جدول values_rule (جدول القواعد والقيود)
+--------------------------------------------------------------------------------
+الوصف: يخزن القواعد والقيود المطبقة على الحقول
+
+الأعمدة:
+---------
+- id (SERIAL PRIMARY KEY)
+  * المعرف الفريد للقاعدة
+  * يتم إنشاؤه تلقائياً
+  
+- field_id (INTEGER NOT NULL)
+  * المعرف الخاص بالحقل المرتبط
+  * Foreign Key يشير إلى values_field(id)
+  * إلزامي
+  
+- rule_type (VARCHAR(50) NOT NULL)
+  * نوع القاعدة
+  * القيم المحتملة:
+    * 'MAX_LENGTH' (الحد الأقصى للطول)
+    * 'PRIMARY' (مفتاح أساسي)
+    * 'REQUIRED' (إلزامي)
+    * 'UNIQUE' (فريد)
+    * وغيرها
+  * إلزامي
+  
+- rule_value (VARCHAR(255))
+  * قيمة القاعدة
+  * مثال: إذا كانت rule_type = 'MAX_LENGTH'، فإن rule_value = "255"
+  * اختياري
+
+--------------------------------------------------------------------------------
+1.4 جدول values_entry_ref (جدول مرجع الرفع - Batch upload Header)
+--------------------------------------------------------------------------------
+الوصف: يخزن معلومات عن كل عملية رفع (upload) للبيانات
+
+الأعمدة:
+---------
+- id (SERIAL PRIMARY KEY)
+  * المعرف الفريد لمرجع الرفع
+  * يتم إنشاؤه تلقائياً
+  
+- datastore_id (INTEGER NOT NULL)
+  * المعرف الخاص بالـ datastore المرتبط
+  * Foreign Key يشير إلى values_datastore(id)
+  * إلزامي
+  
+- upload_timestamp (TIMESTAMP DEFAULT CURRENT_TIMESTAMP)
+  * تاريخ ووقت عملية الرفع
+  * يتم تعيينه تلقائياً عند الرفع
+  
+- user_id (INTEGER)
+  * معرف المستخدم الذي قام بالرفع
+  * يمكن أن يكون NULL
+  * Foreign Key يشير إلى people(ID) أو جدول المستخدمين
+  
+- row_count (INTEGER)
+  * عدد الصفوف المرفوعة في هذه العملية
+  * يتم تحديثه بعد اكتمال الرفع
+  * يمكن أن يكون NULL في البداية
+  
+- upload_type (VARCHAR(20))
+  * نوع عملية الرفع
+  * القيم المحتملة:
+    * 'APPEND' (إضافة - يضيف البيانات الجديدة للبيانات الموجودة)
+    * 'OVERWRITE' (استبدال - يحذف البيانات القديمة ويستبدلها بالجديدة)
+  * إلزامي
+
+--------------------------------------------------------------------------------
+1.5 جدول values_entry (جدول القيم الفعلية)
+--------------------------------------------------------------------------------
+الوصف: يخزن القيم الفعلية للبيانات المرفوعة
+
+الأعمدة:
+---------
+- id (SERIAL PRIMARY KEY)
+  * المعرف الفريد للقيمة
+  * يتم إنشاؤه تلقائياً
+  
+- entry_ref_id (INTEGER NOT NULL)
+  * المعرف الخاص بمرجع الرفع المرتبط
+  * Foreign Key يشير إلى values_entry_ref(id)
+  * إلزامي
+  
+- field_id (INTEGER NOT NULL)
+  * المعرف الخاص بالحقل المرتبط
+  * Foreign Key يشير إلى values_field(id)
+  * إلزامي
+  
+- row_index (INTEGER)
+  * فهرس الصف لتجميع قيم نفس الصف معاً
+  * يتم استخدامه لإعادة بناء الصف الكامل
+  * مثال: جميع القيم التي لها row_index = 1 تنتمي لنفس الصف
+  * يمكن أن يكون NULL
+  
+- value_text (TEXT)
+  * القيمة الفعلية المخزنة
+  * يتم تخزين جميع القيم كنص (TEXT)
+  * يمكن أن يحتوي على نصوص طويلة
+  * يمكن أن يكون NULL
+
+ملاحظة مهمة:
+-------------
+- يتم تخزين البيانات بشكل "normalized" - كل قيمة في صف منفصل
+- لإعادة بناء صف كامل، يتم تجميع جميع القيم التي لها نفس row_index و entry_ref_id
+- يتم ربط كل قيمة بحقلها عبر field_id
+
+--------------------------------------------------------------------------------
+1.6 جدول values_audit (جدول السجلات التدقيقية)
+--------------------------------------------------------------------------------
+الوصف: يخزن سجل بجميع العمليات التي تمت على قيم الـ dataset
+
+الأعمدة:
+---------
+- id (SERIAL PRIMARY KEY)
+  * المعرف الفريد للسجل التدقيقي
+  * يتم إنشاؤه تلقائياً
+  
+- dataset_id (INTEGER NOT NULL)
+  * المعرف الخاص بالـ dataset المرتبط
+  * إلزامي
+  
+- action_type (VARCHAR(50) NOT NULL)
+  * نوع العملية
+  * القيم المحتملة:
+    * 'INSERT' (إدراج - عند رفع بيانات جديدة)
+    * 'DELETE' (حذف - عند استبدال البيانات أو حذفها)
+  * إلزامي
+  
+- action_timestamp (TIMESTAMP DEFAULT CURRENT_TIMESTAMP)
+  * تاريخ ووقت العملية
+  * يتم تعيينه تلقائياً
+  
+- user_id (INTEGER)
+  * معرف المستخدم الذي قام بالعملية
+  * يمكن أن يكون NULL
+  * Foreign Key يشير إلى people(ID) أو جدول المستخدمين
+  
+- details (TEXT)
+  * تفاصيل إضافية عن العملية
+  * مثال: "Uploaded 4 rows via append"
+  * مثال: "Overwrite triggered"
+  * يمكن أن يكون NULL
+
+================================================================================
+2. القيم والحقول (Values & Fields)
+================================================================================
+
+--------------------------------------------------------------------------------
+2.1 القيم المخزنة في values_datastore
+--------------------------------------------------------------------------------
+
+2.1.1 frequency (تردد التحديث)
+------------------------------
+القيم المتاحة:
+- Daily: تحديث يومي
+- Weekly: تحديث أسبوعي
+- Monthly: تحديث شهري
+- Quarterly: تحديث ربع سنوي
+- Yearly: تحديث سنوي
+- Ad-hoc: تحديث عند الحاجة
+- Other: أخرى
+
+الاستخدام:
+- يتم اختيار التردد من قائمة منسدلة في واجهة المستخدم
+- يتم حفظ القيمة في حقل frequency
+- يمكن إضافة تعليقات في frequency_comments
+
+2.1.2 frequency_comments (تعليقات التردد)
+------------------------------------------
+- حقل نصي طويل (TEXT)
+- يمكن استخدام محرر نصوص متقدم (Rich Text Editor)
+- يدعم HTML والتنسيق
+- اختياري
+
+2.1.3 availability (طريقة التوفر)
+----------------------------------
+القيم المتاحة:
+- "Via Application UI - record per record"
+  * عبر واجهة التطبيق - سجل بسجل
+  * يتم إدخال البيانات يدوياً سجل بسجل
+  
+- "Via Application UI - bulk extract"
+  * عبر واجهة التطبيق - استخراج مجمع
+  * يتم استخراج البيانات بشكل مجمع من واجهة التطبيق
+  
+- "Via Ad-Hoc IT extract"
+  * عبر استخراج IT عند الحاجة
+  * يتم استخراج البيانات بواسطة فريق IT عند الحاجة
+  
+- "Via data warehouse"
+  * عبر مستودع البيانات
+  * البيانات متوفرة في مستودع البيانات
+
+2.1.4 availability_comments (تعليقات التوفر)
+---------------------------------------------
+- حقل نصي طويل (TEXT)
+- يمكن استخدام محرر نصوص متقدم (Rich Text Editor)
+- يدعم HTML والتنسيق
+- اختياري
+
+2.1.5 values_in_axon (القيم في BUDG)
+-------------------------------------
+القيم المتاحة:
+- true أو "Sample Set": القيم موجودة في BUDG
+- false أو "No": القيم غير موجودة في BUDG
+
+الاستخدام:
+- يتم اختيار القيمة من قائمة منسدلة
+- في واجهة المستخدم، تظهر الخيارات:
+  * "Sample Set" (إذا كانت موجودة)
+  * "No" (إذا لم تكن موجودة)
+
+--------------------------------------------------------------------------------
+2.2 هيكل values_field (الحقول)
+--------------------------------------------------------------------------------
+
+2.2.1 column_name (اسم العمود)
+-------------------------------
+- يجب أن يطابق اسم الـ attribute في جدول attribute
+- يتم التحقق من التطابق عند رفع الملف
+- إذا لم يطابق، يتم عرض رسالة خطأ
+- أمثلة:
+  * "Active"
+  * "CMD ID"
+  * "age"
+  * "gender"
+  * "Consent Type"
+
+2.2.2 data_type (نوع البيانات)
+-------------------------------
+- يتم الحصول عليه من الـ attribute المرتبط
+- القيم المحتملة:
+  * String: نص
+  * Integer: رقم صحيح
+  * Decimal: رقم عشري
+  * Date: تاريخ
+  * Boolean: منطقي
+  * System: مرجع إلى جدول system
+  * Glossary: مرجع إلى جدول glossary
+  * Business Area: مرجع إلى جدول business_area
+  * Policy: مرجع إلى جدول policy
+  * Project: مرجع إلى جدول project
+  * Process: مرجع إلى جدول process
+  * Person/Employee: مرجع إلى جدول people
+
+2.2.3 dataset_attribute_id (ربط بالـ attribute)
+-------------------------------------------------
+- رابط اختياري إلى الـ attribute الأصلي
+- يساعد في تتبع العلاقة بين الحقل والـ attribute
+- يمكن أن يكون NULL
+
+================================================================================
+3. الشروط والتحقق (Conditions & Validation)
+================================================================================
+
+--------------------------------------------------------------------------------
+3.1 شروط التحقق من الرفع (File Upload Validation)
+--------------------------------------------------------------------------------
+
+3.1.1 التحقق من تطابق أسماء الأعمدة
+------------------------------------
+الشرط:
+- يجب أن تطابق أسماء الأعمدة في الملف المرفوع أسماء الـ attributes في الـ dataset
+
+التحقق:
+1. يتم جلب جميع الـ attributes من جدول attribute للـ dataset
+2. يتم استخراج أسماء الأعمدة من السطر الأول في الملف (header row)
+3. يتم مقارنة كل عمود مع قائمة الـ attributes
+4. إذا وُجد عمود غير موجود في الـ attributes، يتم إرجاع خطأ
+
+رسالة الخطأ:
+"Invalid headers found: [أسماء الأعمدة غير الصحيحة]. Expected attributes: [قائمة الـ attributes]"
+
+الكود:
+------
+String attrSql = "SELECT primaryname FROM attribute WHERE dataset_id = ?";
+// يتم مقارنة headers مع validAttributes
+if (!validAttributes.contains(cleanHeader.toLowerCase())) {
+    invalidHeaders.add(cleanHeader);
+}
+
+3.1.2 التحقق من وجود Data Type و Data Length
+---------------------------------------------
+الشرط:
+- يجب أن يكون لكل attribute Data Type و Data Length محددين
+
+التحقق:
+1. يتم جلب جميع الـ attributes مع Data Type و Data Length
+2. يتم التحقق من وجود Data Type (يجب أن يكون موجوداً وغير فارغ)
+3. يتم التحقق من وجود Data Length (يجب أن يكون موجوداً وليس NULL)
+
+رسالة الخطأ:
+"Please specify Data type and data length for attribute [أسماء الـ attributes]"
+
+الكود:
+------
+const missingData = this.attributes.filter(a => {
+    const hasDataType = dataType && dataType.toString().trim() !== '';
+    const hasDataLength = dataLength !== null && dataLength !== undefined;
+    return !hasDataType || !hasDataLength;
+});
+
+3.1.3 التحقق من عدم وجود ملف فارغ
+----------------------------------
+الشرط:
+- يجب أن يحتوي الملف على بيانات (صفوف)
+
+التحقق:
+1. يتم قراءة الملف وتحويله إلى JSON
+2. يتم التحقق من أن عدد الصفوف أكبر من 0
+3. إذا كان الملف فارغاً، يتم إرجاع خطأ
+
+رسالة الخطأ:
+"File is empty. Please add data rows."
+
+الكود:
+------
+if (jsonData.length === 0) {
+    errors.push({
+        row: 0,
+        field: 'File',
+        message: 'File is empty. Please add data rows.'
+    });
+}
+
+3.1.4 التحقق من صحة تنسيق CSV/Excel
+-------------------------------------
+الشرط:
+- يجب أن يكون الملف بتنسيق CSV أو Excel (.csv, .xlsx, .xls)
+
+التحقق:
+1. يتم التحقق من امتداد الملف
+2. يتم محاولة قراءة الملف باستخدام مكتبة XLSX
+3. إذا فشلت القراءة، يتم إرجاع خطأ
+
+3.1.5 التحقق من الحقول الإلزامية
+----------------------------------
+الشرط:
+- إذا كان الـ attribute محدداً كـ required، يجب أن تكون القيمة موجودة
+
+التحقق:
+1. يتم التحقق من كل صف في الملف
+2. يتم التحقق من كل حقل إلزامي
+3. إذا كان الحقل فارغاً، يتم إضافة خطأ
+
+رسالة الخطأ:
+"Required field '[اسم الحقل]' is empty"
+
+الكود:
+------
+if (attribute.required && (!value || value.toString().trim() === '')) {
+    rowErrors.push({
+        row: rowNumber,
+        field: header,
+        message: `Required field '${header}' is empty`
+    });
+}
+
+--------------------------------------------------------------------------------
+3.2 شروط الرفع (Upload Type Conditions)
+--------------------------------------------------------------------------------
+
+3.2.1 Append (إضافة)
+---------------------
+الوصف:
+- يضيف البيانات الجديدة للبيانات الموجودة
+- لا يحذف البيانات القديمة
+- يتم إنشاء entry_ref جديد
+- يتم إضافة القيم الجديدة إلى values_entry
+
+العملية:
+1. يتم التحقق من وجود datastore للـ dataset
+2. إذا لم يكن موجوداً، يتم إنشاؤه
+3. يتم إنشاء entry_ref جديد بنوع 'APPEND'
+4. يتم إضافة القيم الجديدة
+5. يتم تحديث row_count في entry_ref
+6. يتم إدراج سجل في values_audit بنوع 'INSERT'
+
+الكود:
+------
+if ("append".equalsIgnoreCase(uploadType)) {
+    // Create new entry_ref
+    // Insert new values
+    // Update row_count
+    insertAudit(conn, datasetId, "INSERT", userId, "Uploaded " + rowCount + " rows via append");
+}
+
+3.2.2 Overwrite (استبدال)
+---------------------------
+الوصف:
+- يحذف جميع البيانات القديمة
+- يستبدلها بالبيانات الجديدة
+- يتم حذف جميع values_entry و values_entry_ref القديمة
+
+العملية:
+1. يتم إدراج سجل في values_audit بنوع 'DELETE' مع تفاصيل "Overwrite triggered"
+2. يتم حذف جميع values_entry المرتبطة بالـ datastore
+3. يتم حذف جميع values_entry_ref المرتبطة بالـ datastore
+4. يتم إنشاء entry_ref جديد بنوع 'OVERWRITE'
+5. يتم إضافة القيم الجديدة
+6. يتم تحديث row_count في entry_ref
+7. يتم إدراج سجل في values_audit بنوع 'INSERT'
+
+الكود:
+------
+if ("overwrite".equalsIgnoreCase(uploadType)) {
+    // Audit entry
+    insertAudit(conn, datasetId, "DELETE", userId, "Overwrite triggered");
+    
+    // Delete old entries
+    String deleteEntries = "DELETE FROM values_entry WHERE entry_ref_id IN (SELECT id FROM values_entry_ref WHERE datastore_id = ?)";
+    String deleteRefs = "DELETE FROM values_entry_ref WHERE datastore_id = ?";
+    
+    // Create new entry_ref
+    // Insert new values
+    insertAudit(conn, datasetId, "INSERT", userId, "Uploaded " + rowCount + " rows via overwrite");
+}
+
+--------------------------------------------------------------------------------
+3.3 شروط حل المراجع (Reference Resolution Conditions)
+--------------------------------------------------------------------------------
+
+3.3.1 أنواع المراجع المدعومة
+-----------------------------
+النظام يدعم حل المراجع التالية:
+
+1. System (نظام)
+   - الجدول: system
+   - العمود: PrimaryName
+   - يتم البحث عن النظام بالاسم وإرجاع ID
+
+2. Glossary (قاموس)
+   - الجدول: glossary
+   - العمود: Name
+   - يتم البحث عن المصطلح بالاسم وإرجاع ID
+
+3. Business Area (منطقة الأعمال)
+   - الجدول: business_area
+   - العمود: PrimaryName
+   - يتم البحث عن المنطقة بالاسم وإرجاع ID
+
+4. Policy (سياسة)
+   - الجدول: policy
+   - العمود: PrimaryName
+   - يتم البحث عن السياسة بالاسم وإرجاع ID
+
+5. Project (مشروع)
+   - الجدول: project
+   - العمود: PrimaryName
+   - يتم البحث عن المشروع بالاسم وإرجاع ID
+
+6. Process (عملية)
+   - الجدول: process
+   - العمود: PrimaryName
+   - يتم البحث عن العملية بالاسم وإرجاع ID
+
+7. Person/Employee (شخص/موظف)
+   - الجدول: people
+   - العمود: CONCAT(First_Name, ' ', Last_Name)
+   - يتم البحث عن الشخص بالاسم الكامل وإرجاع ID
+
+3.3.2 عملية حل المراجع
+-----------------------
+1. عند رفع الملف، يتم تحديد نوع البيانات لكل عمود من الـ attribute
+2. إذا كان نوع البيانات من الأنواع المرجعية، يتم:
+   a. قراءة القيمة من الملف (الاسم)
+   b. البحث في الجدول المناسب عن السجل بالاسم
+   c. إذا وُجد، يتم استبدال الاسم بـ ID
+   d. إذا لم يُوجد، يتم الاحتفاظ بالقيمة الأصلية (قد يسبب خطأ لاحقاً)
+
+الكود:
+------
+private String resolveReferenceId(Connection conn, String type, String value) {
+    if (type.equalsIgnoreCase("System"))
+        table = "system";
+    else if (type.equalsIgnoreCase("Glossary"))
+        table = "glossary";
+    // ... إلخ
+    
+    String sql = "SELECT ID FROM " + table + " WHERE " + col + " = ?";
+    // يتم البحث وإرجاع ID
+}
+
+3.3.3 حل المراجع عند العرض
+---------------------------
+عند عرض البيانات:
+1. يتم قراءة القيمة من values_entry (قد تكون ID)
+2. يتم تحديد نوع البيانات من الـ attribute
+3. إذا كان نوع البيانات مرجعياً، يتم:
+   a. البحث في الجدول المناسب عن السجل بالـ ID
+   b. إرجاع الاسم (PrimaryName) بدلاً من ID
+   c. عرض الاسم في الواجهة
+
+الكود:
+------
+private String resolveReferenceName(Connection conn, String type, String value) {
+    // التحقق من أن القيمة رقم (ID)
+    if (!value.matches("\\d+"))
+        return null;
+    
+    // البحث في الجدول المناسب
+    String sql = "SELECT " + col + " FROM " + table + " WHERE ID = ?";
+    // إرجاع الاسم
+}
+
+================================================================================
+4. الأوامر و API Endpoints
+================================================================================
+
+--------------------------------------------------------------------------------
+4.1 GET /api/dataset-values/{id}/metadata
+--------------------------------------------------------------------------------
+الوصف: جلب البيانات الوصفية (metadata) للـ dataset
+
+المعاملات:
+----------
+- {id}: معرف الـ dataset (integer)
+
+الاستجابة:
+----------
+JSON object يحتوي على:
+{
+    "frequency": "Daily" | "Weekly" | "Monthly" | ... | null,
+    "frequencyComments": "string" | null,
+    "availability": "Via Application UI - record per record" | ... | null,
+    "availabilityComments": "string" | null,
+    "valuesInAxon": true | false
+}
+
+الكود:
+------
+String sql = "SELECT frequency, frequency_comments, availability, availability_comments, values_in_axon 
+              FROM values_datastore 
+              WHERE dataset_id = ? 
+              ORDER BY id DESC 
+              LIMIT 1";
+
+حالات الخطأ:
+-----------
+- 400 Bad Request: إذا كان ID غير صحيح
+- 500 Internal Server Error: خطأ في قاعدة البيانات
+
+--------------------------------------------------------------------------------
+4.2 GET /api/dataset-values/{id}/sample
+--------------------------------------------------------------------------------
+الوصف: جلب عينة من القيم المخزنة (حتى 500 صف)
+
+المعاملات:
+----------
+- {id}: معرف الـ dataset (integer)
+
+الاستجابة:
+----------
+JSON array من objects، كل object يمثل صف:
+[
+    {
+        "column_name_1": "value_1",
+        "column_name_2": "value_2",
+        ...
+    },
+    ...
+]
+
+ملاحظات:
+--------
+- يتم حل المراجع (Reference Resolution) - يتم عرض الأسماء بدلاً من IDs
+- يتم جلب أحدث entry_ref فقط
+- الحد الأقصى: 500 صف
+
+الكود:
+------
+// 1. البحث عن أحدث datastore
+String dsSql = "SELECT id FROM values_datastore WHERE dataset_id = ? ORDER BY id DESC LIMIT 1";
+
+// 2. جلب الحقول
+String fieldSql = "SELECT id, column_name FROM values_field WHERE datastore_id = ?";
+
+// 3. جلب القيم
+String entrySql = "SELECT row_index, field_id, value_text FROM values_entry 
+                   WHERE entry_ref_id IN (
+                       SELECT id FROM values_entry_ref 
+                       WHERE datastore_id = ? 
+                       ORDER BY id DESC LIMIT 1
+                   ) 
+                   LIMIT 500";
+
+// 4. حل المراجع
+Map<String, String> attributeTypes = getAttributeTypes(conn, datasetId);
+// يتم استبدال IDs بالأسماء
+
+حالات الخطأ:
+-----------
+- 400 Bad Request: إذا كان ID غير صحيح
+- 500 Internal Server Error: خطأ في قاعدة البيانات
+
+--------------------------------------------------------------------------------
+4.3 POST /api/dataset-values/{id}/save
+--------------------------------------------------------------------------------
+الوصف: حفظ البيانات الوصفية و/أو رفع ملف القيم
+
+المعاملات:
+----------
+- {id}: معرف الـ dataset (integer)
+
+Body (multipart/form-data):
+---------------------------
+- metadata (string, JSON): البيانات الوصفية
+  {
+      "frequency": "Daily",
+      "frequencyComments": "comments",
+      "availability": "Via Application UI - record per record",
+      "availabilityComments": "comments",
+      "valuesInAxon": "Sample Set" | "false"
+  }
+  
+- file (binary, optional): ملف CSV أو Excel
+  - يجب أن يحتوي على header row بأسماء الأعمدة
+  - يجب أن تطابق أسماء الأعمدة أسماء الـ attributes
+  
+- uploadType (string, optional): نوع الرفع
+  - "append": إضافة البيانات
+  - "overwrite": استبدال البيانات
+
+الاستجابة:
+----------
+{
+    "success": true,
+    "message": "Values saved successfully"
+}
+
+حالات الخطأ:
+-----------
+- 400 Bad Request: 
+  * ID غير صحيح
+  * ملف فارغ
+  * أسماء الأعمدة غير صحيحة
+  
+- 500 Internal Server Error:
+  * خطأ في قاعدة البيانات
+  * خطأ في معالجة الملف
+
+الكود:
+------
+// 1. التحقق من وجود datastore أو إنشاؤه
+String checkDs = "SELECT id FROM values_datastore WHERE dataset_id = ?";
+// إذا لم يكن موجوداً:
+String createDs = "INSERT INTO values_datastore (dataset_id) VALUES (?)";
+
+// 2. معالجة رفع الملف (إذا كان موجوداً)
+if (filePart != null && filePart.getSize() > 0) {
+    processFileUpload(conn, datasetId, datastoreId, filePart, uploadType, userId);
+}
+
+// 3. تحديث البيانات الوصفية (إذا كانت موجودة)
+if (metadataJson != null && !metadataJson.isEmpty()) {
+    String updateSql = "UPDATE values_datastore 
+                       SET frequency = ?, 
+                           frequency_comments = ?, 
+                           availability = ?, 
+                           availability_comments = ?, 
+                           values_in_axon = ?, 
+                           updated_at = CURRENT_TIMESTAMP 
+                       WHERE id = ?";
+}
+
+عملية رفع الملف (processFileUpload):
+------------------------------------
+1. قراءة header row من الملف
+2. التحقق من تطابق الأعمدة مع الـ attributes
+3. إذا كان uploadType = "overwrite":
+   a. حذف جميع values_entry القديمة
+   b. حذف جميع values_entry_ref القديمة
+   c. إدراج سجل في values_audit بنوع 'DELETE'
+4. إنشاء entry_ref جديد
+5. قراءة كل صف من الملف:
+   a. تقسيم الصف إلى قيم
+   b. حل المراجع (إذا لزم الأمر)
+   c. إدراج كل قيمة في values_entry
+6. تحديث row_count في entry_ref
+7. إدراج سجل في values_audit بنوع 'INSERT'
+8. إرسال إشعار للمستخدم
+
+================================================================================
+5. الأزرار والتفاعلات (Buttons & UI)
+================================================================================
+
+--------------------------------------------------------------------------------
+5.1 صفحة العرض (View Mode - dataset-values.js)
+--------------------------------------------------------------------------------
+
+5.1.1 عرض البيانات الوصفية
+--------------------------
+الموقع: قسم "VALUE UPDATES & AVAILABILITY"
+
+العناصر المعروضة:
+- Value Update Frequency: تردد التحديث
+- Update Frequency Comments: تعليقات التردد
+- Availability: طريقة التوفر
+- Availability Comments: تعليقات التوفر
+- Values in BUDG: هل القيم موجودة في BUDG
+
+الوظيفة:
+- قراءة البيانات من API: GET /api/dataset-values/{id}/metadata
+- عرض البيانات في نمط read-only
+- إذا لم تكن البيانات موجودة، يتم عرض "-"
+
+الكود:
+------
+async loadMetadata() {
+    const metadata = await this.fetchMetadataFromApi(this.datasetId);
+    container.innerHTML = `
+        ${this.renderItem('Value Update Frequency', metadata.frequency)}
+        ${this.renderItem('Update Frequency Comments', metadata.frequencyComments)}
+        ...
+    `;
+}
+
+5.1.2 عرض عينة القيم
+---------------------
+الموقع: قسم "VALUES - SAMPLE SET"
+
+الوظيفة:
+- قراءة البيانات من API: GET /api/dataset-values/{id}/sample
+- عرض البيانات في جدول
+- عرض عدد السجلات
+
+الكود:
+------
+async loadSampleSet() {
+    const sampleRows = await this.fetchSampleValuesFromApi(this.datasetId);
+    // عرض الجدول
+}
+
+الأزرار:
+--------
+- لا توجد أزرار في وضع العرض (View Mode)
+
+--------------------------------------------------------------------------------
+5.2 صفحة التعديل (Edit Mode - dataset-values-edit.js)
+--------------------------------------------------------------------------------
+
+5.2.1 زر "Download Template" (تحميل القالب)
+---------------------------------------------
+الموقع: بجانب حقل اختيار الملف
+
+الوظيفة:
+- إنشاء ملف Excel (.xlsx) يحتوي على أسماء الأعمدة فقط
+- اسم الملف: "BUDG_SourcingTemplate_datastore-values-bulk-upload.xlsx"
+- الأعمدة: أسماء الـ attributes للـ dataset
+
+الشروط:
+- يجب أن يكون هناك attributes محددة للـ dataset
+- يجب أن تكون مكتبة XLSX محمّلة
+
+الكود:
+------
+downloadTemplate() {
+    if (!this.attributes || this.attributes.length === 0) {
+        alert('No attributes defined for this dataset. Cannot generate template.');
+        return;
+    }
+    
+    const headers = this.attributes.map(a => a.name || a.PrimaryName);
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet([headers]);
+    XLSX.utils.book_append_sheet(wb, ws, "Values");
+    XLSX.writeFile(wb, "BUDG_SourcingTemplate_datastore-values-bulk-upload.xlsx");
+}
+
+5.2.2 زر "Choose File" (اختيار الملف)
+--------------------------------------
+الموقع: بجانب حقل عرض اسم الملف
+
+الوظيفة:
+- فتح نافذة اختيار الملف
+- قبول الملفات: .csv, .xlsx, .xls
+- عرض اسم الملف المختار
+- بدء عملية التحقق من الملف
+
+الكود:
+------
+document.getElementById('btnUploadFile').addEventListener('click', () => {
+    document.getElementById('valFileUpload').click();
+});
+
+document.getElementById('valFileUpload').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (file) {
+        fileDisplay.value = file.name;
+        this.handleFileUpload(e);
+    }
+});
+
+5.2.3 أزرار اختيار نوع الرفع (Append/Overwrite)
+------------------------------------------------
+الموقع: أسفل حقل اختيار الملف
+
+النوع:
+- Radio buttons (أزرار اختيار)
+
+الخيارات:
+- Append: إضافة البيانات (افتراضي)
+- Overwrite: استبدال البيانات
+
+الكود:
+------
+<input type="radio" name="uploadType" value="append" checked> Append
+<input type="radio" name="uploadType" value="overwrite"> Overwrite
+
+5.2.4 رابط "Show Editor" (عرض المحرر)
+---------------------------------------
+الموقع: أسفل حقول النصوص (frequency_comments, availability_comments)
+
+الوظيفة:
+- فتح محرر نصوص متقدم (Rich Text Editor)
+- يدعم:
+  * تنسيق النص (Bold, Italic, Underline, etc.)
+  * الألوان
+  * الخطوط والأحجام
+  * القوائم
+  * الجداول
+  * الروابط
+  * الصور
+  * وغيرها
+
+الكود:
+------
+initAdvancedRichTextEditor(textareaId, toggleBtn) {
+    // إنشاء محرر نصوص متقدم
+    // يحتوي على toolbar مع أزرار التنسيق
+    // يحتوي على editor area (contentEditable)
+}
+
+5.2.5 زر "Save" (حفظ)
+----------------------
+الموقع: في شريط الأدوات أو في نهاية النموذج
+
+الوظيفة:
+- حفظ البيانات الوصفية
+- رفع الملف (إذا كان محدداً)
+- عرض رسالة نجاح أو خطأ
+
+الشروط:
+- يجب أن يكون الملف محدداً وصحيحاً (إذا كان سيتم الرفع)
+- يجب أن يكون لكل attribute Data Type و Data Length
+
+الكود:
+------
+async saveValues() {
+    // 1. التحقق من الملف
+    if (this.pendingUploadFile) {
+        // التحقق من Data Type و Data Length
+        const missingData = this.attributes.filter(a => {
+            return !hasDataType || !hasDataLength;
+        });
+        
+        if (missingData.length > 0) {
+            alert('Please specify Data type and data length for attribute ...');
+            throw new Error(...);
+        }
+    }
+    
+    // 2. إعداد البيانات
+    const formData = new FormData();
+    formData.append('metadata', JSON.stringify(metadata));
+    if (this.pendingUploadFile) {
+        formData.append('file', this.pendingUploadFile);
+        formData.append('uploadType', uploadType);
+    }
+    
+    // 3. إرسال الطلب
+    const resp = await fetch(`/api/dataset-values/${this.datasetId}/save`, {
+        method: 'POST',
+        body: formData
+    });
+    
+    // 4. معالجة الاستجابة
+}
+
+5.2.6 حالات الأزرار
+--------------------
+
+حالة التحميل (Loading State):
+-----------------------------
+- أثناء التحقق من الملف:
+  * النص: "Validating..."
+  * الأيقونة: spinner (fa-spinner fa-spin)
+  * الزر: معطل (disabled)
+
+- أثناء الحفظ:
+  * النص: "Saving..."
+  * الأيقونة: spinner (fa-spinner fa-spin)
+  * الزر: معطل (disabled)
+
+حالة النجاح (Success State):
+----------------------------
+- بعد الحفظ الناجح:
+  * النص: "Saved Successfully"
+  * الأيقونة: checkmark (fa-check)
+  * اللون: أخضر (btn-success)
+  * يتم إعادة تعيين الزر بعد 3 ثوانٍ
+
+الكود:
+------
+btn.innerHTML = `<i class="fas fa-check"></i> Saved Successfully`;
+btn.classList.add('btn-success');
+setTimeout(() => {
+    btn.innerHTML = 'Choose File';
+    btn.classList.remove('btn-success');
+}, 3000);
+
+حالة الخطأ (Error State):
+--------------------------
+- بعد فشل التحقق:
+  * النص: "Validation Failed"
+  * الأيقونة: warning (fa-exclamation-triangle)
+  * اللون: أحمر (btn-danger)
+  * يتم عرض نافذة مع أخطاء التحقق
+
+- بعد فشل الحفظ:
+  * النص: "Save Failed"
+  * الأيقونة: warning (fa-exclamation-triangle)
+  * اللون: أحمر (btn-danger)
+  * يتم عرض رسالة خطأ
+
+الكود:
+------
+btn.innerHTML = `<i class="fas fa-exclamation-triangle"></i> Validation Failed`;
+btn.classList.add('btn-danger');
+
+5.2.7 نافذة أخطاء التحقق
+-------------------------
+الوصف:
+- تظهر عند وجود أخطاء في الملف المرفوع
+- تعرض جدول بجميع الأخطاء
+
+المحتوى:
+- Row: رقم الصف
+- Field: اسم الحقل
+- Error Message: رسالة الخطأ
+- Row Data: بيانات الصف الكاملة
+
+الأزرار:
+- زر "Close": لإغلاق النافذة
+
+الكود:
+------
+showValidationErrors(errors, fileData) {
+    // إنشاء modal
+    // عرض جدول الأخطاء
+    // إضافة زر الإغلاق
+}
+
+================================================================================
+6. سير العمل (Workflow)
+================================================================================
+
+--------------------------------------------------------------------------------
+6.1 عملية الرفع الكاملة
+--------------------------------------------------------------------------------
+
+الخطوة 1: اختيار الملف
+-----------------------
+1. المستخدم ينقر على زر "Choose File"
+2. يتم فتح نافذة اختيار الملف
+3. المستخدم يختار ملف CSV أو Excel
+4. يتم عرض اسم الملف في حقل العرض
+
+الخطوة 2: التحقق من الملف (Validation)
+---------------------------------------
+1. يتم قراءة الملف باستخدام FileReader
+2. يتم تحويل الملف إلى JSON (إذا كان Excel)
+3. يتم التحقق من:
+   a. الملف غير فارغ
+   b. تطابق أسماء الأعمدة مع الـ attributes
+   c. وجود Data Type و Data Length لكل attribute
+   d. الحقول الإلزامية (إذا كانت موجودة)
+4. إذا كانت هناك أخطاء:
+   a. يتم عرض نافذة الأخطاء
+   b. يتم تعطيل الزر
+   c. يجب على المستخدم إصلاح الأخطاء
+5. إذا لم تكن هناك أخطاء:
+   a. يتم تفعيل الزر
+   b. يتم عرض اسم الملف مع أيقونة نجاح
+
+الخطوة 3: اختيار نوع الرفع
+----------------------------
+1. المستخدم يختار:
+   - Append: لإضافة البيانات
+   - Overwrite: لاستبدال البيانات
+2. الاختيار الافتراضي: Append
+
+الخطوة 4: حفظ البيانات
+------------------------
+1. المستخدم ينقر على زر "Save"
+2. يتم التحقق مرة أخرى من:
+   a. وجود Data Type و Data Length
+   b. صحة الملف (إذا كان محدداً)
+3. يتم إعداد FormData:
+   a. metadata: البيانات الوصفية (JSON)
+   b. file: الملف (إذا كان محدداً)
+   c. uploadType: نوع الرفع (إذا كان الملف محدداً)
+4. يتم إرسال الطلب إلى API:
+   POST /api/dataset-values/{id}/save
+5. يتم عرض حالة التحميل
+
+الخطوة 5: معالجة الاستجابة
+----------------------------
+1. إذا نجح الحفظ:
+   a. يتم عرض رسالة نجاح
+   b. يتم تحديث عينة القيم
+   c. يتم إعادة تعيين الملف المحدد
+2. إذا فشل الحفظ:
+   a. يتم عرض رسالة خطأ
+   b. يتم عرض تفاصيل الخطأ
+
+الخطوة 6: إرسال الإشعار
+------------------------
+1. بعد نجاح الرفع، يتم إرسال إشعار للمستخدم
+2. نوع الإشعار: "bulk_upload"
+3. العنوان: "[Dataset Name] : [Upload Type]"
+4. الرسالة: "Uploading of [عدد الصفوف] items completed successfully"
+5. القناة: "ui"
+
+الكود:
+------
+sendNotification(userId, datasetId, datasetName, uploadType, rowCount) {
+    WorkflowNotification n = new WorkflowNotification();
+    n.setRecipientUserId(userId);
+    n.setCategory("bulk_upload");
+    n.setTitle(datasetName + " : " + uploadType);
+    n.setMessage("Uploading of " + rowCount + " items completed successfully");
+    n.setChannel("ui");
+    n.setEventType("UPLOAD_COMPLETE");
+    n.setFacetType("dataset");
+    n.setObjectId(datasetId);
+    dao.create(n);
+}
+
+الخطوة 7: تحديث عينة القيم
+---------------------------
+1. بعد نجاح الرفع، يتم تحديث قسم "CAPTURED VALUES"
+2. يتم جلب أحدث البيانات من API
+3. يتم عرض البيانات في جدول
+
+--------------------------------------------------------------------------------
+6.2 عملية حفظ البيانات الوصفية فقط
+--------------------------------------------------------------------------------
+
+إذا لم يتم تحديد ملف:
+1. المستخدم يملأ البيانات الوصفية:
+   - Value Update Frequency
+   - Update Frequency Comments
+   - Availability
+   - Availability Comments
+   - Values in BUDG
+2. المستخدم ينقر على "Save"
+3. يتم إرسال البيانات الوصفية فقط (بدون ملف)
+4. يتم تحديث values_datastore
+5. يتم عرض رسالة نجاح
+
+================================================================================
+7. الجداول والعلاقات (Tables & Relationships)
+================================================================================
+
+--------------------------------------------------------------------------------
+7.1 العلاقات بين الجداول
+--------------------------------------------------------------------------------
+
+dataset (1) ──→ (N) values_datastore
+  - كل dataset يمكن أن يكون له datastore واحد أو أكثر
+  - في الممارسة العملية، عادة ما يكون هناك datastore واحد لكل dataset
+  - العلاقة: dataset.id = values_datastore.dataset_id
+
+values_datastore (1) ──→ (N) values_field
+  - كل datastore يحتوي على عدة حقول (fields)
+  - العلاقة: values_datastore.id = values_field.datastore_id
+
+values_field (1) ──→ (N) values_rule
+  - كل field يمكن أن يكون له عدة قواعد
+  - العلاقة: values_field.id = values_rule.field_id
+
+values_datastore (1) ──→ (N) values_entry_ref
+  - كل datastore يمكن أن يكون له عدة عمليات رفع
+  - العلاقة: values_datastore.id = values_entry_ref.datastore_id
+
+values_entry_ref (1) ──→ (N) values_entry
+  - كل عملية رفع تحتوي على عدة قيم
+  - العلاقة: values_entry_ref.id = values_entry.entry_ref_id
+
+values_field (1) ──→ (N) values_entry
+  - كل field يمكن أن يكون له عدة قيم (من عمليات رفع مختلفة)
+  - العلاقة: values_field.id = values_entry.field_id
+
+values_entry_ref (N) ──→ (1) values_entry
+  - كل قيمة مرتبطة بعملية رفع واحدة
+  - العلاقة: values_entry_ref.id = values_entry.entry_ref_id
+
+values_field (N) ──→ (1) values_entry
+  - كل قيمة مرتبطة بحقل واحد
+  - العلاقة: values_field.id = values_entry.field_id
+
+--------------------------------------------------------------------------------
+7.2 مخطط العلاقات
+--------------------------------------------------------------------------------
+
+dataset
+  │
+  └──→ values_datastore
+         │
+         ├──→ values_field ──→ values_rule
+         │         │
+         │         └──→ values_entry
+         │
+         └──→ values_entry_ref
+                  │
+                  └──→ values_entry
+
+values_audit (مستقل - مرتبط بـ dataset_id فقط)
+
+--------------------------------------------------------------------------------
+7.3 أمثلة على الاستعلامات
+--------------------------------------------------------------------------------
+
+7.3.1 جلب جميع القيم لـ dataset معين
+-------------------------------------
+SELECT 
+    ve.row_index,
+    vf.column_name,
+    ve.value_text
+FROM values_entry ve
+JOIN values_entry_ref ver ON ve.entry_ref_id = ver.id
+JOIN values_field vf ON ve.field_id = vf.id
+JOIN values_datastore vd ON vf.datastore_id = vd.id
+WHERE vd.dataset_id = ?
+ORDER BY ver.upload_timestamp DESC, ve.row_index, vf.column_name;
+
+7.3.2 جلب أحدث عملية رفع
+--------------------------
+SELECT 
+    ver.id,
+    ver.upload_timestamp,
+    ver.row_count,
+    ver.upload_type,
+    p.First_Name || ' ' || p.Last_Name AS user_name
+FROM values_entry_ref ver
+JOIN values_datastore vd ON ver.datastore_id = vd.id
+LEFT JOIN people p ON ver.user_id = p.ID
+WHERE vd.dataset_id = ?
+ORDER BY ver.upload_timestamp DESC
+LIMIT 1;
+
+7.3.3 جلب عدد الصفوف المرفوعة لكل dataset
+------------------------------------------
+SELECT 
+    d.id,
+    d.PrimaryName,
+    COUNT(DISTINCT ver.id) AS upload_count,
+    SUM(ver.row_count) AS total_rows
+FROM dataset d
+LEFT JOIN values_datastore vd ON d.id = vd.dataset_id
+LEFT JOIN values_entry_ref ver ON vd.id = ver.datastore_id
+GROUP BY d.id, d.PrimaryName;
+
+7.3.4 جلب سجل التدقيق لـ dataset
+----------------------------------
+SELECT 
+    va.action_type,
+    va.action_timestamp,
+    va.details,
+    p.First_Name || ' ' || p.Last_Name AS user_name
+FROM values_audit va
+LEFT JOIN people p ON va.user_id = p.ID
+WHERE va.dataset_id = ?
+ORDER BY va.action_timestamp DESC;
+
+================================================================================
+8. ملاحظات مهمة
+================================================================================
+
+--------------------------------------------------------------------------------
+8.1 حول التخزين
+--------------------------------------------------------------------------------
+- يتم تخزين جميع القيم كنص (TEXT) في values_entry.value_text
+- حتى الأرقام والتواريخ يتم تخزينها كنص
+- يتم التحويل عند الحاجة في طبقة التطبيق
+
+--------------------------------------------------------------------------------
+8.2 حول المراجع
+--------------------------------------------------------------------------------
+- عند الرفع: يتم تحويل الأسماء إلى IDs
+- عند العرض: يتم تحويل IDs إلى أسماء
+- إذا لم يتم العثور على المرجع، يتم الاحتفاظ بالقيمة الأصلية
+
+--------------------------------------------------------------------------------
+8.3 حول المعاملات (Transactions)
+--------------------------------------------------------------------------------
+- جميع عمليات الرفع تتم داخل معاملة (transaction)
+- إذا فشلت أي خطوة، يتم التراجع (rollback) عن جميع التغييرات
+- يتم التأكد من وجود datastore قبل الرفع
+
+--------------------------------------------------------------------------------
+8.4 حول الأداء
+--------------------------------------------------------------------------------
+- يتم استخدام batch insert لتحسين الأداء
+- يتم تنفيذ batch كل 100 صف
+- يتم تحديد عينة القيم إلى 500 صف كحد أقصى
+
+--------------------------------------------------------------------------------
+8.5 حول الأمان
+--------------------------------------------------------------------------------
+- يتم التحقق من صلاحيات المستخدم قبل الرفع
+- يتم تسجيل جميع العمليات في values_audit
+- يتم ربط كل عملية رفع بالمستخدم الذي قام بها
+
+================================================================================
+9. أمثلة عملية
+================================================================================
+
+--------------------------------------------------------------------------------
+9.1 مثال: رفع بيانات جديدة (Append)
+--------------------------------------------------------------------------------
+
+الخطوات:
+1. المستخدم يفتح صفحة تعديل قيم الـ dataset
+2. المستخدم ينقر على "Download Template"
+3. يتم تحميل ملف Excel يحتوي على أسماء الأعمدة
+4. المستخدم يملأ الملف بالبيانات
+5. المستخدم ينقر على "Choose File" ويختار الملف
+6. يتم التحقق من الملف تلقائياً
+7. إذا كان الملف صحيحاً، يتم تفعيل الزر
+8. المستخدم يختار "Append"
+9. المستخدم ينقر على "Save"
+10. يتم رفع الملف وحفظ البيانات
+11. يتم عرض رسالة نجاح
+12. يتم تحديث عينة القيم
+
+النتيجة:
+- يتم إضافة البيانات الجديدة للبيانات الموجودة
+- يتم إنشاء entry_ref جديد
+- يتم إدراج جميع القيم في values_entry
+- يتم إرسال إشعار للمستخدم
+
+--------------------------------------------------------------------------------
+9.2 مثال: استبدال البيانات (Overwrite)
+--------------------------------------------------------------------------------
+
+الخطوات:
+1. المستخدم يفتح صفحة تعديل قيم الـ dataset
+2. المستخدم ينقر على "Choose File" ويختار ملف جديد
+3. يتم التحقق من الملف
+4. المستخدم يختار "Overwrite"
+5. المستخدم ينقر على "Save"
+6. يتم حذف جميع البيانات القديمة
+7. يتم رفع البيانات الجديدة
+8. يتم عرض رسالة نجاح
+
+النتيجة:
+- يتم حذف جميع values_entry القديمة
+- يتم حذف جميع values_entry_ref القديمة
+- يتم إدراج سجل في values_audit بنوع 'DELETE'
+- يتم إنشاء entry_ref جديد
+- يتم إدراج جميع القيم الجديدة
+- يتم إرسال إشعار للمستخدم
+
+--------------------------------------------------------------------------------
+9.3 مثال: حفظ البيانات الوصفية فقط
+--------------------------------------------------------------------------------
+
+الخطوات:
+1. المستخدم يفتح صفحة تعديل قيم الـ dataset
+2. المستخدم يملأ البيانات الوصفية:
+   - Value Update Frequency: "Daily"
+   - Update Frequency Comments: "يتم التحديث يومياً"
+   - Availability: "Via Application UI - bulk extract"
+   - Availability Comments: "يمكن استخراج البيانات بشكل مجمع"
+   - Values in BUDG: "Sample Set"
+3. المستخدم ينقر على "Save"
+4. يتم حفظ البيانات الوصفية فقط
+
+النتيجة:
+- يتم تحديث values_datastore
+- لا يتم تعديل القيم الموجودة
+- يتم عرض رسالة نجاح
+
+================================================================================
+نهاية التوثيق
+================================================================================
+
+تم إنشاء هذا التوثيق بناءً على:
+- database/values_schema.sql
+- src/main/java/com/example/budg_v2/DatasetValuesServlet.java
+- src/main/webapp/view/dataset/dataset-values.js
+- src/main/webapp/view/dataset/dataset-values-edit.js
+
+للأسئلة أو الاستفسارات، يرجى الرجوع إلى الكود المصدري أو الاتصال بفريق التطوير.

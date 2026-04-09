@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BUDG - Edit Person</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../../assets/css/main.css">
+    <link rel="stylesheet" href="../../view/view.css">
+    <link rel="stylesheet" href="../../assets/css/people.css">
+    <link rel="stylesheet" href="../../assets/css/custom-fields.css">
+    <link rel="stylesheet" href="../../assets/css/global-lock-ui.css">
+    <link rel="stylesheet" href="../../assets/css/advanced-rich-text-editor.css">
+    <!-- RTL styles for Arabic (disabled by default, enabled by i18n.js) -->
+    <link rel="stylesheet" href="../../assets/css/rtl.css" id="rtl-styles" disabled>
+    <script>(function(){const t=localStorage.getItem('budg-theme')||'light';document.documentElement.setAttribute('data-theme',t);})();</script>
+    <script src="/assets/i18n/head-locale.js"></script>
+    <script src="../../assets/i18n/i18n.js"></script>
+</head>
+<body class="people-edit-page" data-submenu="data">
+<header class="header"></header>
+
+<div class="page-header">
+    <div class="page-header-container">
+        <div class="user-profile-header">
+            <div class="user-avatar">
+                <i class="fas fa-user"></i>
+            </div>
+            <div class="user-info">
+                <div class="user-name" id="userDisplayName" data-i18n="people.loading">Loading...</div>
+                <a href="#" class="upload-picture-link" id="uploadPictureLink" data-i18n="people.uploadPicture">Upload Picture</a>
+            </div>
+        </div>
+        <div class="form-actions" id="editActionsBar">
+            <button type="button" class="btn btn-primary" id="editSaveBtn" data-i18n="button.save">Save</button>
+            <button type="button" class="btn btn-primary" id="editSaveCloseBtn" data-i18n="button.saveAndClose">Save & Close</button>
+            <div class="btn-group">
+                <button type="button" class="btn btn-secondary" id="editCancelBtn" data-i18n="button.close">Close</button>
+                <button type="button" class="btn btn-secondary dropdown-toggle" id="closeDropdown">
+                    <i class="fas fa-chevron-down"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<main class="main-content">
+    <div class="content-card">
+        <div class="content-header">
+            <div class="tab-container">
+                <button class="tab active" data-tab="about" data-i18n="tab.aboutMe">ABOUT ME</button>
+                <button class="tab" data-tab="team" data-i18n="tab.team">TEAM</button>
+                <button class="tab" data-tab="following" data-i18n="tab.following">FOLLOWING</button>
+                <button class="tab" data-tab="activity" data-i18n="tab.activity">ACTIVITY STREAM</button>
+            </div>
+        </div>
+        <div class="content-body">
+            <div id="peopleEditContainer" class="people-edit-container">
+                <form id="peopleEditForm" class="form-container">
+                    <!-- Left Column -->
+                    <div class="left-column">
+                        <!-- DESCRIPTION Section -->
+                        <div class="form-section">
+                            <h4 class="section-title" data-i18n="people.description">DESCRIPTION</h4>
+                            <div class="form-fields-container">
+                                <div class="form-group">
+                                    <textarea class="form-input form-textarea" id="pDescription" placeholder="Enter Description" data-i18n-placeholder="people.placeholder.description"></textarea>
+                                    <button type="button" class="editor-button" id="descriptionEditorBtn" data-i18n="people.showEditor">Show Editor</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- BUDG DETAILS Section -->
+                        <div class="form-section">
+                            <h4 class="section-title" data-i18n="people.budgDetails">BUDG DETAILS</h4>
+                            <div class="form-fields-container">
+                                <div class="form-group">
+                                    <label class="form-label"><span data-i18n="label.email">Email</span> <span class="required">*</span></label>
+                                    <input type="email" class="form-input" id="pEmail" placeholder="admin@informatica.com" data-i18n-placeholder="people.placeholder.email">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label" data-i18n="people.currentPassword">Current Password</label>
+                                    <input type="password" class="form-input" id="pCurrentPassword" placeholder="Current Password" data-i18n-placeholder="people.placeholder.currentPassword">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label" data-i18n="people.newPassword">New Password</label>
+                                    <input type="password" class="form-input" id="pNewPassword" placeholder="Your Password" data-i18n-placeholder="people.placeholder.newPassword">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label" data-i18n="people.confirm">Confirm</label>
+                                    <input type="password" class="form-input" id="pConfirmPassword" placeholder="Repeat Password" data-i18n-placeholder="people.placeholder.confirmPassword">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label"><span data-i18n="people.profile">Profile</span> <span class="required">*</span></label>
+                                    <select class="form-select" id="pProfile">
+                                        <option value="" data-i18n="people.placeholder.selectProfile">Select Profile...</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label"><span data-i18n="label.status">Status</span> <span class="required">*</span></label>
+                                    <select class="form-select" id="pStatus">
+                                        <option value="" data-i18n="people.placeholder.selectStatus">Select Status...</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label"><span data-i18n="people.lifecycle">Lifecycle</span> <span class="required">*</span></label>
+                                    <select class="form-select" id="pLifecycle">
+                                        <option value="" data-i18n="people.placeholder.selectLifecycle">Select Lifecycle...</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right Column -->
+                    <div class="right-column">
+                        <!-- PERSONAL DETAILS Section -->
+                        <div class="form-section">
+                            <h4 class="section-title" data-i18n="people.personalDetails">PERSONAL DETAILS</h4>
+                            <div class="form-fields-container">
+                                <div class="form-group">
+                                    <label class="form-label"><span data-i18n="label.firstName">First Name</span> <span class="required">*</span></label>
+                                    <input type="text" class="form-input" id="pFirstName" placeholder="John" data-i18n-placeholder="people.placeholder.firstName">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label"><span data-i18n="label.lastName">Last Name</span> <span class="required">*</span></label>
+                                    <input type="text" class="form-input" id="pLastName" placeholder="Admin" data-i18n-placeholder="people.placeholder.lastName">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label"><span data-i18n="people.employeeType">Employment Type</span> <span class="required">*</span></label>
+                                    <select class="form-select" id="pEmploymentType">
+                                        <option value="" data-i18n="people.placeholder.selectEmploymentType">Select Employment Type...</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label" data-i18n="people.linkedInUrl">LinkedIn URL</label>
+                                    <input type="url" class="form-input" id="pLinkedInUrl" placeholder="Enter LinkedIn URL" data-i18n-placeholder="people.placeholder.linkedInUrl">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label" data-i18n="people.twitter">Twitter</label>
+                                    <div class="form-input-group">
+                                        <span class="input-prefix">@</span>
+                                        <input type="text" class="form-input" id="pTwitter" placeholder="Enter Twitter Account" data-i18n-placeholder="people.placeholder.twitter">
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label" data-i18n="people.lanId">LAN ID</label>
+                                    <input type="text" class="form-input" id="pLanId" placeholder="Enter LAN ID" data-i18n-placeholder="people.placeholder.lanId">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label" data-i18n="label.mobileTelephone">Mobile Telephone</label>
+                                    <input type="tel" class="form-input" id="pMobilePhone" placeholder="Enter Phone Number" data-i18n-placeholder="people.placeholder.mobilePhone">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label" data-i18n="label.companyName">Company Name</label>
+                                    <input type="text" class="form-input" id="pCompanyName" placeholder="Enter Company Name" data-i18n-placeholder="people.placeholder.companyName">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label"><span data-i18n="people.orgUnit">Org Unit</span> <span class="required">*</span></label>
+                                    <div class="select-dropdown-container">
+                                        <div class="select-dropdown-input" id="orgUnitSelectDropdown">
+                                            <input type="text" class="select-dropdown-display" id="pOrgUnitDisplay" placeholder="Select an org unit..." readonly data-i18n-placeholder="people.placeholder.orgUnit">
+                                            <i class="fas fa-chevron-down select-dropdown-arrow" id="orgUnitSelectArrow" title="Click to open dropdown"></i>
+                                        </div>
+                                        <div class="select-dropdown-menu" id="orgUnitSelectMenu">
+                                            <div class="select-dropdown-search">
+                                                <input type="text" class="select-dropdown-search-input" id="orgUnitSelectSearch" placeholder="Search org units..." data-i18n-placeholder="people.placeholder.searchOrgUnits">
+                                            </div>
+                                            <div class="select-dropdown-items" id="orgUnitSelectItems">
+                                                <!-- Items will be populated dynamically -->
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <input type="hidden" id="pOrgUnitId">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label" data-i18n="label.functionName">Function Name</label>
+                                    <input type="text" class="form-input" id="pFunctionName" placeholder="Admin User" data-i18n-placeholder="people.placeholder.functionName">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label" data-i18n="label.functionDescription">Function Description</label>
+                                    <textarea class="form-input form-textarea" id="pFunctionDescription" placeholder="Enter Description" data-i18n-placeholder="people.placeholder.functionDescription"></textarea>
+                                    <button type="button" class="editor-button" id="functionEditorBtn" data-i18n="people.showEditor">Show Editor</button>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label" data-i18n="label.officeLocation">Office Location</label>
+                                    <input type="text" class="form-input" id="pOfficeLocation" placeholder="Enter Location" data-i18n-placeholder="people.placeholder.officeLocation">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label" data-i18n="label.internalMailCode">Internal Mail Code</label>
+                                    <input type="text" class="form-input" id="pInternalMailCode" placeholder="Enter Mail Code" data-i18n-placeholder="people.placeholder.internalMailCode">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label" data-i18n="label.officeTelephone">Office Telephone</label>
+                                    <input type="tel" class="form-input" id="pOfficePhone" placeholder="Enter Phone Number" data-i18n-placeholder="people.placeholder.officePhone">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label" data-i18n="label.employedSince">Employed Since</label>
+                                    <div class="form-input-group" style="display: flex; flex-direction: column; align-items: flex-start; gap: 8px;">
+                                        <input type="date" class="form-input" id="pEmployedSince" placeholder="Select a date" style="width: 100%;" data-i18n-placeholder="people.placeholder.employedSince">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Custom Fields Section -->
+                    <!-- Segment Field Container -->
+                    <div id="segmentFieldContainer" style="grid-column: 1/-1; margin-top: 1rem;"></div>
+                    
+                    <div class="form-section" style="grid-column: 1/-1; margin-top: 2rem;">
+                        <h4 class="section-title" data-i18n="card.customFields">CUSTOM FIELDS</h4>
+                        <div id="customFieldsContainer"></div>
+                    </div>
+                </form>
+            </div>
+            
+        </div>
+    </div>
+</main>
+
+    <script src="../../assets/js/config.js"></script>
+    <script src="../../assets/js/api-service.js"></script>
+    <script src="../../assets/js/lock-manager.js"></script>
+    <script src="../../assets/js/lock-init-helper.js"></script>
+    <script src="../../assets/js/global-lock-ui.js"></script>
+    <script src="../../assets/js/main.js"></script>
+    <script src="../../assets/js/initSearch.js"></script>
+    
+    <script src="../../assets/js/custom-fields.js"></script>
+    <script src="../../assets/js/segment-field.js"></script>
+    <script src="../../assets/js/advanced-rich-text-editor.js"></script>
+    <script src="../../view/people/people-edit.js"></script>
+<script src="../../assets/js/header.js"></script>
+</body>
+</html>
+

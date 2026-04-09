@@ -1,0 +1,428 @@
+/**
+ * Bulk Update Page Styles
+ * Matches BUDG design aesthetics
+ */
+
+/* Use standard BUDG CSS variables from main.css */
+/* No custom variables needed - using application standard variables */
+
+/* Body spacing for fixed header (70px) + bulk-update-header */
+body {
+    padding-top: 70px; /* Main header height */
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background-color: var(--background-secondary);
+    color: var(--text-primary);
+    min-height: 100vh;
+}
+
+/* Bulk Update Header - positioned below main header */
+.bulk-update-header {
+    position: fixed;
+    top: 70px; /* Below main header */
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: linear-gradient(135deg, #1b857a 0%, #248567 100%);
+    color: #ffffff;
+    padding: 12px 24px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    z-index: 999;
+}
+
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.header-icon {
+    font-size: 1.5rem;
+    color: #ffffff;
+    opacity: 0.9;
+}
+
+.header-title h1 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin: 0;
+}
+
+.header-subtitle {
+    font-size: 0.8rem;
+    opacity: 0.7;
+}
+
+.header-right {
+    display: flex;
+    gap: 8px;
+}
+
+/* Buttons */
+.btn {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 4px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-primary {
+    background: var(--primary-color);
+    color: white;
+}
+
+.btn-primary:hover:not(:disabled) {
+    background: var(--primary-hover);
+}
+
+.btn-primary:disabled {
+    background: var(--text-tertiary);
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.btn-secondary {
+    background: var(--text-secondary);
+    color: white;
+}
+
+.btn-secondary:hover {
+    background: var(--text-primary);
+}
+
+/* Tabs */
+.bulk-update-tabs {
+    position: fixed;
+    top: 118px; /* Below main header (70px) + bulk-update-header (48px) */
+    left: 0;
+    right: 0;
+    background: var(--background-primary);
+    border-bottom: 2px solid var(--border-color);
+    padding: 0 24px;
+    z-index: 998;
+}
+
+.bulk-update-tabs .tab {
+    padding: 12px 24px;
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    margin-bottom: -2px;
+    transition: all 0.2s ease;
+}
+
+.bulk-update-tabs .tab:hover {
+    color: var(--primary-color);
+}
+
+.bulk-update-tabs .tab.active {
+    color: var(--text-primary);
+    border-bottom-color: var(--primary-color);
+}
+
+/* Main Content */
+.bulk-update-main {
+    padding: 24px;
+    padding-top: 180px; /* Space for main header (70px) + bulk-update-header (48px) + tabs (62px) */
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+/* Cards */
+.card {
+    background: var(--background-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    margin-bottom: 24px;
+    box-shadow: var(--shadow-light);
+}
+
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--background-secondary);
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--border-color);
+    border-radius: 8px 8px 0 0;
+}
+
+.card-header h2 {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.card-actions .settings-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 4px 8px;
+    transition: color 0.2s ease;
+}
+
+.card-actions .settings-btn:hover {
+    color: var(--primary-color);
+}
+
+.card-body {
+    padding: 0;
+}
+
+/* Items Table */
+.items-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.items-table th {
+    text-align: left;
+    padding: 12px 16px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    border-bottom: 1px solid var(--border-color);
+    background: var(--background-secondary);
+}
+
+.items-table td {
+    padding: 12px 16px;
+    font-size: 0.875rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.items-table tr:last-child td {
+    border-bottom: none;
+}
+
+.items-table tr:hover {
+    background: var(--background-hover);
+}
+
+.items-table .name-link {
+    color: var(--primary-color);
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.items-table .name-link:hover {
+    text-decoration: underline;
+    color: var(--primary-hover);
+}
+
+.items-table .name-link i {
+    color: var(--text-secondary);
+    font-size: 0.9em;
+}
+
+/* Workflow locked rows */
+.items-table tr.workflow-locked {
+    opacity: 0.7;
+    background-color: var(--background-secondary);
+}
+
+.items-table tr.workflow-locked td {
+    color: var(--text-secondary);
+}
+
+.items-table tr.workflow-locked .name-link {
+    color: var(--text-secondary);
+    pointer-events: auto; /* Allow clicking even though styled as muted */
+}
+
+.workflow-lock-icon {
+    color: #856404;
+    margin-left: 8px;
+    cursor: help;
+    font-size: 0.9em;
+}
+
+[data-theme="dark"] .workflow-lock-icon {
+    color: #ffc107;
+}
+
+/* No Items Message */
+.no-items-message {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 40px;
+    color: var(--text-secondary);
+}
+
+/* Definition Fields */
+.definition-card .card-body {
+    padding: 16px 20px;
+}
+
+.definition-field {
+    display: flex;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.definition-field:last-child {
+    border-bottom: none;
+}
+
+.definition-field .field-label {
+    flex: 0 0 200px;
+    font-size: 0.875rem;
+    color: var(--primary-color);
+    font-weight: 500;
+}
+
+.definition-field .field-label.delete-warning {
+    color: var(--required-color);
+    font-weight: 600;
+}
+
+.definition-field .field-input {
+    flex: 1;
+    max-width: 400px;
+}
+
+.definition-field select,
+.definition-field input[type="text"] {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background: var(--background-primary);
+    color: var(--text-primary);
+    font-size: 0.875rem;
+}
+
+.definition-field select:focus,
+.definition-field input[type="text"]:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgba(36, 133, 103, 0.2);
+}
+
+.definition-field .field-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.definition-field .field-info {
+    margin-left: 8px;
+    color: var(--text-secondary);
+    cursor: help;
+}
+
+/* Checkbox styling */
+.definition-field input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--primary-color);
+}
+
+/* Radio button styling */
+.definition-field input[type="radio"] {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--primary-color);
+}
+
+/* Loading */
+.loading-message {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 40px;
+    color: var(--text-secondary);
+}
+
+/* Toast */
+.toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    padding: 16px 24px;
+    background: var(--text-primary);
+    color: white;
+    border-radius: 8px;
+    box-shadow: var(--shadow-medium);
+    z-index: 10000;
+    animation: slideIn 0.3s ease;
+}
+
+.toast.success {
+    background: var(--primary-color);
+}
+
+.toast.error {
+    background: var(--required-color);
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateY(20px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    body {
+        padding-top: 70px;
+    }
+
+    .bulk-update-header {
+        flex-direction: column;
+        gap: 12px;
+        padding: 16px;
+        height: auto;
+        min-height: 80px;
+    }
+
+    .bulk-update-tabs {
+        top: 150px; /* Adjusted for mobile header height */
+    }
+
+    .bulk-update-main {
+        padding-top: 230px; /* Adjusted for mobile */
+    }
+
+    .header-right {
+        width: 100%;
+        justify-content: flex-end;
+    }
+
+    .definition-field {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+
+    .definition-field .field-label {
+        flex: none;
+    }
+
+    .definition-field .field-input {
+        max-width: 100%;
+        width: 100%;
+    }
+}

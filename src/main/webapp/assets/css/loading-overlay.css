@@ -1,0 +1,141 @@
+/* ===== Full Page Loading Overlay ===== */
+/* Centralized loading indicator with blur effect for all loading operations */
+
+.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px); /* Safari support */
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+    pointer-events: none; /* Don't block clicks when hidden */
+}
+
+.loading-overlay.active {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: all; /* Block all clicks when visible */
+}
+
+/* Central Loading Spinner */
+.loading-spinner {
+    width: 80px;
+    height: 80px;
+    border: 6px solid rgba(255, 255, 255, 0.3);
+    border-top: 6px solid #48bb78; /* Primary green color */
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+    background: rgba(255, 255, 255, 0.1);
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+/* Loading Text (optional) */
+.loading-overlay.with-text::after {
+    content: 'Loading...';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    margin-top: 60px;
+    color: white;
+    font-size: 1rem;
+    font-weight: 500;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* ===== Dark Theme Support ===== */
+[data-theme="dark"] .loading-overlay {
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+
+[data-theme="dark"] .loading-spinner {
+    border-color: rgba(255, 255, 255, 0.2);
+    border-top-color: #68d391; /* Lighter green for dark mode */
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+/* ===== Accessibility ===== */
+.loading-overlay[aria-hidden="false"] {
+    /* Ensure screen readers can access loading state */
+}
+
+/* Prevent text selection during loading */
+.loading-overlay.active ~ * {
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+}
+
+/* ===== Animation Variants ===== */
+/* Pulse animation for spinner */
+@keyframes pulse {
+    0%, 100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    50% {
+        transform: scale(1.1);
+        opacity: 0.8;
+    }
+}
+
+.loading-spinner.pulse {
+    animation: spin 1s linear infinite, pulse 2s ease-in-out infinite;
+}
+
+/* ===== Performance Optimizations ===== */
+/* Use GPU acceleration */
+.loading-overlay,
+.loading-spinner {
+    will-change: opacity, transform;
+    transform: translateZ(0);
+    -webkit-transform: translateZ(0);
+}
+
+/* Reduce motion for users with motion sensitivity */
+@media (prefers-reduced-motion: reduce) {
+    .loading-overlay {
+        transition: opacity 0.1s ease, visibility 0.1s ease;
+    }
+    
+    .loading-spinner {
+        animation: spin 2s linear infinite; /* Slower animation */
+    }
+}
+
+/* ===== Mobile Responsiveness ===== */
+@media (max-width: 768px) {
+    .loading-spinner {
+        width: 60px;
+        height: 60px;
+        border-width: 5px;
+    }
+    
+    .loading-overlay.with-text::after {
+        font-size: 0.9rem;
+        margin-top: 45px;
+    }
+}
+

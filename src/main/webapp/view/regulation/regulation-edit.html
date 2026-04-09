@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Regulation - BUDG</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../../assets/css/main.css">
+    <link rel="stylesheet" href="../../view/view.css">
+    <link rel="stylesheet" href="../../view/regulation/regulation.css">
+    <link rel="stylesheet" href="../../view/edit/edit-shared.css">
+    <link rel="stylesheet" href="../../view/regulation/regulation-edit.css">
+    <link rel="stylesheet" href="../../assets/css/stakeholder.css">
+    <link rel="stylesheet" href="../../assets/css/custom-fields.css">
+    <link rel="stylesheet" href="../../assets/css/global-lock-ui.css">
+    <link rel="stylesheet" href="../../assets/css/advanced-rich-text-editor.css">
+    <!-- RTL styles for Arabic (disabled by default, enabled by i18n.js) -->
+    <link rel="stylesheet" href="../../assets/css/rtl.css" id="rtl-styles" disabled>
+    <script>(function(){const t=localStorage.getItem('budg-theme')||'light';document.documentElement.setAttribute('data-theme',t);})();</script>
+    <script src="/assets/i18n/head-locale.js"></script>
+    <script src="../../assets/i18n/i18n.js"></script>
+</head>
+<body class="regulation-edit-page" data-submenu="regulatory">
+    <div class="app-container">
+        <!-- Header -->
+        <header class="header"></header>
+
+        <div class="page-header">
+            <div class="page-header-container">
+                <div class="page-title">
+                    <div class="page-icon"><i class="fas fa-balance-scale"></i></div>
+                    <div class="page-title-text">
+                        <div class="page-title-main" id="regulationTitle">Regulation Name</div>
+                        <div class="page-title-sub">Regulation</div>
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-primary" id="saveBtn">
+                        <i class="fas fa-save"></i> Save
+                    </button>
+                    <button type="button" class="btn btn-success" id="saveAndCloseBtn">
+                        <i class="fas fa-save"></i> Save & Close
+                    </button>
+                    <button type="button" class="btn btn-secondary" id="closeBtn">
+                        <i class="fas fa-times"></i> Close
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <main class="main-content">
+            <div class="content-card">
+                <div class="content-header">
+                    <div class="tab-container">
+                        <button class="tab active" data-tab="summary" data-i18n="tab.summary">SUMMARY</button>
+                        <button class="tab" data-tab="components" data-i18n="tab.components">COMPONENTS</button>
+                        <button class="tab" data-tab="relationships" data-i18n="tab.relationships">RELATIONSHIPS</button>
+                        <button class="tab" data-tab="stakeholders" data-i18n="tab.stakeholders">STAKEHOLDERS</button>
+                        <button class="tab" data-tab="impact" data-i18n="tab.impact">IMPACT</button>
+                        <button class="tab" data-tab="workflow" data-i18n="tab.workflow">WORKFLOW</button>
+                    </div>
+                </div>
+                <div class="content-body">
+                    <!-- Summary Tab -->
+                    <div id="summaryContainer" class="tab-content active">
+                        <div class="edit-form-container">
+                            <div class="regulation-container">
+                                <!-- Left Column -->
+                                <div class="left-column">
+                                    <!-- Definition Section -->
+                                    <div class="form-section">
+                                        <div class="section-title">DEFINITION</div>
+                                        
+                                        <div class="form-group">
+                                            <label for="primaryName" class="form-label required">Long Name</label>
+                                            <input type="text" id="primaryName" class="form-input" placeholder="Enter Long Name" required>
+                                        </div>
+                                        
+                                        <div class="form-group">
+                                            <label for="parentName" class="form-label">Parent</label>
+                                            <div class="input-group">
+                                                <input type="text" id="parentName" class="form-input" placeholder="Parent" readonly>
+                                                <button type="button" class="btn btn-sm btn-secondary" id="selectParentBtn">
+                                                    <i class="fas fa-pencil-alt"></i>
+                                                </button>
+                                                <button type="button" class="btn btn-sm btn-outline" id="clearParentBtn" title="Clear Parent">
+                                                    <i class="fas fa-times"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="form-group">
+                                            <label for="refNumber" class="form-label">Ref.</label>
+                                            <input type="text" id="refNumber" class="form-input" placeholder="REG-1">
+                                        </div>
+                                        
+                                        <div class="form-group">
+                                            <label for="description" class="form-label required">Description</label>
+                                            <textarea id="description" class="form-textarea" placeholder="ds reg" rows="4" required></textarea>
+                                            <button type="button" class="btn btn-sm btn-outline editor-button" id="showEditorBtn">Show Editor</button>
+                                        </div>
+                                        
+                                        <div class="subsection-title">OPTIONAL FIELDS</div>
+                                        
+                                        <div class="form-group">
+                                            <label for="shortName" class="form-label">Short Name</label>
+                                            <input type="text" id="shortName" class="form-input" placeholder="Enter Short Name">
+                                        </div>
+                                        
+                                        <div class="form-group">
+                                            <label for="legalAdvice" class="form-label">Legal Advice</label>
+                                            <textarea id="legalAdvice" class="form-textarea" placeholder="Enter Advice" rows="2"></textarea>
+                                        </div>
+                                        
+                                        <div class="form-group">
+                                            <label for="legalAdviceType" class="form-label">Legal Advice Type</label>
+                                            <select id="legalAdviceType" class="form-select">
+                                                <option value="">Guideline</option>
+                                            </select>
+                                        </div>
+                                        
+                                        <div class="form-group">
+                                            <label for="additionalInfo" class="form-label">Additional Info</label>
+                                            <textarea id="additionalInfo" class="form-textarea" placeholder="add" rows="2"></textarea>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Regulators Section -->
+                                    <div class="form-section">
+                                        <div class="section-title">REGULATORS</div>
+                                        <div class="data-table-wrapper">
+                                            <table class="data-table">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Relationship Type</th>
+                                                        <th>Regulator</th>
+                                                        <th>Action</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody id="regulatorsTableBody">
+                                                    <!-- Rows will be added dynamically -->
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Geography Section -->
+                                    <div class="form-section">
+                                        <div class="section-title">GEOGRAPHY</div>
+                                        <div class="data-table-wrapper">
+                                            <table class="data-table">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Regulator and Geography</th>
+                                                        <th>Description</th>
+                                                        <th>Action</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody id="geographyTableBody">
+                                                    <!-- Rows will be added dynamically -->
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Right Column (Classifications) -->
+                                <div class="right-column">
+                                    <!-- Classifications Section -->
+                                    <div class="form-section">
+                                        <div class="section-title">CLASSIFICATIONS</div>
+                                        
+                                        <div class="subsection-title">BASIC CLASSIFICATIONS</div>
+                                        
+                                        <div class="form-group">
+                                            <label for="complianceLevel" class="form-label required">Compliance Level</label>
+                                            <select id="complianceLevel" class="form-select" required>
+                                                <option value="">Fully Compliant</option>
+                                            </select>
+                                        </div>
+                                        
+                                        <div class="form-group">
+                                            <label for="maturity" class="form-label required">Maturity</label>
+                                            <select id="maturity" class="form-select" required>
+                                                <option value="">Select Maturity</option>
+                                            </select>
+                                        </div>
+                                        
+                                        <div class="form-group">
+                                            <label for="probability" class="form-label required">Probability</label>
+                                            <select id="probability" class="form-select" required>
+                                                <option value="">Confirmed</option>
+                                            </select>
+                                        </div>
+                                        
+                                        <div class="form-group">
+                                            <label for="budgStatus" class="form-label required">BUDG Status</label>
+                                            <select id="budgStatus" class="form-select" required>
+                                                <option value="">Select Status</option>
+                                            </select>
+                                        </div>
+                                        
+                                        <div class="form-group">
+                                            <label for="stage" class="form-label required">Stage</label>
+                                            <select id="stage" class="form-select" required>
+                                                <option value="">Impact Assessment</option>
+                                            </select>
+                                        </div>
+                                        
+                                        <div class="form-group">
+                                            <label for="accessControl" class="form-label required">Access Control</label>
+                                            <select id="accessControl" class="form-select" required>
+                                                <option value="">Select Access Control</option>
+                                            </select>
+                                        </div>
+
+                                    <!-- Segment Field -->
+                                    <div id="segmentFieldContainer" style="margin-top: 1rem;"></div>
+                                        
+                                        <div class="subsection-title">OTHER DETAILS</div>
+                                        
+                                        <div class="form-group">
+                                            <label for="publicationDate" class="form-label required">Publication Date</label>
+                                            <input type="date" id="publicationDate" class="form-input" required>
+                                        </div>
+                                        
+                                        <div class="form-group">
+                                            <label for="complianceDate" class="form-label required">Compliance Date</label>
+                                            <input type="date" id="complianceDate" class="form-input" required>
+                                        </div>
+                                        
+                                        <div class="form-group">
+                                            <label for="commentsDate" class="form-label">Comments Date</label>
+                                            <input type="date" id="commentsDate" class="form-input">
+                                        </div>
+                                        
+                                        <div class="form-group">
+                                            <label for="finalisationDate" class="form-label">Finalisation Date</label>
+                                            <input type="date" id="finalisationDate" class="form-input">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Custom Fields Section -->
+                            <div class="form-section" style="grid-column: 1/-1; margin-top: 2rem;">
+                                <div class="section-title">CUSTOM FIELDS</div>
+                                <div id="customFieldsContainer"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Components Tab -->
+                    <div id="componentsContainer" class="tab-content" style="display: none;">
+                        <div id="hierarchyContainer"></div>
+                    </div>
+                    <!-- Relationships Tab -->
+                    <div id="relationshipsContainer" class="tab-content" style="display: none;">
+                        <div class="view-section">
+                            <div class="section-title">RELATIONSHIPS</div>
+                            <div class="data-table-wrapper">
+                                <table class="data-table" id="relationshipsTable">
+                                    <thead>
+                                        <tr>
+                                            <th>Target Regulation</th>
+                                            <th>Relationship Type</th>
+                                            <th>Description</th>
+                                            <th>Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="relationshipsTableBody">
+                                        <tr>
+                                            <td colspan="4" style="text-align: center; padding: 2rem;">
+                                                <i class="fas fa-spinner fa-spin" style="font-size: 1.5rem; color: var(--secondary-color, #248567);"></i>
+                                                <p style="margin-top: 0.5rem;">Loading relationships...</p>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="stakeholdersContainer" class="tab-content" style="display: none;">
+                        <div id="regulationStakeholdersContainer"></div>
+                    </div>
+                    <!-- Impact Tab -->
+                    <div id="impact" class="tab-content" style="display: none;">
+                        <div class="relationships-container">
+                            <div class="relationships-sub-tabs">
+                                <button class="sub-tab active" data-sub-tab="product">Product</button>
+                                <button class="sub-tab" data-sub-tab="policy">Policy</button>
+                                <button class="sub-tab" data-sub-tab="project">Project</button>
+                                <button class="sub-tab" data-sub-tab="regulatorytheme">Regulatory Theme</button>
+                            </div>
+                            <div class="relationships-content">
+                                <!-- Product Sub-tab -->
+                                <div id="impactProductContent" class="sub-tab-content active">
+                                    <div class="relationships-hierarchy">
+                                        <div class="hierarchy-header">
+                                            <div class="hierarchy-title">PRODUCT</div>
+                                            <div class="hierarchy-actions">
+                                                <button type="button" class="btn btn-secondary" id="productListBtn">
+                                                    <i class="fas fa-list"></i> List
+                                                </button>
+                                                <button type="button" class="btn btn-secondary" id="productSearchAddBtn">
+                                                    <i class="fas fa-search-plus"></i> Search and Add
+                                                </button>
+                                                <button type="button" class="btn btn-secondary" id="productSettingsBtn">
+                                                    <i class="fas fa-cog"></i><i class="fas fa-chevron-down" style="margin-left:.3rem;font-size:.7rem;"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div class="data-table-wrapper">
+                                            <table class="data-table" id="productImpactTable">
+                                                <thead>
+                                                    <tr>
+                                                        <th><div class="th-content"><span>Relationship Type</span><i class="fas fa-sort"></i></div></th>
+                                                        <th><div class="th-content"><span>Product</span><i class="fas fa-sort"></i></div></th>
+                                                        <th><div class="th-content"><span>Ref.</span><i class="fas fa-sort"></i></div></th>
+                                                        <th><div class="th-content"><span>Product Owner</span><i class="fas fa-sort"></i></div></th>
+                                                        <th class="actions"><div class="th-content"><span>Action</span></div></th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody id="productImpactTableBody">
+                                                    <tr>
+                                                        <td colspan="5" style="text-align: center; padding: 2rem;">
+                                                            <i class="fas fa-spinner fa-spin" style="font-size: 1.5rem; color: var(--secondary-color, #248567);"></i>
+                                                            <p style="margin-top: 0.5rem;">Loading product relationships...</p>
+                                                        </td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                        <div class="hierarchy-footer" id="productImpactFooter" data-i18n="message.zeroRecords">0 records</div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Policy Sub-tab -->
+                                <div id="impactPolicyContent" class="sub-tab-content">
+                                    <div class="relationships-hierarchy">
+                                        <div class="hierarchy-header">
+                                            <div class="hierarchy-title">POLICY</div>
+                                            <div class="hierarchy-actions">
+                                                <button type="button" class="btn btn-secondary" id="policyListBtn">
+                                                    <i class="fas fa-list"></i> List
+                                                </button>
+                                                <button type="button" class="btn btn-secondary" id="policySearchAddBtn">
+                                                    <i class="fas fa-search-plus"></i> Search and Add
+                                                </button>
+                                                <button type="button" class="btn btn-secondary" id="policySettingsBtn">
+                                                    <i class="fas fa-cog"></i><i class="fas fa-chevron-down" style="margin-left:.3rem;font-size:.7rem;"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div class="data-table-wrapper">
+                                            <table class="data-table" id="policyImpactTable">
+                                                <thead>
+                                                    <tr>
+                                                        <th><div class="th-content"><span>Relationship Type</span><i class="fas fa-sort"></i></div></th>
+                                                        <th><div class="th-content"><span>Policy</span><i class="fas fa-sort"></i></div></th>
+                                                        <th><div class="th-content"><span>Ref.</span><i class="fas fa-sort"></i></div></th>
+                                                        <th><div class="th-content"><span>Policy Owner</span><i class="fas fa-sort"></i></div></th>
+                                                        <th class="actions"><div class="th-content"><span>Action</span></div></th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody id="policyImpactTableBody">
+                                                    <tr>
+                                                        <td colspan="5" style="text-align: center; padding: 2rem;">
+                                                            <i class="fas fa-spinner fa-spin" style="font-size: 1.5rem; color: var(--secondary-color, #248567);"></i>
+                                                            <p style="margin-top: 0.5rem;">Loading policy relationships...</p>
+                                                        </td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                        <div class="hierarchy-footer" id="policyImpactFooter">
+                                            0 records
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Project Sub-tab -->
+                                <div id="impactProjectContent" class="sub-tab-content">
+                                    <div class="relationships-hierarchy">
+                                        <div class="hierarchy-header">
+                                            <div class="hierarchy-title">PROJECT</div>
+                                            <div class="hierarchy-actions">
+                                                <button type="button" class="btn btn-secondary" id="projectListBtn">
+                                                    <i class="fas fa-list"></i> List
+                                                </button>
+                                                <button type="button" class="btn btn-secondary" id="projectSearchAddBtn">
+                                                    <i class="fas fa-search-plus"></i> Search and Add
+                                                </button>
+                                                <button type="button" class="btn btn-secondary" id="projectSettingsBtn">
+                                                    <i class="fas fa-cog"></i><i class="fas fa-chevron-down" style="margin-left:.3rem;font-size:.7rem;"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div class="data-table-wrapper">
+                                            <table class="data-table" id="projectImpactTable">
+                                                <thead>
+                                                    <tr>
+                                                        <th><div class="th-content"><span>Relationship Type</span><i class="fas fa-sort"></i></div></th>
+                                                        <th><div class="th-content"><span>Project</span><i class="fas fa-sort"></i></div></th>
+                                                        <th><div class="th-content"><span>Ref.</span><i class="fas fa-sort"></i></div></th>
+                                                        <th><div class="th-content"><span>Project Owner</span><i class="fas fa-sort"></i></div></th>
+                                                        <th class="actions"><div class="th-content"><span>Action</span></div></th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody id="projectImpactTableBody">
+                                                    <tr>
+                                                        <td colspan="5" style="text-align: center; padding: 2rem;">
+                                                            <i class="fas fa-spinner fa-spin" style="font-size: 1.5rem; color: var(--secondary-color, #248567);"></i>
+                                                            <p style="margin-top: 0.5rem;">Loading project relationships...</p>
+                                                        </td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                        <div class="hierarchy-footer" id="projectImpactFooter" data-i18n="message.zeroRecords">0 records</div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Regulatory Theme Sub-tab -->
+                                <div id="impactRegulatoryThemeContent" class="sub-tab-content">
+                                    <div class="relationships-hierarchy">
+                                        <div class="hierarchy-header">
+                                            <div class="hierarchy-title">REGULATORY THEME</div>
+                                            <div class="hierarchy-actions">
+                                                <button type="button" class="btn btn-secondary" id="regulatoryThemeListBtn">
+                                                    <i class="fas fa-list"></i> List
+                                                </button>
+                                                <button type="button" class="btn btn-secondary" id="regulatoryThemeSearchAddBtn">
+                                                    <i class="fas fa-search-plus"></i> Search and Add
+                                                </button>
+                                                <button type="button" class="btn btn-secondary" id="regulatoryThemeSettingsBtn">
+                                                    <i class="fas fa-cog"></i><i class="fas fa-chevron-down" style="margin-left:.3rem;font-size:.7rem;"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div class="data-table-wrapper">
+                                            <table class="data-table" id="regulatoryThemeImpactTable">
+                                                <thead>
+                                                    <tr>
+                                                        <th><div class="th-content"><span>Relationship Type</span><i class="fas fa-sort"></i></div></th>
+                                                        <th><div class="th-content"><span>Regulatory Theme Name</span><i class="fas fa-sort"></i></div></th>
+                                                        <th class="actions"><div class="th-content"><span>Action</span></div></th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody id="regulatoryThemeImpactTableBody">
+                                                    <tr>
+                                                        <td colspan="3" style="text-align: center; padding: 2rem;">
+                                                            <i class="fas fa-spinner fa-spin" style="font-size: 1.5rem; color: var(--secondary-color, #248567);"></i>
+                                                            <p style="margin-top: 0.5rem;">Loading regulatory theme relationships...</p>
+                                                        </td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                        <div class="hierarchy-footer" id="regulatoryThemeImpactFooter" data-i18n="message.zeroRecords">0 records</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="workflowContainer" class="tab-content" style="display: none;">
+                        <p>Workflow content...</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Parent Selection Modal -->
+    <div id="parentSelectionModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Select Parent Regulation</h3>
+                <button type="button" class="modal-close" id="closeParentModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="search-container">
+                    <input type="text" id="parentSearchInput" class="form-input" placeholder="Search regulations...">
+                </div>
+                <div class="regulation-list" id="regulationList">
+                    <!-- Regulations will be loaded here -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" id="cancelParentSelection">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="../../assets/js/config.js"></script>
+    <script src="../../assets/js/api-service.js"></script>
+    <script src="../../assets/js/lock-manager.js"></script>
+    <script src="../../assets/js/lock-init-helper.js"></script>
+    <script src="../../assets/js/global-lock-ui.js"></script>
+    <script src="../../assets/js/main.js"></script>
+    <script src="../../assets/js/initSearch.js"></script>
+    <script src="../../assets/js/custom-fields.js"></script>
+    <script src="../../assets/js/segment-field.js"></script>
+    <script src="../../assets/js/advanced-rich-text-editor.js"></script>
+    <script src="../../view/regulation/regulation-edit.js"></script>
+    <script src="../../view/regulation/regulation-stakeholder-edit.js"></script>
+    <script src="../../view/regulation/regulation-impact-edit.js"></script>
+    <script src="../../assets/js/header.js"></script>
+</body>
+</html>
+

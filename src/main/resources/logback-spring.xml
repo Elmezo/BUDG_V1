@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    
+    <!-- System Properties: LOG_DIR from -DLOG_DIR or env (set in Tomcat/systemd), default logs for local dev -->
+    <property name="LOG_DIR" value="${LOG_DIR:-logs}"/>
+    <property name="LOG_RETENTION_DAYS" value="${log.retention.days:-30}"/>
+    <property name="STACKTRACE_MAX_LENGTH" value="${log.stacktrace.max.length:-5000}"/>
+    
+    <!-- ERROR Appender: Only ERROR level logs -->
+    <appender name="ERROR_APPENDER" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_DIR}/prod_errors.log</file>
+        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+            <level>ERROR</level>
+        </filter>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_DIR}/prod_errors-%d{yyyy-MM-dd}.log</fileNamePattern>
+            <maxHistory>${LOG_RETENTION_DAYS}</maxHistory>
+            <totalSizeCap>10GB</totalSizeCap>
+        </rollingPolicy>
+        <!-- JSON Encoder for structured logging -->
+        <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+            <includeCallerData>false</includeCallerData>
+            <includeMdc>true</includeMdc>
+            <fieldNames>
+                <timestamp>timestamp</timestamp>
+                <level>level</level>
+                <message>message</message>
+            </fieldNames>
+            <customFields>{"channel":"app"}</customFields>
+            <lineSeparator>\n</lineSeparator>
+        </encoder>
+    </appender>
+    
+    <!-- APP Appender: All levels (ERROR, WARN, INFO, DEBUG) -->
+    <appender name="APP_APPENDER" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_DIR}/prod_app.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_DIR}/prod_app-%d{yyyy-MM-dd}.log</fileNamePattern>
+            <maxHistory>${LOG_RETENTION_DAYS}</maxHistory>
+            <totalSizeCap>10GB</totalSizeCap>
+        </rollingPolicy>
+        <!-- JSON Encoder for structured logging -->
+        <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+            <includeCallerData>false</includeCallerData>
+            <includeMdc>true</includeMdc>
+            <fieldNames>
+                <timestamp>timestamp</timestamp>
+                <level>level</level>
+                <message>message</message>
+            </fieldNames>
+            <customFields>{"channel":"app"}</customFields>
+            <lineSeparator>\n</lineSeparator>
+        </encoder>
+    </appender>
+    
+    <!-- AUDIT Appender: Immutable audit logs -->
+    <appender name="AUDIT_APPENDER" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_DIR}/prod_audit.log</file>
+        <!-- Accept logs with [AUDIT] prefix or audit=true in MDC -->
+        <filter class="ch.qos.logback.core.filter.EvaluatorFilter">
+            <evaluator>
+                <expression>message != null &amp;&amp; message.contains("[AUDIT]")</expression>
+            </evaluator>
+            <onMismatch>DENY</onMismatch>
+            <onMatch>ACCEPT</onMatch>
+        </filter>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_DIR}/prod_audit-%d{yyyy-MM-dd}.log</fileNamePattern>
+            <maxHistory>${LOG_RETENTION_DAYS}</maxHistory>
+            <totalSizeCap>10GB</totalSizeCap>
+        </rollingPolicy>
+        <!-- JSON Encoder for structured logging -->
+        <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+            <includeCallerData>false</includeCallerData>
+            <includeMdc>true</includeMdc>
+            <fieldNames>
+                <timestamp>timestamp</timestamp>
+                <level>level</level>
+                <message>message</message>
+            </fieldNames>
+            <customFields>{"channel":"app"}</customFields>
+            <lineSeparator>\n</lineSeparator>
+        </encoder>
+    </appender>
+    
+    <!-- Console Appender (for development) -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+    
+    <!-- Root Logger -->
+    <root level="INFO">
+        <appender-ref ref="ERROR_APPENDER"/>
+        <appender-ref ref="APP_APPENDER"/>
+        <appender-ref ref="AUDIT_APPENDER"/>
+        <!-- Console only in development -->
+        <if condition='property("app.environment").equals("development")'>
+            <then>
+                <appender-ref ref="CONSOLE"/>
+            </then>
+        </if>
+    </root>
+    
+    <!-- Application specific loggers -->
+    <logger name="com.example.budg_v2" level="DEBUG"/>
+    <logger name="org.elasticsearch" level="WARN"/>
+    <logger name="org.apache.http" level="WARN"/>
+    
+    <!-- Reduce Tomcat cache warnings -->
+    <logger name="org.apache.catalina.webresources.Cache" level="ERROR"/>
+    
+    <!-- Suppress TLD scanning INFO messages -->
+    <logger name="org.apache.jasper.servlet.TldScanner" level="WARN"/>
+    
+    <!-- Suppress Apache Tomcat Native library INFO messages -->
+    <logger name="org.apache.catalina.core.AprLifecycleListener" level="WARN"/>
+    
+</configuration>
+

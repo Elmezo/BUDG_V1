@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BUDG - Edit Org Unit</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../../assets/css/main.css">
+    <link rel="stylesheet" href="../../view/view.css">
+    <link rel="stylesheet" href="../../assets/css/org-unit.css">
+    <link rel="stylesheet" href="../../assets/css/custom-fields.css">
+    <link rel="stylesheet" href="../../assets/css/global-lock-ui.css">
+    <link rel="stylesheet" href="../../assets/css/advanced-rich-text-editor.css">
+    <!-- RTL styles for Arabic (disabled by default, enabled by i18n.js) -->
+    <link rel="stylesheet" href="../../assets/css/rtl.css" id="rtl-styles" disabled>
+
+    <script>(function(){const t=localStorage.getItem('budg-theme')||'light';document.documentElement.setAttribute('data-theme',t);})();</script>
+    <script src="/assets/i18n/head-locale.js"></script>
+    <script src="../../assets/i18n/i18n.js"></script>
+</head>
+<body class="org-unit-edit-page" data-submenu="organizational">
+<header class="header"></header>
+
+<div class="page-header">
+    <div class="page-header-container">
+        <div class="page-title">
+            <div class="page-icon"><i class="fas fa-building"></i></div>
+            <div class="page-title-text">
+                <div class="page-title-main" id="orgUnitEditDisplayName">Edit Org Unit</div>
+                <div class="page-title-sub">Organizational</div>
+            </div>
+        </div>
+        <div class="form-actions" id="editActionsBar">
+            <button type="button" class="btn btn-primary" id="editSaveBtn">Save</button>
+            <button type="button" class="btn btn-primary" id="editSaveCloseBtn">Save & Close</button>
+            <button type="button" class="btn btn-secondary" id="editCancelBtn">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<main class="main-content">
+    <div class="content-card">
+        <div class="content-body">
+            <div id="orgUnitEditContainer" class="org-unit-edit-container">
+                <form id="editOrgUnitForm" class="form-container">
+                    <!-- Left Column - Definition -->
+                    <div class="left-column">
+                        <div class="form-section">
+                            <h4 class="section-title">DEFINITION</h4>
+                            <div class="form-fields-container">
+                                <div class="form-group">
+                                    <label class="form-label">Primary Name <span class="required">*</span></label>
+                                    <input id="editNameInput" type="text" class="form-input" placeholder="Enter Name" />
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Parent</label>
+                                    <div class="form-input-group" style="position: relative;">
+                                        <input id="editParentInput" type="text" class="form-input" placeholder="Parent" readonly />
+                                        <i class="fas fa-edit input-icon" id="editParentBtn"></i>
+                                        
+                                        <!-- Parent Selection Dropdown -->
+                                        <div class="modal-overlay" id="editParentModal">
+                                            <div class="modal">
+                                                <div class="modal-header">
+                                                    <div class="modal-title">Current selection: <span id="editCurrentSelection">None</span></div>
+                                                    <button type="button" class="modal-close" id="editModalClose">
+                                                        <i class="fas fa-times"></i>
+                                                    </button>
+                                                </div>
+                                                <div class="modal-body">
+                                                    <div class="modal-search">
+                                                        <div class="search-input-container">
+                                                            <input type="text" class="modal-search-input" id="editSearchInput" placeholder="Search by name or description...">
+                                                            <button type="button" class="search-clear-btn" id="editSearchClearBtn" title="Clear search">
+                                                                <i class="fas fa-times"></i>
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                    <div class="modal-table-container">
+                                                        <table class="modal-table">
+                                                            <thead>
+                                                                <tr>
+                                                                    <th>Name</th>
+                                                                    <th>Description</th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody id="editTableBody">
+                                                                <!-- Table data will be populated dynamically from API -->
+                                                            </tbody>
+                                                        </table>
+                                                    </div>
+                                                </div>
+                                                <div class="modal-footer">
+                                                    <button type="button" class="btn btn-secondary" id="editModalCloseBtn">Close</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Ref. <span class="required">*</span></label>
+                                    <input id="editRefInput" type="text" class="form-input" placeholder="Enter Reference" />
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="form-section">
+                            <h4 class="section-title">OPTIONAL FIELDS</h4>
+                            <div class="form-fields-container">
+                                <div class="form-group">
+                                    <label class="form-label">Description</label>
+                                    <textarea id="editDescInput" class="form-input form-textarea" placeholder="Enter Description"></textarea>
+                                    <button type="button" class="editor-button">Show Editor</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Right Column - Classifications -->
+                    <div class="right-column">
+                        <div class="form-section">
+                            <h4 class="section-title">CLASSIFICATIONS</h4>
+                            <div class="form-fields-container">
+                                <div class="form-group">
+                                    <label class="form-label">BUDG Status <span class="required">*</span></label>
+                                    <select id="editStatusSelect" class="form-select">
+                                        <option value="">Loading statuses...</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <!-- Segment Field removed: Org Unit segmentation is managed via Segments admin assignments -->
+                            
+                            <!-- Custom Fields Section -->
+                            
+                            <div class="form-section">
+                                <h3 class="section-title">CUSTOM FIELDS</h3>
+                                <div id="customFieldsContainer"></div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            
+
+        </div>
+    </div>
+</main>
+
+    <script src="../../assets/js/config.js"></script>
+    <script src="../../assets/js/api-service.js"></script>
+    <script src="../../assets/js/save-error-helper.js"></script>
+    <script src="../../assets/js/lock-manager.js"></script>
+    <script src="../../assets/js/lock-init-helper.js"></script>
+    <script src="../../assets/js/global-lock-ui.js"></script>
+    <script src="../../assets/js/main.js"></script>
+    <script src="../../assets/js/initSearch.js"></script>
+
+    <script src="../../assets/js/custom-fields.js"></script>
+    <script src="../../assets/js/advanced-rich-text-editor.js"></script>
+    <script src="../../view/org-unit/org-unit-edit.js"></script>
+<script src="../../assets/js/header.js"></script>
+</body>
+</html>
+

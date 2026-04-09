@@ -1,0 +1,1724 @@
+/**
+ * Glossary Data Map Component
+ * Implements Data Map for Glossary facet in Data Tab > Data Map
+ * 
+ * Map Types:
+ * - System Lineage: Shows systems linked with the opened glossary (orange) + directly linked systems
+ * - Dataset Lineage: Shows datasets linked with the opened glossary (orange) + directly linked datasets
+ * - Multi Node Lineage: Shows entities connected across business
+ * 
+ * Cases:
+ * - Case 1: Glossary directly associated with dataset - show system in orange + directly linked systems
+ * - Case 2: Glossary associated with attribute - show attribute's dataset's system in orange + directly linked systems
+ * 
+ * Overlays:
+ * - Datasets: Only show associated datasets in systems (not all datasets in the system)
+ * - Attributes: Case 1 - don't show, Case 2 - only show directly associated attributes
+ * - Linking Attributes: Case 1 - don't show, Case 2 - only show directly associated attributes
+ * - Black systems: Show attributes directly associated with the same glossary G
+ * 
+ * Dependencies:
+ * - shared/map/map-styles.js, map-icons.js (InterfaceMapStyles / InterfaceMapIcons)
+ * - shared/map/glossary-data-facet-graph.js (createGlossaryDataFacetGraphPipeline)
+ * - shared/map/system-lineage-network-interactions.js (createGlossaryDataMapNetworkInteractions)
+ */
+
+(function() {
+    'use strict';
+
+    function embLog() {
+        if (typeof window !== 'undefined' && window.BUDG_DEBUG_EMBEDDED_MAPS === true) {
+            console.log.apply(console, arguments);
+        }
+    }
+    function embWarn() {
+        if (typeof window !== 'undefined' && window.BUDG_DEBUG_EMBEDDED_MAPS === true) {
+            console.warn.apply(console, arguments);
+        }
+    }
+
+    var GLOSSARY_DATA_MAP_COLOR_FALLBACK = {
+        currentSystem: '#f97316',
+        currentSystemBorder: '#ea580c',
+        otherSystem: '#1f2937',
+        otherSystemBorder: '#374151',
+        currentDataset: '#f97316',
+        currentDatasetBorder: '#ea580c',
+        otherDataset: '#1f2937',
+        otherDatasetBorder: '#374151',
+        relationshipLine: '#64748b',
+        interfaceLine: '#94a3b8',
+        attributeLine: '#64748b',
+        upstreamHighlight: '#ef4444',
+        downstreamHighlight: '#22c55e',
+        selectedBorder: '#248567',
+        nodeLabel: '#1f2937',
+        edgeLabelColor: '#6b7280'
+    };
+    function getMapColors() {
+        return window.MapRenderUtils.getMapColors(GLOSSARY_DATA_MAP_COLOR_FALLBACK);
+    }
+
+    // Map State Management
+    const GlossaryDataMapState = {
+        initialized: false,
+        dagreRegistered: false,
+        network: null,
+        canvas: null,
+        loadingEl: null,
+        glossaryId: null,
+        glossaryData: null,
+        layout: 'top-to-bottom',
+        mapType: 'system-lineage', // Default to system-lineage (matches HTML default)
+        overlay: 'none',
+        overlayColumnsByType: {},
+        hopsCount: 15,
+        filters: {},
+        nodeFilters: {
+            classifications: [],
+            types: [],
+            lifecycles: []
+        },
+        datasetNodeFilters: {
+            types: [],
+            lifecycles: []
+        },
+        hiddenNodes: new Set(),
+        hiddenUpstreamNodes: new Set(),
+        hiddenDownstreamNodes: new Set(),
+        focusedNode: null,
+        // Case tracking
+        caseType: null, // 'case1' (dataset) or 'case2' (attribute)
+        directlyLinkedSystems: new Set(), // Systems directly linked to glossary (orange)
+        directlyLinkedDatasets: new Set(), // Datasets directly linked to glossary
+        directlyLinkedAttributes: new Set(), // Attributes directly linked to glossary
+        // Data storage
+        systemsData: new Map(), // systemId -> system data
+        datasetsData: new Map(), // datasetId -> dataset data
+        attributesData: new Map(), // attributeId -> attribute data
+        interfacesData: [], // Interfaces for systems
+        dataFlowData: [], // Data flow outside interfaces
+        datasetRelationships: [], // Relationships between datasets via attributes
+        connectedSystems: new Map(), // systemId -> { systemData }
+        inaccessibleSystems: new Set(), // Systems that are locked/inaccessible
+        missingSystems: new Set(), // Systems that no longer exist (404) - e.g. deleted but still referenced
+        // Overlay data
+        overlayDatasets: new Map(), // systemId -> Set of datasetIds (only associated ones)
+        overlayAttributes: new Map(), // systemId -> Set of attributeIds
+        linkingAttributes: new Map() // systemId -> Set of attributeIds (for linking overlay)
+    };
+
+    const adapter = window.createMapAdapter(GlossaryDataMapState, 'glossaryDataMap', { zoomRecenter: false });
+
+    var graphPipeline = null;
+
+    async function loadMapData(glossaryId) {
+        return graphPipeline.loadMapData(glossaryId);
+    }
+
+    function buildGraph() {
+        return graphPipeline.buildGraph();
+    }
+
+    var networkIx = null;
+
+    // Initialize the map
+    function init(glossaryId, containerSelector) {
+        embLog('[GLOSSARY-DATA-MAP] Initializing map for glossary:', glossaryId, 'container:', containerSelector);
+        GlossaryDataMapState.glossaryId = glossaryId;
+        GlossaryDataMapState.canvas = document.querySelector(containerSelector || '#glossaryDataMapCanvas');
+        GlossaryDataMapState.loadingEl = document.querySelector('[data-glossary-data-map-loading]');
+
+        if (!GlossaryDataMapState.canvas) {
+            console.error('[GLOSSARY-DATA-MAP] Canvas element not found');
+            return;
+        }
+
+        // Check if Cytoscape is available
+        if (typeof cytoscape === 'undefined') {
+            console.error('[GLOSSARY-DATA-MAP] Cytoscape library not available');
+            GlossaryDataMapState.canvas.innerHTML = window.MapRenderUtils.htmlCytoscapeUnavailable();
+            return;
+        }
+
+        // Register dagre layout if available - same as system map
+        if (!GlossaryDataMapState.dagreRegistered) {
+            try {
+                const dagre = window.cytoscapeDagre || window['cytoscape-dagre'];
+                if (dagre) {
+                    cytoscape.use(dagre);
+                    GlossaryDataMapState.dagreRegistered = true;
+                }
+                // Silently fall back to breadthfirst if dagre not available
+            } catch (e) {
+                // Silently handle error - will use breadthfirst fallback
+            }
+        }
+
+        GlossaryDataMapState.initialized = true;
+        
+        // Load map data
+        loadMapData(glossaryId);
+    }
+
+
+    // Render network using Cytoscape
+    function renderNetwork(graph) {
+        if (!GlossaryDataMapState.canvas) {
+            console.error('[GLOSSARY-DATA-MAP] Canvas not available');
+            return;
+        }
+
+        if (graphPipeline && graphPipeline.invalidateGraphCache) {
+            graphPipeline.invalidateGraphCache();
+        }
+
+        // Clear canvas
+        GlossaryDataMapState.canvas.innerHTML = '';
+
+        if (!graph || !graph.nodes || graph.nodes.length === 0) {
+            showPlaceholder('No data to display.');
+            return;
+        }
+
+        // Convert graph format to Cytoscape format
+        const elements = [];
+        const colors = getMapColors();
+        
+        // Add nodes
+        graph.nodes.forEach(node => {
+            const isCurrent = node.isCurrent || false;
+            const isSystem = node.group === 'system';
+            const nodeColor = isCurrent 
+                ? (isSystem ? colors.currentSystem : colors.currentDataset)
+                : (isSystem ? colors.otherSystem : colors.otherDataset);
+            const borderColor = isCurrent
+                ? (isSystem ? colors.currentSystemBorder : colors.currentDatasetBorder)
+                : (isSystem ? colors.otherSystemBorder : colors.otherDatasetBorder);
+            
+            elements.push({
+                data: {
+                    id: node.id,
+                    label: (node.isLocked ? '\u{1F512} ' : '') + (node.label || ''),
+                    nodeColor: nodeColor,
+                    borderColor: borderColor,
+                    isCurrent: isCurrent,
+                    isSystem: isSystem,
+                    isDataset: node.group === 'dataset',
+                    isLocked: node.isLocked || false,
+                    // Spread meta properties directly into data for easier access
+                    ...(node.meta || {}),
+                    // Also keep meta as nested object for compatibility
+                    meta: node.meta || {}
+                }
+            });
+        });
+        
+        // Collect current node IDs for edge reversal (so dagre places current node leftmost/topmost)
+        const currentNodeIds = new Set(graph.nodes.filter(n => n.isCurrent).map(n => n.id));
+        
+        // Add edges
+        graph.edges.forEach(edge => {
+            const targetIsCurrent = currentNodeIds.has(edge.to);
+            const sourceIsCurrent = currentNodeIds.has(edge.from);
+            const reverseEdge = targetIsCurrent && !sourceIsCurrent;
+            const source = reverseEdge ? edge.to : edge.from;
+            const target = reverseEdge ? edge.from : edge.to;
+            elements.push({
+                data: {
+                    id: edge.id,
+                    source: source,
+                    target: target,
+                    label: edge.label || '',
+                    lineColor: colors.relationshipLine,
+                    lineStyle: edge.lineStyle || 'solid',
+                    lineType: edge.lineType || 'relationship',
+                    reversed: !!reverseEdge
+                },
+                classes: reverseEdge ? 'reversed-edge' : ''
+            });
+        });
+
+        // Find root nodes from graph data before creating network
+        const rootNodeIds = findRootNodesFromGraph(graph);
+        
+        // Build layout configuration with root nodes
+        const layoutConfig = buildCytoscapeLayout(rootNodeIds);
+        
+        // Create Cytoscape instance
+        GlossaryDataMapState.network = cytoscape({
+            container: GlossaryDataMapState.canvas,
+            elements: elements,
+            style: getCytoscapeStyle(),
+            layout: layoutConfig,
+            minZoom: 0.3,
+            maxZoom: 3
+        });
+
+        // Setup event listeners
+        if (networkIx) networkIx.setupEventListeners();
+        
+        // Setup overlay if enabled
+        if (GlossaryDataMapState.overlay !== 'none') {
+            loadOverlayData(GlossaryDataMapState.overlay);
+        }
+    }
+
+    // Get Cytoscape styling - uses external styles module if available
+    function getCytoscapeStyle() {
+        // Try to use external styles module
+        if (window.InterfaceMapStyles && typeof window.InterfaceMapStyles.getCytoscapeStyles === 'function') {
+            const styles = window.InterfaceMapStyles.getCytoscapeStyles('glossaryDataMap');
+            // Override background-image to only apply when the data field exists
+            return styles.map(style => {
+                if (style.selector === 'node' && style.style && style.style['background-image']) {
+                    return {
+                        ...style,
+                        style: {
+                            ...style.style,
+                            'background-image': undefined
+                        }
+                    };
+                }
+                return style;
+            }).concat([
+                {
+                    selector: 'node[backgroundImage]',
+                    style: {
+                        'background-image': 'data(backgroundImage)',
+                        'background-fit': 'contain',
+                        'background-width': '50%',
+                        'background-height': '50%',
+                        'background-position-y': '30%'
+                    }
+                }
+            ]);
+        }
+
+        // Fallback inline styles if external module not loaded
+        const colors = getMapColors();
+        const nodeSizes = adapter.getNodeSizes();
+
+        return [
+            {
+                selector: 'node',
+                style: {
+                    'label': 'data(label)',
+                    'text-valign': 'bottom',
+                    'text-halign': 'center',
+                    'background-opacity': 1,
+                    'background-color': 'data(nodeColor)',
+                    'border-color': 'data(borderColor)',
+                    'border-width': 2,
+                    'text-margin-y': 12,
+                    'text-wrap': 'wrap',
+                    'text-max-width': 150,
+                    'font-size': 12,
+                    'font-weight': '600',
+                    'font-family': 'Inter, system-ui, sans-serif',
+                    'color': colors.nodeLabel || '#1f2937',
+                    'shape': 'round-rectangle',
+                    'width': nodeSizes.system.width,
+                    'height': nodeSizes.system.height
+                }
+            },
+            {
+                selector: 'node[isDataset = true]',
+                style: {
+                    'width': nodeSizes.dataset.width,
+                    'height': nodeSizes.dataset.height
+                }
+            },
+            {
+                selector: 'edge',
+                style: {
+                    'width': 2,
+                    'line-color': 'data(lineColor)',
+                    'target-arrow-color': 'data(lineColor)',
+                    'target-arrow-shape': 'triangle',
+                    'curve-style': (window._sharedDropdownApis && window._sharedDropdownApis['glossaryDataMap'] && typeof window._sharedDropdownApis['glossaryDataMap'].getCurveStyle === 'function') ? window._sharedDropdownApis['glossaryDataMap'].getCurveStyle() : 'bezier',
+                    'label': 'data(label)',
+                    'text-rotation': 'autorotate',
+                    'text-margin-y': -10,
+                    'font-size': 10,
+                    'color': colors.edgeLabelColor || '#6b7280'
+                }
+            },
+            {
+                selector: '.reversed-edge',
+                style: {
+                    'target-arrow-shape': 'none',
+                    'source-arrow-shape': 'triangle',
+                    'source-arrow-color': colors.attributeLine || colors.interfaceLine || '#64748b'
+                }
+            },
+            {
+                selector: '.reversed-edge[lineColor]',
+                style: {
+                    'source-arrow-color': 'data(lineColor)'
+                }
+            },
+            {
+                selector: 'edge[lineStyle = "dashed"]',
+                style: {
+                    'line-style': 'dashed',
+                    'line-dash-pattern': [5, 5]
+                }
+            },
+            {
+                selector: 'node[isLocked = true]',
+                style: {
+                    'background-color': '#6b7280',
+                    'border-color': '#4b5563',
+                    'opacity': 0.6
+                }
+            },
+            {
+                selector: '.highlighted-upstream',
+                style: {
+                    'line-color': colors.upstreamHighlight || '#ef4444',
+                    'target-arrow-color': colors.upstreamHighlight || '#ef4444',
+                    'width': 3,
+                    'z-index': 999
+                }
+            },
+            {
+                selector: '.highlighted-downstream',
+                style: {
+                    'line-color': colors.downstreamHighlight || '#22c55e',
+                    'target-arrow-color': colors.downstreamHighlight || '#22c55e',
+                    'width': 3,
+                    'z-index': 999
+                }
+            },
+            {
+                selector: '.dimmed',
+                style: {
+                    'opacity': 0.25
+                }
+            },
+            {
+                selector: '.focused',
+                style: {
+                    'border-color': colors.downstreamHighlight || '#22c55e',
+                    'border-width': 4
+                }
+            }
+        ];
+    }
+
+    // Build Cytoscape layout configuration - same as system map
+    function buildCytoscapeLayout(rootNodeIds = null) {
+        const mapId = 'glossaryDataMap';
+        const ddApi = window._sharedDropdownApis && window._sharedDropdownApis[mapId];
+        const DEFAULT_SF = 2.2;
+        const DEFAULT_PAD = 90;
+        const sf = ddApi && typeof ddApi.getSpacingFactor === 'function' ? ddApi.getSpacingFactor() : DEFAULT_SF;
+        const sp = ddApi && typeof ddApi.getSpacingPadding === 'function' ? ddApi.getSpacingPadding() : DEFAULT_PAD;
+        const layoutOption = GlossaryDataMapState.layout;
+        
+        // Get root nodes - use provided IDs or find from network
+        const roots = rootNodeIds || adapter.findRootNodes();
+
+        // Try to use external layout configuration
+        if (window.InterfaceMapStyles && typeof window.InterfaceMapStyles.getLayoutConfig === 'function') {
+            const layoutConfig = window.InterfaceMapStyles.getLayoutConfig(layoutOption);
+            // Add roots for breadthfirst layouts
+            if (layoutConfig.name === 'breadthfirst') {
+                return { ...layoutConfig, roots: roots, padding: sp, spacingFactor: sf };
+            }
+            // If dagre is requested but not registered, fall back to breadthfirst silently
+            if (layoutConfig.name === 'dagre' && !GlossaryDataMapState.dagreRegistered) {
+                return {
+                    name: 'breadthfirst',
+                    directed: true,
+                    padding: sp,
+                    spacingFactor: sf,
+                    animate: true,
+                    animationDuration: 500,
+                    nodeDimensionsIncludeLabels: true,
+                    roots: roots
+                };
+            }
+            return { ...layoutConfig, padding: sp, spacingFactor: sf };
+        }
+
+        // Fallback inline layout configuration
+        const baseLayout = {
+            name: 'breadthfirst',
+            directed: true,
+            padding: sp,
+            spacingFactor: sf,
+            animate: true,
+            animationDuration: 500,
+            nodeDimensionsIncludeLabels: true
+        };
+
+        switch (layoutOption) {
+            case 'right-to-left':
+                return {
+                    ...baseLayout,
+                    roots: roots,
+                    transform: (node, pos) => ({ x: -pos.x, y: pos.y })
+                };
+            case 'top-to-bottom':
+                // Use dagre if available, otherwise fall back to breadthfirst
+                if (GlossaryDataMapState.dagreRegistered) {
+                    return {
+                        name: 'dagre',
+                        rankDir: 'TB',
+                        padding: sp,
+                        spacingFactor: sf,
+                        animate: true,
+                        animationDuration: 500,
+                        nodeDimensionsIncludeLabels: true
+                    };
+                } else {
+                    // Fallback to breadthfirst if dagre not available
+                    return {
+                        ...baseLayout,
+                        roots: roots
+                    };
+                }
+            case 'organic':
+            case 'force':
+                return {
+                    name: 'cose',
+                    animate: true,
+                    animationDuration: 500,
+                    nodeRepulsion: Math.round(5000 * sf),
+                    idealEdgeLength: Math.round(150 * sf),
+                    edgeElasticity: 0.45,
+                    nestingFactor: 0.1,
+                    gravity: 0.25,
+                    numIter: 1500,
+                    initialEnergyOnIncremental: 0.3
+                };
+            default: // left-to-right
+                if (GlossaryDataMapState.dagreRegistered) {
+                    return {
+                        name: 'dagre',
+                        rankDir: 'LR',
+                        padding: sp,
+                        spacingFactor: sf,
+                        animate: true,
+                        animationDuration: 500,
+                        nodeDimensionsIncludeLabels: true
+                    };
+                }
+                return {
+                    ...baseLayout,
+                    roots: roots
+                };
+        }
+    }
+
+    // Find root nodes from graph data (before network is created)
+    function findRootNodesFromGraph(graph) {
+        if (!graph || !graph.nodes || graph.nodes.length === 0) return [];
+        
+        const nodeIds = new Set(graph.nodes.map(n => n.id));
+        const targets = new Set();
+        
+        if (graph.edges) {
+            graph.edges.forEach(edge => {
+                if (edge.to) targets.add(edge.to);
+            });
+        }
+        
+        const roots = graph.nodes.filter(node => !targets.has(node.id));
+        return roots.length > 0 ? roots.map(n => n.id) : (graph.nodes.length > 0 ? [graph.nodes[0].id] : []);
+    }
+
+    function setupEventListeners() {
+        if (networkIx) networkIx.setupEventListeners();
+    }
+
+    // Show node details in side panel
+    function showNodeDetails(nodeData) {
+        const detailsEl = document.querySelector('[data-glossary-data-map-details]');
+        const placeholderEl = document.querySelector('[data-glossary-data-map-placeholder]');
+        
+        if (!detailsEl || !placeholderEl) return;
+        
+        placeholderEl.style.display = 'none';
+        detailsEl.style.display = 'block';
+        
+        const name = nodeData.systemName || nodeData.datasetName || nodeData.label || 'Unknown';
+        const type = nodeData.isSystem ? 'System' : 'Dataset';
+        const ref = nodeData.refNumber || '';
+        
+        detailsEl.innerHTML = `
+            <div class="selection-details">
+                <h5>${escapeHtml(name)}</h5>
+                <div class="selection-meta">
+                    <div><strong>Type:</strong> ${escapeHtml(type)}</div>
+                    ${ref ? `<div><strong>Ref:</strong> ${escapeHtml(ref)}</div>` : ''}
+                    ${nodeData.classification ? `<div><strong>Classification:</strong> ${escapeHtml(nodeData.classification)}</div>` : ''}
+                    ${nodeData.type ? `<div><strong>Type:</strong> ${escapeHtml(nodeData.type)}</div>` : ''}
+                    ${nodeData.lifecycle ? `<div><strong>Lifecycle:</strong> ${escapeHtml(nodeData.lifecycle)}</div>` : ''}
+                </div>
+            </div>
+        `;
+    }
+
+    // Hide node details
+    function hideNodeDetails() {
+        const detailsEl = document.querySelector('[data-glossary-data-map-details]');
+        const placeholderEl = document.querySelector('[data-glossary-data-map-placeholder]');
+        
+        if (detailsEl) detailsEl.style.display = 'none';
+        if (placeholderEl) placeholderEl.style.display = 'block';
+    }
+
+    // Show edge info
+    function showEdgeInfo(edgeData) {
+        embLog('[GLOSSARY-DATA-MAP] Edge clicked:', edgeData);
+    }
+
+    // Set map type
+    function setMapType(mapType) {
+        GlossaryDataMapState.mapType = mapType;
+        if (GlossaryDataMapState.glossaryId) {
+            loadMapData(GlossaryDataMapState.glossaryId);
+        }
+    }
+
+    // Set layout
+    function setLayout(layout) {
+        GlossaryDataMapState.layout = layout;
+        if (GlossaryDataMapState.network) {
+            const rootNodeIds = adapter.findRootNodes();
+            GlossaryDataMapState.network.layout(buildCytoscapeLayout(rootNodeIds)).run();
+        }
+    }
+
+    function setHopsCount(count) {
+        const val = Math.min(99, Math.max(1, parseInt(count, 10) || 15));
+        GlossaryDataMapState.hopsCount = val;
+        if (GlossaryDataMapState.glossaryId) {
+            loadMapData(GlossaryDataMapState.glossaryId);
+        }
+    }
+
+    // Set overlay
+    function setOverlay(overlayType) {
+        embLog('[GLOSSARY-DATA-MAP] setOverlay called with:', overlayType);
+        GlossaryDataMapState.overlay = overlayType;
+        
+        if (overlayType === 'none') {
+            clearOverlayPanels();
+        } else {
+            loadOverlayData(overlayType);
+        }
+    }
+
+    /** Set overlay columns (field ids) for an overlay type. Re-renders overlay if that type is active. */
+    function setOverlayColumns(overlayType, columnIds) {
+        if (!overlayType) return;
+        GlossaryDataMapState.overlayColumnsByType[overlayType] = Array.isArray(columnIds) ? columnIds.slice() : [];
+        if (GlossaryDataMapState.overlay === overlayType) {
+            loadOverlayData(overlayType);
+        }
+    }
+
+    /** Get selected overlay column ids for an overlay type. */
+    function getOverlayColumns(overlayType) {
+        return GlossaryDataMapState.overlayColumnsByType[overlayType] || (window.OverlayColumns ? window.OverlayColumns.getDefaultOverlayColumnIds(overlayType) : ['name']);
+    }
+
+    // Load overlay data for all visible nodes
+    async function loadOverlayData(overlayType) {
+        if (!GlossaryDataMapState.network) return;
+        
+        embLog('[GLOSSARY-DATA-MAP] Loading overlay data:', overlayType);
+        
+        try {
+            const overlayData = new Map();
+            const isDatasetLineage = GlossaryDataMapState.mapType === 'dataset-lineage';
+            const isMultiNode = GlossaryDataMapState.mapType === 'multi-node-lineage';
+            
+            if (GlossaryDataMapState.mapType === 'system-lineage' || isMultiNode) {
+                const systemIds = new Set();
+                GlossaryDataMapState.network.nodes().forEach(node => {
+                    const nodeData = node.data();
+                    if (nodeData.isSystem && nodeData.systemId) systemIds.add(String(nodeData.systemId));
+                });
+                await Promise.all(Array.from(systemIds).map(async (systemId) => {
+                    try {
+                        const data = await fetchOverlayDataForSystem(systemId, overlayType);
+                        if (data && data.length > 0) overlayData.set(systemId, data);
+                    } catch (error) {
+                        embWarn(`[GLOSSARY-DATA-MAP] Failed to load ${overlayType} for system ${systemId}:`, error);
+                    }
+                }));
+            }
+            
+            if (isDatasetLineage || isMultiNode) {
+                const datasetNodes = [];
+                GlossaryDataMapState.network.nodes().forEach(node => {
+                    const nodeData = node.data();
+                    if (nodeData.isDataset && nodeData.datasetId) datasetNodes.push({ nodeId: node.id(), datasetId: String(nodeData.datasetId) });
+                });
+                await Promise.all(datasetNodes.map(async ({ nodeId, datasetId }) => {
+                    try {
+                        const data = await fetchOverlayDataForDataset(datasetId, overlayType);
+                        if (data && data.length > 0) overlayData.set(nodeId, data);
+                    } catch (error) {
+                        embWarn(`[GLOSSARY-DATA-MAP] Failed to load ${overlayType} for dataset ${datasetId}:`, error);
+                    }
+                }));
+            }
+            
+            // Render overlay panels (key by node id: systemId for system nodes, dataset_${id} for dataset nodes)
+            renderOverlayPanels(overlayType, overlayData);
+            
+        } catch (error) {
+            console.error('[GLOSSARY-DATA-MAP] Error loading overlay data:', error);
+        }
+    }
+
+    // Fetch overlay data for a system
+    async function fetchOverlayDataForSystem(systemId, overlayType) {
+        try {
+            switch (overlayType) {
+                case 'datasets':
+                    // Only show datasets associated with the glossary in this system
+                    const systemDatasets = GlossaryDataMapState.overlayDatasets.get(String(systemId));
+                    if (systemDatasets) {
+                        const datasets = [];
+                        for (const datasetId of systemDatasets) {
+                            const dataset = GlossaryDataMapState.datasetsData.get(String(datasetId));
+                            if (dataset) {
+                                datasets.push({
+                                    id: datasetId,
+                                    name: dataset.name || dataset.primaryName || dataset.PrimaryName || `Dataset ${datasetId}`,
+                                    refNumber: dataset.refNumber || dataset.RefNumber || ''
+                                });
+                            }
+                        }
+                        return datasets;
+                    }
+                    return [];
+                    
+                case 'attributes':
+                    // Case 1: Don't show attributes
+                    if (GlossaryDataMapState.caseType === 'case1') {
+                        return [];
+                    }
+                    // Case 2: Only show directly associated attributes
+                    const systemAttributes = GlossaryDataMapState.overlayAttributes.get(String(systemId));
+                    if (systemAttributes) {
+                        const attributes = [];
+                        for (const attrId of systemAttributes) {
+                            const attr = GlossaryDataMapState.attributesData.get(String(attrId));
+                            if (attr) {
+                                attributes.push({
+                                    id: attrId,
+                                    name: attr.name || attr.attributeName || attr.Name || `Attribute ${attrId}`,
+                                    datasetId: attr.datasetId
+                                });
+                            }
+                        }
+                        return attributes;
+                    }
+                    return [];
+                    
+                case 'linking-attributes':
+                    // Case 1: Don't show attributes
+                    if (GlossaryDataMapState.caseType === 'case1') {
+                        return [];
+                    }
+                    // Case 2: Only show directly associated attributes
+                    const linkingAttributes = GlossaryDataMapState.linkingAttributes.get(String(systemId));
+                    if (linkingAttributes) {
+                        const attributes = [];
+                        for (const attrId of linkingAttributes) {
+                            const attr = GlossaryDataMapState.attributesData.get(String(attrId));
+                            if (attr) {
+                                attributes.push({
+                                    id: attrId,
+                                    name: attr.name || attr.attributeName || attr.Name || `Attribute ${attrId}`,
+                                    datasetId: attr.datasetId
+                                });
+                            }
+                        }
+                        return attributes;
+                    }
+                    return [];
+                    
+                case 'description':
+                    const system = GlossaryDataMapState.systemsData.get(String(systemId));
+                    if (system && system.description) {
+                        return [{ name: 'Description', value: system.description }];
+                    }
+                    return [];
+                    
+                case 'glossary': {
+                    const glossaries = [];
+                    const seenSysG = new Set();
+                    const sysDatasets = GlossaryDataMapState.overlayDatasets.get(String(systemId));
+                    if (sysDatasets) {
+                        for (const datasetId of sysDatasets) {
+                            // 1) Dataset's own glossary
+                            const dataset = GlossaryDataMapState.datasetsData.get(String(datasetId));
+                            if (dataset && dataset.glossaryId) {
+                                const gIdStr = String(dataset.glossaryId);
+                                if (!seenSysG.has(gIdStr)) {
+                                    seenSysG.add(gIdStr);
+                                    try {
+                                        const glossary = await window.BUDG_API_SERVICE.getGlossaryById(dataset.glossaryId);
+                                        const gd = glossary?.data || glossary;
+                                        if (gd) {
+                                            const gName = gd.name || gd.Name || gd.primaryName || '';
+                                            glossaries.push({ id: dataset.glossaryId, name: gName, glossary: gName, glossaryId: dataset.glossaryId, source: 'dataset' });
+                                        }
+                                    } catch (e) { /* ignore */ }
+                                }
+                            }
+                            // 2) Glossary terms from attributes
+                            try {
+                                const attrResp = await fetch(`/api/attribute/${datasetId}`, { credentials: 'include' });
+                                if (attrResp.ok) {
+                                    const attrData = await attrResp.json();
+                                    const attrs = Array.isArray(attrData?.data) ? attrData.data : (Array.isArray(attrData) ? attrData : []);
+                                    attrs.forEach(attr => {
+                                        const gName = attr['Glossary Name attribute'] || attr.glossary || attr.glossaryName || attr.GlossaryName;
+                                        const gId = attr.glossaryId || attr.glossary_id || attr.Glossary_ID;
+                                        const gKey = gName || (gId ? String(gId) : null);
+                                        if (gKey && !seenSysG.has(gKey)) {
+                                            seenSysG.add(gKey);
+                                            glossaries.push({ id: gId, name: gName, glossary: gName, glossaryId: gId, source: 'attribute' });
+                                        }
+                                    });
+                                }
+                            } catch (e) { /* ignore */ }
+                        }
+                    }
+                    return glossaries;
+                }
+                    
+                case 'stakeholders':
+                    try {
+                        const resp = await fetch(`/api/system-stakeholder/${systemId}/stakeholders`, { credentials: 'include' });
+                        if (resp.ok) {
+                            const data = await resp.json();
+                            if (Array.isArray(data)) {
+                                return data;
+                            } else if (Array.isArray(data?.data)) {
+                                return data.data;
+                            } else if (Array.isArray(data?.stakeholders)) {
+                                return data.stakeholders;
+                            }
+                        }
+                    } catch (e) {
+                        embWarn('[GLOSSARY-DATA-MAP] Error fetching stakeholders:', e);
+                    }
+                    return [];
+                    
+                case 'projects':
+                    try {
+                        const resp = await fetch(`/api/system-impact/${systemId}/projects`, { credentials: 'include' });
+                        if (resp.ok) {
+                            const data = await resp.json();
+                            return Array.isArray(data?.data) ? data.data : (Array.isArray(data) ? data : []);
+                        }
+                    } catch (e) {
+                        // Ignore
+                    }
+                    return [];
+
+                case 'processes':
+                    try {
+                        const resp = await fetch(`/api/process-impact/systems/${systemId}/processes`, { credentials: 'include' });
+                        if (resp.ok) {
+                            const data = await resp.json();
+                            return Array.isArray(data?.data) ? data.data : (Array.isArray(data) ? data : []);
+                        }
+                    } catch (e) {
+                        // Ignore
+                    }
+                    return [];
+
+                case 'policies':
+                    try {
+                        const resp = await fetch(`/api/policy-impact/systems/${systemId}/policies`, { credentials: 'include' });
+                        if (resp.ok) {
+                            const data = await resp.json();
+                            return Array.isArray(data?.data) ? data.data : (Array.isArray(data) ? data : []);
+                        }
+                    } catch (e) {
+                        // Ignore
+                    }
+                    return [];
+
+                case 'data-quality':
+                    try {
+                        const resp = await fetch(`/api/data-quality/system/${systemId}`, { credentials: 'include' });
+                        if (resp.ok) {
+                            const data = await resp.json();
+                            return Array.isArray(data?.data) ? data.data : (Array.isArray(data) ? data : []);
+                        }
+                    } catch (e) {
+                        // Ignore
+                    }
+                    return [];
+
+                case 'data-privacy':
+                    try {
+                        const resp = await fetch(`/api/data-privacy/system/${systemId}`, { credentials: 'include' });
+                        if (resp.ok) {
+                            const data = await resp.json();
+                            return Array.isArray(data?.data) ? data.data : (Array.isArray(data) ? data : []);
+                        }
+                    } catch (e) {
+                        // Ignore
+                    }
+                    return [];
+
+                case 'business-area':
+                    try {
+                        const resp = await fetch(`/api/businessarea-impact/systems/${systemId}/businessareas`, { credentials: 'include' });
+                        if (resp.ok) {
+                            const data = await resp.json();
+                            return Array.isArray(data?.data) ? data.data : (Array.isArray(data) ? data : []);
+                        }
+                    } catch (e) {
+                        // Ignore
+                    }
+                    return [];
+
+                case 'products':
+                    try {
+                        const resp = await fetch(`/api/system-impact/${systemId}/products`, { credentials: 'include' });
+                        if (resp.ok) {
+                            const data = await resp.json();
+                            return Array.isArray(data?.data) ? data.data : (Array.isArray(data) ? data : []);
+                        }
+                    } catch (e) {
+                        // Ignore
+                    }
+                    return [];
+
+                case 'legal-entities':
+                    try {
+                        const resp = await fetch(`/api/system-impact/${systemId}/legals`, { credentials: 'include' });
+                        if (resp.ok) {
+                            const data = await resp.json();
+                            return Array.isArray(data?.data) ? data.data : (Array.isArray(data) ? data : []);
+                        }
+                    } catch (e) {
+                        // Ignore
+                    }
+                    return [];
+
+                case 'geography':
+                    try {
+                        const system = GlossaryDataMapState.systemsData.get(String(systemId));
+                        if (system && (system.geography || system.region || system.country)) {
+                            return [{ name: system.geography || system.region || system.country, type: 'geography' }];
+                        }
+                        const API = window.BUDG_API_SERVICE;
+                        if (API && typeof API.getSystemById === 'function') {
+                            const res = await API.getSystemById(systemId);
+                            const d = res?.data || res;
+                            if (d && (d.geography || d.region || d.country)) {
+                                return [{ name: d.geography || d.region || d.country, type: 'geography' }];
+                            }
+                        }
+                    } catch (e) {
+                        // Ignore
+                    }
+                    return [];
+                    
+                default:
+                    return [];
+            }
+        } catch (error) {
+            embWarn(`[GLOSSARY-DATA-MAP] Failed to fetch ${overlayType} for system ${systemId}:`, error);
+            return [];
+        }
+    }
+
+    // Fetch overlay data for a dataset (dataset lineage / multi-node)
+    async function fetchOverlayDataForDataset(datasetId, overlayType) {
+        try {
+            switch (overlayType) {
+                case 'description':
+                    const dataset = GlossaryDataMapState.datasetsData.get(String(datasetId));
+                    if (dataset && (dataset.definition || dataset.description)) {
+                        return [{ name: 'Description', value: dataset.definition || dataset.description }];
+                    }
+                    return [];
+                case 'glossary': {
+                    const glossaryTerms = [];
+                    const seenG = new Set();
+                    // 1) Dataset's own glossary term
+                    const ds = GlossaryDataMapState.datasetsData.get(String(datasetId));
+                    if (ds && ds.glossaryId) {
+                        try {
+                            const glossary = await window.BUDG_API_SERVICE.getGlossaryById(ds.glossaryId);
+                            const g = glossary?.data || glossary;
+                            if (g) {
+                                const gName = g.name || g.Name || g.primaryName || '';
+                                if (gName && !seenG.has(gName)) {
+                                    seenG.add(gName);
+                                    glossaryTerms.push({ id: ds.glossaryId, name: gName, glossary: gName, glossaryId: ds.glossaryId, source: 'dataset' });
+                                }
+                            }
+                        } catch (e) { /* ignore */ }
+                    }
+                    // 2) Glossary terms from attributes
+                    try {
+                        const attrResp = await fetch(`/api/attribute/${datasetId}`, { credentials: 'include' });
+                        if (attrResp.ok) {
+                            const attrData = await attrResp.json();
+                            const attrs = Array.isArray(attrData?.data) ? attrData.data : (Array.isArray(attrData) ? attrData : []);
+                            attrs.forEach(attr => {
+                                const gName = attr['Glossary Name attribute'] || attr.glossary || attr.glossaryName || attr.GlossaryName;
+                                if (gName && !seenG.has(gName)) {
+                                    seenG.add(gName);
+                                    const gId = attr.glossaryId || attr.glossary_id || attr.Glossary_ID;
+                                    glossaryTerms.push({ id: gId, name: gName, glossary: gName, glossaryId: gId, source: 'attribute' });
+                                }
+                            });
+                        }
+                    } catch (e) { /* ignore */ }
+                    return glossaryTerms;
+                }
+                case 'attributes':
+                    try {
+                        const resp = await fetch(`/api/attribute/${datasetId}`, { credentials: 'include' });
+                        if (resp.ok) {
+                            const data = await resp.json();
+                            const attrs = Array.isArray(data?.data) ? data.data : (Array.isArray(data) ? data : []);
+                            return attrs.map(a => ({ id: a.id ?? a.ID, name: a['Name attribute'] || a.name || a.primaryName || '', datasetId: datasetId }));
+                        }
+                    } catch (e) { /* ignore */ }
+                    return [];
+                case 'linking-attributes':
+                    try {
+                        const resp = await fetch(`/api/attribute/${datasetId}?linking=true`, { credentials: 'include' });
+                        if (resp.ok) {
+                            const data = await resp.json();
+                            const attrs = Array.isArray(data?.data) ? data.data : (Array.isArray(data) ? data : []);
+                            return attrs.map(a => ({ id: a.id ?? a.ID, name: a['Name attribute'] || a.name || a.primaryName || '', datasetId: datasetId }));
+                        }
+                    } catch (e) { /* ignore */ }
+                    return [];
+                case 'data-quality':
+                    try {
+                        const resp = await fetch(`/api/data-quality/dataset/${datasetId}`, { credentials: 'include' });
+                        if (resp.ok) {
+                            const data = await resp.json();
+                            return Array.isArray(data?.data) ? data.data : (Array.isArray(data) ? data : []);
+                        }
+                    } catch (e) { /* ignore */ }
+                    return [];
+                case 'stakeholders':
+                    try {
+                        const resp = await fetch(`/api/dataset-stakeholder/${datasetId}/stakeholders`, { credentials: 'include' });
+                        if (resp.ok) {
+                            const data = await resp.json();
+                            return Array.isArray(data?.data) ? data.data : (Array.isArray(data) ? data : []);
+                        }
+                    } catch (e) { /* ignore */ }
+                    return [];
+                case 'processes':
+                    try {
+                        const resp = await fetch(`/api/process-impact/datasets/${datasetId}/processes`, { credentials: 'include' });
+                        if (resp.ok) {
+                            const data = await resp.json();
+                            return Array.isArray(data?.data) ? data.data : (Array.isArray(data) ? data : []);
+                        }
+                    } catch (e) { /* ignore */ }
+                    return [];
+                case 'projects':
+                    try {
+                        const resp = await fetch(`/api/project-impact/datasets/${datasetId}/projects`, { credentials: 'include' });
+                        if (resp.ok) {
+                            const data = await resp.json();
+                            return Array.isArray(data?.data) ? data.data : (Array.isArray(data) ? data : []);
+                        }
+                    } catch (e) { /* ignore */ }
+                    return [];
+                case 'policies':
+                    try {
+                        const resp = await fetch(`/api/policy-impact/datasets/${datasetId}/policies`, { credentials: 'include' });
+                        if (resp.ok) {
+                            const data = await resp.json();
+                            return Array.isArray(data?.data) ? data.data : (Array.isArray(data) ? data : []);
+                        }
+                    } catch (e) { /* ignore */ }
+                    return [];
+                default:
+                    return [];
+            }
+        } catch (error) {
+            embWarn(`[GLOSSARY-DATA-MAP] Failed to fetch ${overlayType} for dataset ${datasetId}:`, error);
+            return [];
+        }
+    }
+
+    // Render overlay panels on nodes
+    function renderOverlayPanels(overlayType, overlayData) {
+        if (!GlossaryDataMapState.network || !GlossaryDataMapState.canvas) return;
+        
+        // Clear existing overlay panels
+        clearOverlayPanels();
+        
+        // Create overlay container if it doesn't exist
+        let overlayContainer = GlossaryDataMapState.canvas.querySelector('.map-overlay-container');
+        if (!overlayContainer) {
+            overlayContainer = document.createElement('div');
+            overlayContainer.className = 'map-overlay-container';
+            overlayContainer.style.cssText = 'position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1000;';
+            GlossaryDataMapState.canvas.appendChild(overlayContainer);
+        }
+        
+        // Add panels for each node with overlay data
+        GlossaryDataMapState.network.nodes().forEach(node => {
+            const nodeId = node.id();
+            const nodeData = node.data();
+            let data;
+            let nodeName;
+            if (nodeData.isSystem && nodeData.systemId) {
+                data = overlayData.get(String(nodeData.systemId));
+                nodeName = nodeData.systemName || nodeData.label || 'System';
+            } else if (nodeData.isDataset && nodeData.datasetId) {
+                data = overlayData.get(nodeId);
+                nodeName = nodeData.datasetName || nodeData.label || 'Dataset';
+            } else {
+                return;
+            }
+            if (!data || data.length === 0) return;
+            
+            const panel = createOverlayPanel(nodeName, overlayType, data, nodeId);
+            if (!panel) return;
+            overlayContainer.appendChild(panel);
+            positionOverlayPanelElement(panel, node);
+            node.addClass('has-overlay');
+        });
+        
+        // Add zoom/pan/drag listeners to update positions
+        GlossaryDataMapState.network.on('zoom pan', updateOverlayPositions);
+        GlossaryDataMapState.network.on('drag', 'node', updateOverlayPositions);
+    }
+
+    // Use global glossary-style overlay panel (header, body, footer Page X of Y; stakeholders = Name/Role, Accepted, Org Unit table)
+    function createOverlayPanel(nodeName, overlayType, data, nodeId) {
+        const arr = Array.isArray(data) ? data : [];
+        if (arr.length === 0) return null;
+        if (!window.MapOverlayPanel) {
+            return createOverlayPanelFallback(nodeName, overlayType, arr, nodeId);
+        }
+        var overlayColumnDefs = [];
+        if (overlayType !== 'stakeholders' && window.OverlayColumns) {
+            var allCols = window.OverlayColumns.getOverlayColumns(overlayType);
+            var selectedIds = GlossaryDataMapState.overlayColumnsByType[overlayType] || window.OverlayColumns.getDefaultOverlayColumnIds(overlayType);
+            overlayColumnDefs = allCols.filter(function(c) { return selectedIds && selectedIds.indexOf(c.id) !== -1; });
+        }
+        const panel = window.MapOverlayPanel.create(overlayType, arr, nodeId, {
+            getTitle: getOverlayTitle,
+            getItemText: getOverlayItemText,
+            getItemId: getOverlayItemId,
+            escapeHtml: escapeHtml,
+            getItemField: getOverlayItemField,
+            overlayColumnDefs: overlayColumnDefs,
+            onItemClick: function(panel, el) {
+                const idx = parseInt(el.getAttribute('data-item-index'), 10);
+                const list = panel._overlayData;
+                const item = (list && list[idx] != null) ? list[idx] : null;
+                if (item != null) highlightOverlayItem(panel._overlayType, item, panel.getAttribute('data-node-id'));
+            }
+        });
+        panel._overlayData = arr;
+        return panel;
+    }
+
+    function createOverlayPanelFallback(nodeName, overlayType, data, nodeId) {
+        const panel = document.createElement('div');
+        panel.className = 'map-node-overlay-panel';
+        panel.setAttribute('data-node-id', nodeId);
+        panel._overlayData = data;
+        panel._overlayType = overlayType;
+        const body = document.createElement('div');
+        body.className = 'map-node-overlay-body';
+        body.textContent = 'Overlay not available.';
+        panel.appendChild(body);
+        return panel;
+    }
+
+    // Get overlay title
+    function getOverlayTitle(overlayType) {
+        const titles = {
+            'description': 'Description',
+            'stakeholders': 'Stakeholders',
+            'glossary': 'Glossaries',
+            'datasets': 'Data Sets',
+            'attributes': 'Attributes',
+            'linking-attributes': 'Linking Attributes',
+            'projects': 'Projects',
+            'processes': 'Processes',
+            'policies': 'Policies',
+            'data-quality': 'Data Quality',
+            'data-privacy': 'Data Privacy',
+            'business-area': 'Business Area',
+            'products': 'Products',
+            'legal-entities': 'Legal Entities',
+            'geography': 'Geography'
+        };
+        return titles[overlayType] || overlayType;
+    }
+
+    // Get overlay item text
+    function getOverlayItemText(overlayType, item) {
+        if (!item) return '';
+        
+        switch (overlayType) {
+            case 'description':
+                return item.value || item.description || '';
+            case 'stakeholders':
+                const role = item.roleName || item.RoleName || item.role || item.Role || '';
+                const name = item.personName || item.PersonName || item.name || item.Name || '';
+                return name ? (role ? `${name} (${role})` : name) : (role || '');
+            case 'glossary': {
+                const gName = item.glossary || item.name || '';
+                const srcLabel = item.source === 'dataset' ? 'Dataset Glossary'
+                               : item.source === 'attribute' ? 'Attribute Glossary' : '';
+                return srcLabel ? `${gName} (${srcLabel})` : gName;
+            }
+            case 'datasets':
+                return item.name || item.datasetName || item.primaryName || item.PrimaryName || '';
+            case 'attributes':
+            case 'linking-attributes':
+                return item.name || item.attributeName || item.primaryName || item.PrimaryName || '';
+            case 'projects':
+                return item.projectName || item.PrimaryName || item.primaryName || item.name || item.Name || '';
+            case 'processes':
+                return item.processName || item.name || item.Name || item.primaryName || '';
+            case 'policies':
+                return item.policyName || item.name || item.Name || item.primaryName || '';
+            case 'data-quality':
+            case 'data-privacy':
+                return item.name || item.primaryName || item.description || '';
+            case 'business-area':
+                return item.businessAreaName || item.name || item.Name || '';
+            case 'products':
+                return item.productName || item.name || item.Name || '';
+            case 'legal-entities':
+                return item.legalEntityName || item.name || item.Name || '';
+            case 'geography':
+                return item.name || item.geography || item.region || item.country || '';
+            default:
+                return item.name || item.primaryName || item.PrimaryName || item.Name || JSON.stringify(item);
+        }
+    }
+
+    // Get overlay item ID
+    function getOverlayItemId(overlayType, item) {
+        if (!item) return null;
+        return item.id || item.ID || item.Id || null;
+    }
+
+    // Overlay item highlighting: clicked = dark green, same item in other panels = light green
+    function highlightOverlayItem(overlayType, item, sourceNodeId) {
+        const overlayContainer = GlossaryDataMapState.canvas?.querySelector('.map-overlay-container');
+        if (!overlayContainer) return;
+        const itemId = getOverlayItemId(overlayType, item);
+        const itemText = getOverlayItemText(overlayType, item);
+        overlayContainer.querySelectorAll('.map-node-overlay-item').forEach(el => {
+            el.classList.remove('highlighted-source', 'highlighted-related');
+        });
+        overlayContainer.querySelectorAll('.map-node-overlay-item').forEach(el => {
+            const panel = el.closest('.map-node-overlay-panel');
+            const isSource = panel?.getAttribute('data-node-id') === sourceNodeId;
+            let shouldHighlight = false;
+            if (itemId && el.dataset.itemId && String(el.dataset.itemId) === String(itemId)) shouldHighlight = true;
+            if (!shouldHighlight && (el.dataset.overlayValue || '').trim() === (itemText || '').trim()) shouldHighlight = true;
+            if (shouldHighlight) {
+                if (isSource) el.classList.add('highlighted-source');
+                else el.classList.add('highlighted-related');
+            }
+        });
+        applyOverlayRelatedNodeAndEdgeHighlights(overlayContainer, sourceNodeId);
+    }
+
+    function applyOverlayRelatedNodeAndEdgeHighlights(overlayContainer, sourceNodeId) {
+        const network = GlossaryDataMapState.network;
+        if (!network) return;
+        network.elements().removeClass('overlay-highlight-source-node overlay-highlight-related-node overlay-highlight-edge');
+        const relatedNodeIds = new Set();
+        overlayContainer.querySelectorAll('.map-node-overlay-item.highlighted-source, .map-node-overlay-item.highlighted-related').forEach(el => {
+            const panel = el.closest('.map-node-overlay-panel');
+            const nodeId = panel?.getAttribute('data-node-id');
+            if (nodeId) relatedNodeIds.add(nodeId);
+        });
+        relatedNodeIds.forEach(nodeId => {
+            const node = network.getElementById(nodeId);
+            if (node.length) node.addClass(nodeId === sourceNodeId ? 'overlay-highlight-source-node' : 'overlay-highlight-related-node');
+        });
+        network.edges().forEach(edge => {
+            const src = edge.source().id();
+            const tgt = edge.target().id();
+            if (relatedNodeIds.has(src) && relatedNodeIds.has(tgt)) edge.addClass('overlay-highlight-edge');
+        });
+    }
+
+    // Get value for a specific overlay column/field (for table view)
+    function getOverlayItemField(overlayType, item, fieldId) {
+        if (!item) return '';
+        const v = (x) => (x != null && x !== '') ? String(x) : '';
+        switch (overlayType) {
+            case 'glossary':
+                switch (fieldId) {
+                    case 'name': return v(item.name || item.glossaryName || item.primaryName);
+                    case 'source': return item.source === 'dataset' ? 'Dataset Glossary'
+                                    : item.source === 'attribute' ? 'Attribute Glossary' : '';
+                    case 'aliasNames': return v(item.aliasNames || item.aliases || item.alias);
+                    case 'parentName': return v(item.parentName || item.parent?.name);
+                    case 'lifecycle': return v(item.lifecycleName || item.lifecycle);
+                    case 'securityClassification': return v(item.securityClassification || item.classification);
+                    default: return v(item[fieldId]);
+                }
+            case 'description':
+                return fieldId === 'value' ? v(item.value || item.description) : v(item[fieldId]);
+            case 'datasets':
+                switch (fieldId) {
+                    case 'name': return v(item.name || item.datasetName || item.primaryName);
+                    case 'refNumber': return v(item.refNumber || item.ref);
+                    case 'type': return v(item.typeName || item.type);
+                    case 'lifecycle': return v(item.lifecycleName || item.lifecycle);
+                    default: return v(item[fieldId]);
+                }
+            case 'attributes':
+            case 'linking-attributes':
+                switch (fieldId) {
+                    case 'name': return v(item.name || item.attributeName || item.primaryName);
+                    case 'type': return v(item.typeName || item.type);
+                    case 'glossary': return v(item.glossaryName || item.glossary);
+                    case 'refNumber': return v(item.refNumber || item.ref);
+                    default: return v(item[fieldId]);
+                }
+            case 'stakeholders':
+                switch (fieldId) {
+                    case 'name': return v(item.personName || item.name);
+                    case 'role': return v(item.roleName || item.role);
+                    default: return v(item[fieldId]);
+                }
+            case 'projects':
+                switch (fieldId) {
+                    case 'name': return v(item.projectName || item.primaryName || item.name);
+                    case 'refNumber': return v(item.refNumber || item.ref);
+                    case 'status': return v(item.statusName || item.status);
+                    default: return v(item[fieldId]);
+                }
+            default:
+                return v(item[fieldId] || item.name || item.primaryName);
+        }
+    }
+
+    function positionOverlayPanelElement(panel, node) {
+        const overlayContainer = GlossaryDataMapState.canvas?.querySelector('.map-overlay-container');
+        const network = GlossaryDataMapState.network;
+        if (!overlayContainer || !node || !network) return;
+
+        const position = node.renderedPosition();
+        const bb = node.boundingBox();
+        const zoom = network.zoom();
+        const panelHeight = panel.offsetHeight || 180;
+        const panelWidth = panel.offsetWidth || 220;
+        const margin = 12;
+        const renderedNodeH = (bb.h || 60) * zoom;
+        const panelScale = Math.max(0.75, Math.min(1.6, zoom));
+        const scaledPanelWidth = panelWidth * panelScale;
+        const scaledPanelHeight = panelHeight * panelScale;
+
+        let left = position.x - scaledPanelWidth / 2;
+        let top = position.y - renderedNodeH / 2 - scaledPanelHeight - margin;
+        const belowTop = position.y + renderedNodeH / 2 + margin;
+        const maxLeft = Math.max(0, (overlayContainer.clientWidth || 0) - scaledPanelWidth);
+        const maxTop = Math.max(0, (overlayContainer.clientHeight || 0) - scaledPanelHeight);
+        const minTop = 8;
+        left = Math.max(0, Math.min(maxLeft, left));
+        if (top < minTop) top = belowTop;
+        top = maxTop < minTop ? Math.max(0, maxTop) : Math.max(minTop, Math.min(maxTop, top));
+
+        panel.style.left = `${left}px`;
+        panel.style.top = `${top}px`;
+        panel.style.transform = `translate(0, 0) scale(${panelScale})`;
+        panel.style.transformOrigin = 'top left';
+    }
+
+    function updateOverlayPositions() {
+        const overlayContainer = GlossaryDataMapState.canvas?.querySelector('.map-overlay-container');
+        if (!overlayContainer || !GlossaryDataMapState.network) return;
+        const cw = overlayContainer.clientWidth || 800;
+        const ch = overlayContainer.clientHeight || 600;
+        const buf = 150;
+
+        overlayContainer.querySelectorAll('.map-node-overlay-panel').forEach(panel => {
+            const nodeId = panel.getAttribute('data-node-id');
+            const node = GlossaryDataMapState.network.getElementById(nodeId);
+            
+            if (node && node.length) {
+                const isVisible = node.style('display') !== 'none';
+                if (!isVisible) { panel.style.display = 'none'; return; }
+                const pos = node.renderedPosition();
+                const offScreen = pos.x < -buf || pos.x > cw + buf || pos.y < -buf || pos.y > ch + buf;
+                panel.style.display = offScreen ? 'none' : '';
+                if (!offScreen) positionOverlayPanelElement(panel, node);
+            } else {
+                panel.style.display = 'none';
+            }
+        });
+    }
+
+    // Clear overlay panels
+    function clearOverlayPanels() {
+        if (!GlossaryDataMapState.canvas) return;
+        
+        const overlayContainer = GlossaryDataMapState.canvas.querySelector('.map-overlay-container');
+        if (overlayContainer) {
+            overlayContainer.innerHTML = '';
+        }
+        
+        if (GlossaryDataMapState.network) {
+            GlossaryDataMapState.network.nodes().removeClass('has-overlay');
+            try { GlossaryDataMapState.network.off('zoom pan', updateOverlayPositions); } catch (e) { /* no-op */ }
+            try { GlossaryDataMapState.network.off('drag', 'node', updateOverlayPositions); } catch (e) { /* no-op */ }
+        }
+    }
+
+    function getLegendHtml() {
+        const colors = getMapColors();
+        const lineageHtml = (window.SharedMapStyles && typeof window.SharedMapStyles.getLineageLegendHtml === 'function')
+            ? window.SharedMapStyles.getLineageLegendHtml(colors)
+            : (window.InterfaceMapStyles && typeof window.InterfaceMapStyles.getLineageLegendHtml === 'function')
+                ? window.InterfaceMapStyles.getLineageLegendHtml(colors)
+                : '';
+        return `
+            <div class="legend-item">
+                <div class="legend-color" style="background: ${colors.currentSystem || colors.currentDataset};"></div>
+                <span>Directly Linked</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: ${colors.otherSystem || colors.otherDataset};"></div>
+                <span>Related</span>
+            </div>
+            <div class="legend-item">
+                <span class="legend-lock" aria-hidden="true">&#x1F512;</span>
+                <span>Segment not accessible</span>
+            </div>
+            ${lineageHtml}
+            <div class="legend-item">
+                <div class="legend-line" style="border-bottom: 2px solid ${colors.relationshipLine || colors.attributeLine || '#64748b'};"></div>
+                <span>Relationship</span>
+            </div>
+        `;
+    }
+
+    function updateLegend() {
+        const legendEl = document.querySelector('[data-glossary-data-map-legend]');
+        if (legendEl) legendEl.innerHTML = getLegendHtml();
+        const dropdown = document.getElementById('glossaryDataMapLegendDropdown');
+        if (dropdown) dropdown.innerHTML = getLegendHtml();
+    }
+
+    // Zoom in
+    function zoomIn()  { adapter.zoomIn(); }
+    function zoomOut() { adapter.zoomOut(); }
+
+    // Reset map
+    function resetMap() {
+        if (GlossaryDataMapState.network) {
+            GlossaryDataMapState.network.reset();
+            const rootNodeIds = adapter.findRootNodes();
+            GlossaryDataMapState.network.layout(buildCytoscapeLayout(rootNodeIds)).run();
+        }
+    }
+
+    // Redraw map
+    function redrawMap() {
+        if (GlossaryDataMapState.glossaryId) {
+            loadMapData(GlossaryDataMapState.glossaryId);
+        }
+    }
+
+    // Export as PNG (includes overlay panels when active)
+    function exportAsPng() {
+        if (!GlossaryDataMapState.network) return;
+        const filename = `glossary-data-map-${GlossaryDataMapState.glossaryId}-${Date.now()}.png`;
+        try {
+            if (typeof window.exportMapWithOverlays === 'function') {
+                window.exportMapWithOverlays(GlossaryDataMapState.network, GlossaryDataMapState.canvas, filename);
+            } else {
+                const png = GlossaryDataMapState.network.png({ output: 'blob', bg: 'white', full: true });
+                const url = URL.createObjectURL(png);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = filename;
+                link.click();
+                URL.revokeObjectURL(url);
+            }
+        } catch (error) {
+            console.error('[GLOSSARY-DATA-MAP] Error exporting map:', error);
+        }
+    }
+
+    // Open fullscreen in new tab with toolbar controls
+    function openFullscreen() {
+        if (!GlossaryDataMapState.network) return;
+        if (typeof window.openMapFullscreen === 'function') {
+            const nodes = GlossaryDataMapState.network.nodes().map(n => n.json());
+            const edges = GlossaryDataMapState.network.edges().map(e => e.json());
+            window.openMapFullscreen({
+                title: 'Glossary Data Map - ' + (GlossaryDataMapState.glossaryData?.name || GlossaryDataMapState.glossaryId),
+                elements: { nodes: nodes, edges: edges },
+                style: getCytoscapeStyle(),
+                layoutName: GlossaryDataMapState.layout || 'top-to-bottom',
+                legendHtml: getLegendHtml(),
+                exportFilename: 'glossary-data-map-' + GlossaryDataMapState.glossaryId + '.png',
+                toolbarAnchor: GlossaryDataMapState.canvas,
+                mapType: GlossaryDataMapState.mapType || 'system-lineage',
+                mapTabKind: 'glossary-data',
+                getState: function () { return GlossaryDataMapState; }
+            });
+        } else {
+            const canvas = GlossaryDataMapState.canvas;
+            if (canvas && canvas.requestFullscreen) {
+                canvas.requestFullscreen();
+            } else if (canvas && canvas.webkitRequestFullscreen) {
+                canvas.webkitRequestFullscreen();
+            }
+        }
+    }
+
+    // Toggle navigator
+    function toggleNavigator() {
+        if (!GlossaryDataMapState.network) return;
+        var container = GlossaryDataMapState.canvas && GlossaryDataMapState.canvas.parentElement;
+        var MRU = window.MapRenderUtils;
+        if (MRU && typeof MRU.attachOrToggleLineageMinimap === 'function' && container) {
+            MRU.attachOrToggleLineageMinimap({
+                container: container,
+                network: GlossaryDataMapState.network,
+                minimapCanvasId: 'glossaryDataMapMinimapCy',
+                syncViewport: true,
+                cytoscapeOptions: { minZoom: 0.1, maxZoom: 0.5 }
+            });
+            return;
+        }
+        var nav = GlossaryDataMapState.network.navigator();
+        if (nav) nav.toggle();
+    }
+
+    // Set node filters
+    function setNodeFilters(nodeFilters) {
+        GlossaryDataMapState.nodeFilters = {
+            classifications: nodeFilters.classifications || [],
+            types: nodeFilters.types || [],
+            lifecycles: nodeFilters.lifecycles || []
+        };
+        applyNodeFiltersToNetwork();
+    }
+
+    // Set dataset node filters
+    function setDatasetNodeFilters(datasetFilters) {
+        GlossaryDataMapState.datasetNodeFilters = {
+            types: datasetFilters.types || [],
+            lifecycles: datasetFilters.lifecycles || []
+        };
+        applyDatasetNodeFiltersToNetwork();
+    }
+
+    // NOTE: this function keeps its own implementation (not delegated to MapGraphUtils)
+    // because glossary Cytoscape nodes store classification/type/lifecycle directly
+    // on nodeData (not nested under nodeData.meta) and it needs to run a layout refresh.
+    function applyNodeFiltersToNetwork() {
+        if (!GlossaryDataMapState.network) return;
+
+        const { classifications, types, lifecycles } = GlossaryDataMapState.nodeFilters;
+        
+        // Show/hide nodes based on filters
+        GlossaryDataMapState.network.nodes().forEach(node => {
+            const nodeData = node.data();
+            let shouldShow = true;
+            
+            // Filter by classification
+            if (classifications.length > 0) {
+                const nodeClassification = nodeData.classification;
+                if (nodeClassification && !classifications.includes(String(nodeClassification))) {
+                    shouldShow = false;
+                }
+            }
+            
+            // Filter by type
+            if (types.length > 0) {
+                const nodeType = nodeData.type;
+                if (nodeType && !types.includes(String(nodeType))) {
+                    shouldShow = false;
+                }
+            }
+            
+            // Filter by lifecycle
+            if (lifecycles.length > 0) {
+                const nodeLifecycle = nodeData.lifecycle;
+                if (nodeLifecycle && !lifecycles.includes(String(nodeLifecycle))) {
+                    shouldShow = false;
+                }
+            }
+            
+            if (shouldShow) {
+                node.style('display', 'element');
+            } else {
+                node.style('display', 'none');
+            }
+        });
+        
+        // Refresh layout
+        const rootNodeIds = adapter.findRootNodes();
+        GlossaryDataMapState.network.layout(buildCytoscapeLayout(rootNodeIds)).run();
+        updateOverlayPositions();
+    }
+
+    // Apply dataset node filters to network
+    function applyDatasetNodeFiltersToNetwork() {
+        if (!GlossaryDataMapState.network) return;
+        
+        const { types, lifecycles } = GlossaryDataMapState.datasetNodeFilters;
+        
+        GlossaryDataMapState.network.nodes().forEach(node => {
+            const nodeData = node.data();
+            let shouldShow = true;
+            
+            // Filter by type
+            if (types.length > 0) {
+                const nodeType = nodeData.type;
+                if (nodeType && !types.includes(String(nodeType))) {
+                    shouldShow = false;
+                }
+            }
+            
+            // Filter by lifecycle
+            if (lifecycles.length > 0) {
+                const nodeLifecycle = nodeData.lifecycle;
+                if (nodeLifecycle && !lifecycles.includes(String(nodeLifecycle))) {
+                    shouldShow = false;
+                }
+            }
+            
+            if (shouldShow) {
+                node.style('display', 'element');
+            } else {
+                node.style('display', 'none');
+            }
+        });
+        
+        // Refresh layout
+        const rootNodeIds = adapter.findRootNodes();
+        GlossaryDataMapState.network.layout(buildCytoscapeLayout(rootNodeIds)).run();
+        updateOverlayPositions();
+    }
+
+    // Show loading indicator
+    function showLoading() {
+        if (GlossaryDataMapState.loadingEl) {
+            GlossaryDataMapState.loadingEl.style.display = 'block';
+        } else if (GlossaryDataMapState.canvas) {
+            GlossaryDataMapState.canvas.innerHTML = window.MapRenderUtils.htmlMapLoading();
+        }
+    }
+
+    // Hide loading indicator
+    function hideLoading() {
+        if (GlossaryDataMapState.loadingEl) {
+            GlossaryDataMapState.loadingEl.style.display = 'none';
+        }
+    }
+
+    // Show placeholder
+    function showPlaceholder(message) {
+        if (GlossaryDataMapState.canvas) {
+            GlossaryDataMapState.canvas.innerHTML = window.MapRenderUtils.htmlMapCanvasMessage(message || 'No data available');
+        }
+    }
+
+    // Escape HTML
+    function escapeHtml(str) {
+        if (!str) return '';
+        const div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Graph pipeline + MapEngine (shared/map/glossary-data-facet-graph.js)
+    // ─────────────────────────────────────────────────────────────────────────
+
+    graphPipeline = window.createGlossaryDataFacetGraphPipeline({
+        state: GlossaryDataMapState,
+        adapter: adapter,
+        renderNetwork: renderNetwork,
+        showPlaceholder: showPlaceholder,
+        showLoading: showLoading,
+        hideLoading: hideLoading,
+        updateLegend: updateLegend,
+        logPrefix: '[GLOSSARY-DATA-MAP]'
+    });
+
+    var _mapEngineApiLoader = graphPipeline._mapEngineApiLoader;
+    var _mapEngineNodeBuilder = graphPipeline._mapEngineNodeBuilder;
+    var _mapEngineEdgeBuilder = graphPipeline._mapEngineEdgeBuilder;
+
+    networkIx = window.createGlossaryDataMapNetworkInteractions({
+        state: GlossaryDataMapState,
+        buildGraph: buildGraph,
+        renderNetwork: renderNetwork,
+        showEdgeInfo: showEdgeInfo,
+        showNodeDetails: showNodeDetails,
+        hideNodeDetails: hideNodeDetails
+    });
+
+    if (window.MapConfigs && window.MapConfigs.register) {
+        window.MapConfigs.register('glossary-data', {
+            apiLoader:     _mapEngineApiLoader,
+            nodeBuilder:   _mapEngineNodeBuilder,
+            edgeBuilder:   _mapEngineEdgeBuilder,
+            legendBuilder: getLegendHtml
+        });
+    }
+
+    var _glossaryDataEngine = new window.MapEngine('glossary-data');
+
+    Object.assign(_glossaryDataEngine, {
+        init: init,
+        loadMapData: loadMapData,
+        setMapType: setMapType,
+        setLayout: setLayout,
+        setOverlay: setOverlay,
+        setOverlayColumns: setOverlayColumns,
+        getOverlayColumns: getOverlayColumns,
+        setHopsCount: setHopsCount,
+        setNodeFilters: setNodeFilters,
+        setDatasetNodeFilters: setDatasetNodeFilters,
+        zoomIn: zoomIn,
+        zoomOut: zoomOut,
+        resetMap: resetMap,
+        redrawMap: redrawMap,
+        exportAsPng: exportAsPng,
+        openFullscreen: openFullscreen,
+        toggleNavigator: toggleNavigator,
+        getLegendHtml: getLegendHtml,
+        updateLegend: updateLegend,
+        getState: function () { return GlossaryDataMapState; }
+    });
+
+    Object.defineProperty(_glossaryDataEngine, 'cy', {
+        get: function () { return GlossaryDataMapState.network; },
+        configurable: true
+    });
+
+    window.GlossaryDataMap = _glossaryDataEngine;
+
+})();

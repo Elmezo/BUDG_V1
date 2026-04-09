@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BUDG - Client</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="assets/css/main.css">
+    <link rel="stylesheet" href="assets/css/client.css">
+    <link rel="stylesheet" href="assets/css/custom-fields.css">
+    <link rel="stylesheet" href="assets/css/toast.css">
+    <link rel="stylesheet" href="assets/css/advanced-rich-text-editor.css">
+    <link rel="icon" type="image/png" href="assets/images/avatars/icon.jpg">
+    
+    <script>
+        // Apply theme immediately to prevent flash of unstyled content
+        (function() {
+            const savedTheme = localStorage.getItem('budg-theme') || 'light';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+        })();
+    </script>
+    <script src="/assets/i18n/head-locale.js"></script>
+    <script src="assets/i18n/i18n.js"></script>
+</head>
+<body class="client-page">
+    <!-- Header Navigation -->
+    <header class="header"></header>
+
+    <!-- Page Header -->
+    <div class="page-header">
+        <div class="page-header-container">
+            <div class="page-title">
+                <div class="page-icon">
+                    <i class="fas fa-users"></i>
+                </div>
+                <div class="page-title-text">
+                    <div class="page-title-main" data-i18n="createPage.title.newClient">New Client</div>
+                    <div class="page-title-sub" data-i18n="facet.client">Client</div>
+                </div>
+            </div>
+            <!-- Action Buttons -->
+            <div class="form-actions">
+                <button type="button" class="btn btn-secondary" id="cancelBtn" data-i18n="button.close">Close</button>
+                <button type="button" class="btn btn-primary" id="saveBtn" data-i18n="button.save">Save</button>
+                <button type="button" class="btn btn-success" id="saveAndCloseBtn" data-i18n="button.saveAndClose">Save & Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="content-card">
+            <div class="content-header">
+                <div class="tab-container">
+                    <button class="tab active" data-i18n="tab.details">DETAILS</button>
+                </div>
+            </div>
+            <div class="content-body">
+                <form id="clientForm">
+                    <div class="form-container">
+                        <!-- Left Panel - Definition -->
+                        <div class="form-section">
+                            <h3 class="section-title definition" data-i18n="createPage.section.definition">DEFINITION</h3>
+                            
+                            <div class="form-group">
+                                <label class="form-label">
+                                    <span data-i18n="createPage.label.primaryName">Primary Name</span>
+                                    <span class="required">*</span>
+                                </label>
+                                <input type="text" class="form-input" id="primaryNameInput" data-i18n-placeholder="createPage.placeholder.enterPrimaryName" placeholder="Enter Primary Name">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label" data-i18n="createPage.label.longName">Long Name</label>
+                                <input type="text" class="form-input" id="longNameInput" data-i18n-placeholder="createPage.placeholder.enterLongName" placeholder="Enter Long Name">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label">
+                                    <span data-i18n="createPage.label.description">Description</span>
+                                    <span class="required">*</span>
+                                </label>
+                                <textarea class="form-input form-textarea" id="descriptionInput" data-i18n-placeholder="createPage.placeholder.enterDescription" placeholder="Enter Description"></textarea>
+                                <button type="button" class="editor-button" id="showDescriptionEditorBtn" data-i18n="button.showEditor">Show Editor</button>
+                            </div>
+                            
+                            <div class="form-group">
+                                <h4 class="section-title optional-fields" data-i18n="createPage.section.optionalFields">OPTIONAL FIELDS</h4>
+                                <label class="form-label" data-i18n="createPage.label.parentClient">Parent Client</label>
+                                <select class="form-select" id="parentClientSelect">
+                                    <option value="" data-i18n="createPage.message.loading">Loading parent clients...</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <!-- Right Panel - Classifications -->
+                        <div class="form-section" style="display: none;">
+                            <h3 class="section-title classifications" data-i18n="createPage.section.classifications">CLASSIFICATIONS</h3>
+                            
+                            <div class="form-group">
+                                <h4 class="section-title" data-i18n="createPage.section.basicClassifications">BASIC CLASSIFICATIONS</h4>
+                                <label class="form-label">
+                                    <span data-i18n="createPage.label.budgStatus">BUDG Status</span>
+                                    <span class="required">*</span>
+                                </label>
+                                <select class="form-select" id="statusSelect">
+                                    <option value="" data-i18n="createPage.message.loading">Loading statuses...</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">
+                                    <span data-i18n="createPage.label.lifecycle">Lifecycle</span>
+                                    <span class="required">*</span>
+                                </label>
+                                <select class="form-select" id="lifecycleSelect">
+                                    <option value="" data-i18n="createPage.message.loading">Loading lifecycles...</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">
+                                    <span data-i18n="createPage.label.budgViewing">BUDG Viewing</span>
+                                    <span class="required">*</span>
+                                </label>
+                                <select class="form-select" id="viewingSelect">
+                                    <option value="" data-i18n="createPage.message.loading">Loading viewing options...</option>
+                                </select>
+                            </div>
+                            
+                            <!-- Segment Field -->
+                            <div id="segmentFieldContainer" style="grid-column: 1/-1; margin-top: 1rem;"></div>
+                            
+                            <!-- Custom Fields Section -->
+                            <div class="form-group" style="grid-column: 1/-1; margin-top: 2rem;">
+                                <h3 class="section-title" data-i18n="createPage.section.customFields">CUSTOM FIELDS</h3>
+                                <div id="customFieldsContainer"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+
+                </form>
+            </div>
+        </div>
+    </main>
+
+    <script src="assets/js/config.js"></script>
+    <script src="assets/js/api-service.js"></script>
+    <script src="assets/js/admin-panel/admin-notifications.js"></script>
+    <script src="assets/js/main.js"></script>
+    <script src="assets/js/initSearch.js"></script>
+    <script src="assets/js/global-lock-ui.js"></script>
+
+    <script src="assets/js/custom-fields.js"></script>
+    <script src="assets/js/segment-field.js"></script>
+    <script src="assets/js/advanced-rich-text-editor.js"></script>
+    <script src="assets/js/client.js"></script>
+    <script src="assets/js/header.js"></script>
+
+</body>
+</html>
+

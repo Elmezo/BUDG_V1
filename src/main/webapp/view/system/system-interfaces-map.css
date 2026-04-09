@@ -1,0 +1,6 @@
+/**
+ * Deprecated: facet map chrome lives in view/shared/map/map.css.
+ * This file re-exports the shared stylesheet so old bookmarks and
+ * single-sheet references still work. Prefer linking map.css directly.
+ */
+@import url('../shared/map/map.css');

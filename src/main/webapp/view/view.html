@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BUDG - View</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/assets/css/main.css">
+    <link rel="stylesheet" href="/view/view.css">
+    <link rel="stylesheet" href="/assets/css/follow-modal.css">
+    <link rel="stylesheet" href="/assets/css/custom-fields.css">
+    <link rel="stylesheet" href="/assets/css/global-lock-ui.css">
+    <!-- RTL styles for Arabic (disabled by default, enabled by i18n.js) -->
+    <link rel="stylesheet" href="/assets/css/rtl.css" id="rtl-styles" disabled>
+    <link rel="icon" type="image/png" href="/assets/images/avatars/icon.jpg">
+    <script>(function(){const t=localStorage.getItem('budg-theme')||'light';document.documentElement.setAttribute('data-theme',t);})();</script>
+    <script src="/assets/i18n/head-locale.js"></script>
+    <script src="/assets/i18n/i18n.js"></script>
+</head>
+<body class="view-page" data-submenu="data">
+<header class="header"></header>
+
+<div class="page-header">
+    <div class="page-header-container">
+        <div class="page-title">
+            <div class="page-icon"><i id="viewIcon" class="fas fa-eye"></i></div>
+            <div class="page-title-text">
+                <div class="page-title-main" id="viewTitle" data-i18n="common.view">View</div>
+                <div class="page-title-sub" data-i18n="label.group.dataTechnology">Data & Technology</div>
+                <!-- Added from EDITOR - flexible subtitle -->
+            </div>
+        </div>
+        <div class="form-actions">
+            <button type="button" class="btn btn-secondary" id="backBtn" data-i18n="button.back">Back</button>
+        </div>
+    </div>
+    </div>
+
+<main class="main-content">
+    <div class="content-card">
+        <div class="content-header">
+            <div class="tab-container">
+                <button class="tab active" id="tabSummary" data-i18n="tab.summary">SUMMARY</button>
+            </div>
+        </div>
+        <div class="content-body">
+            <div id="viewContainer" class="view-grid">
+                <!-- Filled by view.js based on entity -->
+            </div>
+        </div>
+    </div>
+</main>
+
+    <script src="/assets/js/config.js"></script>
+    <script src="/assets/js/api-service.js"></script>
+    <script src="/assets/js/logout-modal.js"></script>
+    <script src="/assets/js/auth-error-handler.js"></script>
+    <script src="/assets/js/global-lock-ui.js"></script>
+    <script src="/assets/js/main.js"></script>
+    <script src="/assets/js/initSearch.js"></script>
+    <script src="/assets/js/follow-modal.js"></script>
+    <script src="/assets/js/follow-button.js"></script>
+    <script src="/assets/js/custom-fields.js"></script>
+    <script src="/view/view.js"></script>
+    <script src="/assets/js/header.js"></script>
+</body>
+</html>
+
+

@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Map</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/assets/css/main.css">
+    <link rel="stylesheet" href="/view/shared/map/map.css">
+    <script>(function () { var t = localStorage.getItem('budg-theme') || 'light'; document.documentElement.setAttribute('data-theme', t); })();</script>
+    <style>
+        * { box-sizing: border-box; }
+        body { margin: 0; padding: 0; font-family: Inter, system-ui, -apple-system, sans-serif; background: #f9fafb; }
+        .map-tab-page { display: flex; flex-direction: column; height: 100vh; }
+        .map-tab-toolbar-host { flex-shrink: 0; }
+        .map-tab-toolbar-host .map-section { margin: 0; border-radius: 0; overflow: visible !important; }
+        .map-tab-toolbar-host .map-section-header { flex-shrink: 0; display: flex !important; }
+        .map-tab-toolbar-host .map-collapse-btn { display: none !important; }
+        .map-tab-toolbar-host .interface-map-toolbar,
+        .map-tab-toolbar-host .map-toolbar { overflow: visible !important; position: relative; z-index: 5000; flex-shrink: 0; }
+        .map-tab-toolbar-host .interface-map-toolbar *,
+        .map-tab-toolbar-host .map-toolbar * { pointer-events: auto; }
+        .map-tab-toolbar-host .map-control-group { position: relative; overflow: visible !important; }
+        .map-tab-toolbar-host .map-layout-controls,
+        .map-tab-toolbar-host .map-overlay-controls,
+        .map-tab-toolbar-host .map-overlay-dropdown,
+        .map-tab-toolbar-host .map-filter-dropdown { overflow: visible !important; position: relative; }
+        .map-tab-toolbar-host .map-btn-dropdown-wrapper { position: relative; z-index: 20; }
+        .map-tab-toolbar-host .map-btn-dropdown-menu { z-index: 9999 !important; }
+        .map-tab-toolbar-host .map-layout-rich-menu { z-index: 9999 !important; }
+        .map-tab-toolbar-host .map-overlay-menu,
+        .map-tab-toolbar-host .map-filter-menu { z-index: 9999 !important; display: none; position: absolute; top: 100%; left: 0; }
+        .map-tab-toolbar-host .map-overlay-menu.open,
+        .map-tab-toolbar-host .map-filter-menu.open { display: block !important; visibility: visible !important; opacity: 1 !important; pointer-events: auto !important; }
+        .map-tab-toolbar-host [title="Fullscreen"] { display: none !important; }
+        .map-tab-body { flex: 1; position: relative; overflow: hidden; z-index: 1; min-height: 0; }
+        .map-tab-canvas { position: absolute; inset: 0; width: 100%; height: 100%; min-height: 0; z-index: 1; }
+        .map-tab-canvas > div:not(.map-overlay-container) { z-index: 2 !important; }
+        .map-tab-canvas > .map-overlay-container { z-index: 60 !important; }
+        .map-tab-overlay-wrap { position: absolute; inset: 0; z-index: 40; pointer-events: none; }
+        .map-tab-overlay-wrap .map-node-overlay-panel { pointer-events: auto; z-index: 41 !important; }
+        .map-tab-legend { position: absolute; top: 8px; right: 8px; max-height: 70%; overflow-y: auto;
+            background: rgba(255, 255, 255, 0.97); border: 1px solid var(--border-color, #e5e7eb); border-radius: 8px;
+            padding: 12px 16px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); z-index: 200; font-size: 12px; min-width: 180px; display: none; }
+        .map-tab-legend .legend-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+        .map-tab-legend .legend-color { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+        .map-full-map-unsupported { padding: 2rem; font-family: sans-serif; color: #374151; }
+    </style>
+</head>
+<body>
+    <div class="map-tab-page">
+        <div id="mapTabToolbarHost" class="map-tab-toolbar-host"></div>
+        <div class="map-tab-body" id="mapTabBody">
+            <div id="mapTabCanvas" class="map-tab-canvas"></div>
+            <div id="mapTabOverlayContainer" class="map-tab-overlay-wrap"></div>
+            <div id="mapTabLegend" class="map-tab-legend map-js-hidden"></div>
+        </div>
+    </div>
+    <script src="/assets/js/cytoscape.min.js"></script>
+    <script src="/assets/js/dagre.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/cytoscape-dagre@2.5.0/cytoscape-dagre.js"></script>
+    <script src="/view/shared/map-render-utils.js"></script>
+    <script src="/view/shared/map-graph-utils.js"></script>
+    <script src="/assets/js/config.js"></script>
+    <script src="/assets/js/api-service.js"></script>
+    <script src="/view/shared/map/system-lineage-overlays.js"></script>
+    <script src="/view/shared/map/map-styles.js"></script>
+    <script src="/view/shared/map/map-icons.js"></script>
+    <script src="/view/shared/map-ui.js"></script>
+    <script src="/view/shared/map-configs.js"></script>
+    <script src="/view/shared/map-engine.js"></script>
+    <script src="/view/shared/map/system-lineage-graph.js"></script>
+    <script src="/view/shared/map/system-lineage-cytoscape-ui.js"></script>
+    <script src="/view/shared/map/system-lineage-network-interactions.js"></script>
+    <script src="/view/shared/unified-map-controller.js"></script>
+    <script src="/view/system/system-interfaces-map.js"></script>
+    <script src="/view/shared/map/process-data-facet-graph.js"></script>
+    <script src="/view/process/process-data-map.js"></script>
+    <script src="/assets/js/map-tab-init.js"></script>
+</body>
+</html>

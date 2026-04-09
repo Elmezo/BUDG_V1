@@ -1,0 +1,188 @@
+/* Data Tab Styling - Shared across Process, Policy, and Project Data Tabs */
+
+.relationships-section {
+    background: var(--background-primary, #fff);
+    border: 1px solid var(--border-color, #e9ecef);
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+    overflow: hidden;
+    box-shadow: var(--shadow-light, 0 2px 10px rgba(0, 0, 0, 0.1));
+}
+
+.relationships-section:last-child {
+    margin-bottom: 0;
+}
+
+.relationships-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #248567;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--border-color, #e9ecef);
+}
+
+.relationships-title {
+    font-weight: 600;
+    color: var(--text-primary, #2c3e50);
+    font-size: 0.875rem;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    margin: 0;
+}
+
+.relationships-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.relationships-actions .btn {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.375rem 0.75rem;
+    border: 1px solid var(--border-color, #e9ecef);
+    border-radius: 6px;
+    background: var(--background-primary, #fff);
+    color: var(--text-secondary, #6c757d);
+    text-decoration: none;
+    font-weight: 500;
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: var(--transition, all 0.3s ease);
+}
+
+.relationships-actions .btn:hover {
+    background: var(--secondary-color, #248567);
+    border-color: var(--secondary-color, #248567);
+    color: var(--background-primary, #fff);
+}
+
+.relationships-actions .btn i {
+    font-size: 0.75rem;
+}
+
+.relationships-table-wrapper {
+    padding: 0;
+    overflow-x: auto;
+    overflow-y: visible;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Custom scrollbar styling for table wrapper */
+.relationships-table-wrapper::-webkit-scrollbar {
+    height: 10px;
+}
+
+.relationships-table-wrapper::-webkit-scrollbar-track {
+    background: var(--background-secondary, #f8f9fa);
+    border-radius: 5px;
+}
+
+.relationships-table-wrapper::-webkit-scrollbar-thumb {
+    background: var(--secondary-color, #248567);
+    border-radius: 5px;
+}
+
+.relationships-table-wrapper::-webkit-scrollbar-thumb:hover {
+    background: #1e6b4f;
+}
+
+.relationships-table {
+    width: 100%;
+    min-width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+    table-layout: auto;
+}
+
+.relationships-table thead {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: var(--background-secondary, #f8f9fa);
+}
+
+.relationships-table thead th {
+    background: var(--background-secondary, #f8f9fa);
+    padding: 0.75rem 1rem;
+    text-align: left;
+    font-weight: 600;
+    color: var(--text-primary, #2c3e50);
+    border-bottom: 1px solid var(--border-color, #e9ecef);
+    font-size: 0.8rem;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.relationships-table tbody td {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--border-color, #e9ecef);
+    vertical-align: top;
+    white-space: nowrap;
+    min-width: 100px;
+}
+
+.relationships-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.relationship-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.relationship-item i {
+    color: var(--text-secondary, #6c757d);
+    font-size: 0.875rem;
+    width: 1rem;
+    text-align: center;
+}
+
+.relationship-link {
+    color: #248567;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.relationship-link:hover {
+    text-decoration: underline;
+}
+
+.relationships-count {
+    text-align: right;
+    padding: 0.75rem 1rem;
+    background: var(--background-secondary, #f8f9fa);
+    color: var(--text-secondary, #6c757d);
+    font-size: 0.875rem;
+    border-top: 1px solid var(--border-color, #e9ecef);
+}
+
+.relationships-content {
+    padding: 1.5rem;
+}
+
+.relationships-empty {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    color: var(--text-secondary, #6c757d);
+    font-size: 0.9rem;
+    padding: 1rem 0;
+}
+
+.relationships-empty i {
+    font-size: 1.1rem;
+    color: var(--text-primary, #2c3e50);
+    background: var(--text-primary, #2c3e50);
+    color: var(--background-primary, #fff);
+    border-radius: 50%;
+    width: 1.5rem;
+    height: 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+

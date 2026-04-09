@@ -1,0 +1,116 @@
+{
+  "facets": [
+    {
+      "id": "DATASET",
+      "visibility": true,
+      "activeFields": "Ref., Name, Definition, Lifecycle, System Short Name"
+    },
+    {
+      "id": "ATTRIBUTE",
+      "visibility": true,
+      "activeFields": "Ref., Name, Definition, Data Set Name, System Short Name"
+    },
+    {
+      "id": "SYSTEM",
+      "visibility": true,
+      "activeFields": "Short Name, Description, Type, Lifecycle, Classification, CIA Rating"
+    },
+    {
+      "id": "GLOSSARY",
+      "visibility": true,
+      "activeFields": "Ref., Name, Type, Definition, Parent Name, Parent Type, KDE, Lifecycle"
+    },
+    {
+      "id": "DATAQUALITY",
+      "visibility": false,
+      "activeFields": ""
+    },
+    {
+      "id": "PEOPLE",
+      "visibility": true,
+      "activeFields": "First Name, Last Name, Email, Function, Org Unit"
+    },
+    {
+      "id": "ROLE",
+      "visibility": true,
+      "activeFields": "Role, Full Name, Object Type, Object, Role Accepted"
+    },
+    {
+      "id": "BUSINESS_AREA",
+      "visibility": true,
+      "activeFields": "Name, Parent, Description"
+    },
+    {
+      "id": "LEGAL_ENTITY",
+      "visibility": true,
+      "activeFields": "Short Name, Parent Short Name, Description"
+    },
+    {
+      "id": "CLIENT",
+      "visibility": true,
+      "activeFields": "Name, Parent, Description, Lifecycle"
+    },
+    {
+      "id": "COMMITTEE",
+      "visibility": true,
+      "activeFields": "Ref., Name, Parent, Description"
+    },
+    {
+      "id": "POLICY",
+      "visibility": false,
+      "activeFields": "Ref., Name, Parent Name, Description, Lifecycle"
+    },
+    {
+      "id": "PROCESS",
+      "visibility": false,
+      "activeFields": "Ref., Name, Parent Name, Description"
+    },
+    {
+      "id": "INTERFACE",
+      "visibility": true,
+      "activeFields": "Ref., Name, Description, Source System Short Name, Target System Short Name, Automation, Frequency, Lifecycle"
+    },
+    {
+      "id": "CAPABILITY",
+      "visibility": false,
+      "activeFields": "Ref., Name, Parent, Description"
+    },
+    {
+      "id": "PRODUCT",
+      "visibility": false,
+      "activeFields": "Ref., Name, Parent, Description, BUDG Status"
+    },
+    {
+      "id": "ORG_UNIT",
+      "visibility": false,
+      "activeFields": "Ref., Name, Parent, Description, BUDG Status"
+    },
+    {
+      "id": "GEOGRAPHY",
+      "visibility": false,
+      "activeFields": "Name, Parent, Description"
+    },
+    {
+      "id": "REGULATION",
+      "visibility": false,
+      "activeFields": "Ref., Name, Parent, Description"
+    },
+    {
+      "id": "REGULATOR",
+      "visibility": false,
+      "activeFields": "Name, Description, Short Name"
+    },
+    {
+      "id": "REGULATORY_THEME",
+      "visibility": false,
+      "activeFields": "Ref., Name, Parent, Description"
+    },
+    {
+      "id": "CHANGE_REQUESTS",
+      "visibility": true,
+      "activeFields": "ID, Subject, Summary, Type, Object Type, Object, Status, Created Date, Last Updated Date, Severity, Urgency, Segment"
+    }
+  ],
+  "lastUpdated": 1761141240986
+}
+

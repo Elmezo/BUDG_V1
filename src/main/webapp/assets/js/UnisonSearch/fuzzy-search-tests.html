@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fuzzy Search Tests - BUDG</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        h1 {
+            color: #333;
+            border-bottom: 3px solid #007bff;
+            padding-bottom: 10px;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-section h2 {
+            color: #007bff;
+            margin-top: 0;
+        }
+        .test-case {
+            margin: 15px 0;
+            padding: 15px;
+            background: #f9f9f9;
+            border-left: 4px solid #ddd;
+            border-radius: 4px;
+        }
+        .test-case.pass {
+            border-left-color: #28a745;
+            background: #d4edda;
+        }
+        .test-case.fail {
+            border-left-color: #dc3545;
+            background: #f8d7da;
+        }
+        .test-input {
+            font-family: 'Courier New', monospace;
+            background: #fff;
+            padding: 5px 10px;
+            border-radius: 4px;
+            display: inline-block;
+            margin: 5px 0;
+        }
+        .test-result {
+            margin-top: 10px;
+            font-weight: bold;
+        }
+        .test-result.pass {
+            color: #28a745;
+        }
+        .test-result.fail {
+            color: #dc3545;
+        }
+        .summary {
+            background: #007bff;
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            font-size: 1.2em;
+            margin-top: 30px;
+        }
+        .summary.all-pass {
+            background: #28a745;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1em;
+            margin: 10px 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .info {
+            background: #d1ecf1;
+            color: #0c5460;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 10px 0;
+            border-left: 4px solid #17a2b8;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔍 Advanced Fuzzy Search Test Suite</h1>
+    
+    <div class="info">
+        <strong>Instructions:</strong> Click "Run All Tests" to verify the fuzzy search implementation.
+        Tests cover typo tolerance, character transposition, phonetic matching, multi-language support, and wildcards.
+    </div>
+    
+    <button onclick="runAllTests()">Run All Tests</button>
+    <button onclick="clearResults()">Clear Results</button>
+    
+    <div id="test-results"></div>
+    
+    <div id="summary" class="summary" style="display: none;">
+        <div id="summary-text"></div>
+    </div>
+
+    <script src="search-fuzzy.js"></script>
+    <script>
+        const testData = [
+            { id: 1, name: "Legal Entity", description: "Main legal entity record" },
+            { id: 2, name: "Customer Data", description: "Customer information" },
+            { id: 3, name: "Party Data", description: "Party details" },
+            { id: 4, name: "Data Party", description: "Data for party" },
+            { id: 5, name: "Legal Record", description: "Legal documentation" },
+            { id: 6, name: "Ação", description: "Portuguese action" },
+            { id: 7, name: "Résumé", description: "French resume" },
+            { id: 8, name: "Café", description: "Coffee shop" },
+            { id: 9, name: "Dataset", description: "Data collection" },
+            { id: 10, name: "System", description: "System information" }
+        ];
+
+        const testSuites = [
+            {
+                name: "Typo Tolerance",
+                tests: [
+                    { query: "logal", shouldMatch: ["Legal Entity", "Legal Record"], description: "logal → legal" },
+                    { query: "Cutsomer", shouldMatch: ["Customer Data"], description: "Cutsomer → Customer" },
+                    { query: "Dta", shouldMatch: ["Data Party", "Customer Data", "Party Data"], description: "Dta → Data (2 chars)" }
+                ]
+            },
+            {
+                name: "Character Transposition",
+                tests: [
+                    { query: "Data Party", shouldMatch: ["Data Party", "Party Data"], description: "Should match both orders" },
+                    { query: "legal record", shouldMatch: ["Legal Entity", "Legal Record"], description: "Partial match with transposition" }
+                ]
+            },
+            {
+                name: "Multi-Language Support",
+                tests: [
+                    { query: "acao", shouldMatch: ["Ação"], description: "acao → Ação (Portuguese)" },
+                    { query: "resume", shouldMatch: ["Résumé"], description: "resume → Résumé (French)" },
+                    { query: "cafe", shouldMatch: ["Café"], description: "cafe → Café" }
+                ]
+            },
+            {
+                name: "Wildcard Support",
+                tests: [
+                    { query: "*Entity", shouldMatch: ["Legal Entity"], description: "Ends with Entity" },
+                    { query: "Data*", shouldMatch: ["Dataset", "Data Party", "Customer Data", "Party Data"], description: "Starts with Data" },
+                    { query: "*Data*", shouldMatch: ["Customer Data", "Party Data", "Data Party", "Dataset"], description: "Contains Data" }
+                ]
+            },
+            {
+                name: "Exact Match",
+                tests: [
+                    { query: "Legal Entity", shouldMatch: ["Legal Entity"], description: "Exact match" },
+                    { query: "System", shouldMatch: ["System"], description: "Case insensitive exact" }
+                ]
+            },
+            {
+                name: "Substring Match",
+                tests: [
+                    { query: "Party", shouldMatch: ["Party Data", "Data Party"], description: "Substring in name" },
+                    { query: "legal", shouldMatch: ["Legal Entity", "Legal Record"], description: "Case insensitive substring" }
+                ]
+            }
+        ];
+
+        function runAllTests() {
+            clearResults();
+            const resultsDiv = document.getElementById('test-results');
+            let totalTests = 0;
+            let passedTests = 0;
+
+            testSuites.forEach(suite => {
+                const sectionDiv = document.createElement('div');
+                sectionDiv.className = 'test-section';
+                
+                const title = document.createElement('h2');
+                title.textContent = suite.name;
+                sectionDiv.appendChild(title);
+
+                suite.tests.forEach(test => {
+                    totalTests++;
+                    const testDiv = document.createElement('div');
+                    testDiv.className = 'test-case';
+
+                    // Description
+                    const desc = document.createElement('div');
+                    desc.innerHTML = `<strong>${test.description}</strong>`;
+                    testDiv.appendChild(desc);
+
+                    // Query
+                    const query = document.createElement('div');
+                    query.innerHTML = `Query: <span class="test-input">"${test.query}"</span>`;
+                    testDiv.appendChild(query);
+
+                    // Expected
+                    const expected = document.createElement('div');
+                    expected.innerHTML = `Expected matches: <span class="test-input">${test.shouldMatch.join(', ')}</span>`;
+                    testDiv.appendChild(expected);
+
+                    // Run test
+                    const matchedItems = testData.filter(item => {
+                        const text = item.name + ' ' + item.description;
+                        return fuzzyMatch(text, test.query);
+                    });
+
+                    const matchedNames = matchedItems.map(item => item.name);
+
+                    // Check if all expected items are in matched items
+                    const allMatched = test.shouldMatch.every(expected => 
+                        matchedNames.some(matched => matched === expected)
+                    );
+
+                    // Actual result
+                    const actual = document.createElement('div');
+                    actual.innerHTML = `Actual matches: <span class="test-input">${matchedNames.join(', ') || 'None'}</span>`;
+                    testDiv.appendChild(actual);
+
+                    // Result
+                    const result = document.createElement('div');
+                    result.className = 'test-result';
+                    if (allMatched && matchedNames.length > 0) {
+                        result.className += ' pass';
+                        result.textContent = '✓ PASS';
+                        testDiv.classList.add('pass');
+                        passedTests++;
+                    } else {
+                        result.className += ' fail';
+                        result.textContent = '✗ FAIL';
+                        testDiv.classList.add('fail');
+                    }
+                    testDiv.appendChild(result);
+
+                    sectionDiv.appendChild(testDiv);
+                });
+
+                resultsDiv.appendChild(sectionDiv);
+            });
+
+            // Show summary
+            showSummary(passedTests, totalTests);
+        }
+
+        function showSummary(passed, total) {
+            const summaryDiv = document.getElementById('summary');
+            const summaryText = document.getElementById('summary-text');
+            
+            const percentage = Math.round((passed / total) * 100);
+            summaryText.innerHTML = `
+                <strong>Test Results:</strong> ${passed} / ${total} tests passed (${percentage}%)
+            `;
+
+            if (passed === total) {
+                summaryDiv.classList.add('all-pass');
+                summaryText.innerHTML += '<br>🎉 All tests passed!';
+            } else {
+                summaryDiv.classList.remove('all-pass');
+            }
+
+            summaryDiv.style.display = 'block';
+        }
+
+        function clearResults() {
+            document.getElementById('test-results').innerHTML = '';
+            document.getElementById('summary').style.display = 'none';
+        }
+
+        // Auto-run tests on load
+        window.addEventListener('load', function() {
+            setTimeout(runAllTests, 500);
+        });
+    </script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

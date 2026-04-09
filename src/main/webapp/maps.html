@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Maps - BUDG</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="assets/css/main.css">
+    <link rel="stylesheet" href="assets/css/map-view.css">
+    <link rel="stylesheet" href="view/shared/map/map.css">
+    <link rel="stylesheet" href="assets/css/global-lock-ui.css">
+    <!-- RTL styles for Arabic (disabled by default, enabled by i18n.js) -->
+    <link rel="stylesheet" href="assets/css/rtl.css" id="rtl-styles" disabled>
+    <link rel="stylesheet" href="assets/css/segments-cube-panel.css">
+    <link rel="icon" type="image/png" href="assets/images/avatars/icon.jpg">
+    <script>
+        // Apply theme immediately to prevent flash of unstyled content
+        (function() {
+            const savedTheme = localStorage.getItem('budg-theme') || 'light';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+        })();
+    </script>
+    <script src="/assets/i18n/head-locale.js"></script>
+    <script src="assets/i18n/i18n.js"></script>
+</head>
+<body>
+<!-- Header Navigation -->
+<header class="header"></header>
+
+<!-- Main Content Area - Maps -->
+<main class="maps-main-content">
+    <div class="maps-container">
+        <div class="maps-header">
+            <h1 class="maps-title">MAPS</h1>
+        </div>
+        
+        <div class="maps-toolbar">
+            <div class="maps-controls-left">
+                <div class="map-control-group">
+                    <label for="mapTypeSelect">Map type:</label>
+                    <select id="mapTypeSelect" class="map-select">
+                        <option value="system-lineage">System Lineage</option>
+                        <option value="dataset-lineage">Dataset Lineage</option>
+                        <option value="multi-node-lineage">Multi-node Lineage</option>
+                    </select>
+                </div>
+                
+                <div class="map-control-group">
+                    <label>Layout:</label>
+                    <div class="map-layout-controls">
+                        <select id="mapLayoutSelect" class="map-select" title="Change lineage flow direction">
+                            <option value="left-to-right">Left-To-Right</option>
+                            <option value="top-to-bottom">Top-To-Bottom</option>
+                            <option value="right-to-left">Right-To-Left</option>
+                            <option value="force">Organic</option>
+                        </select>
+                        <div class="map-btn-dropdown-wrapper">
+                            <button type="button" class="map-toolbar-btn-sm" id="mapSpacingBtn" title="Node spacing">
+                                <i class="fas fa-expand-arrows-alt" id="mapSpacingIcon"></i>
+                                <i class="fas fa-chevron-down" style="font-size: 8px; margin-left: 2px;"></i>
+                            </button>
+                            <div class="map-btn-dropdown-menu" id="mapSpacingMenu">
+                                <div class="map-btn-dropdown-item" data-spacing="compact">Compact</div>
+                                <div class="map-btn-dropdown-item active" data-spacing="normal">Normal</div>
+                                <div class="map-btn-dropdown-item" data-spacing="spacey">Spacey</div>
+                            </div>
+                        </div>
+                        <div class="map-btn-dropdown-wrapper">
+                            <button type="button" class="map-toolbar-btn-sm" id="mapEdgeStyleBtn" title="Edge routing style">
+                                <i class="fas fa-arrow-right" id="mapEdgeStyleIcon"></i>
+                                <i class="fas fa-chevron-down" style="font-size: 8px; margin-left: 2px;"></i>
+                            </button>
+                            <div class="map-btn-dropdown-menu" id="mapEdgeStyleMenu">
+                                <div class="map-btn-dropdown-item" data-edge-style="angle">Angle</div>
+                                <div class="map-btn-dropdown-item" data-edge-style="square">Square</div>
+                                <div class="map-btn-dropdown-item active" data-edge-style="direct">Direct</div>
+                                <div class="map-btn-dropdown-item" data-edge-style="loop">Loop</div>
+                                <div class="map-btn-dropdown-item" data-edge-style="top-down">Top-Down</div>
+                                <div class="map-btn-dropdown-item" data-edge-style="left-right">Left-Right</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="map-control-group">
+                    <label for="mapHopsSelect">Hops:</label>
+                    <select id="mapHopsSelect" class="map-select" title="Limit upstream/downstream connections (1–99). Recommended: 15.">
+                        <option value="15" selected>15</option>
+                    </select>
+                </div>
+                
+                <div class="map-control-group">
+                    <label>Overlay:</label>
+                    <div class="map-overlay-controls">
+                        <div class="map-overlay-dropdown">
+                            <button type="button" class="map-select-btn" id="mapOverlayBtn">
+                                <span id="mapOverlayBtnText">None</span>
+                                <i class="fas fa-chevron-down"></i>
+                            </button>
+                            <!-- System Lineage: Data, Business, Organizational, Regulatory -->
+                            <div class="map-overlay-menu" id="mapOverlayMenuSystem" data-map-type="system-lineage">
+                                <div class="overlay-menu-grid">
+                                    <div class="overlay-menu-column">
+                                        <div class="overlay-menu-header">Data</div>
+                                        <div class="overlay-menu-item" data-overlay="description"><i class="fas fa-info-circle"></i> Description</div>
+                                        <div class="overlay-menu-item" data-overlay="glossary"><i class="fas fa-book"></i> Glossary</div>
+                                        <div class="overlay-menu-item" data-overlay="datasets"><i class="fas fa-layer-group"></i> Data Sets</div>
+                                        <div class="overlay-menu-item" data-overlay="attributes"><i class="fas fa-th"></i> Attributes</div>
+                                        <div class="overlay-menu-item" data-overlay="linking-attributes"><i class="fas fa-link"></i> Linking Attributes</div>
+                                        <div class="overlay-menu-item" data-overlay="data-quality"><i class="fas fa-bullseye"></i> Data Quality</div>
+                                        <div class="overlay-menu-item" data-overlay="data-privacy"><i class="fas fa-shield-alt"></i> Data Privacy</div>
+                                    </div>
+                                    <div class="overlay-menu-column">
+                                        <div class="overlay-menu-header">Business</div>
+                                        <div class="overlay-menu-item" data-overlay="stakeholders"><i class="fas fa-users"></i> Stakeholders</div>
+                                        <div class="overlay-menu-item" data-overlay="processes"><i class="fas fa-play-circle"></i> Processes</div>
+                                        <div class="overlay-menu-item" data-overlay="projects"><i class="fas fa-tasks"></i> Projects</div>
+                                        <div class="overlay-menu-item" data-overlay="policies"><i class="fas fa-file-alt"></i> Policies</div>
+                                    </div>
+                                    <div class="overlay-menu-column">
+                                        <div class="overlay-menu-header">Organizational</div>
+                                        <div class="overlay-menu-item" data-overlay="business-area"><i class="fas fa-building"></i> Business Area</div>
+                                        <div class="overlay-menu-item" data-overlay="products"><i class="fas fa-cube"></i> Products</div>
+                                        <div class="overlay-menu-item" data-overlay="legal-entities"><i class="fas fa-balance-scale"></i> Legal Entities</div>
+                                    </div>
+                                    <div class="overlay-menu-column">
+                                        <div class="overlay-menu-header">Regulatory</div>
+                                        <div class="overlay-menu-item" data-overlay="geography"><i class="fas fa-globe-americas"></i> Geography</div>
+                                    </div>
+                                </div>
+                                <div class="overlay-menu-footer">
+                                    <button type="button" class="overlay-clear-btn" id="mapClearOverlaysBtn">Clear Overlays</button>
+                                </div>
+                            </div>
+                            <!-- Data Set Lineage: Data, Business -->
+                            <div class="map-overlay-menu" id="mapOverlayMenuDataset" data-map-type="dataset-lineage" style="display:none;">
+                                <div class="overlay-menu-grid dataset-overlay-grid">
+                                    <div class="overlay-menu-column">
+                                        <div class="overlay-menu-header">Data</div>
+                                        <div class="overlay-menu-item" data-overlay="description"><i class="fas fa-info-circle"></i> Description</div>
+                                        <div class="overlay-menu-item" data-overlay="glossary"><i class="fas fa-book"></i> Glossary</div>
+                                        <div class="overlay-menu-item" data-overlay="attributes"><i class="fas fa-th"></i> Attributes</div>
+                                        <div class="overlay-menu-item" data-overlay="linking-attributes"><i class="fas fa-link"></i> Linking Attributes</div>
+                                        <div class="overlay-menu-item" data-overlay="data-quality"><i class="fas fa-bullseye"></i> Data Quality</div>
+                                    </div>
+                                    <div class="overlay-menu-column">
+                                        <div class="overlay-menu-header">Business</div>
+                                        <div class="overlay-menu-item" data-overlay="stakeholders"><i class="fas fa-users"></i> Stakeholders</div>
+                                        <div class="overlay-menu-item" data-overlay="processes"><i class="fas fa-play-circle"></i> Processes</div>
+                                        <div class="overlay-menu-item" data-overlay="projects"><i class="fas fa-tasks"></i> Projects</div>
+                                        <div class="overlay-menu-item" data-overlay="policies"><i class="fas fa-file-alt"></i> Policies</div>
+                                    </div>
+                                </div>
+                                <div class="overlay-menu-footer">
+                                    <button type="button" class="overlay-clear-btn" id="mapClearOverlaysBtnDataset">Clear Overlays</button>
+                                </div>
+                            </div>
+                            <div class="map-overlay-menu" id="mapOverlayMenuMultiNode" data-map-type="multi-node-lineage" style="display:none;">
+                                <div class="overlay-menu-grid">
+                                    <div class="overlay-menu-column">
+                                        <div class="overlay-menu-header">Data</div>
+                                        <div class="overlay-menu-item" data-overlay="description"><i class="fas fa-info-circle"></i> Description</div>
+                                    </div>
+                                </div>
+                                <div class="overlay-menu-footer">
+                                    <button type="button" class="overlay-clear-btn" id="mapClearOverlaysBtnMultiNode">Clear Overlays</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="map-control-group" id="mapFiltersGroup">
+                    <label>Filters:</label>
+                    <div class="map-filter-dropdown">
+                        <button type="button" class="map-select-btn" id="mapFilterBtn">
+                            <span id="mapFilterBtnText">All selected (0)</span>
+                            <i class="fas fa-chevron-down"></i>
+                        </button>
+                        <div class="map-filter-menu" id="mapFilterMenu">
+                            <div class="map-filter-category map-filter-links-category" id="mapFilterLinksCategory">
+                                <div class="map-filter-category-header">LINKS</div>
+                                <div class="map-filter-option">
+                                    <input type="checkbox" id="mapFilterSystemInterfaces" data-filter-link="systemInterfaces" checked>
+                                    <label for="mapFilterSystemInterfaces">System Interfaces</label>
+                                </div>
+                                <div class="map-filter-option">
+                                    <input type="checkbox" id="mapFilterDataAttributeLinks" data-filter-link="dataAttributeLinks" checked>
+                                    <label for="mapFilterDataAttributeLinks">Data Attribute Links</label>
+                                </div>
+                            </div>
+                            <div class="map-filter-separator map-filter-links-separator" id="mapFilterLinksSeparator"></div>
+                            <div class="map-filter-category map-filter-classification-category" id="mapFilterClassificationCategory">
+                                <div class="map-filter-category-header">CLASSIFICATION</div>
+                                <div id="mapFilterClassificationOptions"></div>
+                            </div>
+                            <div class="map-filter-separator"></div>
+                            <div class="map-filter-category">
+                                <div class="map-filter-category-header">TYPE</div>
+                                <div id="mapFilterTypeOptions"></div>
+                            </div>
+                            <div class="map-filter-separator"></div>
+                            <div class="map-filter-category">
+                                <div class="map-filter-category-header">LIFECYCLE</div>
+                                <div id="mapFilterLifecycleOptions"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="map-control-group map-multi-node-filters" id="mapMultiNodeFilters" style="display: none;">
+                    <span class="map-multi-node-filters-label">Node types:</span>
+                    <label class="map-filter-checkbox"><input type="checkbox" id="mapFilterSystem" checked> System</label>
+                    <label class="map-filter-checkbox"><input type="checkbox" id="mapFilterProcess" checked> Process</label>
+                    <label class="map-filter-checkbox"><input type="checkbox" id="mapFilterProject" checked> Project</label>
+                    <label class="map-filter-checkbox"><input type="checkbox" id="mapFilterStakeholder" checked> Stakeholder</label>
+                </div>
+            </div>
+            
+            <div class="maps-controls-right">
+                <button class="map-toolbar-btn" id="mapShowHideInterfaceBtn" title="Show or hide interface information along dotted lines" aria-label="Show or hide interface information">
+                    <i class="fas fa-project-diagram"></i>
+                </button>
+                <button class="map-toolbar-btn" id="mapRefreshBtn" title="Refresh">
+                    <i class="fas fa-sync-alt"></i>
+                </button>
+                <button class="map-toolbar-btn" id="mapZoomInBtn" title="Zoom In">
+                    <i class="fas fa-search-plus"></i>
+                </button>
+                <button class="map-toolbar-btn" id="mapZoomOutBtn" title="Zoom Out">
+                    <i class="fas fa-search-minus"></i>
+                </button>
+                <button class="map-toolbar-btn" id="mapUndoBtn" title="Undo">
+                    <i class="fas fa-undo"></i>
+                </button>
+                <button class="map-toolbar-btn" id="mapRedoBtn" title="Redo">
+                    <i class="fas fa-redo"></i>
+                </button>
+                <button class="map-toolbar-btn" id="mapSaveBtn" title="Save">
+                    <i class="fas fa-save"></i>
+                </button>
+                <button class="map-toolbar-btn" id="mapViewBtn" title="View">
+                    <i class="fas fa-eye"></i>
+                </button>
+                <button class="map-toolbar-btn" id="mapExportBtn" title="Export">
+                    <i class="fas fa-download"></i>
+                </button>
+                <button class="map-toolbar-btn" id="mapRedrawBtn" title="Redraw">
+                    <i class="fas fa-sync-alt"></i>
+                </button>
+                <button class="map-toolbar-btn" id="mapResetBtn" title="Reset">
+                    <i class="fas fa-undo"></i>
+                </button>
+                <div class="map-toolbar-separator"></div>
+                <button class="map-toolbar-btn" id="mapFullscreenBtn" title="Fullscreen">
+                    <i class="fas fa-external-link-alt"></i>
+                </button>
+                <button class="map-toolbar-btn" id="mapNavigatorBtn" title="Map Navigator – fit view or open overview" aria-label="Map Navigator">
+                    <i class="fas fa-th"></i>
+                </button>
+                <button class="map-toolbar-btn" id="mapLegendBtn" title="Open the Legend" aria-label="Open the Legend – refer to the legend to identify the symbols used in the map (Insight Maps Palette)">
+                    <i class="fas fa-list-ul"></i>
+                </button>
+                <button class="map-toolbar-btn" id="mapListBtn" title="List">
+                    <i class="fas fa-list"></i>
+                </button>
+            </div>
+        </div>
+        
+        <div class="maps-canvas-container" style="display: flex;">
+            <div style="flex: 1; position: relative; min-width: 0;">
+                <div class="map-loading-overlay" data-map-loading style="display:none;">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <span>Building insight map...</span>
+                </div>
+                <div id="mapNetworkCanvas" class="map-network-canvas"></div>
+            </div>
+            <div class="interface-map-side-panel" id="mapLegendSidePanel" style="display:none;">
+                <div class="map-side-panel-section">
+                    <h4 class="map-legend-palette-title"><i class="fas fa-layer-group"></i> Insight Maps Palette</h4>
+                    <div data-maps-legend></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<script src="assets/js/config.js"></script>
+<script src="assets/js/api-service.js"></script>
+<script src="assets/js/global-lock-ui.js"></script>
+<script src="assets/js/segments-cube-panel.js"></script>
+<script src="assets/js/main.js"></script>
+<script src="assets/js/header.js"></script>
+<!-- Cytoscape.js for network graphs -->
+<script src="assets/js/cytoscape.min.js"></script>
+<script src="assets/js/dagre.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/cytoscape-dagre@2.5.0/cytoscape-dagre.js"></script>
+<!-- map-ui.js bundles MapOverlayPanel -->
+<script src="view/shared/map-ui.js"></script>
+<script src="view/shared/map-configs.js"></script>
+<script src="view/shared/map-render-utils.js"></script>
+<script src="view/shared/unified-map-controller.js"></script>
+<script src="view/shared/map-engine.js"></script>
+<!-- Map functionality -->
+<script src="assets/js/maps.js"></script>
+</body>
+</html>
+

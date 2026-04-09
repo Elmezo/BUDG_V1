@@ -1,0 +1,377 @@
+================================================================================
+مصفوفة المقارنة التفصيلية - Axon vs التطبيق الحالي
+================================================================================
+تاريخ التدقيق: ديسمبر 2025
+
+الرموز المستخدمة:
+✅ = موجود ويعمل
+⚠️  = موجود جزئياً أو يحتاج تحديث
+❌ = مفقود تماماً
+🔧 = يحتاج إلى إنشاء جدول في قاعدة البيانات
+⭕ = موجود في أحد الأطراف لكن مفقود في الآخر
+
+================================================================================
+القسم 1: العلاقات المباشرة (Direct Connections)
+================================================================================
+
++====================================================================================+
+| العلاقة              | Axon | Database | Backend | Frontend | الحالة | الملاحظات |
++====================================================================================+
+| PROCESS Relationships                                                             |
++------------------------------------------------------------------------------------+
+| Process → Dataset    | ✅   | ✅       | ❌      | ❌       | ❌     | Table exists, needs code |
+| Process → Attribute  | ✅   | ✅       | ❌      | ❌       | ❌     | Table exists, needs code |
+| Process → System     | ✅   | ✅       | ❌      | ❌       | ❌     | Table exists, needs code |
+| Process → Glossary   | ✅   | ❌ 🔧    | ❌      | ⚠️       | 🔧     | Needs DB table creation |
+| Process → People     | ✅   | ✅       | ✅      | ✅       | ✅     | Working |
++------------------------------------------------------------------------------------+
+| PROJECT Relationships                                                              |
++------------------------------------------------------------------------------------+
+| Project → Dataset    | ✅   | ✅       | ❌      | ❌       | ❌     | Table exists, needs code |
+| Project → Attribute  | ✅   | ✅       | ❌      | ❌       | ❌     | Table exists, needs code |
+| Project → System     | ✅   | ✅       | ❌      | ❌       | ❌     | Table exists, needs code |
+| Project → Glossary   | ✅   | ❌ 🔧    | ❌      | ❌       | 🔧     | Needs DB table creation |
+| Project → People     | ✅   | ✅       | ✅      | ✅       | ✅     | Working |
++------------------------------------------------------------------------------------+
+| POLICY Relationships                                                               |
++------------------------------------------------------------------------------------+
+| Policy → Dataset     | ✅   | ✅       | ❌      | ❌       | ❌     | Table exists, needs code |
+| Policy → Attribute   | ✅   | ✅       | ❌      | ❌       | ❌     | Table exists, needs code |
+| Policy → System      | ✅   | ✅       | ❌      | ❌       | ❌     | Table exists, needs code |
+| Policy → Glossary    | ✅   | ✅       | ❌      | ⚠️       | ⚠️     | Table exists, needs backend |
+| Policy → People      | ✅   | ✅       | ✅      | ✅       | ✅     | Working |
++====================================================================================+
+
+إحصائيات العلاقات المباشرة:
+- إجمالي المطلوب: 15 علاقة
+- موجود بالكامل: 3 علاقات (20%)
+- موجود جزئياً: 2 علاقات (13%)
+- مفقود تماماً: 10 علاقات (67%)
+- يحتاج جدول DB: 3 علاقات (20%)
+
+================================================================================
+القسم 2: العلاقات العكسية (Reverse Relationships)
+================================================================================
+
++====================================================================================+
+| العلاقة العكسية     | Axon | Database | Backend | Frontend | الحالة | الملاحظات |
++====================================================================================+
+| DATASET Reverse Relationships                                                      |
++------------------------------------------------------------------------------------+
+| Dataset → Process    | ✅   | ✅       | ❌      | ❌       | ❌     | Required for search |
+| Dataset → Project    | ✅   | ✅       | ❌      | ⭕       | ⭕     | Frontend has, backend missing |
+| Dataset → Policy     | ✅   | ✅       | ❌      | ❌       | ❌     | Required for search |
+| Dataset → System     | ✅   | ✅       | ✅      | ✅       | ✅     | Working |
+| Dataset → Glossary   | ✅   | ✅       | ✅      | ❌       | ⚠️     | Backend has, frontend missing |
+| Dataset → Attribute  | ✅   | ✅       | ✅      | ✅       | ✅     | Working |
++------------------------------------------------------------------------------------+
+| ATTRIBUTE Reverse Relationships                                                    |
++------------------------------------------------------------------------------------+
+| Attribute → Process  | ✅   | ✅       | ❌      | ❌       | ❌     | Required for search |
+| Attribute → Project  | ✅   | ✅       | ❌      | ❌       | ❌     | Required for search |
+| Attribute → Policy   | ✅   | ✅       | ❌      | ❌       | ❌     | Required for search |
+| Attribute → Dataset  | ✅   | ✅       | ✅      | ✅       | ✅     | Working |
+| Attribute → Glossary | ✅   | ✅       | ✅      | ✅       | ✅     | Working |
+| Attribute → System   | ⚠️   | ⚠️       | ❌      | ⭕       | ⚠️     | Inferred via Dataset |
++------------------------------------------------------------------------------------+
+| SYSTEM Reverse Relationships                                                       |
++------------------------------------------------------------------------------------+
+| System → Process     | ✅   | ✅       | ❌      | ❌       | ❌     | Required for search |
+| System → Project     | ✅   | ✅       | ❌      | ⭕       | ⭕     | Frontend has, backend missing |
+| System → Policy      | ✅   | ✅       | ❌      | ❌       | ❌     | Required for search |
+| System → Dataset     | ✅   | ✅       | ✅      | ✅       | ✅     | Working |
+| System → Attribute   | ⚠️   | ⚠️       | ❌      | ❌       | ⚠️     | Inferred via Dataset |
++------------------------------------------------------------------------------------+
+| GLOSSARY Reverse Relationships                                                     |
++------------------------------------------------------------------------------------+
+| Glossary → Process   | ✅   | ❌ 🔧    | ❌      | ⭕       | 🔧     | Needs DB table |
+| Glossary → Project   | ✅   | ❌ 🔧    | ❌      | ❌       | 🔧     | Needs DB table |
+| Glossary → Policy    | ✅   | ✅       | ❌      | ⭕       | ⭕     | Frontend has, backend missing |
+| Glossary → Dataset   | ✅   | ✅       | ✅      | ❌       | ⚠️     | Backend has, frontend missing |
+| Glossary → Attribute | ✅   | ✅       | ✅      | ✅       | ✅     | Working |
++====================================================================================+
+
+إحصائيات العلاقات العكسية:
+- إجمالي المطلوب: 19 علاقة
+- موجود بالكامل: 6 علاقات (32%)
+- موجود جزئياً: 4 علاقات (21%)
+- مفقود تماماً: 9 علاقات (47%)
+- يحتاج جدول DB: 3 علاقات (16%)
+
+================================================================================
+القسم 3: العلاقات المستنتجة (Inferred Connections)
+================================================================================
+
+حسب مواصفات Axon، يجب أن يدعم النظام العلاقات متعددة الخطوات:
+
++====================================================================================+
+| المسار المستنتج                    | الحالة | الملاحظات                          |
++====================================================================================+
+| PROCESS Inferred Paths                                                            |
++------------------------------------------------------------------------------------+
+| Process → Dataset → Attribute      | ❌     | Missing: Process → Dataset         |
+| Process → Attribute → Dataset      | ❌     | Missing: Process → Attribute       |
+| Process → System → Dataset         | ❌     | Missing: Process → System          |
+| Process → System → Attribute       | ❌     | Missing: Process → System          |
+| Process → Glossary → Dataset       | 🔧     | Missing: process_x_glossary table  |
+| Process → Glossary → Attribute     | 🔧     | Missing: process_x_glossary table  |
++------------------------------------------------------------------------------------+
+| PROJECT Inferred Paths                                                             |
++------------------------------------------------------------------------------------+
+| Project → Dataset → Attribute      | ❌     | Missing: Project → Dataset         |
+| Project → Attribute → Dataset      | ❌     | Missing: Project → Attribute       |
+| Project → System → Dataset         | ❌     | Missing: Project → System          |
+| Project → System → Attribute       | ❌     | Missing: Project → System          |
+| Project → Glossary → Dataset       | 🔧     | Missing: project_x_glossary table  |
+| Project → Glossary → Attribute     | 🔧     | Missing: project_x_glossary table  |
++------------------------------------------------------------------------------------+
+| POLICY Inferred Paths                                                              |
++------------------------------------------------------------------------------------+
+| Policy → Dataset → Attribute       | ❌     | Missing: Policy → Dataset          |
+| Policy → Attribute → Dataset       | ❌     | Missing: Policy → Attribute        |
+| Policy → System → Dataset          | ❌     | Missing: Policy → System           |
+| Policy → System → Attribute        | ❌     | Missing: Policy → System           |
+| Policy → Glossary → Dataset        | ⚠️     | Partial: Backend missing           |
+| Policy → Glossary → Attribute      | ⚠️     | Partial: Backend missing           |
++------------------------------------------------------------------------------------+
+| Additional Inferred Paths (Examples from Axon docs)                                |
++------------------------------------------------------------------------------------+
+| Dataset → Glossary → Process       | 🔧     | Needs glossary_x_process table     |
+| Dataset → System → Process         | ❌     | Missing: System → Process          |
+| Attribute → Glossary → Policy      | ⚠️     | Partial: Backend missing           |
++====================================================================================+
+
+إحصائيات العلاقات المستنتجة:
+- إجمالي الأمثلة المطلوبة: 21 مسار
+- يعمل بالكامل: 0 مسار (0%)
+- يعمل جزئياً: 3 مسارات (14%)
+- مفقود تماماً: 18 مساراً (86%)
+
+================================================================================
+القسم 4: مصفوفة التوافق بين الطبقات
+================================================================================
+
+4.1 توافق Database ↔ Backend
+------------------------------
+
++==================================================================+
+| العلاقة              | DB Table | Backend Code | متوافق؟ | حاجة |
++==================================================================+
+| process_x_dataset    | ✅       | ❌           | ❌       | Add code |
+| process_x_attribute  | ✅       | ❌           | ❌       | Add code |
+| process_x_system     | ✅       | ❌           | ❌       | Add code |
+| process_x_glossary   | ❌       | ❌           | ✅       | Create table first |
+| project_x_dataset    | ✅       | ❌           | ❌       | Add code |
+| project_x_attribute  | ✅       | ❌           | ❌       | Add code |
+| project_x_system     | ✅       | ❌           | ❌       | Add code |
+| project_x_glossary   | ❌       | ❌           | ✅       | Create table first |
+| policy_x_dataset     | ✅       | ❌           | ❌       | Add code |
+| policy_x_attribute   | ✅       | ❌           | ❌       | Add code |
+| policy_x_system      | ✅       | ❌           | ❌       | Add code |
+| policy_x_glossary    | ✅       | ❌           | ❌       | Add code |
++==================================================================+
+
+نسبة التوافق: 17% (2 من 12 متوافقين)
+
+4.2 توافق Backend ↔ Frontend
+------------------------------
+
++==================================================================+
+| العلاقة              | Backend | Frontend | متوافق؟ | حاجة      |
++==================================================================+
+| process → dataset    | ❌      | ❌       | ✅       | Add both  |
+| process → attribute  | ❌      | ❌       | ✅       | Add both  |
+| process → system     | ❌      | ❌       | ✅       | Add both  |
+| process → glossary   | ❌      | ⚠️       | ❌       | Sync      |
+| project → dataset    | ❌      | ❌       | ✅       | Add both  |
+| project → attribute  | ❌      | ❌       | ✅       | Add both  |
+| project → system     | ❌      | ❌       | ✅       | Add both  |
+| project → glossary   | ❌      | ❌       | ✅       | Add both  |
+| policy → dataset     | ❌      | ❌       | ✅       | Add both  |
+| policy → attribute   | ❌      | ❌       | ✅       | Add both  |
+| policy → system      | ❌      | ❌       | ✅       | Add both  |
+| policy → glossary    | ❌      | ⚠️       | ❌       | Sync      |
++==================================================================+
+
+نسبة التوافق: 83% (10 من 12 متوافقين - كلاهما مفقود)
+⚠️  حالات عدم التوافق: 2 (process/policy → glossary)
+
+4.3 توافق ثلاثي (Database ↔ Backend ↔ Frontend)
+------------------------------------------------
+
++================================================================================+
+| العلاقة              | DB | Backend | Frontend | متوافق؟ | الإجراء المطلوب |
++================================================================================+
+| process → dataset    | ✅ | ❌      | ❌       | ⚠️       | Add code to both |
+| process → attribute  | ✅ | ❌      | ❌       | ⚠️       | Add code to both |
+| process → system     | ✅ | ❌      | ❌       | ⚠️       | Add code to both |
+| process → glossary   | ❌ | ❌      | ⚠️       | ❌       | Create table, sync |
+| project → dataset    | ✅ | ❌      | ❌       | ⚠️       | Add code to both |
+| project → attribute  | ✅ | ❌      | ❌       | ⚠️       | Add code to both |
+| project → system     | ✅ | ❌      | ❌       | ⚠️       | Add code to both |
+| project → glossary   | ❌ | ❌      | ❌       | ✅       | Create table, add code |
+| policy → dataset     | ✅ | ❌      | ❌       | ⚠️       | Add code to both |
+| policy → attribute   | ✅ | ❌      | ❌       | ⚠️       | Add code to both |
+| policy → system      | ✅ | ❌      | ❌       | ⚠️       | Add code to both |
+| policy → glossary    | ✅ | ❌      | ⚠️       | ❌       | Add backend, sync frontend |
++================================================================================+
+
+متوافق تماماً: 1 (8%)
+متوافق جزئياً: 10 (83%)
+غير متوافق: 1 (8%)
+
+================================================================================
+القسم 5: الفجوات الحرجة (Critical Gaps)
+================================================================================
+
+5.1 أعلى أولوية (Blocking Axon Compliance)
+--------------------------------------------
+
+1. ❌ **Process → Dataset** (Backend & Frontend)
+   - التأثير: لا يمكن البحث عن Datasets المرتبطة بـ Process
+   - مثال Axon: "Process x Data Set" غير متاح
+   - الحل: إضافة العلاقة في RELATIONSHIP_MAP و FRONTEND_RELATIONSHIP_MAP
+
+2. ❌ **Process → Attribute** (Backend & Frontend)
+   - التأثير: لا يمكن البحث عن Attributes المرتبطة بـ Process
+   - مثال Axon: العلاقات المستنتجة غير متاحة
+   - الحل: إضافة العلاقة في كلا الطرفين
+
+3. ❌ **Project → Dataset** (Backend & Frontend)
+   - التأثير: لا يمكن البحث عن Datasets المرتبطة بـ Project
+   - مثال Axon: "Project x System" يتطلب هذه العلاقة للوصول للـ Dataset
+   - الحل: إضافة العلاقة في كلا الطرفين
+
+4. ❌ **Policy → Dataset** (Backend & Frontend)
+   - التأثير: لا يمكن البحث عن Datasets المرتبطة بـ Policy
+   - مثال Axon: "Policy x Glossary" يتطلب هذه العلاقة للوصول للـ Dataset
+   - الحل: إضافة العلاقة في كلا الطرفين
+
+5.2 أولوية عالية (High Priority)
+----------------------------------
+
+5. 🔧 **process_x_glossary Table**
+   - التأثير: لا توجد علاقة مباشرة بين Process و Glossary
+   - الحل: إنشاء الجدول في قاعدة البيانات
+
+6. 🔧 **project_x_glossary Table**
+   - التأثير: لا توجد علاقة مباشرة بين Project و Glossary
+   - الحل: إنشاء الجدول في قاعدة البيانات
+
+7. ⭕ **Frontend-Backend Sync** (glossary relationships)
+   - التأثير: عدم تطابق بين Frontend و Backend
+   - الحل: مزامنة العلاقات بعد إنشاء الجداول
+
+5.3 أولوية متوسطة (Medium Priority)
+------------------------------------
+
+8. ❌ **Reverse Relationships**
+   - dataset → process/project/policy
+   - attribute → process/project/policy
+   - system → process/project/policy
+   - التأثير: البحث العكسي غير متاح
+   - الحل: إضافة العلاقات العكسية
+
+================================================================================
+القسم 6: تحليل الأداء المتوقع
+================================================================================
+
+6.1 الأداء الحالي
+------------------
+
+Direct Relationships Available:
+- Process: 1 من 5 (20%)
+- Project: 1 من 5 (20%)
+- Policy: 2 من 6 (33%)
+
+المتوسط العام: 24%
+
+6.2 الأداء بعد التحديث (بدون Glossary tables)
+------------------------------------------------
+
+Direct Relationships After Update:
+- Process: 4 من 5 (80%)
+- Project: 4 من 5 (80%)
+- Policy: 5 من 6 (83%)
+
+المتوسط العام: 81%
+التحسن: +57%
+
+6.3 الأداء بعد التحديث الكامل (مع Glossary tables)
+----------------------------------------------------
+
+Direct Relationships After Full Update:
+- Process: 5 من 5 (100%)
+- Project: 5 من 5 (100%)
+- Policy: 6 من 6 (100%)
+
+المتوسط العام: 100%
+التحسن: +76%
+
+================================================================================
+القسم 7: خارطة الطريق للتطبيق الكامل
+================================================================================
+
+المرحلة 1: Quick Wins (1-2 أيام)
+---------------------------------
+✓ إضافة العلاقات المباشرة في Backend (9 علاقات)
+✓ إضافة العلاقات في Frontend (19 علاقة)
+✓ اختبار العلاقات المباشرة
+→ التحسن المتوقع: من 24% إلى 81%
+
+المرحلة 2: Database Tables (3-5 أيام)
+---------------------------------------
+✓ إنشاء process_x_glossary table
+✓ إنشاء project_x_glossary table
+✓ إنشاء جداول relation types
+✓ اختبار الجداول الجديدة
+
+المرحلة 3: Complete Integration (5-7 أيام)
+--------------------------------------------
+✓ تفعيل glossary relationships في Backend
+✓ تفعيل glossary relationships في Frontend
+✓ إضافة العلاقات العكسية (reverse relationships)
+✓ اختبار شامل لجميع المسارات
+→ التحسن النهائي: من 24% إلى 100%
+
+المرحلة 4: Testing & Validation (3-5 أيام)
+--------------------------------------------
+✓ اختبار جميع الأمثلة من مواصفات Axon
+✓ اختبار العلاقات المستنتجة (multi-hop)
+✓ اختبار الأداء (performance testing)
+✓ توثيق جميع العلاقات المدعومة
+
+الوقت الإجمالي المتوقع: 12-19 يوم عمل
+
+================================================================================
+القسم 8: الملخص النهائي
+================================================================================
+
+الوضع الحالي:
+--------------
+✅ 9 علاقات تعمل بشكل كامل (من أصل 34)
+⚠️  6 علاقات تعمل جزئياً
+❌ 19 علاقة مفقودة تماماً
+
+نسبة الامتثال لمواصفات Axon: 26%
+
+الوضع بعد التحديثات المقترحة:
+------------------------------
+✅ 28 علاقة ستعمل بشكل كامل
+⚠️  3 علاقات ستعمل جزئياً (pending DB tables)
+❌ 3 علاقات تحتاج جداول قاعدة بيانات
+
+نسبة الامتثال المتوقعة: 82%
+
+الوضع بعد التطبيق الكامل:
+--------------------------
+✅ 34 علاقة ستعمل بشكل كامل
+⚠️  0 علاقات جزئية
+❌ 0 علاقات مفقودة
+
+نسبة الامتثال النهائية: 100%
+
+================================================================================
+نهاية المصفوفة
+================================================================================
+

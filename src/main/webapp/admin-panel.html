@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#2563eb">
+    <link rel="manifest" href="/manifest.webmanifest">
+    <script src="/assets/i18n/head-locale.js"></script>
+    <script src="assets/i18n/i18n.js"></script>
+    <title>BUDG - Admin Panel</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="assets/css/main.css">
+    <link rel="stylesheet" href="assets/css/admin-panel.css">
+    <link rel="stylesheet" href="assets/css/admin-panel/quick-links-enhanced.css">
+    <link rel="stylesheet" href="assets/css/custom-fields.css">
+    <link rel="stylesheet" href="assets/css/admin-panel/dropdown-configs.css">
+    <link rel="stylesheet" href="assets/css/admin-panel/segments.css">
+    <link rel="stylesheet" href="assets/css/manage-locks.css">
+    <link rel="stylesheet" href="assets/css/segments-cube-panel.css">
+    <link rel="stylesheet" href="assets/css/admin-panel/workflow-management.css">
+    <link rel="stylesheet" href="assets/css/admin-panel/default-change-requests.css">
+    <link rel="stylesheet" href="assets/css/global-lock-ui.css">
+    <link rel="stylesheet" href="assets/css/admin-panel-redesign.css">
+    <!-- RTL styles for Arabic (disabled by default, enabled by i18n.js) -->
+    <link rel="stylesheet" href="assets/css/rtl.css" id="rtl-styles" disabled>
+    <!-- BPMN.js Library -->
+    <link rel="stylesheet" href="assets/js/libs/bpmn-js/assets/bpmn-font/css/bpmn.css">
+    <link rel="stylesheet" href="assets/js/libs/bpmn-js/assets/bpmn-js.css">
+    <link rel="stylesheet" href="assets/js/libs/bpmn-js/assets/diagram-js.css">
+    <script src="assets/js/libs/bpmn-js/bpmn-modeler.production.min.js"></script>
+    <link rel="icon" type="image/png" href="assets/images/avatars/icon.jpg">
+</head>
+
+<body class="admin-panel-page">
+    <!-- Header Navigation -->
+    <header class="header"></header>
+
+    <!-- Main Content -->
+    <main class="main-content admin-panel-content">
+        <!-- Admin Panel Layout -->
+        <div class="admin-layout">
+            <!-- Left Sidebar -->
+            <aside class="admin-sidebar">
+                <!-- User Profile Section -->
+                <div class="sidebar-user-profile">
+                    <div class="user-avatar-large" id="adminSidebarAvatar">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <div class="user-info">
+                        <div class="user-name" id="adminSidebarUserName"></div>
+                        <div class="user-email" id="adminSidebarUserEmail"></div>
+                        <div class="user-role" id="adminSidebarUserRole"></div>
+                    </div>
+                </div>
+
+                <!-- Navigation Menu -->
+                <nav class="sidebar-navigation">
+                    <a href="#" class="nav-item active">
+                        <i class="fas fa-home"></i>
+                        <span data-i18n="adminPanel.navigation.adminDashboard">Admin Dashboard</span>
+                    </a>
+
+                    <div class="nav-item-container has-submenu" data-submenu="dg-operating-model">
+                        <a href="#" class="nav-item">
+                            <i class="fas fa-project-diagram"></i>
+                            <span data-i18n="adminPanel.navigation.dgOperatingModel">DG Operating Model</span>
+                            <i class="fas fa-chevron-right"></i>
+                        </a>
+                        <div class="submenu" id="dg-operating-model-submenu">
+                            <a href="#" class="submenu-item" data-super-admin-only="true">
+                                <span data-i18n="adminPanel.submenu.rolePermissions">Role Permissions</span>
+                            </a>
+                            <a href="#" class="submenu-item">
+                                <span data-i18n="adminPanel.submenu.defaultWorkflows">Default Workflows</span>
+                            </a>
+                            <a href="#" class="submenu-item">
+                                <span data-i18n="adminPanel.submenu.defaultChangeRequests">Default Change Requests</span>
+                            </a>
+                            <a href="#" class="submenu-item">
+                                <span data-i18n="adminPanel.submenu.rolesResponsibilities">Roles & Responsibilities</span>
+                            </a>
+                            <a href="#" class="submenu-item">
+                                <span data-i18n="adminPanel.submenu.roleAssignment">Role Assignment</span>
+                            </a>
+                            <a href="#" class="submenu-item">
+                                <span data-i18n="adminPanel.submenu.changeRequestSystems">Change Request Systems</span>
+                            </a>
+                            <a href="#" class="submenu-item">
+                                <span data-i18n="adminPanel.submenu.licensedUsers">Licensed Users</span>
+                            </a>
+                            <a href="#" class="submenu-item">
+                                <span data-i18n="adminPanel.submenu.periodicReview">Periodic Review of Objects</span>
+                            </a>
+                        </div>
+                    </div>
+
+                    <div class="nav-item-container has-submenu" data-submenu="meta-model">
+                        <a href="#" class="nav-item">
+                            <i class="fas fa-file-alt"></i>
+                            <span data-i18n="adminPanel.navigation.metaModelAdmin">Meta-Model Administration</span>
+                            <i class="fas fa-chevron-right"></i>
+                        </a>
+                        <div class="submenu" id="meta-model-submenu">
+                            <a href="#" class="submenu-item">
+                                <span data-i18n="adminPanel.submenu.segments">Segments</span>
+                            </a>
+                            <a href="#" class="submenu-item">
+                                <span data-i18n="adminPanel.submenu.customFields">Custom Fields</span>
+                            </a>
+                            <a href="#" class="submenu-item" data-super-admin-only="true">
+                                <span data-i18n="adminPanel.submenu.dropdownConfigs">Dropdown Configurations</span>
+                            </a>
+                            <a href="#" class="submenu-item">
+                                <span data-i18n="adminPanel.submenu.staticPageEditor">Static Page Editor</span>
+                            </a>
+                        </div>
+                    </div>
+
+                    <div class="nav-item-container has-submenu" data-submenu="operational-management">
+                        <a href="#" class="nav-item">
+                            <i class="fas fa-user-cog"></i>
+                            <span data-i18n="adminPanel.navigation.operationalManagement">Operational Management</span>
+                            <i class="fas fa-chevron-right"></i>
+                        </a>
+                        <div class="submenu" id="operational-management-submenu">
+                            <a href="#" class="submenu-item">
+                                <span data-i18n="adminPanel.submenu.dataOnboardingRules">Data Onboarding Rules</span>
+                            </a>
+                            <a href="#" class="submenu-item">
+                                <span data-i18n="adminPanel.submenu.administratorsPanel">Administrator's Panel</span>
+                            </a>
+                            <a href="#" class="submenu-item">
+                                <span data-i18n="adminPanel.submenu.manageLocks">Manage Locks</span>
+                            </a>
+                            <a href="#" class="submenu-item">
+                                <span data-i18n="adminPanel.submenu.lockedUsers">Locked Users</span>
+                            </a>
+                            <a href="#" class="submenu-item">
+                                <span data-i18n="adminPanel.submenu.ownershipTransfer">Ownership Transfer</span>
+                            </a>
+                            <a href="#" class="submenu-item">
+                                <span data-i18n="adminPanel.submenu.downloadLogs">Download Logs</span>
+                            </a>
+                        </div>
+                    </div>
+
+                    <div class="nav-item-container has-submenu" data-submenu="customize-configure">
+                        <a href="#" class="nav-item">
+                            <i class="fas fa-wrench"></i>
+                            <span data-i18n="adminPanel.navigation.customizeConfigure">Customize & Configure</span>
+                            <i class="fas fa-chevron-right"></i>
+                        </a>
+                        <div class="submenu" id="customize-configure-submenu">
+                            <a href="#" class="submenu-item">
+                                <span data-i18n="adminPanel.submenu.changeLogo">Change Logo</span>
+                            </a>
+                            <a href="#" class="submenu-item">
+                                <span data-i18n="adminPanel.submenu.customizeStyles">Customize Styles</span>
+                            </a>
+                            <a href="#" class="submenu-item">
+                                <span data-i18n="adminPanel.submenu.systemSettings">System Settings</span>
+                            </a>
+                            <a href="#" class="submenu-item">
+                                <span data-i18n="adminPanel.submenu.appSettings">Application Settings</span>
+                            </a>
+                            <a href="#" class="submenu-item" id="bulk-import-env-menu-item" style="display: none;">
+                                <span data-i18n="adminPanel.submenu.bulkImportEnv">Bulk Import ENV</span>
+                            </a>
+                        </div>
+                    </div>
+
+                    <a href="#" class="nav-item">
+                        <i class="fas fa-clipboard-list"></i>
+                        <span data-i18n="adminPanel.navigation.adminActivityLogs">Admin Activity Logs</span>
+                    </a>
+                </nav>
+            </aside>
+
+            <!-- Main Content Area -->
+            <div class="admin-main-content">
+                <!-- Admin Header Bar -->
+                <div class="admin-header-bar">
+                    <div class="header-left">
+                        <button class="back-button" type="button" onclick="goBack()">
+                            <i class="fas fa-arrow-left"></i>
+                        </button>
+                    </div>
+                    <div class="header-center">
+                        <h1 class="system-title" data-i18n="adminPanel.header.budgManagement">BUDG Management</h1>
+                        <div class="system-status">
+                            <span class="status-dot"></span>
+                            <span data-i18n="adminPanel.header.dataGovernancePlatform">Data Governance Platform</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Main Content Area -->
+                <div class="content-area">
+                    <!-- Content will be loaded here based on navigation -->
+                    <div class="welcome-message">
+                        <h2 data-i18n="adminPanel.messages.welcomeToAdminPanel">Welcome to Admin Panel</h2>
+                        <p data-i18n="adminPanel.messages.selectOptionFromSidebar">Select an option from the sidebar to manage system components.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="assets/js/config.js"></script>
+    <script src="assets/js/api-service.js"></script>
+    <script src="assets/js/logout-modal.js"></script>
+    <script src="assets/js/auth-error-handler.js"></script>
+    <script src="assets/js/utils/role-utils.js"></script>
+    <script src="assets/js/main.js"></script>
+    <script src="assets/js/header.js"></script>
+    <script src="assets/js/initSearch.js"></script>
+    <script src="assets/js/global-lock-ui.js"></script>
+    <script src="assets/js/segments-cube-panel.js"></script>
+    <script src="assets/js/segment-field.js"></script>
+    <script src="assets/js/dfcr-utils.js"></script>
+    <script src="assets/js/admin-panel/main.js"></script>
+    <!-- dropdown-configs.js is loaded by main.js loadAdminPanelModules() — do not include twice (duplicate let breaks page) -->
+    <script src="assets/js/admin-panel/operational-management/administrators-panel.js"></script>
+    <script src="assets/js/admin-panel/operational-management/ldap-sync-panel.js"></script>
+    <script src="assets/js/admin-panel/operational-management/ldap-sync-console.js"></script>
+    <script src="assets/js/admin-panel/operational-management/notification-rules.js"></script>
+    <script src="assets/js/admin-panel/operating-model/custom-bpmn-renderer.js"></script>
+    <script src="assets/js/admin-panel/operating-model/lib/jspdf.umd.min.js"></script>
+    <script src="assets/js/admin-panel/operating-model/lib/jspdf.plugin.autotable.min.js"></script>
+</body>
+
+</html>

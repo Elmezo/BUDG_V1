@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#2563eb">
+    <link rel="manifest" href="/manifest.webmanifest">
+    <title>Search - BUDG</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="assets/css/main.css">
+    <link rel="stylesheet" href="assets/css/search.css">
+    <link rel="stylesheet" href="assets/css/loading-overlay.css">
+    <link rel="stylesheet" href="assets/css/global-lock-ui.css">
+    <!-- RTL styles for Arabic (disabled by default, enabled by i18n.js) -->
+    <link rel="stylesheet" href="assets/css/rtl.css" id="rtl-styles" disabled>
+    <link rel="stylesheet" href="assets/css/segments-cube-panel.css">
+    <link rel="stylesheet" href="assets/css/active-tasks.css">
+    <link rel="icon" type="image/png" href="assets/images/avatars/icon.jpg">
+    <script>
+        // Apply theme immediately to prevent flash of unstyled content
+        (function () {
+            const savedTheme = localStorage.getItem('budg-theme') || 'light';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+        })();
+
+        // Read search query from URL and populate search input
+        (function () {
+            const urlParams = new URLSearchParams(window.location.search);
+            const query = urlParams.get('q');
+            if (query) {
+                document.addEventListener('DOMContentLoaded', function () {
+                    const searchInput = document.querySelector('.search-main-input');
+                    if (searchInput) {
+                        searchInput.value = query;
+                        setTimeout(() => {
+                            const searchBtn = document.querySelector('.search-action-btn');
+                            if (searchBtn) searchBtn.click();
+                        }, 500);
+                    }
+                });
+            }
+        })();
+    </script>
+    <script src="/assets/i18n/head-locale.js"></script>
+    <script src="assets/i18n/i18n.js"></script>
+</head>
+
+<body>
+    <!-- Header Navigation -->
+    <header class="header"></header>
+
+    <!-- Search Interface Content -->
+    <main class="search-main-content">
+        <!-- Mobile Category Toggle Button -->
+        <button type="button" class="mobile-category-toggle" id="mobileCategoryToggle" aria-expanded="false" aria-controls="searchCategorySidebar" aria-label="Categories"><i class="fas fa-bars" aria-hidden="true"></i></button>
+
+        <!-- Secondary Navigation/Search Controls -->
+        <div class="search-controls-bar">
+            <div class="search-controls-container">
+                <div class="search-input-group">
+                    <select class="search-type-select">
+                        <option value="find" data-i18n="search.find">FIND</option>
+                        <option value="and" data-i18n="search.and">AND</option>
+                        <option value="or" data-i18n="search.or">OR</option>
+                        <option value="not" data-i18n="search.not">NOT</option>
+                    </select>
+                    <div class="search-input-wrapper">
+                        <i class="fas fa-search search-input-icon"></i>
+                        <input type="text" class="search-main-input" placeholder="Enter the search text...."
+                            data-i18n-placeholder="placeholder.searchMain">
+                    </div>
+                </div>
+
+                <div class="search-actions">
+                    <!-- Condition (counter + Clear) first so search box has more room to the right -->
+                    <div class="search-condition-group">
+                        <button class="search-counter-btn" id="searchCounter" style="display: none;">
+                            <span class="search-counter-number">0</span>
+                            <i class="fas fa-chevron-down"></i>
+                        </button>
+                        <button class="clear-search-btn" id="clearSearchBtn" style="display: none;">
+                            <i class="fas fa-times"></i> <span data-i18n="button.clear">Clear</span>
+                        </button>
+                    </div>
+                    <div class="org-unit-dropdown">
+                        <button class="org-unit-btn"><i class="fas fa-sitemap"></i> <span data-i18n="label.orgUnit">Org
+                                Unit</span> <i class="fas fa-chevron-down"></i></button>
+                    </div>
+
+                    <button class="filter-btn"><i class="fas fa-sliders-h"></i> <span
+                            data-i18n="button.filter">Filter</span></button>
+                    <button class="search-action-btn">
+                        <i class="fas fa-search"></i> <span data-i18n="button.search">SEARCH</span>
+                    </button>
+
+                    <div class="history-dropdown">
+                        <button class="history-btn"><i class="fas fa-history"></i> <span
+                                data-i18n="button.history">History</span> <i class="fas fa-chevron-down"></i></button>
+                    </div>
+                </div>
+
+                <!-- Query Builder Area (shown when searchCounter is clicked) -->
+                <div class="query-builder-container" id="queryBuilderContainer" style="display: none;">
+                    <div class="query-builder-content" id="queryBuilderContent">
+                        <!-- Search conditions will be rendered here -->
+                    </div>
+                </div>
+
+                <!-- Filter Panel (shown when Filter button is clicked) -->
+                <div class="filter-panel" id="filterPanel" style="display: none;" data-i18n-aria="filter.panelAria" role="dialog" aria-modal="true">
+                    <div class="filter-panel-header">
+                        <span data-i18n="button.filter">Filter</span>
+                        <button class="filter-panel-close" id="filterPanelClose" data-i18n-aria="filter.closePanel" aria-label="Close filter panel">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="filter-panel-content">
+                        <!-- Active Filters Display (Chips) -->
+                        <div id="activeFiltersChips" class="active-filters-chips" style="display: none;">
+                            <div class="active-filters-label" data-i18n="filter.activeFilters">Active Filters:</div>
+                            <div class="active-filters-list"></div>
+                        </div>
+                        
+                        <!-- Quick Filters -->
+                        <div id="quickFiltersSection" class="quick-filters-section" style="display: none;">
+                            <div class="quick-filters-label" data-i18n="filter.quickFilters">Quick Filters:</div>
+                            <div class="quick-filters-buttons"></div>
+                        </div>
+                        
+                        <!-- Container for dynamically added filter rows -->
+                        <div id="filterRowsContainer"></div>
+                        
+                        <!-- Add New Filter Button -->
+                        <div class="filter-row filter-add-row">
+                            <div class="filter-field">
+                                <button class="filter-add-btn" id="filterAddNew">
+                                    <i class="fas fa-plus"></i>
+                                    <span data-i18n="filter.addNew">Add new filter</span>
+                                </button>
+                                <div class="filter-dropdown-options" id="filterAddNewOptions" style="display: none;">
+                                    <div class="filter-no-values" data-i18n="filter.noFiltersAvailable">No filters available. Select a category first.</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Hierarchical Filters Section (show only for hierarchical facets) -->
+                        <div id="hierarchicalFiltersSection" class="filter-section" style="display: none;">
+                            <div class="filter-section-title" data-i18n="filter.parentChildRelationships">Parent-Child Relationships</div>
+                            <div class="filter-row">
+                                <div class="filter-field">
+                                    <button class="filter-dropdown-btn" id="filterRelationshipsBtn">
+                                        <span data-i18n="filter.doNotIncludeChildren">Do not include Children</span>
+                                        <i class="fas fa-chevron-down"></i>
+                                    </button>
+                                    <div class="filter-dropdown-options" id="filterRelationshipsOptions" style="display: none;">
+                                        <div class="filter-dropdown-option" data-value="none" data-i18n="filter.doNotIncludeChildren">Do not include Children</div>
+                                        <div class="filter-dropdown-option" data-value="immediate" data-i18n="filter.includeImmediateChildren">Include Immediate Children</div>
+                                        <div class="filter-dropdown-option" data-value="all" data-i18n="filter.includeAllChildren">Include all Children</div>
+                                    </div>
+                                </div>
+                                <div class="filter-field">
+                                    <button class="filter-dropdown-btn" id="filterApplyHierarchicalBtn">
+                                        <span data-i18n="filter.doNotApplyFilters">Do not apply filters</span>
+                                        <i class="fas fa-chevron-down"></i>
+                                    </button>
+                                    <div class="filter-dropdown-options" id="filterApplyHierarchicalOptions" style="display: none;">
+                                        <div class="filter-dropdown-option" data-value="no-apply" data-i18n="filter.doNotApplyFilters">Do not apply filters</div>
+                                        <div class="filter-dropdown-option" data-value="apply" data-i18n="filter.applyTheFilterAbove">Apply the filter above</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Footer outside scroll area so Clear/Apply never overlay filter rows -->
+                    <div class="filter-actions">
+                        <button class="btn-secondary" id="filterClearAll">
+                            <i class="fas fa-eraser"></i>
+                            <span data-i18n="filter.clearAll">Clear All</span>
+                        </button>
+                        <button class="btn-primary" id="filterApplyFilters">
+                            <i class="fas fa-check"></i>
+                            <span data-i18n="filter.apply">Apply Filters</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Category Filters/Tabs -->
+        <div class="category-sidebar" id="searchCategorySidebar" role="navigation" aria-label="Search categories">
+            <div class="category-sidebar-container">
+                <button type="button" id="module-container" class="add-category-btn"><i class="fas fa-plus"></i><span
+                        data-i18n="button.addCategory">Add
+                        Category</span></button>
+                <div id="selected-modules" class="selected-modules"></div>
+            </div>
+        </div>
+
+        <!-- Main Content Area -->
+        <div class="content-area">
+            <div class="content-container">
+                <div class="content-header">
+                    <div class="view-tabs">
+                        <button class="view-tab active" data-view="list"><i class="fas fa-table"></i> <span
+                                data-i18n="tab.list">List</span></button>
+                        <button class="view-tab" data-view="dashboard"><i class="fas fa-chart-pie"></i>
+                            <span data-i18n="tab.dashboard">Dashboard</span></button>
+                    </div>
+                    <div class="content-actions">
+                        <button class="action-btn bulk-delete"><i class="fas fa-trash-alt"></i> <span
+                                data-i18n="button.bulkDelete">Bulk Delete</span></button>
+                        <button class="action-btn bulk-update"><i class="fas fa-edit"></i> <span
+                                data-i18n="button.bulkUpdate">Bulk Update</span></button>
+                        <div class="bulk-migrate-dropdown-container" id="bulkMigrateContainer" style="display: none;">
+                            <button class="action-btn bulk-migrate-dropdown-btn" id="bulkMigrateBtn">
+                                <i class="fas fa-download"></i> <span data-i18n="button.bulkMigrate">Bulk Migrate</span>
+                                <i class="fas fa-chevron-down"></i>
+                            </button>
+                            <div class="bulk-migrate-dropdown-content" id="bulkMigrateDropdown">
+                                <a href="#" class="bulk-migrate-option" data-option="selected">
+                                    <div class="option-content">
+                                        <div class="option-main">
+                                            <span class="option-title" data-i18n="migrate.selected">Migrate Selected
+                                                Objects</span>
+                                            <i class="fas fa-question-circle"
+                                                title="Bulk migrate the selected objects for the facet and all related objects."
+                                                data-i18n-title="migrate.selectedHint"></i>
+                                        </div>
+                                        <span class="option-hint" data-i18n="migrate.selectedHint">Bulk migrate the
+                                            selected objects for the facet and all related objects.</span>
+                                    </div>
+                                </a>
+                                <a href="#" class="bulk-migrate-option" data-option="env">
+                                    <div class="option-content">
+                                        <div class="option-main">
+                                            <span class="option-title" data-i18n="migrate.env">Bulk Migrate ENV</span>
+                                        </div>
+                                        <span class="option-hint" data-i18n="migrate.envHint">Encrypted table snapshot
+                                            (.bsnap — AES-GCM; not human-readable if extracted). Same format as Admin → Bulk Import ENV.</span>
+                                    </div>
+                                </a>
+                            </div>
+                        </div>
+                        <div class="settings-dropdown-container">
+                            <button class="settings-btn" id="settingsBtn" data-i18n-title="button.actions"><i
+                                    class="fas fa-cog"></i></button>
+                            <div class="settings-dropdown-content" id="settingsDropdown">
+                                <a href="#" id="showDefaultsBtn"><i class="fas fa-square"></i> <span
+                                        data-i18n="button.showDefaults">Show Defaults</span></a>
+                                <div class="dropdown-submenu">
+                                    <a href="#" id="chooseColumnsBtn"><i class="fas fa-hand-pointer"></i> <span
+                                            data-i18n="button.chooseColumns">Choose Columns</span>
+                                        <i class="fas fa-chevron-right"></i></a>
+                                    <div class="submenu-content" id="columnsSubmenu" style="display: none;">
+                                        <div class="submenu-header"><i class="fas fa-th-large"></i> <span
+                                                data-i18n="label.columns">Columns</span> <i
+                                                class="fas fa-chevron-right"></i></div>
+                                        <div id="columnsCheckboxes" class="columns-checkbox-list">
+                                            <!-- Column checkboxes will be populated here -->
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="dropdown-submenu">
+                                    <a href="#" id="exportBtn"><i class="fas fa-download"></i> <span
+                                            data-i18n="button.export">Export</span> <i
+                                            class="fas fa-chevron-right"></i></a>
+                                    <!-- Export menu for People facet (keeps existing functionality) -->
+                                    <div class="submenu-content" id="exportSubmenu" style="display: none;">
+                                        <div class="submenu-header"><i class="fas fa-file-export"></i> <span
+                                                data-i18n="button.export">Export</span> <i
+                                                class="fas fa-chevron-right"></i></div>
+                                        <a href="#" id="exportPdfBtnPeople"><i class="fas fa-file-pdf"></i> <span
+                                                data-i18n="export.pdf">PDF</span></a>
+                                        <a href="#" id="exportExcelBtnPeople"><i class="fas fa-file-excel"></i> <span
+                                                data-i18n="export.excel">Excel</span></a>
+                                        <a href="#" id="exportCsvBtnPeople"><i class="fas fa-file-csv"></i> <span
+                                                data-i18n="export.csv">CSV</span></a>
+                                    </div>
+                                    <!-- Export menu for other facets -->
+                                    <div class="submenu-content" id="exportSubmenuOtherFacets" style="display: none;">
+                                        <div class="submenu-header"><i class="fas fa-file-export"></i> <span
+                                                data-i18n="button.export">Export</span> <i
+                                                class="fas fa-chevron-right"></i></div>
+                                        <a href="#" id="exportPdfBtn"><i class="fas fa-file-pdf"></i> <span
+                                                data-i18n="export.pdf">PDF</span></a>
+                                        <a href="#" id="exportExcelBtn"><i class="fas fa-file-excel"></i> <span
+                                                data-i18n="export.excel">Excel</span></a>
+                                        <a href="#" id="exportCsvBtn"><i class="fas fa-file-csv"></i> <span
+                                                data-i18n="export.csv">CSV</span></a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="content-main">
+                    <!-- Dynamic Data Table -->
+                    <div class="data-table-wrapper">
+                        <table class="search-table">
+                            <thead>
+                                <tr>
+                                    <th class="sortable" data-column="ref">
+                                        <div class="th-content"><span data-i18n="label.ref">Ref.</span><i
+                                                class="fas fa-sort"></i></div>
+                                    </th>
+                                    <th class="sortable" data-column="name">
+                                        <div class="th-content"><span data-i18n="label.name">Name</span><i
+                                                class="fas fa-sort"></i></div>
+                                    </th>
+                                    <th class="sortable" data-column="parent">
+                                        <div class="th-content"><span data-i18n="label.parent">Parent</span><i
+                                                class="fas fa-sort"></i></div>
+                                    </th>
+                                    <th data-column="description">
+                                        <div class="th-content"><span data-i18n="label.description">Description</span>
+                                        </div>
+                                    </th>
+                                    <th class="sortable" data-column="status">
+                                        <div class="th-content"><span data-i18n="label.status">Status</span><i
+                                                class="fas fa-sort"></i></div>
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr class="no-data-row">
+                                    <td colspan="5" class="no-data-message">
+                                        <div class="no-data-content">
+                                            <i class="fas fa-database"></i>
+                                            <p data-i18n="message.selectCategory">Select a category from the sidebar to
+                                                view data</p>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="assets/js/admin-panel/admin-notifications.js"></script>
+    <script src="assets/js/config.js"></script>
+    <script src="assets/js/api-service.js"></script>
+    <script src="assets/js/logout-modal.js"></script>
+    <script src="assets/js/auth-error-handler.js"></script>
+    <script src="assets/js/global-lock-ui.js"></script>
+    <script src="assets/js/segments-cube-panel.js"></script>
+    <!-- Load main.js first to inject header -->
+    <script src="assets/js/main.js"></script>
+    <!-- Load header.js after main.js -->
+    <script src="assets/js/header.js"></script>
+    <!-- search-utils before modules: facet display names + moduleNameToFacetId for sidebar i18n -->
+    <script src="assets/js/UnisonSearch/search-utils.js"></script>
+    <script src="assets/js/modules.js"></script>
+    <script src="assets/js/initSearch.js"></script>
+    <!-- Core -->
+    <script src="assets/js/UnisonSearch/search-config.js"></script>
+    <script src="assets/js/UnisonSearch/search-cache.js"></script>
+    <script src="assets/js/UnisonSearch/search-api.js"></script>
+
+    <!-- Data Layer -->
+    <script src="assets/js/UnisonSearch/search-formatters.js"></script>
+    <script src="assets/js/UnisonSearch/search-columns.js"></script>
+    <script src="assets/js/UnisonSearch/search-links.js"></script>
+    <script src="assets/js/UnisonSearch/search-fuzzy.js"></script>
+
+    <!-- UI Layer -->
+    <script src="assets/js/UnisonSearch/search-table.js"></script>
+    <script src="assets/js/UnisonSearch/search-filters.js"></script>
+    <script src="assets/js/UnisonSearch/search-input.js"></script>
+    <script src="assets/js/UnisonSearch/search-settings.js"></script>
+    <script src="assets/js/UnisonSearch/search-tabs.js"></script>
+    <script src="assets/js/UnisonSearch/search-messages.js"></script>
+    <!-- Chart.js for dashboard (must load before dashboard script) -->
+    <script src="assets/js/chart.umd.min.js"></script>
+    <script src="assets/js/UnisonSearch/search-dashboard.js"></script>
+    <!-- Geographic Map View (Canvas-based, no external libraries) -->
+    <script src="assets/js/UnisonSearch/search-geographic-map.js"></script>
+    <!-- Maps Integration - Loads maps.html content into search page -->
+    <script src="assets/js/UnisonSearch/search-maps-integration.js"></script>
+
+    <!-- Loading Manager (must load early) -->
+    <script src="assets/js/UnisonSearch/loading-manager.js"></script>
+
+    <!-- Utilities (search-utils loaded above before modules) -->
+    <script src="assets/js/UnisonSearch/search-validation.js"></script>
+    <script src="assets/js/UnisonSearch/search-relationships.js"></script>
+
+    <!-- Init & Debug -->
+    <script src="assets/js/UnisonSearch/search-debug.js"></script>
+    <script src="assets/js/utils/role-utils.js"></script>
+    <script src="assets/js/UnisonSearch/saved-searches.js"></script>
+    <script src="assets/js/UnisonSearch/bulk-selection.js"></script>
+    <script src="assets/js/UnisonSearch/search-init.js"></script>
+    <script src="assets/js/UnisonSearch/search-export.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,475 @@
+/**
+ * Global Lock UI Styles
+ * For the "My Locked Items" panel accessible from the main header
+ */
+
+/* Global Lock Panel */
+.global-locked-items-panel {
+    position: fixed;
+    top: 70px;
+    right: 20px;
+    width: 650px;
+    max-width: calc(100vw - 40px);
+    max-height: calc(100vh - 100px);
+    background: var(--background-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+    z-index: 10000;
+    transform: translateY(-20px);
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.global-locked-items-panel.open {
+    transform: translateY(0);
+    opacity: 1;
+    visibility: visible;
+}
+
+/* Panel Header */
+.global-locked-items-panel .panel-header {
+    background: linear-gradient(135deg, #1b857a 0%, #248567 100%);
+    color: white;
+    padding: 1rem 1.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 2px solid #1a6b5f;
+}
+
+.global-locked-items-panel .panel-header h3 {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.global-locked-items-panel .panel-header h3 i {
+    font-size: 0.9rem;
+}
+
+.global-locked-items-panel .panel-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.global-locked-items-panel .release-all-btn {
+    background: rgba(255, 255, 255, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    color: white;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 0.35rem 0.75rem;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.global-locked-items-panel .release-all-btn:hover {
+    background: rgba(255, 255, 255, 0.25);
+    border-color: rgba(255, 255, 255, 0.5);
+}
+
+.global-locked-items-panel .release-all-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.global-locked-items-panel .close-btn {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 0;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+}
+
+.global-locked-items-panel .close-btn:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Panel Content */
+.global-locked-items-panel .panel-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0;
+}
+
+/* Loading State */
+.locked-items-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem 2rem;
+    color: var(--text-secondary);
+}
+
+.locked-items-loading i {
+    font-size: 2rem;
+    margin-bottom: 1rem;
+    color: #248567;
+}
+
+.locked-items-loading p {
+    margin: 0;
+    font-size: 0.95rem;
+}
+
+/* No Locks Message */
+.no-locks-message {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem 2rem;
+    color: var(--text-secondary);
+    text-align: center;
+}
+
+.no-locks-message i {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    color: #248567;
+    opacity: 0.5;
+}
+
+.no-locks-message p {
+    margin: 0;
+    font-size: 0.95rem;
+}
+
+/* Error Message */
+.error-message {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem 2rem;
+    color: #dc3545;
+    text-align: center;
+}
+
+.error-message i {
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+}
+
+.error-message p {
+    margin: 0 0 1rem 0;
+    font-size: 0.95rem;
+}
+
+.error-message .btn-retry {
+    background: #248567;
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: background-color 0.2s;
+}
+
+.error-message .btn-retry:hover {
+    background: #1b6b54;
+}
+
+/* Locks Table */
+.locks-table-wrapper {
+    overflow-x: auto;
+}
+
+.global-locks-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.global-locks-table thead {
+    background: var(--background-secondary);
+    border-bottom: 2px solid var(--border-color);
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+
+.global-locks-table thead th {
+    padding: 0.875rem 1rem;
+    text-align: left;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+}
+
+.global-locks-table tbody tr {
+    border-bottom: 1px solid var(--border-color);
+    transition: background-color 0.2s;
+}
+
+.global-locks-table tbody tr:hover {
+    background: rgba(36, 133, 103, 0.05);
+}
+
+.global-locks-table tbody td {
+    padding: 1rem;
+    font-size: 0.875rem;
+    color: var(--text-primary);
+    vertical-align: middle;
+}
+
+/* Facet Badge */
+.facet-badge {
+    display: inline-block;
+    padding: 0.25rem 0.625rem;
+    background: #248567;
+    color: white;
+    font-size: 0.75rem;
+    font-weight: 600;
+    border-radius: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+/* Object Link */
+.lock-object-link {
+    color: #248567;
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.2s;
+}
+
+.lock-object-link:hover {
+    color: #1b6b54;
+    text-decoration: underline;
+}
+
+/* Lock Type Badge */
+.lock-type-badge {
+    display: inline-block;
+    padding: 0.3rem 0.75rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    border-radius: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.lock-type-badge.permanent {
+    background: #ffc107;
+    color: #856404;
+}
+
+.lock-type-badge.temporary {
+    background: #17a2b8;
+    color: white;
+}
+
+/* Action Buttons */
+.actions-cell {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+/* Only apply these styles to action buttons within the global lock panel */
+.global-locked-items-panel .action-btn,
+.actions-cell .action-btn {
+    background: none;
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    width: 32px;
+    height: 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 0.875rem;
+}
+
+.global-locked-items-panel .action-btn:hover,
+.actions-cell .action-btn:hover {
+    background: var(--background-secondary);
+    border-color: #248567;
+    color: #248567;
+    transform: translateY(-1px);
+}
+
+.global-locked-items-panel .action-btn.make-permanent,
+.actions-cell .action-btn.make-permanent {
+    color: #ffc107;
+    border-color: #ffc107;
+}
+
+.global-locked-items-panel .action-btn.make-permanent:hover,
+.actions-cell .action-btn.make-permanent:hover {
+    background: rgba(255, 193, 7, 0.1);
+    color: #f0b000;
+    border-color: #f0b000;
+}
+
+.global-locked-items-panel .action-btn.make-temporary,
+.actions-cell .action-btn.make-temporary {
+    color: #17a2b8;
+    border-color: #17a2b8;
+}
+
+.global-locked-items-panel .action-btn.make-temporary:hover,
+.actions-cell .action-btn.make-temporary:hover {
+    background: rgba(23, 162, 184, 0.1);
+    color: #138496;
+    border-color: #138496;
+}
+
+.global-locked-items-panel .action-btn.make-temporary i.unpinned,
+.actions-cell .action-btn.make-temporary i.unpinned {
+    opacity: 0.5;
+}
+
+.global-locked-items-panel .action-btn.unlock,
+.actions-cell .action-btn.unlock {
+    color: #28a745;
+    border-color: #28a745;
+}
+
+.global-locked-items-panel .action-btn.unlock:hover,
+.actions-cell .action-btn.unlock:hover {
+    background: rgba(40, 167, 69, 0.1);
+    color: #218838;
+    border-color: #218838;
+}
+
+.global-locked-items-panel .action-btn.goto,
+.actions-cell .action-btn.goto {
+    color: #248567;
+    border-color: #248567;
+}
+
+.global-locked-items-panel .action-btn.goto:hover,
+.actions-cell .action-btn.goto:hover {
+    background: rgba(36, 133, 103, 0.1);
+    color: #1b6b54;
+    border-color: #1b6b54;
+}
+
+/* Toast Notification */
+.global-lock-toast {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: var(--background-primary);
+    color: var(--text-primary);
+    padding: 1rem 1.5rem;
+    border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    z-index: 10001;
+    transform: translateX(400px);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.global-lock-toast.show {
+    transform: translateX(0);
+}
+
+.global-lock-toast i {
+    font-size: 1.25rem;
+}
+
+.global-lock-toast.success i {
+    color: #28a745;
+}
+
+.global-lock-toast.error i {
+    color: #dc3545;
+}
+
+.global-lock-toast span {
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+/* Dark Theme Support */
+[data-theme="dark"] .global-locked-items-panel {
+    background: var(--background-primary);
+    border-color: var(--border-color);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+
+[data-theme="dark"] .global-locked-items-panel .panel-header {
+    background: linear-gradient(135deg, #1a6b5f 0%, #1b857a 100%);
+    border-bottom-color: #145147;
+}
+
+[data-theme="dark"] .global-locks-table tbody tr:hover {
+    background: rgba(36, 133, 103, 0.15);
+}
+
+[data-theme="dark"] .lock-object-link {
+    color: #3fb896;
+}
+
+[data-theme="dark"] .lock-object-link:hover {
+    color: #5dcdb0;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .global-locked-items-panel {
+        width: calc(100vw - 20px);
+        right: 10px;
+        top: 60px;
+        max-height: calc(100vh - 80px);
+    }
+    
+    .global-locks-table {
+        font-size: 0.8rem;
+    }
+    
+    .global-locks-table thead th,
+    .global-locks-table tbody td {
+        padding: 0.75rem 0.5rem;
+    }
+    
+    .facet-badge,
+    .lock-type-badge {
+        font-size: 0.7rem;
+        padding: 0.2rem 0.5rem;
+    }
+    
+    .global-locked-items-panel .action-btn,
+    .actions-cell .action-btn {
+        width: 28px;
+        height: 28px;
+        font-size: 0.8rem;
+    }
+}
+

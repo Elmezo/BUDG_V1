@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BUDG - New Project</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="assets/css/main.css">
+    <link rel="stylesheet" href="assets/css/people.css">
+    <link rel="stylesheet" href="assets/css/custom-fields.css">
+    <link rel="stylesheet" href="assets/css/advanced-rich-text-editor.css">
+    <link rel="icon" type="image/png" href="assets/images/avatars/icon.jpg">
+    <script>
+        (function() {
+            const savedTheme = localStorage.getItem('budg-theme') || 'light';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+        })();
+    </script>
+    <style>
+        /* Enhanced title styling for better visual hierarchy */
+        .page-title-main {
+            font-size: 1.5rem !important;
+            font-weight: 700 !important;
+            color: var(--text-primary) !important;
+            margin-bottom: 0.25rem;
+        }
+
+        .page-title-sub {
+            font-size: 0.9rem !important;
+            font-weight: 500 !important;
+            color: var(--text-secondary) !important;
+            opacity: 0.8;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+
+        .modal-content {
+            background-color: var(--bg-primary);
+            margin: 5% auto;
+            padding: 0;
+            border-radius: 8px;
+            width: 80%;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        .modal-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h3 {
+            margin: 0;
+            color: var(--text-primary);
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+
+        .close {
+            color: var(--text-secondary);
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            line-height: 1;
+        }
+
+        .close:hover {
+            color: var(--text-primary);
+        }
+
+        .modal-body {
+            padding: 20px;
+            max-height: 60vh;
+            overflow-y: auto;
+        }
+
+        .search-container {
+            margin-bottom: 20px;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 14px;
+            background-color: var(--bg-secondary);
+            color: var(--text-primary);
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #248567;
+            box-shadow: 0 0 0 2px rgba(var(--primary-color-rgb), 0.1);
+        }
+
+        .project-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .project-item {
+            padding: 12px 16px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            background-color: var(--bg-secondary);
+        }
+
+        .project-item:hover {
+            background-color: var(--bg-tertiary);
+            border-color: #248567;
+        }
+
+        .project-name {
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+        }
+
+        .project-description {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .no-results {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-secondary);
+            font-style: italic;
+        }
+
+        /* Searchable Dropdown Styles */
+        .searchable-dropdown-container {
+            position: relative;
+            width: 100%;
+        }
+
+        .searchable-dropdown {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .searchable-input {
+            width: 100%;
+            padding-right: 40px;
+            cursor: pointer;
+        }
+
+        .dropdown-icon {
+            position: absolute;
+            right: 12px;
+            color: var(--text-secondary);
+            transition: transform 0.2s ease;
+            pointer-events: none;
+        }
+
+        .searchable-dropdown.open .dropdown-icon {
+            transform: rotate(180deg);
+        }
+
+        .searchable-dropdown-menu {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: var(--background-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+            max-height: 300px;
+            overflow: hidden;
+        }
+
+        .searchable-dropdown-search {
+            position: relative;
+            padding: 12px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .searchable-dropdown-search input {
+            width: 100%;
+            padding-right: 40px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            background: var(--background-secondary);
+        }
+
+        .search-icon {
+            position: absolute;
+            right: 24px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-secondary);
+            pointer-events: none;
+        }
+
+        .searchable-dropdown-list {
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .searchable-dropdown-item {
+            padding: 12px 16px;
+            cursor: pointer;
+            border-bottom: 1px solid var(--border-color);
+            transition: background-color 0.2s ease;
+        }
+
+        .searchable-dropdown-item:last-child {
+            border-bottom: none;
+        }
+
+        .searchable-dropdown-item:hover {
+            background-color: var(--background-secondary);
+        }
+
+        .searchable-dropdown-item.selected {
+            background-color: #248567;
+            color: white;
+        }
+
+        .searchable-dropdown-item-name {
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+        }
+
+        .searchable-dropdown-item-description {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        .searchable-dropdown-item.selected .searchable-dropdown-item-name,
+        .searchable-dropdown-item.selected .searchable-dropdown-item-description {
+            color: white;
+        }
+    </style>
+    <script src="/assets/i18n/head-locale.js"></script>
+    <script src="assets/i18n/i18n.js"></script>
+</head>
+<body class="project-page" data-submenu="business">
+<header class="header"></header>
+
+<div class="page-header">
+    <div class="page-header-container">
+        <div class="page-title">
+            <div class="page-icon">
+                <i class="fas fa-folder"></i>
+            </div>
+            <div class="page-title-text">
+                <div class="page-title-main" data-i18n="createPage.title.newProject">New Project</div>
+                <div class="page-title-sub" data-i18n="facet.project">Project</div>
+            </div>
+        </div>
+        <div class="form-actions">
+            <button type="button" class="btn btn-secondary" id="closeBtn" data-i18n="button.close">Close</button>
+            <button type="button" class="btn btn-primary" id="saveBtn" data-i18n="button.save">Save</button>
+            <button type="button" class="btn btn-success" id="saveAndCloseBtn" data-i18n="button.saveAndClose">Save & Close</button>
+        </div>
+    </div>
+</div>
+
+<main class="main-content">
+    <div class="content-card">
+    <div class="content-header">
+        <div class="tab-container">
+            <button class="tab active" data-i18n="tab.details">DETAILS</button>
+        </div>
+    </div>
+    
+    <div class="content-body">
+        <form id="projectForm">
+            <!-- Two-column card layout -->
+            <div class="project-container grid grid-cols-2 gap-6">
+                <!-- Left Column: Definition and Optional Fields -->
+                <div class="left-column">
+                    <!-- DEFINITION Card -->
+                    <div class="form-section">
+                        <h3 class="section-title definition" data-i18n="createPage.section.definition">DEFINITION</h3>
+                        
+                        <div class="form-fields-container">
+                            <div class="form-group">
+                                <label class="form-label"><span data-i18n="createPage.label.name">Name</span> <span class="required">*</span></label>
+                                <input type="text" class="form-input" id="name" data-i18n-placeholder="createPage.placeholder.enterName" placeholder="Enter project name">
+                                <span class="field-error" id="nameError" style="display:none"></span>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Parent</label>
+                                <div class="searchable-dropdown-container">
+                                    <div class="searchable-dropdown">
+                                        <input type="text" class="form-input searchable-input" id="parentName" placeholder="Search parent projects..." readonly>
+                                        <i class="fas fa-chevron-down dropdown-icon" id="parentDropdownToggle"></i>
+                                    </div>
+                                    <div class="searchable-dropdown-menu" id="parentDropdownMenu" style="display: none;">
+                                        <div class="searchable-dropdown-search">
+                                            <input type="text" class="form-input" id="parentSearchInput" placeholder="Search projects...">
+                                            <i class="fas fa-search search-icon"></i>
+                                        </div>
+                                        <div class="searchable-dropdown-list" id="parentDropdownList">
+                                            <!-- Options will be loaded here -->
+                                        </div>
+                                    </div>
+                                </div>
+                                <input type="hidden" id="parentId" value="">
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Ref.</label>
+                                <input type="text" class="form-input" id="ref" placeholder="Auto-generated if empty (e.g., PRJ001)">
+                                <small class="field-hint">Enter Reference manually or auto-generate if empty</small>
+                            </div>
+  
+                            <div class="form-group">
+                                <label class="form-label">Type <span class="required">*</span></label>
+                                <select class="form-select" id="type">
+                                    <option value="">Please select</option>
+                                </select>
+                                <span class="field-error" id="typeError" style="display:none"></span>
+                            </div>
+                            
+                            <div class="form-group full-width">
+                                <label class="form-label">Description <span class="required">*</span></label>
+                                <textarea class="form-input form-textarea" id="description" placeholder="Enter description"></textarea>
+                                <button type="button" class="editor-button" id="showDescriptionEditorBtn">Show Editor</button>
+                                <span class="field-error" id="descriptionError" style="display:none"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- OPTIONAL FIELDS Card -->
+                    <div class="form-section">
+                        <h4 class="section-title optional-fields">OPTIONAL FIELDS</h4>
+                        
+                        <div class="form-fields-container">
+                            <div class="form-group">
+                                <label class="form-label">Classification</label>
+                                <div class="searchable-dropdown-container">
+                                    <div class="searchable-dropdown">
+                                        <input type="text" class="form-input searchable-input" id="classificationName" placeholder="Search classifications..." readonly>
+                                        <i class="fas fa-chevron-down dropdown-icon" id="classificationDropdownToggle"></i>
+                                    </div>
+                                    <div class="searchable-dropdown-menu" id="classificationDropdownMenu" style="display: none;">
+                                        <div class="searchable-dropdown-search">
+                                            <input type="text" class="form-input" id="classificationSearchInput" placeholder="Search classifications...">
+                                            <i class="fas fa-search search-icon"></i>
+                                        </div>
+                                        <div class="searchable-dropdown-list" id="classificationDropdownList">
+                                            <!-- Options will be loaded here -->
+                                        </div>
+                                    </div>
+                                </div>
+                                <input type="hidden" id="classificationId" value="">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Column: Classifications and Other Information -->
+                <div class="right-column">
+                            <!-- CLASSIFICATIONS Card -->
+                            <div class="form-section">
+                                <h3 class="section-title classifications">CLASSIFICATIONS</h3>
+                                
+                                <div class="form-fields-container classifications-vertical">
+                                    <div class="form-group">
+                                        <label class="form-label">BUDG Status <span class="required">*</span></label>
+                                        <select class="form-select" id="budgStatus">
+                                            <option value="">Please select</option>
+                                        </select>
+                                        <span class="field-error" id="budgStatusError" style="display:none"></span>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label class="form-label">Lifecycle <span class="required">*</span></label>
+                                        <select class="form-select" id="lifecycle">
+                                            <option value="">Please select</option>
+                                        </select>
+                                        <span class="field-error" id="lifecycleError" style="display:none"></span>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label class="form-label">BUDG Viewing <span class="required">*</span></label>
+                                        <select class="form-select" id="budgViewing">
+                                            <option value="">Please select</option>
+                                        </select>
+                                        <span class="field-error" id="budgViewingError" style="display:none"></span>
+                                    </div>
+                                </div>
+                            </div>
+
+                    <!-- OTHER INFORMATION Card -->
+                    <div class="form-section">
+                        <h4 class="section-title other-info">OTHER INFORMATION</h4>
+                        
+                        <div class="form-fields-container">
+                            <div class="form-group">
+                                <label class="form-label">RAG <span class="required">*</span></label>
+                                <select class="form-select" id="rag">
+                                    <option value="">Please select</option>
+                                </select>
+                                <span class="field-error" id="ragError" style="display:none"></span>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Start Date <span class="required">*</span></label>
+                                <div class="form-input-group">
+                                    <input type="date" class="form-input" id="startDate" required>
+                                    <i class="fas fa-calendar input-icon"></i>
+                                </div>
+                                <span class="field-error" id="startDateError" style="display:none"></span>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">End Date <span class="required">*</span></label>
+                                <div class="form-input-group">
+                                    <input type="date" class="form-input" id="endDate" required>
+                                    <i class="fas fa-calendar input-icon"></i>
+                                </div>
+                                <span class="field-error" id="endDateError" style="display:none"></span>
+                            </div>
+                            
+                            <!-- Segment Field -->
+                            <div id="segmentFieldContainer" style="margin-top: 1rem;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </form>
+        
+        <div class="form-section" id="customFieldsSection">
+            <h3 class="section-title">CUSTOM FIELDS</h3>
+            <div id="customFieldsContainer"></div>
+        </div>
+    </div>
+    </div>
+</main>
+
+    <link rel="stylesheet" href="assets/css/project.css">
+    <link rel="stylesheet" href="assets/css/toast.css">
+    <script src="assets/js/config.js"></script>
+    <script src="assets/js/api-service.js"></script>
+    <script src="assets/js/admin-panel/admin-notifications.js"></script>
+    <script src="assets/js/main.js"></script>
+    <script src="assets/js/initSearch.js"></script>
+    <script src="assets/js/custom-fields.js"></script>
+    <script src="assets/js/segment-field.js"></script>
+    <script src="assets/js/advanced-rich-text-editor.js"></script>
+    <script src="assets/js/project.js"></script>
+    <script src="assets/js/header.js"></script>
+</body>
+</html>

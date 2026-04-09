@@ -1,0 +1,1044 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Business Area - BUDG</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../../assets/css/main.css">
+    <link rel="stylesheet" href="../../view/view.css">
+    <link rel="stylesheet" href="business-area.css">
+    <link rel="stylesheet" href="../../view/edit/edit-shared.css">
+    <link rel="stylesheet" href="../../assets/css/custom-fields.css">
+    <link rel="stylesheet" href="../../assets/css/global-lock-ui.css">
+    <link rel="stylesheet" href="../../assets/css/advanced-rich-text-editor.css">
+    <!-- RTL styles for Arabic (disabled by default, enabled by i18n.js) -->
+    <link rel="stylesheet" href="../../assets/css/rtl.css" id="rtl-styles" disabled>
+
+    <style>
+        /* Business Area Edit Page Styles - Matching Policy and Process Edit Pages */
+        
+        /* Apply edit-page class to body */
+        .business-area-edit-page {
+            background: var(--background-primary, #f8fafc);
+        }
+        
+        .business-area-edit-page .main-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 1.5rem 1.75rem 3rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+        
+        .business-area-edit-page .content-card {
+            background: var(--background-primary, #ffffff);
+            border-radius: 18px;
+            box-shadow: var(--shadow-medium, 0 18px 40px rgba(15, 23, 42, 0.12));
+            border: 1px solid var(--border-color, #e2e8f0);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        .business-area-edit-page .content-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1.25rem 1.75rem;
+            background: var(--background-secondary, #f8fafc);
+            border-bottom: 1px solid var(--border-color, #e2e8f0);
+        }
+        
+        .business-area-edit-page .content-body {
+            padding: 1.75rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+        
+        /* Override some styles to match edit mode */
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Form Container - Matching edit-shared.css */
+        .edit-form-container {
+            padding: 0;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+        }
+
+        .form-column {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+        }
+
+        .form-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+        }
+
+        .form-container .form-row {
+            grid-column: 1/-1;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+        }
+
+        .form-container > #customFieldsSection {
+            grid-column: 1/-1;
+        }
+
+        .form-card {
+            background: var(--background-primary, #ffffff);
+            border: 1px solid var(--border-color, #e2e8f0);
+            border-radius: 12px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .business-area-edit-page .card-header {
+            background: var(--background-secondary, #f8f9fa);
+            border-bottom: 1px solid var(--border-color, #e5e7eb);
+            padding: 1rem 1.5rem;
+        }
+
+        .business-area-edit-page .card-title {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: #248567;
+            margin: 0;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .business-area-edit-page .card-body {
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+        }
+
+        /* Form Section - Matching edit-shared.css */
+        .form-section {
+            background: var(--background-primary, #ffffff);
+            border: 1px solid var(--border-color, #e2e8f0);
+            border-radius: 12px;
+            padding: 1.25rem 1.5rem;
+            box-shadow: var(--shadow-light, 0 8px 24px rgba(15, 23, 42, 0.08));
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        /* Section Title - Matching edit-shared.css */
+        .section-title {
+            font-size: 0.82rem;
+            font-weight: 600;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--text-secondary, #475569);
+            margin: 0;
+        }
+
+        .subsection-title {
+            font-size: 0.75rem;
+            font-weight: 600;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--text-secondary, #64748b);
+            margin: 1.5rem 0 1rem 0;
+        }
+
+        /* Form Group */
+        .form-group {
+            margin-bottom: 1.25rem;
+        }
+
+        /* Form Label */
+        .form-label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--text-primary, #1e293b);
+            margin-bottom: 0.5rem;
+        }
+
+        .form-label.required::after {
+            content: ' *';
+            color: #ef4444;
+        }
+
+        /* Form Inputs */
+        .form-input,
+        .form-textarea,
+        .form-select {
+            width: 100%;
+            padding: 0.625rem 0.875rem;
+            border: 1px solid var(--border-color, #cbd5e1);
+            border-radius: 8px;
+            font-size: 0.875rem;
+            color: var(--text-primary, #1e293b);
+            background: var(--background-primary, #ffffff);
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .form-input:focus,
+        .form-textarea:focus,
+        .form-select:focus {
+            outline: none;
+            border-color: var(--primary-color, #2563eb);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .form-textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .input-group {
+            position: relative;
+        }
+
+        .input-group .form-input {
+            padding-right: 2.5rem;
+        }
+
+        .input-group .input-icon {
+            position: absolute;
+            right: 0.75rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-secondary, #64748b);
+            cursor: pointer;
+            font-size: 0.875rem;
+            transition: color 0.2s;
+        }
+
+        .input-group .input-icon:hover {
+            color: var(--primary-color, #2563eb);
+        }
+
+        .checkbox-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .checkbox-item input[type="checkbox"] {
+            width: 1rem;
+            height: 1rem;
+            accent-color: var(--primary-color, #2563eb);
+        }
+
+        .checkbox-item label {
+            font-size: 0.875rem;
+            color: var(--text-primary, #1e293b);
+            margin: 0;
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: flex-end;
+            padding-top: 1.5rem;
+            border-top: 1px solid var(--border-color, #e2e8f0);
+            margin-top: 2rem;
+        }
+
+        .btn {
+            padding: 0.625rem 1.25rem;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            border: 1px solid transparent;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary {
+            background: var(--primary-color, #2563eb);
+            color: white;
+            border-color: var(--primary-color, #2563eb);
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-hover, #1d4ed8);
+            border-color: var(--primary-hover, #1d4ed8);
+        }
+
+        .btn-secondary {
+            background: var(--background-primary, #ffffff);
+            color: var(--text-primary, #1e293b);
+            border-color: var(--border-color, #cbd5e1);
+        }
+
+        .btn-secondary:hover {
+            background: var(--background-secondary, #f8fafc);
+        }
+
+        .btn-outline {
+            background: transparent;
+            color: var(--text-primary, #1e293b);
+            border-color: var(--border-color, #cbd5e1);
+        }
+
+        .btn-outline:hover {
+            background: var(--background-secondary, #f8fafc);
+        }
+
+        .btn-sm {
+            padding: 0.375rem 0.75rem;
+            font-size: 0.75rem;
+        }
+
+        .error-message {
+            color: #ef4444;
+            font-size: 0.75rem;
+            margin-top: 0.25rem;
+        }
+
+        .success-message {
+            color: #248567;
+            font-size: 0.75rem;
+            margin-top: 0.25rem;
+        }
+
+        /* Modal styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: var(--background-primary, #ffffff);
+            border-radius: 12px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 80vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal-header {
+            padding: 1.25rem 1.5rem;
+            border-bottom: 1px solid var(--border-color, #e2e8f0);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h3 {
+            margin: 0;
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: var(--text-primary, #1e293b);
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--text-secondary, #64748b);
+            padding: 0;
+            width: 2rem;
+            height: 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
+            transition: background-color 0.2s;
+        }
+
+        .modal-close:hover {
+            background-color: var(--background-secondary, #f1f5f9);
+        }
+
+        .modal-body {
+            padding: 1.5rem;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .modal-footer {
+            padding: 1rem 1.5rem;
+            border-top: 1px solid var(--border-color, #e2e8f0);
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.75rem;
+        }
+
+        .search-container {
+            margin-bottom: 1rem;
+        }
+
+        .business-areas-list {
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid var(--border-color, #e2e8f0);
+            border-radius: 8px;
+        }
+
+        .business-area-item {
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid var(--border-color, #e2e8f0);
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .business-area-item:hover {
+            background-color: var(--background-secondary, #f8fafc);
+        }
+
+        .business-area-item:last-child {
+            border-bottom: none;
+        }
+
+        .business-area-name {
+            font-weight: 500;
+            color: var(--text-primary, #1e293b);
+            margin-bottom: 0.25rem;
+        }
+
+        .business-area-description {
+            font-size: 0.875rem;
+            color: var(--text-secondary, #64748b);
+        }
+
+        .no-business-areas {
+            text-align: center;
+            color: #64748b;
+            padding: 2rem;
+            font-style: italic;
+        }
+
+        /* Stakeholders Table Styles */
+        .stakeholders-section-title {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        
+        .stakeholders-section-title h3 {
+            margin: 0;
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: var(--text-primary, #1e293b);
+        }
+        
+        .stakeholders-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        .stakeholders-edit-container {
+            overflow-x: auto;
+        }
+        
+        .stakeholders-edit-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+        
+        .stakeholders-edit-table th,
+        .stakeholders-edit-table td {
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color, #e2e8f0);
+        }
+        
+        .stakeholders-edit-table th {
+            background-color: var(--background-secondary, #f8fafc);
+            font-weight: 600;
+            font-size: 0.875rem;
+            color: var(--text-secondary, #475569);
+        }
+        
+        .stakeholders-edit-table .form-select {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid var(--border-color, #cbd5e1);
+            border-radius: 6px;
+            font-size: 0.875rem;
+        }
+        
+        .stakeholders-edit-table .form-select:focus {
+            outline: none;
+            border-color: var(--primary-color, #2563eb);
+            box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
+        }
+        
+        .stakeholders-edit-table .form-select.is-invalid {
+            border-color: #ef4444;
+        }
+        
+        .stakeholders-validation-errors {
+            margin-top: 1rem;
+        }
+        
+        .required {
+            color: #ef4444;
+        }
+        
+        .no-data {
+            text-align: center;
+            color: var(--text-secondary, #64748b);
+            font-style: italic;
+            padding: 2rem;
+        }
+        
+        .loading {
+            text-align: center;
+            color: var(--text-secondary, #64748b);
+            padding: 2rem;
+        }
+        
+        .error {
+            text-align: center;
+            color: #ef4444;
+            padding: 2rem;
+        }
+
+        /* Validation Error Styles - Matching Committee */
+        .field-error {
+            color: var(--required-color, #dc2626);
+            font-size: 0.75rem;
+            margin-top: 0.25rem;
+            display: block;
+            opacity: 0;
+            transform: translateY(-5px);
+            transition: all 0.3s ease;
+        }
+
+        .field-error.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .form-input.is-invalid,
+        .form-select.is-invalid {
+            border-color: var(--required-color, #dc2626);
+            box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+        }
+
+        /* Validation Errors Container - Matching Committee */
+        .validation-errors {
+            margin-top: 1rem;
+            display: none;
+        }
+
+        .validation-errors .alert {
+            padding: 1rem;
+            border-radius: 8px;
+            border: 1px solid transparent;
+        }
+
+        .validation-errors .alert-danger {
+            color: #721c24;
+            background-color: #f8d7da;
+            border-color: #f5c6cb;
+        }
+
+        .validation-errors .alert h5 {
+            margin-top: 0;
+            margin-bottom: 0.5rem;
+            font-size: 1rem;
+            font-weight: 600;
+        }
+
+        .validation-errors .alert ul {
+            margin-bottom: 0;
+            padding-left: 1.5rem;
+        }
+
+        .validation-errors .alert li {
+            margin-bottom: 0.25rem;
+        }
+
+        /* Shake Animation for Validation Errors */
+        .shake-animation {
+            animation: shake 0.6s ease-in-out;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+            20%, 40%, 60%, 80% { transform: translateX(5px); }
+        }
+
+        /* Dark Theme Support for Validation */
+        [data-theme="dark"] .validation-errors .alert-danger {
+            color: #f8d7da;
+            background-color: #721c24;
+            border-color: #f5c6cb;
+        }
+
+        [data-theme="dark"] .field-error {
+            color: #fca5a5;
+        }
+
+        [data-theme="dark"] .form-input.is-invalid,
+        [data-theme="dark"] .form-select.is-invalid {
+            border-color: #fca5a5;
+            box-shadow: 0 0 0 3px rgba(252, 165, 165, 0.1);
+        }
+
+        /* Prevent double click on save buttons */
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+
+        .btn.saving {
+            position: relative;
+            color: transparent !important;
+        }
+
+        .btn.saving::after {
+            content: '';
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            top: 50%;
+            left: 50%;
+            margin-left: -8px;
+            margin-top: -8px;
+            border: 2px solid #ffffff;
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .form-label.required::after {
+            content: " *";
+            color: #ef4444;
+            font-weight: bold;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .form-row {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+            
+            .form-actions {
+                flex-direction: column;
+            }
+            
+            .stakeholders-edit-container {
+                overflow-x: scroll;
+            }
+        }
+    </style>
+    <script src="/assets/i18n/head-locale.js"></script>
+    <script src="../../assets/i18n/i18n.js"></script>
+</head>
+<body class="business-area-edit-page" data-submenu="business">
+    <div class="app-container">
+        <!-- Header -->
+        <header class="header"></header>
+
+        <div class="page-header">
+            <div class="page-header-container">
+                <div class="page-title">
+                    <div class="page-icon"><i class="fas fa-briefcase"></i></div>
+                    <div class="page-title-text">
+                        <div class="page-title-main" id="businessAreaTitle">business area</div>
+                        <div class="page-title-sub">Business Area</div>
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-primary" id="saveBtn">
+                        <i class="fas fa-save"></i> Save
+                    </button>
+                    <button type="button" class="btn btn-success" id="saveAndCloseBtn">
+                        <i class="fas fa-save"></i> Save & Close
+                    </button>
+                    <button type="button" class="btn btn-secondary" id="closeBtn">
+                        <i class="fas fa-times"></i> Close
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <main class="main-content">
+            <div class="content-card">
+                <div class="content-header">
+                    <div class="tab-container">
+                        <button class="tab active" data-tab="summary" data-i18n="tab.summary">SUMMARY</button>
+                        <button class="tab" data-tab="relationships" data-i18n="tab.relationships">RELATIONSHIPS</button>
+                        <button class="tab" data-tab="stakeholders" data-i18n="tab.stakeholders">STAKEHOLDERS</button>
+                        <button class="tab" data-tab="impact" data-i18n="tab.impact">IMPACT</button>
+                    </div>
+                </div>
+                <div class="content-body">
+            <!-- Summary Tab -->
+            <div id="summaryContainer" class="tab-content active">
+                <div class="edit-form-container">
+                    <div class="form-container">
+                        <div class="form-row">
+                            <!-- Left Column -->
+                            <div class="form-column">
+                                <!-- Definition Section -->
+                                <div class="form-section">
+                                    <div class="section-title">DEFINITION</div>
+                                    
+                                    <div class="form-group">
+                                        <label for="businessAreaName" class="form-label required">Primary Name</label>
+                                        <input type="text" id="businessAreaName" class="form-input" placeholder="business area" required>
+                                        <div id="businessAreaNameError" class="field-error"></div>
+                                    </div>
+                                    
+                                    <div class="form-group">
+                                        <label for="parentName" class="form-label">Parent Business Area</label>
+                                        <div class="input-group">
+                                            <input type="text" id="parentName" class="form-input" placeholder="Select parent business area" readonly>
+                                            <button type="button" class="btn btn-sm btn-secondary" id="selectParentBtn">
+                                                <i class="fas fa-pencil-alt"></i>
+                                            </button>
+                                            <button type="button" class="btn btn-sm btn-outline" id="clearParentBtn" title="Clear Parent">
+                                                <i class="fas fa-times"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="subsection-title">OPTIONAL FIELDS</div>
+                                    
+                                    <div class="form-group">
+                                        <label for="businessAreaDescription" class="form-label">Description</label>
+                                        <textarea id="businessAreaDescription" class="form-textarea" placeholder="busniss" rows="4"></textarea>
+                                        <div class="form-actions" style="margin-top: 0.5rem; padding-top: 0; border-top: none;">
+                                            <button type="button" class="btn btn-outline btn-sm" id="showEditorBtn">Show Editor</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Right Column -->
+                            <div class="form-column">
+                                <!-- Classifications Section -->
+                                <div class="form-section">
+                                    <div class="section-title">CLASSIFICATIONS</div>
+                                    
+                                    <div class="subsection-title">BASIC CLASSIFICATIONS</div>
+                                    
+                                    <div class="form-group">
+                                        <label for="budgStatus" class="form-label required">BUDG Status</label>
+                                        <select id="budgStatus" class="form-select" required>
+                                            <option value="">Select status</option>
+                                        </select>
+                                        <div id="budgStatusError" class="field-error"></div>
+                                    </div>
+                                    
+                                    <div class="form-group">
+                                        <label for="lifecycle" class="form-label required">Lifecycle</label>
+                                        <select id="lifecycle" class="form-select" required>
+                                            <option value="">Select lifecycle</option>
+                                        </select>
+                                        <div id="lifecycleError" class="field-error"></div>
+                                    </div>
+                                    
+                                    <div class="form-group">
+                                        <label for="budgViewing" class="form-label required">BUDG Viewing</label>
+                                        <select id="budgViewing" class="form-select" required>
+                                            <option value="">Select viewing</option>
+                                        </select>
+                                        <div id="budgViewingError" class="field-error"></div>
+                                    </div>
+                                    
+                                    <!-- Segment Field Container -->
+                                    <div id="segmentFieldContainer"></div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Custom Fields Section - Full Width -->
+                        <div class="form-section" id="customFieldsSection">
+                            <div class="section-title">CUSTOM FIELDS</div>
+                            <div id="customFieldsContainer"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Other Tabs (placeholder) -->
+            <div id="relationshipsContainer" class="tab-content" style="display:none;">
+                <div class="view-section" style="grid-column:1/-1;">
+                    <div class="relationships-container">
+                        <div class="relationships-hierarchy">
+                            <div class="hierarchy-header">
+                                <div class="hierarchy-title">BUSINESS AREA HIERARCHY</div>
+                                <div class="hierarchy-actions">
+                                    <label style="display:flex;align-items:center;gap:.5rem;font-size:.85rem;color:var(--text-muted,#6b7280);">
+                                        <input type="checkbox" checked style="margin-right:.3rem;">
+                                        Show Relationships
+                                    </label>
+                                    <button type="button" class="btn btn-secondary" id="businessAreaEditBtn2"><i class="fas fa-cog"></i></button>
+                                </div>
+                            </div>
+                            <table class="hierarchy-table">
+                                <thead>
+                                    <tr>
+                                        <th><div class="th-content"><span>Name</span><i class="fas fa-sort"></i></div></th>
+                                        <th><div class="th-content"><span>Description</span><i class="fas fa-sort"></i></div></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="businessAreaHierarchyTbody">
+                                    <tr><td colspan="2" style="text-align:center;padding:2rem;color:var(--text-muted,#6b7280);">Loading...</td></tr>
+                                </tbody>
+                            </table>
+                            <div class="hierarchy-footer" id="businessAreaHierarchyFooter">
+                                0 records
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="stakeholdersContainer" class="tab-content" style="display:none;">
+                <!-- Stakeholders content will be loaded here by JavaScript -->
+            </div>
+            
+            <div id="impact" class="tab-content">
+                <div class="view-section" style="grid-column:1/-1;">
+                    <div class="relationships-container">
+                        <div class="relationships-sub-tabs">
+                            <button class="sub-tab active" data-sub-tab="glossary">Glossary</button>
+                            <button class="sub-tab" data-sub-tab="system">System</button>
+                            <button class="sub-tab" data-sub-tab="process">Process</button>
+                        </div>
+                        <div class="relationships-content">
+                            <!-- Glossary Sub-tab -->
+                            <div id="impactGlossaryContent" class="sub-tab-content active">
+                                <div class="relationships-hierarchy">
+                                    <div class="hierarchy-header">
+                                        <div class="hierarchy-title">GLOSSARY</div>
+                                        <div class="hierarchy-actions">
+                                            <button type="button" class="btn btn-secondary" id="glossaryListBtn">
+                                                <i class="fas fa-list"></i> List
+                                            </button>
+                                            <button type="button" class="btn btn-secondary" id="glossarySearchAddBtn">
+                                                <i class="fas fa-search-plus"></i> Search and Add
+                                            </button>
+                                            <button type="button" class="btn btn-secondary" id="glossarySettingsBtn">
+                                                <i class="fas fa-cog"></i><i class="fas fa-chevron-down" style="margin-left:.3rem;font-size:.7rem;"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="data-table-wrapper">
+                                        <table class="data-table" id="glossaryImpactTable">
+                                            <thead>
+                                                <tr>
+                                                    <th><div class="th-content"><span>Relationship Type</span><i class="fas fa-sort"></i></div></th>
+                                                    <th><div class="th-content"><span>Name</span><i class="fas fa-sort"></i></div></th>
+                                                    <th><div class="th-content"><span>Type</span><i class="fas fa-sort"></i></div></th>
+                                                    <th><div class="th-content"><span>Strategic Owner</span><i class="fas fa-sort"></i></div></th>
+                                                    <th><div class="th-content"><span>Action</span></div></th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="glossaryImpactTableBody">
+                                                <tr>
+                                                    <td colspan="5" style="text-align: center; padding: 2rem;">
+                                                        <i class="fas fa-spinner fa-spin" style="font-size: 1.5rem; color: var(--secondary-color, #248567);"></i>
+                                                        <p style="margin-top: 0.5rem;">Loading glossary relationships...</p>
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    <div class="hierarchy-footer" id="glossaryImpactFooter">
+                                        0 records
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- System Sub-tab -->
+                            <div id="impactSystemContent" class="sub-tab-content">
+                                <div class="relationships-hierarchy">
+                                    <div class="hierarchy-header">
+                                        <div class="hierarchy-title">SYSTEM</div>
+                                        <div class="hierarchy-actions">
+                                            <button type="button" class="btn btn-secondary" id="systemListBtn">
+                                                <i class="fas fa-list"></i> List
+                                            </button>
+                                            <button type="button" class="btn btn-secondary" id="systemSearchAddBtn">
+                                                <i class="fas fa-search-plus"></i> Search and Add
+                                            </button>
+                                            <button type="button" class="btn btn-secondary" id="systemSettingsBtn">
+                                                <i class="fas fa-cog"></i><i class="fas fa-chevron-down" style="margin-left:.3rem;font-size:.7rem;"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="data-table-wrapper">
+                                        <table class="data-table" id="systemImpactTable">
+                                            <thead>
+                                                <tr>
+                                                    <th><div class="th-content"><span>Relationship Type</span><i class="fas fa-sort"></i></div></th>
+                                                    <th><div class="th-content"><span>System</span><i class="fas fa-sort"></i></div></th>
+                                                    <th><div class="th-content"><span>System Owner</span><i class="fas fa-sort"></i></div></th>
+                                                    <th><div class="th-content"><span>Action</span></div></th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="systemImpactTableBody">
+                                                <tr>
+                                                    <td colspan="4" style="text-align: center; padding: 2rem;">
+                                                        <i class="fas fa-spinner fa-spin" style="font-size: 1.5rem; color: var(--secondary-color, #248567);"></i>
+                                                        <p style="margin-top: 0.5rem;">Loading system relationships...</p>
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    <div class="hierarchy-footer" id="systemImpactFooter">
+                                        0 records
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Process Sub-tab -->
+                            <div id="impactProcessContent" class="sub-tab-content">
+                                <div class="relationships-hierarchy">
+                                    <div class="hierarchy-header">
+                                        <div class="hierarchy-title">PROCESS</div>
+                                        <div class="hierarchy-actions">
+                                            <button type="button" class="btn btn-secondary" id="processListBtn">
+                                                <i class="fas fa-list"></i> List
+                                            </button>
+                                            <button type="button" class="btn btn-secondary" id="processSearchAddBtn">
+                                                <i class="fas fa-search-plus"></i> Search and Add
+                                            </button>
+                                            <button type="button" class="btn btn-secondary" id="processSettingsBtn">
+                                                <i class="fas fa-cog"></i><i class="fas fa-chevron-down" style="margin-left:.3rem;font-size:.7rem;"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="data-table-wrapper">
+                                        <table class="data-table" id="processImpactTable">
+                                            <thead>
+                                                <tr>
+                                                    <th><div class="th-content"><span>Relationship Type</span><i class="fas fa-sort"></i></div></th>
+                                                    <th><div class="th-content"><span>Process</span><i class="fas fa-sort"></i></div></th>
+                                                    <th><div class="th-content"><span>Ref.</span><i class="fas fa-sort"></i></div></th>
+                                                    <th><div class="th-content"><span>Process Owner</span><i class="fas fa-sort"></i></div></th>
+                                                    <th><div class="th-content"><span>Action</span></div></th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="processImpactTableBody">
+                                                <tr>
+                                                    <td colspan="5" style="text-align: center; padding: 2rem;">
+                                                        <i class="fas fa-spinner fa-spin" style="font-size: 1.5rem; color: var(--secondary-color, #248567);"></i>
+                                                        <p style="margin-top: 0.5rem;">Loading process relationships...</p>
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    <div class="hierarchy-footer" id="processImpactFooter">
+                                        0 records
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Parent Selection Modal -->
+    <div id="parentSelectionModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Select Parent Business Area</h3>
+                <button type="button" class="modal-close" id="closeParentModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="search-container">
+                    <input type="text" id="parentSearchInput" class="form-input" placeholder="Search business areas...">
+                </div>
+                <div class="business-areas-list" id="businessAreasList">
+                    <!-- Business Areas will be loaded here -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" id="cancelParentSelection">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="../../assets/js/config.js"></script>
+    <script src="../../assets/js/api-service.js"></script>
+    <script src="../../assets/js/lock-manager.js"></script>
+    <script src="../../assets/js/lock-init-helper.js"></script>
+    <script src="../../assets/js/global-lock-ui.js"></script>
+    <script src="../../assets/js/main.js"></script>
+    <script src="../../assets/js/initSearch.js"></script>
+    <script src="../../assets/js/header.js"></script>
+    <script src="../../assets/js/custom-fields.js"></script>
+    <script src="../../assets/js/segment-field.js"></script>
+
+    <script src="../../assets/js/advanced-rich-text-editor.js"></script>
+    <script src="../../view/business-area/business-area-stakeholder-edit.js"></script>
+    <script src="../../view/business-area/business-area-impact-edit.js"></script>
+    <script src="../../view/business-area/business-area-edit.js"></script>
+    
+    <script>
+        // Debug script loading
+        console.log('=== SCRIPT LOADING DEBUG ===');
+        console.log('BusinessAreaStakeholderEdit available:', !!window.BusinessAreaStakeholderEdit);
+        console.log('All window properties:', Object.keys(window).filter(key => key.includes('BusinessArea')));
+    </script>
+</body>
+</html>
+

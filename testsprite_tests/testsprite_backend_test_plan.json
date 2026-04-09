@@ -1,0 +1,52 @@
+[
+  {
+    "id": "TC001",
+    "title": "post api unison search with valid FIND query",
+    "description": "POST /api/unison/search with body containing searches array with one FIND operator on facet DATASET (or first available facet), keyword test, empty filters, options maxDepth 1 includeCounts true. Expect HTTP 200 and JSON success true with results object."
+  },
+  {
+    "id": "TC002",
+    "title": "get api unison search returns method not allowed",
+    "description": "GET /api/unison/search must return 405 (or documented not-allowed) with JSON body; no server crash."
+  },
+  {
+    "id": "TC003",
+    "title": "post api unison search rejects empty searches",
+    "description": "POST /api/unison/search with JSON searches: [] or missing searches. Expect 400 or JSON success false with error message."
+  },
+  {
+    "id": "TC004",
+    "title": "post api unison search rejects NOT as first operator",
+    "description": "POST /api/unison/search where first search item has operator NOT. Expect logical error: success false or 400 per UnisonSearchService rules."
+  },
+  {
+    "id": "TC005",
+    "title": "get UnisonSearch filter-fields requires facetId",
+    "description": "GET /UnisonSearch/api/filter-fields without facetId query parameter. Expect 400 Bad Request."
+  },
+  {
+    "id": "TC006",
+    "title": "get UnisonSearch filter-fields for DATASET returns metadata",
+    "description": "GET /UnisonSearch/api/filter-fields?facetId=DATASET returns 200 and JSON array or object of filter field definitions."
+  },
+  {
+    "id": "TC007",
+    "title": "get UnisonSearch api defaults for grid columns",
+    "description": "GET /UnisonSearch/api/defaults returns 200 and JSON with top-level facets array (UNISON_DEFAULTS from app_config); each facet has id and activeFields as used by search-columns.js."
+  },
+  {
+    "id": "TC008",
+    "title": "post unison search with searchFields restriction",
+    "description": "POST /api/unison/search with FIND and searchFields map e.g. name true ref false. Expect 200 success true; response structure consistent with FacetResult."
+  },
+  {
+    "id": "TC009",
+    "title": "get active tasks for search facet context",
+    "description": "GET /api/active-tasks (used by search UI Active Tasks). Document status code 200 with list or 401 if auth required in environment."
+  },
+  {
+    "id": "TC010",
+    "title": "get people search autocomplete endpoint",
+    "description": "GET /UnisonSearch/api/people/search?query=a&limit=5 returns 200 JSON (may be empty list) without 500."
+  }
+]

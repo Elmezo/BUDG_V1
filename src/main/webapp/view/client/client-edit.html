@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title data-i18n="client.pageTitleEdit">BUDG - Edit Client</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../../assets/css/main.css">
+    <link rel="stylesheet" href="../../view/view.css">
+    <link rel="stylesheet" href="../../assets/css/client.css">
+    <link rel="stylesheet" href="../../view/edit/edit-shared.css">
+    <link rel="stylesheet" href="../../assets/css/stakeholder.css">
+    <link rel="stylesheet" href="../../assets/css/custom-fields.css">
+    <link rel="stylesheet" href="../../assets/css/global-lock-ui.css">
+    <link rel="stylesheet" href="../../assets/css/advanced-rich-text-editor.css">
+    <!-- RTL styles for Arabic (disabled by default, enabled by i18n.js) -->
+    <link rel="stylesheet" href="../../assets/css/rtl.css" id="rtl-styles" disabled>
+    <link rel="stylesheet" href="../../view/components/document-upload-component.css">
+
+    <style>
+        /* Client Edit Page Styles */
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+        }
+
+        .form-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+        }
+
+        .form-container .form-row {
+            grid-column: 1/-1;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+        }
+
+        .form-container > .form-card {
+            grid-column: 1/-1;
+        }
+
+        .form-card {
+            background: var(--background-primary, #ffffff);
+            border: 1px solid var(--border-color, #e2e8f0);
+            border-radius: 12px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .client-edit-page .card-header {
+            background: var(--background-secondary, #f8f9fa);
+            border-bottom: 1px solid var(--border-color, #e5e7eb);
+            padding: 1rem 1.5rem;
+        }
+
+        .client-edit-page .card-title {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: #248567;
+            margin: 0;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .client-edit-page .card-body {
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+        }
+
+        /* Force system-like side-by-side cards on client create/edit */
+        .client-edit-page #clientViewContainer,
+        .client-edit-page #clientForm,
+        .client-edit-page .form-container {
+            width: 100%;
+        }
+
+        .client-edit-page .form-container .form-row {
+            display: flex !important;
+            gap: 2rem !important;
+            align-items: flex-start !important;
+            flex-wrap: nowrap !important;
+        }
+
+        .client-edit-page .form-container .form-row > .form-card {
+            flex: 1 1 0 !important;
+            min-width: 0 !important;
+        }
+
+        .client-edit-page .form-card,
+        .client-edit-page .form-section {
+            height: auto !important;
+            max-height: none !important;
+            overflow: visible !important;
+        }
+
+        @media (max-width: 900px) {
+            .client-edit-page .form-container .form-row {
+                flex-direction: column !important;
+                gap: 1rem !important;
+            }
+        }
+    </style>
+
+    <script>
+        // Apply theme immediately to prevent flash of unstyled content
+        (function() {
+            const savedTheme = localStorage.getItem('budg-theme') || 'light';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+        })();
+    </script>
+    <script src="/assets/i18n/head-locale.js"></script>
+    <script src="../../assets/i18n/i18n.js"></script>
+</head>
+<body class="client-page client-edit-page">
+    <!-- Header Navigation -->
+    <header class="header"></header>
+
+    <!-- Page Header -->
+    <div class="page-header">
+        <div class="page-header-container">
+            <div class="page-title">
+                <div class="page-icon">
+                    <i class="fas fa-users"></i>
+                </div>
+                <div class="page-title-text">
+                    <div class="page-title-main" id="pageTitle" data-i18n="client.page.editTitleStatic">Edit Client</div>
+                    <div class="page-title-sub" data-i18n="client.page.title">Client</div>
+                </div>
+            </div>
+            <!-- Action Buttons -->
+            <div class="form-actions">
+                <button type="button" class="btn btn-secondary" id="cancelBtn" data-i18n="button.close">Close</button>
+                <button type="button" class="btn btn-primary" id="saveBtn" data-i18n="button.save">Save</button>
+                <button type="button" class="btn btn-success" id="saveAndCloseBtn" data-i18n="button.saveAndClose">Save & Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="content-card">
+            <div class="content-header">
+                <div class="tab-container">
+                    <button class="tab active" data-tab="view" data-i18n="client.tabs.details">DETAILS</button>
+                    <button class="tab" data-tab="stakeholders" data-i18n="tab.stakeholders">STAKEHOLDERS</button>
+                </div>
+            </div>
+            <div class="content-body">
+                <!-- Client Details Tab -->
+                <div id="clientViewContainer" class="view-grid">
+                    <form id="clientForm">
+                        <div class="form-container">
+                            <div class="form-row">
+                                <!-- Left Panel - Definition -->
+                                <div class="form-card">
+                                    <div class="card-header">
+                                        <h3 class="card-title definition" data-i18n="client.sections.definition">DEFINITION</h3>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="form-group">
+                                            <label class="form-label">
+                                                <span data-i18n="client.labels.primaryName">Primary Name</span>
+                                                <span class="required">*</span>
+                                            </label>
+                                            <input type="text" class="form-input" id="primaryNameInput" data-i18n-placeholder="client.placeholders.enterPrimaryName" placeholder="Enter Primary Name">
+                                        </div>
+                                        
+                                        <div class="form-group">
+                                            <label class="form-label" data-i18n="client.labels.longName">Long Name</label>
+                                            <input type="text" class="form-input" id="longNameInput" data-i18n-placeholder="client.placeholders.enterLongName" placeholder="Enter Long Name">
+                                        </div>
+                                        
+                                        <div class="form-group">
+                                            <h4 class="section-title optional-fields" data-i18n="client.sections.optionalFields">OPTIONAL FIELDS</h4>
+                                            <label class="form-label" data-i18n="client.labels.parentClient">Parent Client</label>
+                                            <select class="form-select" id="parentClientSelect">
+                                                <option value="" data-i18n="client.placeholders.loadingParentClients">Loading parent clients...</option>
+                                            </select>
+                                        </div>
+                                        
+                                        <div class="form-group">
+                                            <label class="form-label">
+                                                <span data-i18n="client.labels.description">Description</span>
+                                                <span class="required">*</span>
+                                            </label>
+                                            <textarea class="form-input form-textarea" id="descriptionInput" data-i18n-placeholder="client.placeholders.enterDescription" placeholder="Enter Description"></textarea>
+                                            <button type="button" class="editor-button" data-i18n="button.showEditor">Show Editor</button>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Right Panel - Classifications -->
+                                <div class="form-card">
+                                    <div class="card-header">
+                                        <h3 class="card-title classifications" data-i18n="client.sections.classifications">CLASSIFICATIONS</h3>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="form-group">
+                                            <h4 class="section-title" data-i18n="client.sections.basicClassifications">BASIC CLASSIFICATIONS</h4>
+                                            <label class="form-label">
+                                                <span data-i18n="client.labels.budgStatus">BUDG Status</span>
+                                                <span class="required">*</span>
+                                            </label>
+                                            <select class="form-select" id="statusSelect">
+                                                <option value="" data-i18n="client.placeholders.loadingStatuses">Loading statuses...</option>
+                                            </select>
+                                        </div>
+
+                                        <div class="form-group">
+                                            <label class="form-label">
+                                                <span data-i18n="client.labels.lifecycle">Lifecycle</span>
+                                                <span class="required">*</span>
+                                            </label>
+                                            <select class="form-select" id="lifecycleSelect">
+                                                <option value="" data-i18n="client.placeholders.loadingLifecycles">Loading lifecycles...</option>
+                                            </select>
+                                        </div>
+
+                                        <div class="form-group">
+                                            <label class="form-label">
+                                                <span data-i18n="client.labels.budgViewing">BUDG Viewing</span>
+                                                <span class="required">*</span>
+                                            </label>
+                                            <select class="form-select" id="viewingSelect">
+                                                <option value="" data-i18n="client.placeholders.loadingViewingOptions">Loading viewing options...</option>
+                                            </select>
+                                        </div>
+                                        
+                                        <!-- Segment Field -->
+                                        <div id="segmentFieldContainer" style="margin-top: 1rem;"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Custom Fields Section - Full Width (hidden when no custom fields; custom-fields.js toggles visibility) -->
+                            <div class="form-card" id="customFieldsSection">
+                                <div class="card-header">
+                                    <h3 class="card-title" data-i18n="regulatoryTheme.sections.customFields">CUSTOM FIELDS</h3>
+                                </div>
+                                <div class="card-body">
+                                    <div id="customFieldsContainer"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                
+                <!-- Stakeholders Tab -->
+                <div id="clientStakeholdersContainer" class="view-grid" style="display:none;"></div>
+            </div>
+        </div>
+    </main>
+
+    <script src="../../assets/js/config.js"></script>
+    <script src="../../assets/js/api-service.js"></script>
+    <script src="../../assets/js/lock-manager.js"></script>
+    <script src="../../assets/js/lock-init-helper.js"></script>
+    <script src="../../assets/js/global-lock-ui.js"></script>
+    <script src="../../assets/js/main.js"></script>
+    <script src="../../assets/js/initSearch.js"></script>
+    <script src="../../assets/js/custom-fields.js"></script>
+    <script src="../../assets/js/segment-field.js"></script>
+    <script src="../../view/client/client-stakeholder-edit.js"></script>
+
+    <script src="../../assets/js/advanced-rich-text-editor.js"></script>
+    <script src="../../view/client/client-edit.js"></script>
+    <script src="../../assets/js/header.js"></script>
+
+</body>
+</html>
+
