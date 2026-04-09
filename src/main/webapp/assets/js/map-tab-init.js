@@ -1116,8 +1116,11 @@
                 applyInsightMapNodeFiltersInTab();
                 return;
             }
-            /* Live process map applies node filters inside ProcessDataMap (adapter); avoid double-filtering with MapGraphUtils. */
+            /* Live process / project maps apply node filters in their modules; avoid double-filtering with MapGraphUtils. */
             if (state.mapTabKind === 'process-data' && window.ProcessDataMap && ProcessDataMap.cy === cy) {
+                return;
+            }
+            if (state.mapTabKind === 'project-data' && window.ProjectDataMap && ProjectDataMap.cy === cy) {
                 return;
             }
             if (!window.MapGraphUtils) return;
@@ -1130,6 +1133,7 @@
                     || dsScope.querySelector('[id$="datasetFilterTypeOptions"]') || dsScope.querySelector('[id$="datasetFilterLifecycleOptions"]'));
                 if (hasDataset && typeof window.MapGraphUtils.applyDatasetNodeFilters === 'function') {
                     window.MapGraphUtils.applyDatasetNodeFilters(cy, collectDatasetNodeFiltersFromDom(dsScope), {
+                        filtersInitialized: true,
                         updateOverlayPositions: positionAllOverlayPanels
                     });
                 }
@@ -1143,7 +1147,7 @@
                     || firstFilterContainer(sysScope, ['#filterLifecycleOptions', '#mapFilterLifecycleOptions', '[id$="filterLifecycleOptions"]']));
                 if (hasSystem && typeof window.MapGraphUtils.applySystemNodeFilters === 'function') {
                     window.MapGraphUtils.applySystemNodeFilters(cy, collectSystemNodeFiltersFromDom(sysScope), {
-                        filtersInitialized: false,
+                        filtersInitialized: true,
                         updateOverlayPositions: positionAllOverlayPanels
                     });
                 }
@@ -1159,12 +1163,13 @@
 
             if (hasSystem && typeof window.MapGraphUtils.applySystemNodeFilters === 'function') {
                 window.MapGraphUtils.applySystemNodeFilters(cy, collectSystemNodeFiltersFromDom(scope), {
-                    filtersInitialized: false,
+                    filtersInitialized: true,
                     updateOverlayPositions: positionAllOverlayPanels
                 });
             }
             if (hasDataset && typeof window.MapGraphUtils.applyDatasetNodeFilters === 'function') {
                 window.MapGraphUtils.applyDatasetNodeFilters(cy, collectDatasetNodeFiltersFromDom(scope), {
+                    filtersInitialized: true,
                     updateOverlayPositions: positionAllOverlayPanels
                 });
             }

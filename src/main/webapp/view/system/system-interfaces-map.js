@@ -464,7 +464,8 @@
         // Re-filter and re-render the network
         adapter.applyDatasetNodeFilters({
             linkedDatasets: InterfaceMapState.linkedDatasets,
-            updateOverlayPositions: updateOverlayPositions
+            updateOverlayPositions: updateOverlayPositions,
+            filtersInitialized: true
         });
     }
 

@@ -696,21 +696,22 @@
             if (typeof options.setLayout === 'function') options.setLayout(dir);
         }
         if (typeof window.SharedMapControls === 'function') {
+            var lineageMapInstance = Object.assign({
+                zoomIn: function () { adapter.zoomIn(); },
+                zoomOut: function () { adapter.zoomOut(); },
+                redrawMap: function () { options.loadMapData(); },
+                resetMap: function () { if (state.network) state.network.fit(undefined, 50); },
+                exportAsPng: options.exportAsPng,
+                openFullscreen: options.openFullscreen,
+                getLegendHtml: options.getLegendHtml,
+                setLayout: lineageSetLayout,
+                toggleLabels: function (show) {
+                    if (state.network) state.network.edges().style('label', show ? 'data(label)' : '');
+                }
+            }, options.mapInstance || {});
             window.SharedMapControls({
                 mapId: mapId,
-                mapInstance: {
-                    zoomIn: function () { adapter.zoomIn(); },
-                    zoomOut: function () { adapter.zoomOut(); },
-                    redrawMap: function () { options.loadMapData(); },
-                    resetMap: function () { if (state.network) state.network.fit(undefined, 50); },
-                    exportAsPng: options.exportAsPng,
-                    openFullscreen: options.openFullscreen,
-                    getLegendHtml: options.getLegendHtml,
-                    setLayout: lineageSetLayout,
-                    toggleLabels: function (show) {
-                        if (state.network) state.network.edges().style('label', show ? 'data(label)' : '');
-                    }
-                }
+                mapInstance: lineageMapInstance
             });
         }
         if (typeof window.SharedMapDropdowns === 'function') {

@@ -591,7 +591,7 @@
         var mapId      = opts.mapId;
         var getNetwork = opts.getNetwork;
         var setLayout  = opts.setLayout;
-        var mapRoot    = opts.mapRoot || document.getElementById(mapId + 'Section') || document;
+        var mapRoot    = opts.mapRoot || document.getElementById(mapId + 'Section') || document.getElementById(mapId + 'Wrapper') || document;
         var byId       = function (id) { return mapRoot.querySelector('#' + id) || document.getElementById(id); };
 
         var spacingBtn  = byId(mapId + 'Spacing');
@@ -729,10 +729,10 @@
         var onFilterChange    = config.onFilterChange;
         var updateFilterLabel = config.updateFilterLabel;
 
-        // Scoped root: prefer mapId+'Section', fall back to document.
+        // Scoped root: mapId+'Section', else mapId+'Wrapper', else document.
         // All overlay/filter menu queries are scoped here so multiple maps on
         // the same page do not interfere with each other.
-        var mapRoot = document.getElementById(mapId + 'Section') || document;
+        var mapRoot = document.getElementById(mapId + 'Section') || document.getElementById(mapId + 'Wrapper') || document;
         var byId    = function (id) { return mapRoot.querySelector('#' + id) || document.getElementById(id); };
 
         var mapTypeSelect   = byId(mapId + 'TypeSelect');
@@ -1961,7 +1961,7 @@
                 const pC = classifications.length === 0 || classifications.includes(meta.classification || '');
                 const pT = types.length === 0 || types.includes(meta.type || meta.typeName || '');
                 const pL = lifecycles.length === 0 || lifecycles.includes(meta.lifecycle || meta.lifecycleName || '');
-                node.style('display', (node.data('isCurrent') || (pC && pT && pL)) ? 'element' : 'none');
+                node.style('display', (pC && pT && pL) ? 'element' : 'none');
             });
             this.state.network.edges().forEach(edge => {
                 edge.style('display', (edge.source().style('display') === 'element' && edge.target().style('display') === 'element') ? 'element' : 'none');

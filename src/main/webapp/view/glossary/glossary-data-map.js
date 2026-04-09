@@ -1532,90 +1532,24 @@
         applyDatasetNodeFiltersToNetwork();
     }
 
-    // NOTE: this function keeps its own implementation (not delegated to MapGraphUtils)
-    // because glossary Cytoscape nodes store classification/type/lifecycle directly
-    // on nodeData (not nested under nodeData.meta) and it needs to run a layout refresh.
     function applyNodeFiltersToNetwork() {
-        if (!GlossaryDataMapState.network) return;
-
-        const { classifications, types, lifecycles } = GlossaryDataMapState.nodeFilters;
-        
-        // Show/hide nodes based on filters
-        GlossaryDataMapState.network.nodes().forEach(node => {
-            const nodeData = node.data();
-            let shouldShow = true;
-            
-            // Filter by classification
-            if (classifications.length > 0) {
-                const nodeClassification = nodeData.classification;
-                if (nodeClassification && !classifications.includes(String(nodeClassification))) {
-                    shouldShow = false;
-                }
-            }
-            
-            // Filter by type
-            if (types.length > 0) {
-                const nodeType = nodeData.type;
-                if (nodeType && !types.includes(String(nodeType))) {
-                    shouldShow = false;
-                }
-            }
-            
-            // Filter by lifecycle
-            if (lifecycles.length > 0) {
-                const nodeLifecycle = nodeData.lifecycle;
-                if (nodeLifecycle && !lifecycles.includes(String(nodeLifecycle))) {
-                    shouldShow = false;
-                }
-            }
-            
-            if (shouldShow) {
-                node.style('display', 'element');
-            } else {
-                node.style('display', 'none');
-            }
+        if (!GlossaryDataMapState.network || !window.MapGraphUtils) return;
+        window.MapGraphUtils.applySystemNodeFilters(GlossaryDataMapState.network, GlossaryDataMapState.nodeFilters, {
+            filtersInitialized: true,
+            updateOverlayPositions: updateOverlayPositions
         });
-        
-        // Refresh layout
         const rootNodeIds = adapter.findRootNodes();
         GlossaryDataMapState.network.layout(buildCytoscapeLayout(rootNodeIds)).run();
         updateOverlayPositions();
     }
 
-    // Apply dataset node filters to network
     function applyDatasetNodeFiltersToNetwork() {
-        if (!GlossaryDataMapState.network) return;
-        
-        const { types, lifecycles } = GlossaryDataMapState.datasetNodeFilters;
-        
-        GlossaryDataMapState.network.nodes().forEach(node => {
-            const nodeData = node.data();
-            let shouldShow = true;
-            
-            // Filter by type
-            if (types.length > 0) {
-                const nodeType = nodeData.type;
-                if (nodeType && !types.includes(String(nodeType))) {
-                    shouldShow = false;
-                }
-            }
-            
-            // Filter by lifecycle
-            if (lifecycles.length > 0) {
-                const nodeLifecycle = nodeData.lifecycle;
-                if (nodeLifecycle && !lifecycles.includes(String(nodeLifecycle))) {
-                    shouldShow = false;
-                }
-            }
-            
-            if (shouldShow) {
-                node.style('display', 'element');
-            } else {
-                node.style('display', 'none');
-            }
+        if (!GlossaryDataMapState.network || !window.MapGraphUtils) return;
+        window.MapGraphUtils.applyDatasetNodeFilters(GlossaryDataMapState.network, GlossaryDataMapState.datasetNodeFilters, {
+            linkedDatasets: new Map(),
+            filtersInitialized: true,
+            updateOverlayPositions: updateOverlayPositions
         });
-        
-        // Refresh layout
         const rootNodeIds = adapter.findRootNodes();
         GlossaryDataMapState.network.layout(buildCytoscapeLayout(rootNodeIds)).run();
         updateOverlayPositions();

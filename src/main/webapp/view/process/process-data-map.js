@@ -444,7 +444,10 @@
             lifecycles: readCheckedValues(MAP_ID + 'filterLifecycleOptions')
         };
         if (ProcessDataMapState.network && ProcessDataMapState.mapType === 'system-lineage') {
-            adapter.applySystemNodeFilters(ProcessDataMapState.network, ProcessDataMapState.nodeFilters, {});
+            adapter.applySystemNodeFilters({
+                filtersInitialized: true,
+                updateOverlayPositions: updateOverlayPositions
+            });
         }
     }
 
@@ -454,8 +457,10 @@
             lifecycles: readCheckedValues(MAP_ID + 'filterDatasetLifecycleOptions')
         };
         if (ProcessDataMapState.network && ProcessDataMapState.mapType === 'dataset-lineage') {
-            adapter.applyDatasetNodeFilters(ProcessDataMapState.network, ProcessDataMapState.datasetNodeFilters, {
-                linkedDatasets: ProcessDataMapState.linkedDatasets
+            adapter.applyDatasetNodeFilters({
+                linkedDatasets: ProcessDataMapState.linkedDatasets,
+                filtersInitialized: true,
+                updateOverlayPositions: updateOverlayPositions
             });
         }
     }

@@ -144,6 +144,16 @@
         }
     }
 
+    // filtersInitialized: empty selection for a facet fails that facet for all nodes.
+    // Non-empty selection: pass if node value missing (unknown) OR listed (legacy parity).
+    function passesInitializedFacet(selectedList, nodeRaw) {
+        var sel = selectedList || [];
+        if (sel.length === 0) return false;
+        var v = String(nodeRaw == null ? '' : nodeRaw).trim();
+        if (!v) return true;
+        return sel.indexOf(v) !== -1;
+    }
+
     // =========================================================================
     // 4. applySystemNodeFilters
     // ─────────────────────────────────────────────────────────────────────────
@@ -153,12 +163,12 @@
     // @param {Object} network     - Cytoscape instance
     // @param {Object} nodeFilters - { classifications: [], types: [], lifecycles: [] }
     // @param {Object} [opts]      - { updateOverlayPositions, runLayout,
-    //                                 filtersInitialized, logPrefix, verboseSystemFilters }
-    //   filtersInitialized === true: system-lineage semantics — each dimension with an empty
-    //   array hides non-current nodes for that dimension; all dimensions must pass (AND).
-    //   Omit or falsey: legacy behavior — empty filter arrays mean "no constraint" on that
-    //   dimension; non-current nodes hidden only when at least one array is non-empty.
-    //   verboseSystemFilters === true with logPrefix: logs filter apply + visible/hidden counts.
+    //                                 filtersInitialized, filterDimensionActive, logPrefix, verboseSystemFilters }
+    //   filtersInitialized === true: checkbox semantics — AND across active dimensions; focal/current
+    //   node is not exempt (hidden when filters exclude it).
+    //   filterDimensionActive: optional { classification?, type?, lifecycle? } — false skips that dimension.
+    //   Omit or falsey: legacy — empty arrays mean no constraint per dimension; when any array non-empty,
+    //   filters apply to every node including focal/current.
     // =========================================================================
     function applySystemNodeFilters(network, nodeFilters, opts) {
         if (!network) return;
@@ -168,6 +178,11 @@
         var lifecycles      = (nodeFilters && nodeFilters.lifecycles)      || [];
 
         if (opts.filtersInitialized === true) {
+            var dimAct = opts.filterDimensionActive || null;
+            function strictDim(key) {
+                if (!dimAct || !Object.prototype.hasOwnProperty.call(dimAct, key)) return true;
+                return dimAct[key] !== false;
+            }
             if (opts.logPrefix && opts.verboseSystemFilters === true) {
                 console.log(opts.logPrefix + ' Applying system filters - classifications:',
                     classifications, 'types:', types, 'lifecycles:', lifecycles);
@@ -176,20 +191,19 @@
             var hiddenCount = 0;
             network.nodes().forEach(function (node) {
                 var meta = node.data('meta') || {};
-                var nodeClassification = meta.classification || '';
-                var nodeType = meta.type || '';
-                var nodeLifecycle = meta.lifecycle || '';
-                var passesClassification = classifications.length > 0
-                    ? (nodeClassification && classifications.indexOf(nodeClassification) !== -1)
-                    : false;
-                var passesType = types.length > 0
-                    ? (nodeType && types.indexOf(nodeType) !== -1)
-                    : false;
-                var passesLifecycle = lifecycles.length > 0
-                    ? (nodeLifecycle && lifecycles.indexOf(nodeLifecycle) !== -1)
-                    : false;
-                var isCurrent = node.data('isCurrent');
-                if (isCurrent || (passesClassification && passesType && passesLifecycle)) {
+                var nodeClassification = String(meta.classification || meta.classificationName || '').trim();
+                var nodeType = String(meta.type || meta.typeName || '').trim();
+                var nodeLifecycle = String(meta.lifecycle || meta.lifecycleName || '').trim();
+                var passesClassification = strictDim('classification')
+                    ? passesInitializedFacet(classifications, nodeClassification)
+                    : true;
+                var passesType = strictDim('type')
+                    ? passesInitializedFacet(types, nodeType)
+                    : true;
+                var passesLifecycle = strictDim('lifecycle')
+                    ? passesInitializedFacet(lifecycles, nodeLifecycle)
+                    : true;
+                if (passesClassification && passesType && passesLifecycle) {
                     node.style('display', 'element');
                     node.removeClass('hidden');
                     visibleCount++;
@@ -220,10 +234,9 @@
         var hasFilter = classifications.length || types.length || lifecycles.length;
 
         network.nodes().forEach(function (node) {
-            var isCurrent = node.data('isCurrent');
             var show = true;
 
-            if (!isCurrent && hasFilter) {
+            if (hasFilter) {
                 var meta  = node.data('meta') || {};
                 var klass = String(meta.classification || '');
                 var type  = String(meta.type  || meta.typeName  || '');
@@ -262,31 +275,26 @@
     // 5. applyDatasetNodeFilters
     // ─────────────────────────────────────────────────────────────────────────
     // Show/hide Cytoscape DATASET nodes based on type and lifecycle filters.
-    // isCurrent nodes are always shown regardless of filter state.
+    // Current/focal dataset nodes use the same rules (no bypass).
     //
     // @param {Object} network        - Cytoscape instance
     // @param {Object} datasetFilters - { types: [], lifecycles: [] }
-    // @param {Object} [opts]         - { linkedDatasets: Map, updateOverlayPositions: fn }
+    // @param {Object} [opts]         - { linkedDatasets: Map, updateOverlayPositions: fn,
+    //                                 filtersInitialized }
     // =========================================================================
     function applyDatasetNodeFilters(network, datasetFilters, opts) {
         if (!network) return;
+        opts = opts || {};
         var types      = (datasetFilters && datasetFilters.types)      || [];
         var lifecycles = (datasetFilters && datasetFilters.lifecycles) || [];
-        var linked     = (opts && opts.linkedDatasets) ? opts.linkedDatasets : new Map();
+        var linked     = opts.linkedDatasets ? opts.linkedDatasets : new Map();
+        var fi         = opts.filtersInitialized === true;
 
         network.nodes().forEach(function (node) {
-            var isCurrent = node.data('isCurrent');
-            if (isCurrent) {
-                node.style('display', 'element');
-                node.removeClass('hidden');
-                return;
-            }
-
             var meta          = node.data('meta') || {};
             var nodeType      = String(meta.typeName || meta.type || '');
             var nodeLifecycle = String(meta.lifecycleName || meta.lifecycle || '');
 
-            // Fallback: look up dataset from linked map when meta is sparse
             if ((!nodeType || !nodeLifecycle) && linked.size) {
                 var datasetId   = meta.datasetId;
                 var datasetInfo = linked.get(String(datasetId));
@@ -295,15 +303,21 @@
                 nodeLifecycle = nodeLifecycle || String(dataset.lifecycleName || dataset.lifecycle || '');
             }
 
-            var passesType = types.length      === 0 || types.includes(nodeType);
-            var passesLife = lifecycles.length === 0 || lifecycles.includes(nodeLifecycle);
-            var show       = passesType && passesLife;
+            var passesType;
+            var passesLife;
+            if (fi) {
+                passesType = passesInitializedFacet(types, nodeType);
+                passesLife = passesInitializedFacet(lifecycles, nodeLifecycle);
+            } else {
+                passesType = types.length      === 0 || types.indexOf(nodeType) !== -1;
+                passesLife = lifecycles.length === 0 || lifecycles.indexOf(nodeLifecycle) !== -1;
+            }
+            var show = passesType && passesLife;
 
             node.style('display', show ? 'element' : 'none');
             if (show) node.removeClass('hidden'); else node.addClass('hidden');
         });
 
-        // Update edge visibility
         network.edges().forEach(function (edge) {
             var sv = edge.source().style('display') === 'element';
             var tv = edge.target().style('display') === 'element';
@@ -530,6 +544,7 @@
         applyHopsFilter:                applyHopsFilter,
         filterHiddenNodes:              filterHiddenNodes,
         mergeEngineFilters:             mergeEngineFilters,
+        passesInitializedFacet:         passesInitializedFacet,
         applySystemNodeFilters:         applySystemNodeFilters,
         applyDatasetNodeFilters:        applyDatasetNodeFilters,
         extractSystemMeta:              extractSystemMeta,

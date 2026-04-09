@@ -73,6 +73,9 @@
             relationships: [],
             lifecycles: []
         },
+        /** When false, that facet does not constrain nodes (no UI options). */
+        relationshipFilterUiActive: false,
+        lifecycleFilterUiActive: false,
         hiddenNodes: new Set(),
         hiddenUpstreamNodes: new Set(),
         hiddenDownstreamNodes: new Set(),
@@ -1284,11 +1287,16 @@
                 }
             }));
             
+            const relArr = Array.from(relationshipTypes).sort();
+            const lifeArr = Array.from(lifecycles).sort();
+            CapabilityMapState.relationshipFilterUiActive = relArr.length > 0;
+            CapabilityMapState.lifecycleFilterUiActive = lifeArr.length > 0;
+
             // Dispatch event to update filter options
             window.dispatchEvent(new CustomEvent('capabilityMapFilterOptionsUpdated', {
                 detail: {
-                    relationships: Array.from(relationshipTypes).sort(),
-                    lifecycles: Array.from(lifecycles).sort()
+                    relationships: relArr,
+                    lifecycles: lifeArr
                 }
             }));
         } catch (error) {
@@ -1305,40 +1313,55 @@
         applyNodeFiltersToNetwork();
     }
 
-    // NOTE: this function keeps its own implementation (not delegated to MapGraphUtils)
-    // because capability nodes use a custom `relationships` filter field and store
-    // lifecycle on nodeData.lifecycleName (not nodeData.meta.lifecycle).
     function applyNodeFiltersToNetwork() {
         if (!CapabilityMapState.network) return;
 
+        const net = CapabilityMapState.network;
         const { relationships, lifecycles } = CapabilityMapState.nodeFilters;
-        
-        // Show/hide nodes based on filters
-        CapabilityMapState.network.nodes().forEach(node => {
+        const passFacet = window.MapGraphUtils && typeof window.MapGraphUtils.passesInitializedFacet === 'function'
+            ? window.MapGraphUtils.passesInitializedFacet : null;
+
+        net.nodes().forEach(node => {
             const nodeData = node.data();
             let shouldShow = true;
-            
-            // Filter by lifecycle
-            if (lifecycles.length > 0) {
-                const nodeLifecycle = nodeData.lifecycleName || nodeData.lifecycle || nodeData.Lifecycle || nodeData.LifecycleName;
-                if (nodeLifecycle && !lifecycles.includes(String(nodeLifecycle))) {
+
+            if (CapabilityMapState.lifecycleFilterUiActive && passFacet) {
+                const nodeLifecycle = nodeData.lifecycleName || nodeData.lifecycle || nodeData.Lifecycle || nodeData.LifecycleName || '';
+                if (!passFacet(lifecycles, nodeLifecycle)) shouldShow = false;
+            }
+
+            if (shouldShow && CapabilityMapState.relationshipFilterUiActive) {
+                if (!relationships || relationships.length === 0) {
                     shouldShow = false;
+                } else {
+                    const typesOnNode = new Set();
+                    node.connectedEdges().forEach(e => {
+                        const lab = String(e.data('label') || '').trim();
+                        if (lab) typesOnNode.add(lab);
+                    });
+                    if (typesOnNode.size === 0) {
+                        shouldShow = true;
+                    } else {
+                        let hit = false;
+                        typesOnNode.forEach(t => {
+                            if (relationships.indexOf(t) !== -1) hit = true;
+                        });
+                        shouldShow = hit;
+                    }
                 }
             }
-            
-            // Note: Relationship filtering would require loading relationships for each node
-            // For now, we'll filter by lifecycle only
-            
-            if (shouldShow) {
-                node.style('display', 'element');
-            } else {
-                node.style('display', 'none');
-            }
+
+            node.style('display', shouldShow ? 'element' : 'none');
         });
-        
-        // Refresh layout with root nodes from existing network
+
+        net.edges().forEach(edge => {
+            const sv = edge.source().style('display') !== 'none';
+            const tv = edge.target().style('display') !== 'none';
+            edge.style('display', (sv && tv) ? 'element' : 'none');
+        });
+
         const rootNodeIds = adapter.findRootNodes();
-        CapabilityMapState.network.layout(buildCytoscapeLayout(rootNodeIds)).run();
+        net.layout(buildCytoscapeLayout(rootNodeIds)).run();
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -1380,6 +1403,557 @@
         });
     }
 
+    function getCapabilityRelationshipsMapSubtabHtml() {
+        return `                            <div class="map-section" id="capabilityRelationshipsMapSection" style="grid-column:1/-1; margin-bottom: 1.5rem;">
+                                <div class="map-section-header">
+                                    <div class="map-section-title">MAP</div>
+                                    <button type="button" class="map-collapse-btn" id="capabilityRelationshipsMapCollapseBtn" title="Collapse/Expand">
+                                        <i class="fas fa-minus"></i>
+                                    </button>
+                                </div>
+                                <!-- Map Toolbar -->
+                                <div class="interface-map-toolbar">
+                                    <!-- Map Type -->
+                                    <div class="map-control-group">
+                                        <label>Map type:</label>
+                                        <select id="capabilityRelationshipsMapTypeSelect" class="map-select">
+                                            <option value="capability-lineage" selected>Capability Lineage</option>
+                                        </select>
+                                    </div>
+                                    
+                                    <!-- Layout -->
+                                    <div class="map-control-group">
+                                        <label>Layout:</label>
+                                        <div class="map-layout-controls">
+                                            ${typeof window.SharedMapLayoutRichControlsHtml === 'function' ? window.SharedMapLayoutRichControlsHtml('capabilityRelationshipsMap', { richItems: 'four' }) : ''}
+                                        </div>
+                                    </div>
+                                    <div class="map-control-group map-hops-group" id="capabilityRelationshipsMapHopsGroup">
+                                        <label>Hops:</label>
+                                        <input type="number" id="capabilityRelationshipsMapHopsCount" class="map-hops-input" min="1" max="99" value="15" title="Upstream/downstream lineage depth (1-99, recommend 15)">
+                                    </div>
+                                    
+                                    <!-- Overlay -->
+                                    <div class="map-control-group">
+                                        <label>Overlay:</label>
+                                        <div class="map-overlay-controls">
+                                            <div class="map-overlay-dropdown">
+                                                <button type="button" class="map-select-btn" id="capabilityRelationshipsMapOverlayBtn">
+                                                    <span id="capabilityRelationshipsMapOverlayBtnText">None</span>
+                                                    <i class="fas fa-chevron-down"></i>
+                                                </button>
+                                                <!-- Capability Lineage Overlay Menu -->
+                                                <div class="map-overlay-menu" id="capabilityRelationshipsMapOverlayMenuCapability" data-map-type="capability-lineage">
+                                                    <div class="overlay-menu-grid">
+                                                        <div class="overlay-menu-column">
+                                                            <div class="overlay-menu-header">Data</div>
+                                                            <div class="overlay-menu-item" data-overlay="description">
+                                                                <i class="fas fa-info-circle"></i> Description
+                                                            </div>
+                                                            <div class="overlay-menu-item" data-overlay="glossary">
+                                                                <i class="fas fa-book"></i> Glossary
+                                                            </div>
+                                                            <div class="overlay-menu-item" data-overlay="systems">
+                                                                <i class="fas fa-server"></i> Systems
+                                                            </div>
+                                                        </div>
+                                                        <div class="overlay-menu-column">
+                                                            <div class="overlay-menu-header">Business</div>
+                                                            <div class="overlay-menu-item" data-overlay="stakeholders">
+                                                                <i class="fas fa-users"></i> Stakeholders
+                                                            </div>
+                                                            <div class="overlay-menu-item" data-overlay="projects">
+                                                                <i class="fas fa-project-diagram"></i> Projects
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="overlay-menu-footer">
+                                                        <button type="button" class="overlay-clear-btn" id="capabilityRelationshipsMapClearOverlaysBtnCapability">Clear Overlays</button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <button type="button" class="map-toolbar-btn-sm" id="capabilityRelationshipsMapOverlayGrid" title="Overlay fields as columns">
+                                                <i class="fas fa-th"></i>
+                                                <i class="fas fa-chevron-down" style="font-size: 8px; margin-left: 2px;"></i>
+                                            </button>
+                                            <div class="map-overlay-columns-menu map-filter-menu" id="capabilityRelationshipsMapOverlayColumnsMenu" style="display: none;">
+                                                <div class="map-filter-category">
+                                                    <div class="map-filter-category-header">OVERLAY FIELDS AS COLUMNS</div>
+                                                    <div id="capabilityRelationshipsMapOverlayColumnsOptions" class="map-filter-options-container"></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Filters -->
+                                    <div class="map-control-group">
+                                        <label>Filters:</label>
+                                        <div class="map-filter-dropdown">
+                                            <button type="button" class="map-select-btn" id="capabilityRelationshipsMapFilterBtn">
+                                                <span id="capabilityRelationshipsMapFilterBtnText">All selected (2)</span>
+                                                <i class="fas fa-chevron-down"></i>
+                                            </button>
+                                            <!-- Capability Lineage Filter Menu -->
+                                            <div class="map-filter-menu" id="capabilityRelationshipsMapFilterMenuCapability" data-map-type="capability-lineage">
+                                                <div class="map-filter-category">
+                                                    <div class="map-filter-category-header">CAPABILITY</div>
+                                                    <div class="map-filter-option">
+                                                        <input type="checkbox" id="filterCapabilityLineage" checked>
+                                                        <label for="filterCapabilityLineage">Capability Lineage</label>
+                                                    </div>
+                                                </div>
+                                                <div class="map-filter-category">
+                                                    <div class="map-filter-category-header">RELATIONSHIPS</div>
+                                                    <div id="capabilityRelationshipsMapFilterRelationshipOptions" class="map-filter-options-container">
+                                                        <!-- Dynamically populated -->
+                                                    </div>
+                                                </div>
+                                                <div class="map-filter-category">
+                                                    <div class="map-filter-category-header">LIFECYCLE</div>
+                                                    <div id="capabilityRelationshipsMapFilterLifecycleOptions" class="map-filter-options-container">
+                                                        <!-- Dynamically populated -->
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Toolbar Buttons -->
+                                    <div class="map-toolbar-buttons">
+                                        <button type="button" class="map-toolbar-btn" id="capabilityRelationshipsMapToggleLabels" title="Toggle labels">
+                                            <i class="fas fa-exchange-alt"></i>
+                                        </button>
+                                        <div class="map-toolbar-separator"></div>
+                                        <button type="button" class="map-toolbar-btn" id="capabilityRelationshipsMapZoomIn" title="Zoom in">
+                                            <i class="fas fa-search-plus"></i>
+                                        </button>
+                                        <button type="button" class="map-toolbar-btn" id="capabilityRelationshipsMapZoomOut" title="Zoom out">
+                                            <i class="fas fa-search-minus"></i>
+                                        </button>
+                                        <div class="map-toolbar-separator"></div>
+                                        <button type="button" class="map-toolbar-btn" id="capabilityRelationshipsMapRedraw" title="Redraw">
+                                            <i class="fas fa-sync-alt"></i>
+                                        </button>
+                                        <button type="button" class="map-toolbar-btn" id="capabilityRelationshipsMapReset" title="Reset">
+                                            <i class="fas fa-undo"></i>
+                                        </button>
+                                        <button type="button" class="map-toolbar-btn" id="capabilityRelationshipsMapExport" title="Export as PNG">
+                                            <i class="fas fa-save"></i>
+                                        </button>
+                                        <div class="map-toolbar-separator"></div>
+                                        <button type="button" class="map-toolbar-btn" id="capabilityRelationshipsMapNavigator" title="Map navigator">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                        <button type="button" class="map-toolbar-btn" id="capabilityRelationshipsMapFullscreen" title="Fullscreen">
+                                            <i class="fas fa-external-link-alt"></i>
+                                        </button>
+                                        <button type="button" class="map-toolbar-btn" id="capabilityRelationshipsMapLegend" title="Open the Legend" aria-label="Open the Legend – refer to the legend to identify the symbols used in the map (Insight Maps Palette)">
+                                            <i class="fas fa-list-ul"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <!-- Map Body -->
+                                <div class="interface-map-body">
+                                    <div class="interface-map-canvas" id="capabilityRelationshipsMapCanvas" style="width: 100%; height: 600px; position: relative;">
+                                        <div class="interface-map-loading" data-capability-map-loading style="display:none;">
+                                            <i class="fas fa-spinner fa-spin"></i>
+                                            <span>Building lineage map...</span>
+                                        </div>
+                                    </div>
+                                    <div class="interface-map-side-panel" id="capabilityRelationshipsMapSidePanel" style="display:none;">
+                                        <div class="map-side-panel-section">
+                                            <h4><i class="fas fa-info-circle"></i> Selection</h4>
+                                            <div class="selection-placeholder" data-capability-map-placeholder>
+                                                Select a node to see its details.
+                                            </div>
+                                            <div class="selection-info" data-capability-map-details style="display:none;"></div>
+                                        </div>
+                                        <div class="map-side-panel-section">
+                                            <h4 class="map-legend-palette-title"><i class="fas fa-layer-group"></i> Insight Maps Palette</h4>
+                                            <div data-capability-map-legend></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>`;
+    }
+
+    function initCapabilityMapToolbar() {
+        var mapId = "capabilityRelationshipsMap";
+        var mapRoot = document.getElementById(mapId + "Section") || document;
+        if (mapRoot.dataset && mapRoot.dataset.capabilityMapToolbarWired === "1") {
+            return;
+        }
+        if (mapRoot.dataset) {
+            mapRoot.dataset.capabilityMapToolbarWired = "1";
+        }
+        var byId = function (id) {
+            return mapRoot.querySelector("#" + id) || document.getElementById(id);
+        };
+        var esc = function (t) {
+            return (window.MapRenderUtils && window.MapRenderUtils.escapeHtml) ? window.MapRenderUtils.escapeHtml(t) : String(t == null ? "" : t);
+        };
+
+        // Map type selector (only capability-lineage)
+        const mapTypeSelect = byId(`${mapId}TypeSelect`);
+        
+        // Hops Count (1-99, default 15)
+        const hopsInput = byId(`${mapId}HopsCount`);
+        if (hopsInput) {
+            hopsInput.addEventListener('change', (e) => {
+                let val = parseInt(e.target.value, 10);
+                if (isNaN(val) || val < 1) val = 1;
+                if (val > 99) val = 99;
+                e.target.value = val;
+                if (window.CapabilityRelationshipsMap && typeof window.CapabilityRelationshipsMap.setHopsCount === 'function') {
+                    window.CapabilityRelationshipsMap.setHopsCount(val);
+                }
+            });
+        }
+
+        // Initialize shared dropdown menus for expand/collapse & direction buttons
+        if (typeof window.SharedMapDropdowns === 'function') {
+            window.SharedMapDropdowns({
+                mapId: mapId,
+                getNetwork: () => window.CapabilityRelationshipsMap ? window.CapabilityRelationshipsMap.cy : null,
+                setLayout: (dir) => {
+                    const ls = byId(`${mapId}LayoutSelect`);
+                    if (ls) ls.value = dir;
+                    if (window.CapabilityRelationshipsMap) window.CapabilityRelationshipsMap.setLayout(dir);
+                },
+                getCanvas: () => byId(mapId + 'Canvas')
+            });
+        }
+
+        // Collapse/Expand section button
+        const collapseBtn = byId(`${mapId}CollapseBtn`);
+        const mapSection = byId(`${mapId}Section`);
+        if (collapseBtn && mapSection) {
+            collapseBtn.addEventListener('click', () => {
+                const toolbar = mapSection.querySelector('.interface-map-toolbar');
+                const body = mapSection.querySelector('.interface-map-body');
+                const icon = collapseBtn.querySelector('i');
+                
+                if (toolbar && body) {
+                    const isCollapsed = toolbar.style.display === 'none';
+                    toolbar.style.display = isCollapsed ? '' : 'none';
+                    body.style.display = isCollapsed ? '' : 'none';
+                    icon.className = isCollapsed ? 'fas fa-minus' : 'fas fa-plus';
+                }
+            });
+        }
+
+        // Overlay dropdown
+        const overlayBtn = byId(`${mapId}OverlayBtn`);
+        const overlayMenu = byId(`${mapId}OverlayMenuCapability`);
+        if (overlayBtn && overlayMenu) {
+            overlayBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                overlayMenu.classList.toggle('open');
+            });
+        }
+
+        // Setup overlay menu item click handlers
+        if (overlayMenu) {
+            overlayMenu.querySelectorAll('.overlay-menu-item').forEach(item => {
+                item.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    const overlayType = e.currentTarget.getAttribute('data-overlay');
+                    const wasActive = e.currentTarget.classList.contains('active');
+                    
+                    overlayMenu.querySelectorAll('.overlay-menu-item').forEach(i => i.classList.remove('active'));
+                    
+                    if (!wasActive) {
+                        e.currentTarget.classList.add('active');
+                        if (overlayBtn) {
+                            overlayBtn.querySelector('span').textContent = e.currentTarget.textContent.trim();
+                        }
+                        if (window.CapabilityRelationshipsMap) {
+                            window.CapabilityRelationshipsMap.setOverlay(overlayType);
+                        }
+                    } else {
+                        if (overlayBtn) {
+                            overlayBtn.querySelector('span').textContent = 'None';
+                        }
+                        if (window.CapabilityRelationshipsMap) {
+                            window.CapabilityRelationshipsMap.setOverlay('none');
+                        }
+                    }
+                    
+                    overlayMenu.classList.remove('open');
+                });
+            });
+        }
+
+        // Clear overlays button
+        const clearOverlaysBtn = byId(`${mapId}ClearOverlaysBtnCapability`);
+        if (clearOverlaysBtn) {
+            clearOverlaysBtn.addEventListener('click', () => {
+                mapRoot.querySelectorAll('.overlay-menu-item').forEach(i => i.classList.remove('active'));
+                if (overlayBtn) overlayBtn.querySelector('span').textContent = 'None';
+                if (window.CapabilityRelationshipsMap) {
+                    window.CapabilityRelationshipsMap.setOverlay('none');
+                }
+                if (overlayMenu) overlayMenu.classList.remove('open');
+            });
+        }
+
+        // Overlay grid button: overlay fields as columns dropdown
+        const overlayGridBtn = byId(`${mapId}OverlayGrid`);
+        const overlayColumnsMenuEl = byId(`${mapId}OverlayColumnsMenu`);
+        const overlayColumnsOptions = byId(`${mapId}OverlayColumnsOptions`);
+        if (overlayGridBtn && overlayColumnsMenuEl && overlayColumnsOptions) {
+            function populateOverlayColumnsMenu() {
+                overlayColumnsOptions.innerHTML = '';
+                const overlayType = window.CapabilityRelationshipsMap && window.CapabilityRelationshipsMap.getState ? (window.CapabilityRelationshipsMap.getState().overlay || '') : '';
+                if (!overlayType || overlayType === 'none') {
+                    overlayColumnsOptions.innerHTML = '<div class="map-overlay-columns-empty">Select an overlay first.</div>';
+                    return;
+                }
+                const columns = window.OverlayColumns && window.OverlayColumns.getOverlayColumns ? window.OverlayColumns.getOverlayColumns(overlayType) : [];
+                const selectedIds = window.CapabilityRelationshipsMap && typeof window.CapabilityRelationshipsMap.getOverlayColumns === 'function' ? window.CapabilityRelationshipsMap.getOverlayColumns(overlayType) : [];
+                if (!columns || columns.length === 0) {
+                    overlayColumnsOptions.innerHTML = '<div class="map-overlay-columns-empty">No columns for this overlay.</div>';
+                    return;
+                }
+                columns.forEach(col => {
+                    const div = document.createElement('div');
+                    div.className = 'map-filter-option';
+                    const input = document.createElement('input');
+                    input.type = 'checkbox';
+                    input.id = 'overlayCol_capability_' + overlayType + '_' + col.id;
+                    input.checked = selectedIds.indexOf(col.id) !== -1;
+                    input.dataset.columnId = col.id;
+                    const label = document.createElement('label');
+                    label.htmlFor = input.id;
+                    label.textContent = col.label;
+                    div.appendChild(input);
+                    div.appendChild(label);
+                    input.addEventListener('change', () => {
+                        const checked = Array.from(overlayColumnsOptions.querySelectorAll('input:checked')).map(i => i.dataset.columnId);
+                        if (window.CapabilityRelationshipsMap && typeof window.CapabilityRelationshipsMap.setOverlayColumns === 'function') {
+                            window.CapabilityRelationshipsMap.setOverlayColumns(overlayType, checked);
+                        }
+                    });
+                    overlayColumnsOptions.appendChild(div);
+                });
+            }
+            overlayGridBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (filterMenu) filterMenu.classList.remove('open');
+                if (overlayMenu) overlayMenu.classList.remove('open');
+                const isOpen = overlayColumnsMenuEl.classList.toggle('open');
+                if (isOpen) {
+                    overlayColumnsMenuEl.style.display = 'block';
+                    populateOverlayColumnsMenu();
+                    const rect = overlayGridBtn.getBoundingClientRect();
+                    overlayColumnsMenuEl.style.position = 'fixed';
+                    overlayColumnsMenuEl.style.left = rect.left + 'px';
+                    overlayColumnsMenuEl.style.top = (rect.bottom + 4) + 'px';
+                    overlayColumnsMenuEl.style.minWidth = '200px';
+                } else {
+                    overlayColumnsMenuEl.style.display = 'none';
+                }
+                overlayGridBtn.classList.toggle('active', isOpen);
+            });
+        }
+
+        // Filter dropdown
+        const filterBtn = byId(`${mapId}FilterBtn`);
+        const filterMenu = byId(`${mapId}FilterMenuCapability`);
+        if (filterBtn && filterMenu) {
+            filterBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                filterMenu.classList.toggle('open');
+                if (overlayMenu) overlayMenu.classList.remove('open');
+            });
+        }
+
+        // Listen for dynamic filter options from map
+        window.addEventListener('capabilityMapFilterOptionsUpdated', (event) => {
+            const { relationships, lifecycles } = event.detail || {};
+            
+            // Update Relationship filter options
+            const relationshipContainer = byId('capabilityRelationshipsMapFilterRelationshipOptions');
+            if (relationshipContainer && relationships && relationships.length > 0) {
+                relationshipContainer.innerHTML = relationships.map((rel, idx) => `
+                    <div class="map-filter-option">
+                        <input type="checkbox" id="filterCapabilityRelationship_${idx}" data-filter-type="relationship" data-filter-value="${esc(rel)}" checked>
+                        <label for="filterCapabilityRelationship_${idx}">${esc(rel)}</label>
+                    </div>
+                `).join('');
+                
+                // Add event listeners to new checkboxes
+                relationshipContainer.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+                    checkbox.addEventListener('change', () => {
+                        applyCapabilityNodeFilters();
+                        updateCapabilityFilterLabel();
+                    });
+                });
+            } else if (relationshipContainer) {
+                relationshipContainer.innerHTML = '<div class="map-filter-option" style="color: var(--text-muted, #6b7280); font-size: 0.75rem; padding: 0.25rem 0.75rem;">No relationships available</div>';
+            }
+            
+            // Update Lifecycle filter options
+            const lifecycleContainer = byId('capabilityRelationshipsMapFilterLifecycleOptions');
+            if (lifecycleContainer && lifecycles && lifecycles.length > 0) {
+                lifecycleContainer.innerHTML = lifecycles.map((lc, idx) => `
+                    <div class="map-filter-option">
+                        <input type="checkbox" id="filterCapabilityLifecycle_${idx}" data-filter-type="lifecycle" data-filter-value="${esc(lc)}" checked>
+                        <label for="filterCapabilityLifecycle_${idx}">${esc(lc)}</label>
+                    </div>
+                `).join('');
+                
+                // Add event listeners to new checkboxes
+                lifecycleContainer.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+                    checkbox.addEventListener('change', () => {
+                        applyCapabilityNodeFilters();
+                        updateCapabilityFilterLabel();
+                    });
+                });
+            } else if (lifecycleContainer) {
+                lifecycleContainer.innerHTML = '<div class="map-filter-option" style="color: var(--text-muted, #6b7280); font-size: 0.75rem; padding: 0.25rem 0.75rem;">No lifecycles available</div>';
+            }
+            
+            // Update filter label count
+            updateCapabilityFilterLabel();
+            applyCapabilityNodeFilters();
+        });
+
+        // Apply node filters based on relationships and lifecycle
+        function applyCapabilityNodeFilters() {
+            const selectedRelationships = [];
+            const selectedLifecycles = [];
+            
+            mapRoot.querySelectorAll('#capabilityRelationshipsMapFilterRelationshipOptions input:checked').forEach(cb => {
+                selectedRelationships.push(cb.dataset.filterValue);
+            });
+            mapRoot.querySelectorAll('#capabilityRelationshipsMapFilterLifecycleOptions input:checked').forEach(cb => {
+                selectedLifecycles.push(cb.dataset.filterValue);
+            });
+            
+            if (window.CapabilityRelationshipsMap) {
+                window.CapabilityRelationshipsMap.setNodeFilters({
+                    relationships: selectedRelationships,
+                    lifecycles: selectedLifecycles
+                });
+            }
+        }
+
+        // Update filter label
+        function updateCapabilityFilterLabel() {
+            const filterBtnText = byId(`${mapId}FilterBtnText`);
+            if (!filterBtnText) return;
+            
+            const checkboxes = filterMenu.querySelectorAll('input[type="checkbox"]');
+            const checkedCount = Array.from(checkboxes).filter(c => c.checked && c.closest('.map-filter-option')?.style.display !== 'none').length;
+            const totalCount = Array.from(checkboxes).filter(c => c.closest('.map-filter-option')?.style.display !== 'none').length;
+            
+            if (totalCount === 0) {
+                filterBtnText.textContent = 'No filters';
+            } else if (checkedCount === totalCount) {
+                filterBtnText.textContent = `All selected (${totalCount})`;
+            } else {
+                filterBtnText.textContent = `${checkedCount} of ${totalCount}`;
+            }
+        }
+
+        // Toolbar buttons
+        const zoomInBtn = byId(`${mapId}ZoomIn`);
+        if (zoomInBtn) {
+            zoomInBtn.addEventListener('click', () => {
+                if (window.CapabilityRelationshipsMap) window.CapabilityRelationshipsMap.zoomIn();
+            });
+        }
+
+        const zoomOutBtn = byId(`${mapId}ZoomOut`);
+        if (zoomOutBtn) {
+            zoomOutBtn.addEventListener('click', () => {
+                if (window.CapabilityRelationshipsMap) window.CapabilityRelationshipsMap.zoomOut();
+            });
+        }
+
+        const redrawBtn = byId(`${mapId}Redraw`);
+        if (redrawBtn) {
+            redrawBtn.addEventListener('click', () => {
+                if (window.CapabilityRelationshipsMap) window.CapabilityRelationshipsMap.redrawMap();
+            });
+        }
+
+        const resetBtn = byId(`${mapId}Reset`);
+        if (resetBtn) {
+            resetBtn.addEventListener('click', () => {
+                if (window.CapabilityRelationshipsMap) window.CapabilityRelationshipsMap.resetMap();
+            });
+        }
+
+        const exportBtn = byId(`${mapId}Export`);
+        if (exportBtn) {
+            exportBtn.addEventListener('click', () => {
+                if (window.CapabilityRelationshipsMap) window.CapabilityRelationshipsMap.exportAsPng();
+            });
+        }
+
+        const fullscreenBtn = byId(`${mapId}Fullscreen`);
+        if (fullscreenBtn) {
+            fullscreenBtn.addEventListener('click', () => {
+                if (window.CapabilityRelationshipsMap && window.CapabilityRelationshipsMap.openFullscreen) {
+                    window.CapabilityRelationshipsMap.openFullscreen();
+                }
+            });
+        }
+
+        const legendBtn = byId(`${mapId}Legend`);
+        if (legendBtn && typeof window.setupMapLegendDropdown === 'function') {
+            window.setupMapLegendDropdown(mapId + 'Legend', mapId + 'LegendDropdown', function() {
+                return window.CapabilityRelationshipsMap && window.CapabilityRelationshipsMap.getLegendHtml ? window.CapabilityRelationshipsMap.getLegendHtml() : '';
+            });
+        } else if (legendBtn) {
+            const sidePanel = byId(`${mapId}SidePanel`);
+            legendBtn.addEventListener('click', () => {
+                if (sidePanel) {
+                    const isVisible = sidePanel.style.display !== 'none';
+                    sidePanel.style.display = isVisible ? 'none' : 'flex';
+                    legendBtn.classList.toggle('active', !isVisible);
+                }
+            });
+        }
+
+        const navigatorBtn = byId(`${mapId}Navigator`);
+        if (navigatorBtn) {
+            navigatorBtn.addEventListener('click', () => {
+                navigatorBtn.classList.toggle('active');
+                if (window.CapabilityRelationshipsMap && window.CapabilityRelationshipsMap.toggleNavigator) {
+                    window.CapabilityRelationshipsMap.toggleNavigator();
+                }
+            });
+        }
+
+        const toggleLabelsBtn = byId(`${mapId}ToggleLabels`);
+        if (toggleLabelsBtn) {
+            toggleLabelsBtn.addEventListener('click', () => {
+                toggleLabelsBtn.classList.toggle('active');
+                // Toggle labels functionality can be added if needed
+            });
+        }
+
+        // Close dropdowns when clicking outside
+        document.addEventListener('click', (e) => {
+            if (filterBtn && filterMenu && !filterBtn.contains(e.target) && !filterMenu.contains(e.target)) {
+                filterMenu.classList.remove('open');
+            }
+            if (overlayBtn && overlayMenu && !overlayBtn.contains(e.target) && !overlayMenu.contains(e.target)) {
+                overlayMenu.classList.remove('open');
+            }
+            if (overlayColumnsMenuEl && overlayGridBtn && !overlayColumnsMenuEl.contains(e.target) && !overlayGridBtn.contains(e.target)) {
+                overlayColumnsMenuEl.classList.remove('open');
+                overlayColumnsMenuEl.style.display = 'none';
+                overlayGridBtn.classList.remove('active');
+            }
+        });
+    }
+
     var _capabilityRelationshipsEngine = new window.MapEngine('capability-lineage');
 
     Object.assign(_capabilityRelationshipsEngine, {
@@ -1401,7 +1975,8 @@
         toggleNavigator: toggleNavigator,
         getLegendHtml: getLegendHtml,
         updateLegend: updateLegend,
-        getState: function () { return CapabilityMapState; }
+        getState: function () { return CapabilityMapState; },
+        initToolbar: function () { initCapabilityMapToolbar(); }
     });
 
     Object.defineProperty(_capabilityRelationshipsEngine, 'cy', {
@@ -1410,5 +1985,7 @@
     });
 
     window.CapabilityRelationshipsMap = _capabilityRelationshipsEngine;
+
+    window.getCapabilityRelationshipsMapSubtabHtml = getCapabilityRelationshipsMapSubtabHtml;
 
 })();

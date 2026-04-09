@@ -57,7 +57,15 @@
         /** System IDs in segments user cannot access – show lock */
         inaccessibleSystems: new Set(),
         /** Edge labels visible (fullscreen / toolbar sync) */
-        showEdgeLabels: true
+        showEdgeLabels: true,
+        nodeFilters: {
+            classifications: [],
+            types: [],
+            lifecycles: []
+        },
+        filtersInitialized: false,
+        projectFilterTypeUiActive: false,
+        projectFilterLifecycleUiActive: false
     };
 
     const adapter = window.createMapAdapter(ProjectDataMapState, MAP_ID, { zoomRecenter: false });
@@ -229,6 +237,7 @@
     }
 
     function showPlaceholder(message) {
+        clearProjectDataMapFilterOptions();
         if (ProjectDataMapState.canvas) {
             ProjectDataMapState.canvas.innerHTML = window.MapRenderUtils.htmlMapCanvasMessage(message || 'No data to display.');
         }
@@ -291,6 +300,86 @@
         if (panelEl) panelEl.innerHTML = panelHtml;
         const dropdown = document.getElementById(MAP_ID + 'LegendDropdown');
         if (dropdown) dropdown.innerHTML = panelHtml;
+    }
+
+    function getProjectMapRoot() {
+        return document.getElementById(MAP_ID + 'Wrapper') || document.getElementById(MAP_ID + 'Section');
+    }
+
+    function clearProjectDataMapFilterOptions() {
+        const t = document.getElementById(MAP_ID + 'FilterTypeOptions');
+        const l = document.getElementById(MAP_ID + 'FilterLifecycleOptions');
+        if (t) t.innerHTML = '';
+        if (l) l.innerHTML = '';
+        ProjectDataMapState.projectFilterTypeUiActive = false;
+        ProjectDataMapState.projectFilterLifecycleUiActive = false;
+        ProjectDataMapState.filtersInitialized = false;
+        ProjectDataMapState.nodeFilters = { classifications: [], types: [], lifecycles: [] };
+        updateProjectDataMapFilterButtonText();
+    }
+
+    function fillProjectFilterCheckboxGroup(containerId, values, idPrefix) {
+        const container = document.getElementById(containerId);
+        if (!container) return;
+        container.innerHTML = '';
+        const sorted = [...values].filter(Boolean).sort(function (a, b) { return String(a).localeCompare(String(b)); });
+        sorted.forEach(function (val, idx) {
+            const safe = String(val).replace(/[^a-zA-Z0-9_-]/g, '_');
+            const id = MAP_ID + '_' + idPrefix + '_' + idx + '_' + safe;
+            const div = document.createElement('div');
+            div.className = 'map-filter-option';
+            const input = document.createElement('input');
+            input.type = 'checkbox';
+            input.id = id;
+            input.value = val;
+            input.checked = true;
+            const label = document.createElement('label');
+            label.htmlFor = id;
+            label.textContent = val;
+            div.appendChild(input);
+            div.appendChild(label);
+            container.appendChild(div);
+        });
+    }
+
+    function populateProjectDataMapFilterOptions() {
+        const extract = window.MapGraphUtils && typeof window.MapGraphUtils.extractSystemMeta === 'function'
+            ? window.MapGraphUtils.extractSystemMeta : null;
+        if (!extract) return;
+        const types = new Set();
+        const lifes = new Set();
+        ProjectDataMapState.systemsData.forEach(function (sys, sid) {
+            const m = extract(sys, sid);
+            if (m.type) types.add(m.type);
+            if (m.lifecycle) lifes.add(m.lifecycle);
+        });
+        ProjectDataMapState.projectFilterTypeUiActive = types.size > 0;
+        ProjectDataMapState.projectFilterLifecycleUiActive = lifes.size > 0;
+        fillProjectFilterCheckboxGroup(MAP_ID + 'FilterTypeOptions', types, 'typ');
+        fillProjectFilterCheckboxGroup(MAP_ID + 'FilterLifecycleOptions', lifes, 'life');
+    }
+
+    function readProjectFilterChecked(suffix) {
+        const c = document.getElementById(MAP_ID + suffix);
+        if (!c) return [];
+        return Array.prototype.map.call(c.querySelectorAll('input[type="checkbox"]:checked'), function (i) { return i.value; });
+    }
+
+    function updateProjectDataMapFilterButtonText() {
+        const el = document.getElementById(MAP_ID + 'FilterBtnText');
+        if (!el) return;
+        const menu = document.getElementById(MAP_ID + 'FilterMenu');
+        if (!menu) {
+            el.textContent = 'All selected';
+            return;
+        }
+        const visible = Array.from(menu.querySelectorAll('input[type="checkbox"]')).filter(function (c) {
+            return (c.closest('.map-filter-option') || {}).style.display !== 'none';
+        });
+        const checked = visible.filter(function (c) { return c.checked; });
+        if (visible.length === 0) el.textContent = 'No filters';
+        else if (checked.length === visible.length) el.textContent = 'All selected (' + visible.length + ')';
+        else el.textContent = checked.length + ' of ' + visible.length;
     }
 
     /** Fetch system by ID without logging or throwing on 404. On 403 (segment not accessible), track as inaccessible and return placeholder so node shows with lock. */
@@ -379,8 +468,14 @@
 
         const elements = [];
         const currentNodeIds = new Set(graph.nodes.filter(n => n.isImpact).map(n => n.id));
+        const extract = window.MapGraphUtils && typeof window.MapGraphUtils.extractSystemMeta === 'function'
+            ? window.MapGraphUtils.extractSystemMeta : null;
         graph.nodes.forEach(n => {
             const isLocked = n.isLocked || ProjectDataMapState.inaccessibleSystems.has(String(n.id));
+            let meta = {};
+            if (extract && ProjectDataMapState.systemsData.has(n.id)) {
+                meta = extract(ProjectDataMapState.systemsData.get(n.id), n.id) || {};
+            }
             elements.push({
                 data: {
                     id: n.id,
@@ -388,7 +483,9 @@
                     nodeColor: n.nodeColor,
                     borderColor: n.borderColor,
                     backgroundImage: n.backgroundImage || adapter.getSystemIcon(n.isImpact),
-                    isLocked: !!isLocked
+                    isLocked: !!isLocked,
+                    isCurrent: !!n.isImpact,
+                    meta: meta
                 }
             });
         });
@@ -432,6 +529,7 @@
         clearOverlayPanels();
         if (ProjectDataMapState.overlay && ProjectDataMapState.overlay !== 'none') loadOverlayData(ProjectDataMapState.overlay);
         updateProjectDataMapLegend(true);
+        refreshProjectDataMapFiltersAfterRender();
         hideLoading();
     }
 
@@ -487,6 +585,42 @@
                 panel.style.display = 'none';
             }
         });
+    }
+
+    function applyProjectNodeFiltersFromState() {
+        if (!ProjectDataMapState.network || !window.MapGraphUtils) return;
+        window.MapGraphUtils.applySystemNodeFilters(ProjectDataMapState.network, ProjectDataMapState.nodeFilters, {
+            filtersInitialized: ProjectDataMapState.filtersInitialized === true,
+            filterDimensionActive: {
+                classification: false,
+                type: ProjectDataMapState.projectFilterTypeUiActive,
+                lifecycle: ProjectDataMapState.projectFilterLifecycleUiActive
+            },
+            updateOverlayPositions: updateOverlayPositions
+        });
+    }
+
+    function syncProjectNodeFiltersFromDomAndApply() {
+        ProjectDataMapState.nodeFilters = {
+            classifications: [],
+            types: readProjectFilterChecked('FilterTypeOptions'),
+            lifecycles: readProjectFilterChecked('FilterLifecycleOptions')
+        };
+        ProjectDataMapState.filtersInitialized = true;
+        applyProjectNodeFiltersFromState();
+        updateProjectDataMapFilterButtonText();
+    }
+
+    function refreshProjectDataMapFiltersAfterRender() {
+        populateProjectDataMapFilterOptions();
+        ProjectDataMapState.nodeFilters = {
+            classifications: [],
+            types: readProjectFilterChecked('FilterTypeOptions'),
+            lifecycles: readProjectFilterChecked('FilterLifecycleOptions')
+        };
+        ProjectDataMapState.filtersInitialized = true;
+        applyProjectNodeFiltersFromState();
+        updateProjectDataMapFilterButtonText();
     }
 
     function getOverlayTitle(overlayType) {
@@ -1217,6 +1351,28 @@
             });
         }
         if (bindOnce) {
+            const filterBtn = document.getElementById(MAP_ID + 'FilterBtn');
+            const filterMenu = document.getElementById(MAP_ID + 'FilterMenu');
+            const projRoot = getProjectMapRoot();
+            if (filterBtn && filterMenu && projRoot) {
+                filterBtn.addEventListener('click', function (e) {
+                    e.stopPropagation();
+                    const wasOpen = filterMenu.classList.contains('open');
+                    projRoot.querySelectorAll('.map-filter-menu').forEach(function (m) { m.classList.remove('open'); });
+                    if (!wasOpen) filterMenu.classList.add('open');
+                });
+                projRoot.addEventListener('change', function (e) {
+                    const t = e.target;
+                    if (!t || t.tagName !== 'INPUT' || t.type !== 'checkbox') return;
+                    if (!filterMenu.contains(t)) return;
+                    syncProjectNodeFiltersFromDomAndApply();
+                });
+                document.addEventListener('click', function (e) {
+                    if (filterMenu.classList.contains('open') && !filterMenu.contains(e.target) && !filterBtn.contains(e.target)) {
+                        filterMenu.classList.remove('open');
+                    }
+                });
+            }
             window.MapRenderUtils.wireLineageToolbarSharedControls({
                 mapId: MAP_ID,
                 adapter: adapter,
@@ -1225,7 +1381,19 @@
                 setLayout: setLayout,
                 exportAsPng: exportAsPng,
                 openFullscreen: openFullscreen,
-                getLegendHtml: getLegendHtml
+                getLegendHtml: getLegendHtml,
+                mapInstance: {
+                    setNodeFilters: function (filters) {
+                        ProjectDataMapState.nodeFilters = {
+                            classifications: (filters && filters.classifications) || [],
+                            types: (filters && filters.types) || [],
+                            lifecycles: (filters && filters.lifecycles) || []
+                        };
+                        ProjectDataMapState.filtersInitialized = true;
+                        applyProjectNodeFiltersFromState();
+                    },
+                    getState: getState
+                }
             });
         }
     }
@@ -1292,6 +1460,15 @@
         setOverlay: setOverlay,
         setOverlayColumns: setOverlayColumns,
         getOverlayColumns: getOverlayColumns,
+        setNodeFilters: function (filters) {
+            ProjectDataMapState.nodeFilters = {
+                classifications: (filters && filters.classifications) || [],
+                types: (filters && filters.types) || [],
+                lifecycles: (filters && filters.lifecycles) || []
+            };
+            ProjectDataMapState.filtersInitialized = true;
+            applyProjectNodeFiltersFromState();
+        },
         resetMap: function () {
             ProjectDataMapState.hiddenNodes.clear();
             if (ProjectDataMapState.network) ProjectDataMapState.network.fit(undefined, 50);
