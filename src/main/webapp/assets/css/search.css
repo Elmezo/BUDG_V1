@@ -5399,57 +5399,51 @@ th[data-column="alias_names"] {
     color: #1f6f52;
 }
 
-.my-searches-dropdown-content {
-    position: absolute;
-    top: 100%;
-    right: 0;
-    z-index: 1000;
-    margin-top: 4px;
-    background: var(--background-primary);
-    border: 1px solid var(--border-color);
-    border-radius: 4px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    min-width: 300px;
-    max-height: 400px;
-    overflow-y: auto;
+/* My Searches panel: shares .history-dropdown-panel.history-dropdown-content (same chrome as History) */
+.my-searches-dropdown-footer {
+    flex-shrink: 0;
+    border-top: 1px solid var(--border-color, #eee);
+    background: var(--background-secondary, #f8faf9);
 }
 
-.my-searches-dropdown-list {
-    padding: 4px 0;
-}
-
-.my-searches-dropdown-item {
+.my-searches-manage-link {
+    width: 100%;
+    margin: 0;
     padding: 12px 16px;
+    border: none;
+    background: transparent;
     cursor: pointer;
-    transition: var(--transition);
-    border-bottom: 1px solid var(--border-color);
-}
-
-.my-searches-dropdown-item:last-child {
-    border-bottom: none;
-}
-
-.my-searches-dropdown-item:hover {
-    background: var(--background-secondary);
-}
-
-.my-searches-dropdown-item-name {
-    font-weight: 500;
-    color: var(--text-primary);
-    margin-bottom: 4px;
-    font-size: 0.9rem;
-}
-
-.my-searches-dropdown-item-desc {
-    font-size: 0.8rem;
-    color: var(--text-secondary);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    font: inherit;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #248567;
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    transition: background-color 0.2s ease;
 }
 
 .my-searches-manage-link:hover {
-    background: var(--background-secondary);
+    background: rgba(36, 133, 103, 0.1);
+}
+
+.my-searches-manage-link:focus {
+    outline: 2px solid #248567;
+    outline-offset: -2px;
+}
+
+/* Saved search rows: same row layout as History; description may wrap */
+.my-searches-dropdown-item .view-date {
+    white-space: normal;
+    word-break: break-word;
+    line-height: 1.35;
+}
+
+[data-theme="dark"] .my-searches-dropdown-footer {
+    background: rgba(0, 0, 0, 0.2);
+    border-top-color: rgba(255, 255, 255, 0.08);
 }
 
 /* ============================================

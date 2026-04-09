@@ -1341,31 +1341,40 @@ function initMySearchesDropdown() {
     const mySearchesText = t('label.mySearches', 'My searches');
     mySearchesBtn.innerHTML = `<i class="fas fa-bookmark"></i> ${mySearchesText} <i class="fas fa-chevron-down"></i>`;
 
-    // Create dropdown container (position: LTR right / RTL left handled in search.css)
+    // Same panel chrome as History (.history-dropdown-panel + .history-dropdown-content)
     const dropdown = document.createElement('div');
-    dropdown.className = 'my-searches-dropdown-content';
+    dropdown.className = 'my-searches-dropdown-content history-dropdown-content history-dropdown-panel';
     dropdown.style.display = 'none';
+    dropdown.setAttribute('role', 'menu');
+    dropdown.setAttribute('aria-label', t('label.mySearches', 'My searches'));
 
-    // Create container for searches list
+    const header = document.createElement('div');
+    header.className = 'history-dropdown-header';
+    header.setAttribute('data-i18n', 'label.mySearches');
+    header.textContent = t('label.mySearches', 'My searches');
+
     const container = document.createElement('div');
     container.id = 'my-searches-dropdown-container';
-    container.style.padding = '8px';
-    dropdown.appendChild(container);
+    container.className = 'recent-views-inner';
 
-    // Create "Manage Searches" link at bottom
-    const manageLink = document.createElement('div');
+    const manageFooter = document.createElement('div');
+    manageFooter.className = 'my-searches-dropdown-footer';
+    const manageLink = document.createElement('button');
+    manageLink.type = 'button';
     manageLink.className = 'my-searches-manage-link';
-    manageLink.style.padding = '8px';
-    manageLink.style.borderTop = '1px solid var(--border-color)';
-    manageLink.style.cursor = 'pointer';
-    manageLink.style.textAlign = 'center';
-    manageLink.style.fontSize = '0.85rem';
-    manageLink.style.color = '#0d6efd';
-    manageLink.innerHTML = `<i class="fas fa-cog"></i> ${escapeHtml(t('search.manageSearchesLink', 'Manage searches'))}`;
+    manageLink.innerHTML = `<i class="fas fa-cog" aria-hidden="true"></i> <span data-i18n="search.manageSearchesLink">${escapeHtml(t('search.manageSearchesLink', 'Manage searches'))}</span>`;
     manageLink.addEventListener('click', () => {
         window.location.href = '/manage-searches.html';
     });
-    dropdown.appendChild(manageLink);
+    manageFooter.appendChild(manageLink);
+
+    dropdown.appendChild(header);
+    dropdown.appendChild(container);
+    dropdown.appendChild(manageFooter);
+
+    if (window.I18n && typeof window.I18n.applyTranslations === 'function') {
+        window.I18n.applyTranslations(dropdown);
+    }
 
     // Wrap button and dropdown in container
     const wrapper = document.createElement('div');
@@ -1388,7 +1397,7 @@ function initMySearchesDropdown() {
             if (dd !== dropdown) dd.style.display = 'none';
         });
 
-        dropdown.style.display = isVisible ? 'none' : 'block';
+        dropdown.style.display = isVisible ? 'none' : 'flex';
 
         // Load searches when opening
         if (!isVisible) {
@@ -1407,7 +1416,11 @@ function initMySearchesDropdown() {
     window.addEventListener('languageChanged', function(e) {
         const mySearchesText = t('label.mySearches', 'My searches');
         mySearchesBtn.innerHTML = `<i class="fas fa-bookmark"></i> ${mySearchesText} <i class="fas fa-chevron-down"></i>`;
-        manageLink.innerHTML = `<i class="fas fa-cog"></i> ${escapeHtml(t('search.manageSearchesLink', 'Manage searches'))}`;
+        manageLink.innerHTML = `<i class="fas fa-cog" aria-hidden="true"></i> <span data-i18n="search.manageSearchesLink">${escapeHtml(t('search.manageSearchesLink', 'Manage searches'))}</span>`;
+        header.setAttribute('data-i18n', 'label.mySearches');
+        if (window.I18n && typeof window.I18n.applyTranslations === 'function') {
+            window.I18n.applyTranslations(dropdown);
+        }
     });
 }
 
@@ -1429,7 +1442,7 @@ async function loadMySearchesForDropdown() {
             // If 401, user not logged in - show empty
             if (response.status === 401) {
                 const msg = escapeHtml(i18nSearch('manageSearches.pleaseLoginMy', 'Please log in to view searches'));
-                container.innerHTML = `<p style="padding: 16px; text-align: center; color: var(--text-secondary); font-size: 0.85rem;">${msg}</p>`;
+                container.innerHTML = `<p class="recent-views-empty">${msg}</p>`;
                 return;
             }
 
@@ -1445,7 +1458,7 @@ async function loadMySearchesForDropdown() {
             // Show empty list instead of error
             console.warn('Error loading searches for dropdown:', errorMessage);
             const emptyMsg = escapeHtml(i18nSearch('manageSearches.emptyMy', 'No saved searches'));
-            container.innerHTML = `<p style="padding: 16px; text-align: center; color: var(--text-secondary); font-size: 0.85rem;">${emptyMsg}</p>`;
+            container.innerHTML = `<p class="recent-views-empty">${emptyMsg}</p>`;
             return;
         }
 
@@ -1457,38 +1470,43 @@ async function loadMySearchesForDropdown() {
 
             if (searches.length === 0) {
                 const emptyMsg = escapeHtml(i18nSearch('manageSearches.emptyMy', 'No saved searches'));
-                container.innerHTML = `<p style="padding: 16px; text-align: center; color: var(--text-secondary); font-size: 0.85rem;">${emptyMsg}</p>`;
+                container.innerHTML = `<p class="recent-views-empty">${emptyMsg}</p>`;
                 return;
             }
 
             const untitled = i18nSearch('manageSearches.untitled', 'Untitled');
-            let html = '<div class="my-searches-dropdown-list">';
+            let html = '<div class="recent-views-list" role="list">';
             searches.forEach(search => {
+                const rawDesc = (search.description || '').trim();
+                const descShort = rawDesc.length > 72 ? rawDesc.substring(0, 72) + '…' : rawDesc;
+                const secondLine = descShort
+                    ? `<span class="view-date">${escapeHtml(descShort)}</span>`
+                    : '';
                 html += `
-                    <div class="my-searches-dropdown-item" data-search-id="${search.id}">
-                        <div class="my-searches-dropdown-item-name">${escapeHtml(search.name || untitled)}</div>
-                        <div class="my-searches-dropdown-item-desc">${escapeHtml((search.description || '').substring(0, 50))}${(search.description || '').length > 50 ? '...' : ''}</div>
-                    </div>
+                    <button type="button" class="recent-view-item my-searches-dropdown-item" role="listitem" data-search-id="${search.id}">
+                        <span class="recent-view-icon" aria-hidden="true"><i class="fas fa-bookmark"></i></span>
+                        <span class="recent-view-body">
+                            <span class="view-name">${escapeHtml(search.name || untitled)}</span>
+                            ${secondLine}
+                        </span>
+                    </button>
                 `;
             });
             html += '</div>';
             container.innerHTML = html;
-            
-            // Add click handlers to search items (after HTML is inserted)
+
             setTimeout(() => {
                 const searchItems = container.querySelectorAll('.my-searches-dropdown-item');
                 searchItems.forEach(item => {
                     item.addEventListener('click', async (e) => {
-                        e.stopPropagation(); // Prevent dropdown from toggling
-                        const searchId = parseInt(item.getAttribute('data-search-id'));
-                        
-                        // Close the dropdown immediately
-                        const dropdown = document.querySelector('.my-searches-dropdown-content');
-                        if (dropdown) {
-                            dropdown.style.display = 'none';
+                        e.stopPropagation();
+                        const searchId = parseInt(item.getAttribute('data-search-id'), 10);
+
+                        const panel = document.querySelector('.my-searches-dropdown-content');
+                        if (panel) {
+                            panel.style.display = 'none';
                         }
-                        
-                        // Run the saved search
+
                         await runSavedSearch(searchId);
                     });
                 });
@@ -1496,7 +1514,7 @@ async function loadMySearchesForDropdown() {
         } else {
             // If not successful, show empty
             const emptyMsg = escapeHtml(i18nSearch('manageSearches.emptyMy', 'No saved searches'));
-            container.innerHTML = `<p style="padding: 16px; text-align: center; color: var(--text-secondary); font-size: 0.85rem;">${emptyMsg}</p>`;
+            container.innerHTML = `<p class="recent-views-empty">${emptyMsg}</p>`;
         }
     } catch (error) {
         // Silently handle errors - don't break the UI
@@ -1505,7 +1523,7 @@ async function loadMySearchesForDropdown() {
             console.warn('Error loading searches for dropdown:', error.message);
         }
         const emptyMsg = escapeHtml(i18nSearch('manageSearches.emptyMy', 'No saved searches'));
-        container.innerHTML = `<p style="padding: 16px; text-align: center; color: var(--text-secondary); font-size: 0.85rem;">${emptyMsg}</p>`;
+        container.innerHTML = `<p class="recent-views-empty">${emptyMsg}</p>`;
     }
 }
 
