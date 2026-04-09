@@ -1,5 +1,5 @@
-# BUDG_V6 — Business Data Governance Platform 
-+ v8
+# BUDG_V6 + V7 — Business Data Governance Platform 
+
 ---
 
 ## English
