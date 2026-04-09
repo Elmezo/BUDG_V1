@@ -1,0 +1,12 @@
+{
+  "scripts": {
+    "i18n:check": "node scripts/check-i18n-keys.mjs"
+  },
+  "dependencies": {
+    "bpmn-js": "^18.9.1",
+    "camunda-bpmn-moddle": "^7.0.1"
+  },
+  "devDependencies": {
+    "baseline-browser-mapping": "^2.9.17"
+  }
+}

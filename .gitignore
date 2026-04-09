@@ -1,6 +1,15 @@
 # ignore everything
 *
 
+# allow important files
+!.gitignore
+!pom.xml
+!package.json
+!README.md
+
+# ignore sensitive files
+.env
+
 # allow folders
 !python/
 !src/
@@ -10,6 +19,3 @@
 !python/**
 !src/**
 !frontend/**
-
-# important: allow .gitignore نفسه
-!.gitignore
