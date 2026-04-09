@@ -1057,7 +1057,7 @@
                                             <div class="overlay-menu-column">
                                                 <div class="overlay-menu-header">Data</div>
                                                 <div class="overlay-menu-item" data-overlay="description">
-                                                    <i class="fas fa-info-circle"></i> Description
+                                                    <i class="fas fa-info-circle"></i> Definition
                                                 </div>
                                                 <div class="overlay-menu-item" data-overlay="glossary">
                                                     <i class="fas fa-book"></i> Glossary

@@ -804,7 +804,7 @@
     }
 
     // Get overlay title
-    function getOverlayTitle(overlayType) {
+    function getOverlayTitle(overlayType, _nodeId) {
         const titles = {
             'description': 'Description',
             'stakeholders': 'Stakeholders',
@@ -867,7 +867,9 @@
                     default: return v(item[fieldId]);
                 }
             case 'description':
-                return fieldId === 'value' ? v(item.value || item.description) : v(item[fieldId]);
+                return fieldId === 'value'
+                    ? v(item.value || item.definition || item.Definition || item.description || item.Description)
+                    : v(item[fieldId]);
             case 'datasets':
                 switch (fieldId) {
                     case 'name': return v(item.primaryName || item.name || item.shortName);
@@ -897,20 +899,32 @@
             case 'business-area':
             case 'products':
             case 'legal-entities':
+            case 'systems':
             case 'data-quality':
             case 'data-privacy':
             case 'geography':
                 switch (fieldId) {
-                    case 'name': return v(item.name || item.primaryName || item.PrimaryName || item.glossaryName || item.ruleName);
-                    case 'refNumber': return v(item.refNumber || item.ref);
-                    case 'type': return v(item.typeName || item.type);
-                    case 'lifecycle': return v(item.lifecycleName || item.lifecycle);
-                    case 'status': return v(item.statusName || item.status);
-                    case 'ruleName': return v(item.ruleName);
+                    case 'name': return v(
+                        item.processName || item.ProcessName ||
+                        item.projectName || item.ProjectName ||
+                        item.policyName || item.PolicyName ||
+                        item.businessAreaName || item.BusinessAreaName ||
+                        item.productName || item.ProductName ||
+                        item.legalEntityName || item.LegalEntityName ||
+                        item.systemName || item.SystemName ||
+                        item.name || item.Name || item.primaryName || item.PrimaryName ||
+                        item.glossaryName || item.GlossaryName || item.ruleName || item.RuleName ||
+                        item.region || item.country
+                    );
+                    case 'refNumber': return v(item.refNumber || item.ref || item.RefNumber || item.Ref);
+                    case 'type': return v(item.typeName || item.type || item.TypeName || item.Type);
+                    case 'lifecycle': return v(item.lifecycleName || item.lifecycle || item.LifecycleName || item.Lifecycle);
+                    case 'status': return v(item.statusName || item.status || item.StatusName || item.Status);
+                    case 'ruleName': return v(item.ruleName || item.RuleName);
                     case 'rating': return v(item.rating || item.qualityRating);
                     case 'classification': return v(item.classification || item.privacyClassification);
-                    case 'region': return v(item.region);
-                    case 'country': return v(item.country);
+                    case 'region': return v(item.region || item.Region);
+                    case 'country': return v(item.country || item.Country);
                     default: return v(item[fieldId]);
                 }
             default:

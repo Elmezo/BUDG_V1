@@ -25,7 +25,7 @@
      * - For overlay type "stakeholders": table with columns Name / Role, Accepted, Org Unit.
      * - For other overlay types: list of items.
      * Usage: MapOverlayPanel.create(overlayType, data, nodeId, callbacks)
-     * callbacks: { getTitle(overlayType), getItemText(overlayType, item), getItemId(overlayType, item),
+     * callbacks: { getTitle(overlayType, nodeId), getItemText(overlayType, item), getItemId(overlayType, item),
      *              escapeHtml(str), onItemClick(panel, el)?, overlayColumnDefs?,
      *              getItemField(overlayType, item, fieldId)? }
      */
@@ -54,7 +54,7 @@
      * @param {string}   overlayType - e.g. 'stakeholders', 'description', 'glossary'
      * @param {Array}    data        - array of overlay items
      * @param {string}   nodeId      - node id for data-node-id
-     * @param {Object}   callbacks   - getTitle, getItemText, getItemId, escapeHtml, onItemClick?,
+     * @param {Object}   callbacks   - getTitle(overlayType, nodeId), getItemText, getItemId, escapeHtml, onItemClick?,
      *                                 overlayColumnDefs?, getItemField?
      * @returns {HTMLElement|null}   panel element (null when data is empty)
      */
@@ -102,7 +102,7 @@
             'display: flex; justify-content: space-between; align-items: center;'
         ].join(' ');
         const titleSpan = document.createElement('span');
-        titleSpan.textContent = getTitle(overlayType);
+        titleSpan.textContent = getTitle(overlayType, nodeId);
         header.appendChild(titleSpan);
 
         const gridBtn = document.createElement('button');
@@ -646,7 +646,7 @@
                         {
                             header: 'Data',
                             items: [
-                                { overlay: 'description',  icon: 'fa-info-circle', label: 'Description' },
+                                { overlay: 'description',  icon: 'fa-info-circle', label: 'Definition' },
                                 { overlay: 'glossary',     icon: 'fa-book',        label: 'Glossary' },
                                 { overlay: 'attributes',   icon: 'fa-th',          label: 'Attributes' },
                                 { overlay: 'data-quality', icon: 'fa-bullseye',    label: 'Data Quality' }
