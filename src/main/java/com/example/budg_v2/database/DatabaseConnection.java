@@ -52,7 +52,7 @@ public class DatabaseConnection {
                     config.setMaxLifetime(540000);         // 9min max connection lifetime
                     config.setKeepaliveTime(240000);       // 4min keepalive ping on idle connections
                     config.setValidationTimeout(5000);     // 5s validation timeout
-                    config.setLeakDetectionThreshold(60000); // 60s leak warning
+                    config.setLeakDetectionThreshold(); // 60s leak warning60000
                     
                     // Validation
                     config.setConnectionTestQuery("SELECT 1");
