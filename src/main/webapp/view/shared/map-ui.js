@@ -5,7 +5,8 @@
  *
  * Defines (single bundle — do not load separate overlay-panel / overlay-columns):
  *   • window.MapOverlayPanel
- *   • window.OverlayColumns
+ *   • window.OverlayColumns (column defs, resolveSelectedColumnIds, enrichGlossaryOverlayTerms)
+ *   • window.OverlayRowNormalize.attributeFromApi / datasetFromApi (overlay grid row shapes)
  *   • window.SharedMapHTML + window.SharedMapDropdowns
  *   • window.SharedMapLayoutRichControlsHtml + window.SharedMapSpacingEdgeControlsHtml
  *
@@ -284,7 +285,7 @@
                 table.appendChild(tbody);
                 body.appendChild(table);
 
-            } else if (overlayType === 'stakeholders' && pageData.length > 0) {
+            } else if (overlayType === 'stakeholders' && overlayColumnDefs.length === 0 && pageData.length > 0) {
                 // Stakeholders table
                 const table = document.createElement('table');
                 table.className  = 'map-overlay-table map-overlay-table-stakeholders';
@@ -385,6 +386,14 @@
      * Overlay column/field definitions per overlay type.
      * Used by the Grid icon dropdown: "Adds overlay fields as columns".
      * Each overlay type has a list of { id, label } for optional columns.
+     *
+     * Inventory (toolbar data-overlay → typical row keys / fetch):
+     * - glossary: lineage builds minimal rows then enrichGlossaryOverlayTerms; ids match getOverlayItemField.
+     * - datasets: API dataset objects (primaryName, refNumber, typeName, lifecycleName, …).
+     * - attributes / linking-attributes: attribute API (+ linking map adds direction, relatedDataset, relatedAttribute).
+     * - custom-fields: CustomFieldServlet GET /data → metadataId, enumId, value (per row).
+     * - stakeholders: stakeholder APIs; columns name, role, accepted, orgUnit map to person/role/org fields.
+     * - geography / data-privacy: API rows or system fallback object with name, region, country, classification where available.
      */
     const OVERLAY_COLUMNS = {
         glossary: [
@@ -420,7 +429,14 @@
         ],
         stakeholders: [
             { id: 'name', label: 'Name' },
-            { id: 'role', label: 'Role' }
+            { id: 'role', label: 'Role' },
+            { id: 'accepted', label: 'Accepted' },
+            { id: 'orgUnit', label: 'Org unit' }
+        ],
+        'custom-fields': [
+            { id: 'metadataId', label: 'Field (metadata id)' },
+            { id: 'enumId', label: 'Enum id' },
+            { id: 'value', label: 'Value' }
         ],
         processes: [
             { id: 'name',      label: 'Name' },
@@ -492,13 +508,252 @@
         const cols = getOverlayColumns(overlayType);
         if (cols.length === 0) return [];
         if (overlayType === 'glossary') return ['name', 'source'];
+        if (overlayType === 'stakeholders') return cols.map(function (c) { return c.id; });
         return [cols[0].id];
+    }
+
+    /**
+     * Stored selection from overlayColumnsByType — [] is truthy in JS so callers must not use `stored || defaults`.
+     * @param {unknown} stored
+     * @param {string} overlayType
+     * @returns {string[]}
+     */
+    function resolveSelectedColumnIds(stored, overlayType) {
+        if (!Array.isArray(stored) || stored.length === 0) {
+            return getDefaultOverlayColumnIds(overlayType).slice();
+        }
+        return stored.slice();
+    }
+
+    /**
+     * Merge getGlossaryById fields into minimal lineage overlay rows ({ name, glossary, id, glossaryId, source }).
+     * @param {Array<Object>} terms
+     * @returns {Promise<Array<Object>>}
+     */
+    async function enrichGlossaryOverlayTerms(terms) {
+        const API = typeof window !== 'undefined' ? window.BUDG_API_SERVICE : null;
+        if (!API || !Array.isArray(terms) || terms.length === 0 || typeof API.getGlossaryById !== 'function') {
+            return terms;
+        }
+        const detailCache = new Map();
+        function loadDetail(gid) {
+            const key = String(gid);
+            if (detailCache.has(key)) return detailCache.get(key);
+            const p = API.getGlossaryById(gid).then(function (resp) {
+                const g = resp && resp.data != null ? resp.data : resp;
+                return g && typeof g === 'object' ? g : null;
+            }).catch(function () { return null; });
+            detailCache.set(key, p);
+            return p;
+        }
+        const out = [];
+        for (let i = 0; i < terms.length; i++) {
+            const term = terms[i];
+            const gid = term.glossaryId != null && term.glossaryId !== '' ? term.glossaryId : term.id;
+            if (gid == null || gid === '') {
+                out.push(term);
+                continue;
+            }
+            const g = await loadDetail(gid);
+            if (!g) {
+                out.push(term);
+                continue;
+            }
+            const aliases = g.aliases;
+            let aliasStr = '';
+            if (Array.isArray(aliases) && aliases.length) {
+                aliasStr = aliases.join(', ');
+            } else if (g.aliasNames != null && String(g.aliasNames).trim() !== '') {
+                aliasStr = String(g.aliasNames);
+            }
+            out.push(Object.assign({}, term, {
+                primaryName: g.name || g.PrimaryName || term.primaryName,
+                glossary: term.glossary || g.name || term.glossary,
+                name: term.name || g.name,
+                aliases: aliases,
+                aliasNames: aliasStr || term.aliasNames,
+                parentName: g.parentName || g.ParentName || term.parentName,
+                lifecycleName: g.lifecycleName || g.LifecycleName || term.lifecycleName,
+                lifecycle: g.lifecycleName || g.LifecycleName || term.lifecycle,
+                securityClassification: g.securityName || g.SecurityName || g.securityClassification || term.securityClassification
+            }));
+        }
+        return out;
     }
 
     if (typeof window !== 'undefined') {
         window.OverlayColumns = {
-            getOverlayColumns:         getOverlayColumns,
-            getDefaultOverlayColumnIds: getDefaultOverlayColumnIds
+            getOverlayColumns:          getOverlayColumns,
+            getDefaultOverlayColumnIds: getDefaultOverlayColumnIds,
+            resolveSelectedColumnIds:   resolveSelectedColumnIds,
+            enrichGlossaryOverlayTerms: enrichGlossaryOverlayTerms
+        };
+    }
+})();
+
+
+// =============================================================================
+// SECTION 2b – MapOverlayFieldPick (resolve overlay cell values across API shapes)
+// =============================================================================
+(function () {
+    'use strict';
+
+    var SYNONYM_KEYS = {
+        refNumber: [
+            'refNumber', 'RefNumber', 'refnumber', 'ref', 'Ref', 'ref_number', 'Ref_Number',
+            'processRefNumber', 'ProcessRefNumber',
+            'processRef', 'ProcessRef',
+            'projectRefNumber', 'ProjectRefNumber', 'projectRef', 'ProjectRef',
+            'productRefNumber', 'ProductRefNumber',
+            'policyRefNumber', 'PolicyRefNumber',
+            'capabilityRefNumber', 'CapabilityRefNumber',
+            'datasetRefNumber', 'DatasetRefNumber',
+            'attributeRefNumber', 'AttributeRefNumber',
+            'glossaryRefNumber', 'GlossaryRefNumber',
+            'interfaceRefNumber', 'InterfaceRefNumber',
+            'systemRef', 'SystemRef',
+            'regulationRefNumber', 'RegulationRefNumber',
+            'regulatoryThemeRefNumber', 'RegulatoryThemeRefNumber',
+            'businessAreaReference', 'BusinessAreaReference',
+            'clientReference', 'ClientReference',
+            'legalReference', 'LegalReference',
+            'sourceProcessRef', 'SourceProcessRef',
+            'targetProcessRef', 'TargetProcessRef',
+            'processrefnumber', 'sourceprocessref', 'targetprocessref'
+        ],
+        type: [
+            'type', 'Type', 'typeName', 'TypeName',
+            'policyTypeName', 'PolicyTypeName',
+            'productTypeName', 'ProductTypeName',
+            'relationTypeName', 'RelationTypeName'
+        ],
+        lifecycle: [
+            'lifecycle', 'Lifecycle', 'lifecycleName', 'LifecycleName',
+            'lifecycleStatus', 'LifecycleStatus', 'lifecycle_status',
+            'lifecycleStatusName', 'LifecycleStatusName',
+            'datasetLifecycleName', 'DatasetLifecycleName',
+            'processLifecycleName', 'ProcessLifecycleName',
+            'sourceProcessLifecycleName', 'targetProcessLifecycleName'
+        ],
+        status: [
+            'status', 'Status', 'statusName', 'StatusName',
+            'projectStatusName', 'ProjectStatusName',
+            'policyStatusName', 'PolicyStatusName'
+        ],
+        name: ['name', 'Name', 'primaryName', 'PrimaryName', 'glossaryName', 'GlossaryName'],
+        classification: ['classification', 'Classification', 'privacyClassification', 'PrivacyClassification'],
+        region: ['region', 'Region'],
+        country: ['country', 'Country']
+    };
+
+    function isEmptyish(val) {
+        if (val === undefined || val === null) return true;
+        if (typeof val === 'string' && val.trim() === '') return true;
+        return false;
+    }
+
+    function fmt(val) {
+        if (val === undefined || val === null) return '';
+        if (Array.isArray(val)) return val.map(function (x) { return String(x); }).join(', ');
+        if (typeof val === 'object') {
+            return String(val.name || val.Name || val.primaryName || val.PrimaryName || val.label || val.value || '');
+        }
+        return String(val);
+    }
+
+    function pickFieldRaw(item, fieldId) {
+        if (!item || fieldId == null || fieldId === '') return undefined;
+        var fid = String(fieldId);
+        var keys = [fid, fid.charAt(0).toUpperCase() + fid.slice(1)];
+        var extra = SYNONYM_KEYS[fid];
+        if (extra) {
+            for (var e = 0; e < extra.length; e++) keys.push(extra[e]);
+        }
+        if (fid === 'name' && item['Name attribute'] !== undefined) keys.push('Name attribute');
+        for (var i = 0; i < keys.length; i++) {
+            var k = keys[i];
+            if (!(k in item)) continue;
+            var val = item[k];
+            if (!isEmptyish(val) || val === 0) return val;
+        }
+        return undefined;
+    }
+
+    if (typeof window !== 'undefined') {
+        window.MapOverlayFieldPick = {
+            pickRaw: pickFieldRaw,
+            pick: function (item, fieldId) {
+                return fmt(pickFieldRaw(item, fieldId));
+            }
+        };
+    }
+})();
+
+
+// =============================================================================
+// SECTION 2c – OverlayRowNormalize (full rows for overlay grid columns)
+// =============================================================================
+(function () {
+    'use strict';
+
+    /**
+     * Merge API attribute rows with ids/aliases expected by OVERLAY_COLUMNS + getOverlayItemField.
+     * @param {object} attr - raw attribute from /api/attribute/* or system-data attributes
+     * @param {{ systemId?: *, datasetId?: string|number }} [extras]
+     */
+    function attributeFromApi(attr, extras) {
+        if (!attr || typeof attr !== 'object') return attr;
+        extras = extras || {};
+        var id = attr.id != null ? attr.id : (attr.ID != null ? attr.ID : (attr.attributeId != null ? attr.attributeId : attr.attribute_id));
+        var name = attr.name || attr['Name attribute'] || attr.attributeName || attr.primaryName || attr.PrimaryName || attr.Name || attr.primary_name;
+        if (name == null || name === '') {
+            name = attr.attributeName != null ? String(attr.attributeName) : '';
+        }
+        var dsId = extras.datasetId != null ? extras.datasetId : (attr.datasetId != null ? attr.datasetId : (attr.Dataset_ID != null ? attr.Dataset_ID : attr.dataset_id));
+        return Object.assign({}, attr, {
+            id: id,
+            name: name,
+            typeName: attr.typeName || attr.TypeName || attr.type || attr.Type || attr.dataType || attr['Data Type attribute'],
+            glossaryName: attr.glossaryName || attr.GlossaryName || attr.glossary || attr['Glossary Name attribute']
+                || attr.attributeGlossaryName || attr.datasetGlossaryName,
+            refNumber: attr.refNumber || attr.RefNumber || attr.ref || attr.Ref || attr.attributeRef || attr['Ref. attribute'],
+            datasetId: dsId != null ? dsId : attr.datasetId,
+            datasetName: attr.datasetName || attr.dataset_name || attr.Dataset_Name,
+            systemId: extras.systemId != null ? extras.systemId : attr.systemId
+        });
+    }
+
+    /**
+     * Merge dataset row with aliases for name/ref/type/lifecycle columns.
+     * @param {object} d
+     * @param {{ id?: * }} [extras] - optional forced id (e.g. when keying by datasetId)
+     */
+    function datasetFromApi(d, extras) {
+        if (!d || typeof d !== 'object') return d;
+        extras = extras || {};
+        var id = extras.id != null ? extras.id : (d.id != null ? d.id : (d.datasetId != null ? d.datasetId : d.dataset_id));
+        var name = d.name || d.datasetName || d.primaryName || d.PrimaryName || d.shortName;
+        var lc = d.lifecycleName || d.LifecycleName || d.datasetLifecycleName || d.DatasetLifecycleName;
+        if (!lc && d.lifecycle != null && typeof d.lifecycle === 'object') {
+            lc = d.lifecycle.name || d.lifecycle.Name || d.lifecycle.PrimaryName || d.lifecycle.primaryName || '';
+        }
+        if (!lc && typeof d.lifecycle === 'string') {
+            lc = d.lifecycle;
+        }
+        return Object.assign({}, d, {
+            id: id,
+            name: name,
+            primaryName: d.primaryName || d.PrimaryName || d.name || d.datasetName,
+            refNumber: d.refNumber || d.RefNumber || d.ref || d.Ref,
+            typeName: d.typeName || d.TypeName || d.type || d.Type,
+            lifecycleName: lc
+        });
+    }
+
+    if (typeof window !== 'undefined') {
+        window.OverlayRowNormalize = {
+            attributeFromApi: attributeFromApi,
+            datasetFromApi: datasetFromApi
         };
     }
 })();

@@ -52,7 +52,11 @@
 
     /** Get selected overlay column ids for an overlay type. */
     function getOverlayColumns(overlayType) {
-        return state.overlayColumnsByType[overlayType] || (window.OverlayColumns ? window.OverlayColumns.getDefaultOverlayColumnIds(overlayType) : ['name']);
+        var raw = state.overlayColumnsByType[overlayType];
+        if (window.OverlayColumns && typeof window.OverlayColumns.resolveSelectedColumnIds === 'function') {
+            return window.OverlayColumns.resolveSelectedColumnIds(raw, overlayType);
+        }
+        return (Array.isArray(raw) && raw.length > 0) ? raw.slice() : (window.OverlayColumns ? window.OverlayColumns.getDefaultOverlayColumnIds(overlayType) : ['name']);
     }
 
     // Load overlay data for all visible nodes
@@ -236,11 +240,48 @@
                 if (linkedAttrs.length > 0) overlayData.set(sid, linkedAttrs);
             });
         } else if (overlayType === 'linking-attributes') {
+            function collectLinkedMetaForAttribute(systemId, attrId) {
+                const sid = String(systemId);
+                const aid = String(attrId);
+                const directions = new Set();
+                const relatedDatasets = new Set();
+                const relatedAttributes = new Set();
+                for (let i = 0; i < allRelationships.length; i++) {
+                    const rel = allRelationships[i] || {};
+                    const srcSid = String(rel.sourceSystemId != null ? rel.sourceSystemId : '');
+                    const tgtSid = String(rel.targetSystemId != null ? rel.targetSystemId : '');
+                    const srcAid = String(rel.sourceAttributeId != null ? rel.sourceAttributeId : '');
+                    const tgtAid = String(rel.targetAttributeId != null ? rel.targetAttributeId : '');
+                    if (sid === srcSid && aid === srcAid) {
+                        directions.add('outbound');
+                        const rd = rel.targetDataSet || rel.targetDatasetName || rel.target_dataset_name || rel.targetDataset || '';
+                        const ra = rel.targetAttribute || rel.targetAttributeName || rel.target_attribute_name || rel.target_attribute || '';
+                        if (rd) relatedDatasets.add(String(rd));
+                        if (ra) relatedAttributes.add(String(ra));
+                    } else if (sid === tgtSid && aid === tgtAid) {
+                        directions.add('inbound');
+                        const rd = rel.sourceDataSet || rel.sourceDatasetName || rel.source_dataset_name || rel.sourceDataset || '';
+                        const ra = rel.sourceAttribute || rel.sourceAttributeName || rel.source_attribute_name || rel.source_attribute || '';
+                        if (rd) relatedDatasets.add(String(rd));
+                        if (ra) relatedAttributes.add(String(ra));
+                    }
+                }
+                return {
+                    direction: Array.from(directions).join(', '),
+                    relatedDataset: Array.from(relatedDatasets).join(', '),
+                    relatedAttribute: Array.from(relatedAttributes).join(', ')
+                };
+            }
             visibleSystemIds.forEach(sid => {
                 const linkedIds = linkedAttributeIds.get(sid) || new Set();
                 if (!linkedIds.size) return;
                 const attrs = attrsBySystem.get(sid) || [];
-                const linkedAttrs = attrs.filter(attr => linkedIds.has(String(attr.id)));
+                const linkedAttrs = attrs
+                    .filter(attr => linkedIds.has(String(attr.id)))
+                    .map(attr => {
+                        const meta = collectLinkedMetaForAttribute(sid, attr.id);
+                        return Object.assign({}, attr, meta);
+                    });
                 if (linkedAttrs.length > 0) overlayData.set(sid, linkedAttrs);
             });
         }
@@ -565,13 +606,28 @@
             
             ovLog(logPrefix + ' Fetched', attrs.length, 'attributes for dataset', datasetId);
             
-            // API returns field as "Name attribute" (with space)
-            return attrs.map(attr => ({
-                id: attr.id || attr.ID || attr.attribute_id,
-                name: attr['Name attribute'] || attr.name || attr.primaryName || attr.PrimaryName || attr.Name || attr.primary_name || '',
-                datasetId: String(datasetId),
-                parentId: attr.parentId || attr.Parent_ID || attr.parent_id || null
-            })).filter(attr => attr.id);
+            const norm = window.OverlayRowNormalize && typeof window.OverlayRowNormalize.attributeFromApi === 'function'
+                ? window.OverlayRowNormalize.attributeFromApi
+                : null;
+            return (norm
+                ? attrs.map(function (attr) {
+                    var row = norm(attr, { datasetId: String(datasetId) });
+                    row.parentId = attr.parentId || attr.Parent_ID || attr.parent_id || null;
+                    return row;
+                })
+                : attrs.map(attr => {
+                    const id = attr.id || attr.ID || attr.attribute_id;
+                    const name = attr['Name attribute'] || attr.name || attr.primaryName || attr.PrimaryName || attr.Name || attr.primary_name || '';
+                    return Object.assign({}, attr, {
+                        id,
+                        name,
+                        typeName: attr.typeName || attr.TypeName || attr.type || attr.Type || attr['Data Type attribute'] || attr.dataType,
+                        glossaryName: attr.glossaryName || attr.GlossaryName || attr.glossary || attr['Glossary Name attribute'],
+                        refNumber: attr.refNumber || attr.RefNumber || attr.ref || attr.Ref || attr['Ref. attribute'] || attr.attributeRef,
+                        datasetId: String(datasetId),
+                        parentId: attr.parentId || attr.Parent_ID || attr.parent_id || null
+                    });
+                })).filter(attr => attr.id);
         } catch (e) {
             ovWarn(logPrefix + ' Failed to fetch attributes for dataset', datasetId, e);
             return [];
@@ -713,7 +769,7 @@
                             ovWarn(logPrefix + ' Error fetching dataset glossary:', e);
                         }
                     }
-                    return glossaryTerms;
+                    return await enrichGlossaryRows(glossaryTerms);
                 }
 
                 case 'processes':
@@ -927,20 +983,16 @@
                         if (cachedPrivacyInfo?.dataset) {
                             const ds = cachedPrivacyInfo.dataset;
                             if (ds.privacyClassification || ds.dataPrivacy || ds.sensitivity) {
-                                return [{
-                                    name: ds.privacyClassification || ds.dataPrivacy || ds.sensitivity,
-                                    type: 'privacy'
-                                }];
+                                const cls = ds.privacyClassification || ds.dataPrivacy || ds.sensitivity;
+                                return [{ name: cls, classification: cls, type: 'privacy' }];
                             }
                         }
                         // If not in cache, fetch from API
                         const datasetDataPrivacy = await API.getDatasetById(datasetId, null, { silent404: true });
                         const datasetPriv = datasetDataPrivacy?.data || datasetDataPrivacy;
                         if (datasetPriv?.privacyClassification || datasetPriv?.dataPrivacy || datasetPriv?.sensitivity) {
-                            return [{
-                                name: datasetPriv.privacyClassification || datasetPriv.dataPrivacy || datasetPriv.sensitivity,
-                                type: 'privacy'
-                            }];
+                            const cls = datasetPriv.privacyClassification || datasetPriv.dataPrivacy || datasetPriv.sensitivity;
+                            return [{ name: cls, classification: cls, type: 'privacy' }];
                         }
                     } catch (e) { 
                         ovWarn(logPrefix + ' Error fetching data privacy:', e);
@@ -954,9 +1006,12 @@
                         const cachedGeoInfo = state.linkedDatasets.get(String(datasetId));
                         if (cachedGeoInfo?.dataset) {
                             const ds = cachedGeoInfo.dataset;
-                            if (ds.geography || ds.region || ds.location) {
+                            if (ds.geography || ds.region || ds.location || ds.country) {
+                                const nm = ds.geography || ds.region || ds.location || ds.country;
                                 return [{
-                                    name: ds.geography || ds.region || ds.location,
+                                    name: nm,
+                                    region: ds.region || '',
+                                    country: ds.country || '',
                                     type: 'geography'
                                 }];
                             }
@@ -964,9 +1019,12 @@
                         // If not in cache, fetch from API
                         const datasetDataGeo = await API.getDatasetById(datasetId, null, { silent404: true });
                         const datasetGeo = datasetDataGeo?.data || datasetDataGeo;
-                        if (datasetGeo?.geography || datasetGeo?.region || datasetGeo?.location) {
+                        if (datasetGeo?.geography || datasetGeo?.region || datasetGeo?.location || datasetGeo?.country) {
+                            const nm = datasetGeo.geography || datasetGeo.region || datasetGeo.location || datasetGeo.country;
                             return [{
-                                name: datasetGeo.geography || datasetGeo.region || datasetGeo.location,
+                                name: nm,
+                                region: datasetGeo.region || '',
+                                country: datasetGeo.country || '',
                                 type: 'geography'
                             }];
                         }
@@ -999,14 +1057,26 @@
             const attrs = Array.isArray(response?.data) ? response.data : (Array.isArray(response) ? response : []);
             ovLog(logPrefix + ' Parsed', attrs.length, 'attributes from response');
             
-            // Format attributes to include id and name
-            const formatted = attrs.map(attr => ({
-                id: attr.id || attr.ID || attr.attributeId,
-                name: attr.name || attr.primaryName || attr.PrimaryName || attr.Name || attr.attributeName,
-                datasetId: attr.datasetId || attr.Dataset_ID || attr.dataset_id,
-                datasetName: attr.datasetName || attr.dataset_name || attr.Dataset_Name,
-                systemId: systemId
-            })).filter(attr => attr.id); // Only include attributes with valid IDs
+            const norm = window.OverlayRowNormalize && typeof window.OverlayRowNormalize.attributeFromApi === 'function'
+                ? window.OverlayRowNormalize.attributeFromApi
+                : null;
+            const formatted = (norm
+                ? attrs.map(function (attr) { return norm(attr, { systemId: systemId }); })
+                : attrs.map(attr => {
+                    const id = attr.id || attr.ID || attr.attributeId;
+                    const name = attr.name || attr['Name attribute'] || attr.attributeName || attr.primaryName || attr.PrimaryName || attr.Name;
+                    return Object.assign({}, attr, {
+                        id,
+                        name: name != null && name !== '' ? name : (attr.attributeName != null ? String(attr.attributeName) : ''),
+                        typeName: attr.typeName || attr.TypeName || attr.type || attr.Type || attr.dataType || attr['Data Type attribute'],
+                        glossaryName: attr.glossaryName || attr.GlossaryName || attr.glossary || attr['Glossary Name attribute']
+                            || attr.attributeGlossaryName || attr.datasetGlossaryName,
+                        refNumber: attr.refNumber || attr.RefNumber || attr.ref || attr.Ref || attr.attributeRef || attr['Ref. attribute'],
+                        datasetId: attr.datasetId || attr.Dataset_ID || attr.dataset_id,
+                        datasetName: attr.datasetName || attr.dataset_name || attr.Dataset_Name,
+                        systemId: systemId
+                    });
+                })).filter(attr => attr.id);
             
             ovLog(logPrefix + ' Formatted', formatted.length, 'attributes with valid IDs');
             return formatted;
@@ -1040,6 +1110,13 @@
             ovWarn(logPrefix + ' Failed to fetch attribute relationships', sourceSystemId, '->', targetSystemId, e);
             return [];
         }
+    }
+
+    async function enrichGlossaryRows(terms) {
+        if (window.OverlayColumns && typeof window.OverlayColumns.enrichGlossaryOverlayTerms === 'function') {
+            return window.OverlayColumns.enrichGlossaryOverlayTerms(terms);
+        }
+        return terms;
     }
 
     // Fetch overlay data for a specific system
@@ -1131,7 +1208,7 @@
                             } catch (e) { /* skip dataset */ }
                         }
                     } catch (e) { ovWarn(logPrefix + ' Error fetching glossary overlay for system', systemId, e); }
-                    return glossaryTerms;
+                    return await enrichGlossaryRows(glossaryTerms);
                 }
 
                 case 'processes':
@@ -1302,10 +1379,12 @@
                         // If no dedicated API, try to get from system attributes or custom fields
                         try {
                             const sysData = await API.getSystemById(systemId);
-                            // Check for privacy-related fields
-                            if (sysData?.privacyClassification || sysData?.dataPrivacy || sysData?.sensitivity) {
+                            const s = sysData?.data || sysData;
+                            const cls = s?.privacyClassification || s?.PrivacyClassification || s?.dataPrivacy || s?.sensitivity || s?.classification;
+                            if (cls) {
                                 return [{
-                                    name: sysData.privacyClassification || sysData.dataPrivacy || sysData.sensitivity,
+                                    name: cls,
+                                    classification: cls,
                                     type: 'privacy'
                                 }];
                             }
@@ -1317,9 +1396,13 @@
                     // Geography - try system data or classification
                     try {
                         const sysDataForGeo = await API.getSystemById(systemId);
-                        if (sysDataForGeo?.geography || sysDataForGeo?.region || sysDataForGeo?.country) {
+                        const g = sysDataForGeo?.data || sysDataForGeo;
+                        if (g && (g.geography || g.Geography || g.region || g.Region || g.country || g.Country)) {
+                            const name = g.geography || g.Geography || g.region || g.Region || g.country || g.Country || '';
                             return [{
-                                name: sysDataForGeo.geography || sysDataForGeo.region || sysDataForGeo.country,
+                                name: name,
+                                region: g.region || g.Region || '',
+                                country: g.country || g.Country || '',
                                 type: 'geography'
                             }];
                         }
@@ -1402,9 +1485,9 @@
             return createOverlayPanelFallback(nodeName, overlayType, arr, nodeId);
         }
         var overlayColumnDefs = [];
-        if (overlayType !== 'stakeholders' && window.OverlayColumns) {
+        if (window.OverlayColumns) {
             var allCols = window.OverlayColumns.getOverlayColumns(overlayType);
-            var selectedIds = state.overlayColumnsByType[overlayType] || window.OverlayColumns.getDefaultOverlayColumnIds(overlayType);
+            var selectedIds = window.OverlayColumns.resolveSelectedColumnIds(state.overlayColumnsByType[overlayType], overlayType);
             overlayColumnDefs = allCols.filter(function(c) { return selectedIds && selectedIds.indexOf(c.id) !== -1; });
         }
         const panel = window.MapOverlayPanel.create(overlayType, arr, nodeId, {
@@ -1498,7 +1581,9 @@
             case 'products':
                 return item.productName || item.PrimaryName || item.primaryName || item.name || item.Name || '';
             case 'legal-entities':
-                return item.legalEntityName || item.longName || item.longname || item.name || item.Name || '';
+                return item.legalEntityName || item.legalShortName || item.LegalShortName ||
+                    item.legalLongName || item.LegalLongName || item.longName || item.longname ||
+                    item.name || item.Name || '';
             case 'clients':
                 return item.clientName || item.PrimaryName || item.primaryName || item.name || item.Name || '';
             case 'capabilities':
@@ -1523,6 +1608,14 @@
     function getOverlayItemField(overlayType, item, fieldId) {
         if (!item) return '';
         const v = (x) => (x != null && x !== '') ? String(x) : '';
+        function fieldDefault(it, fid) {
+            const d = it[fid];
+            if (d !== undefined && d !== null && d !== '') return v(d);
+            if (typeof window !== 'undefined' && window.MapOverlayFieldPick && typeof window.MapOverlayFieldPick.pick === 'function') {
+                return window.MapOverlayFieldPick.pick(it, fid);
+            }
+            return '';
+        }
         /** Match list-style overlay text: APIs use *Name, PrimaryName, PascalCase, etc. */
         function entityNameCell() {
             return v(
@@ -1532,6 +1625,8 @@
                 item.businessAreaName || item.BusinessAreaName ||
                 item.productName || item.ProductName ||
                 item.legalEntityName || item.LegalEntityName ||
+                item.legalShortName || item.LegalShortName ||
+                item.legalLongName || item.LegalLongName ||
                 item.clientName || item.ClientName ||
                 item.capabilityName || item.CapabilityName ||
                 item.systemName || item.SystemName ||
@@ -1547,23 +1642,25 @@
                     case 'name': return v(item.glossary || item.name || item.primaryName);
                     case 'source': return item.source === 'dataset' ? 'Dataset Glossary'
                     : item.source === 'attribute' ? 'Attribute Glossary' : '';
-                    case 'aliasNames': return v(item.aliasNames || item.aliases || item.alias);
-                    case 'parentName': return v(item.parentName || item.parent?.name);
-                    case 'lifecycle': return v(item.lifecycleName || item.lifecycle);
-                    case 'securityClassification': return v(item.securityClassification || item.classification);
-                    default: return v(item[fieldId]);
+                    case 'aliasNames':
+                        if (Array.isArray(item.aliases) && item.aliases.length) return v(item.aliases.join(', '));
+                        return v(item.aliasNames || item.aliases || item.alias);
+                    case 'parentName': return v(item.parentName || item.ParentName || item.parent?.name);
+                    case 'lifecycle': return v(item.lifecycleName || item.LifecycleName || item.lifecycle || item.Lifecycle || item.lifecycleStatusName || item.LifecycleStatusName || item.lifecycleStatus || item.LifecycleStatus || item.processLifecycleName || item.ProcessLifecycleName || item.sourceProcessLifecycleName || item.targetProcessLifecycleName || item.datasetLifecycleName || item.DatasetLifecycleName || fieldDefault(item, fieldId));
+                    case 'securityClassification': return v(item.securityClassification || item.classification || item.securityName || item.SecurityName);
+                    default: return fieldDefault(item, fieldId);
                 }
             case 'description':
                 return fieldId === 'value'
                     ? v(item.value || item.definition || item.Definition || item.description || item.Description)
-                    : v(item[fieldId]);
+                    : fieldDefault(item, fieldId);
             case 'datasets':
                 switch (fieldId) {
                     case 'name': return v(item.primaryName || item.PrimaryName || item.name || item.shortName);
                     case 'refNumber': return v(item.refNumber || item.ref || item.RefNumber || item.Ref);
                     case 'type': return v(item.typeName || item.type || item.TypeName || item.Type);
-                    case 'lifecycle': return v(item.lifecycleName || item.lifecycle || item.LifecycleName || item.Lifecycle);
-                    default: return v(item[fieldId]);
+                    case 'lifecycle': return v(item.lifecycleName || item.LifecycleName || item.lifecycle || item.Lifecycle || item.lifecycleStatusName || item.LifecycleStatusName || item.lifecycleStatus || item.LifecycleStatus || item.processLifecycleName || item.ProcessLifecycleName || item.sourceProcessLifecycleName || item.targetProcessLifecycleName || item.datasetLifecycleName || item.DatasetLifecycleName || fieldDefault(item, fieldId));
+                    default: return fieldDefault(item, fieldId);
                 }
             case 'attributes':
             case 'linking-attributes':
@@ -1575,13 +1672,30 @@
                     case 'direction': return v(item.direction || item.Direction);
                     case 'relatedDataset': return v(item.relatedDataset || item.related_dataset);
                     case 'relatedAttribute': return v(item.relatedAttribute || item.related_attribute);
-                    default: return v(item[fieldId]);
+                    default: return fieldDefault(item, fieldId);
                 }
             case 'stakeholders':
                 switch (fieldId) {
                     case 'name': return v(item.personName || item.PersonName || item.name || item.Name);
                     case 'role': return v(item.roleName || item.RoleName || item.role || item.Role);
-                    default: return v(item[fieldId]);
+                    case 'accepted':
+                    case 'orgUnit': {
+                        const norm = window.MapOverlayPanel && typeof window.MapOverlayPanel.normalizeStakeholderItem === 'function'
+                            ? window.MapOverlayPanel.normalizeStakeholderItem(item)
+                            : { accepted: '', orgUnit: '' };
+                        return fieldId === 'accepted' ? v(norm.accepted) : v(norm.orgUnit);
+                    }
+                    default: return fieldDefault(item, fieldId);
+                }
+            case 'custom-fields':
+                switch (fieldId) {
+                    case 'metadataId': return v(item.metadataId != null ? item.metadataId : item.Metadata_ID);
+                    case 'enumId':
+                        if (item.enumId !== undefined && item.enumId !== null && item.enumId !== '') return v(item.enumId);
+                        if (item.enumIds && item.enumIds.length) return v(item.enumIds.join(', '));
+                        return '';
+                    case 'value': return v(item.value != null && item.value !== '' ? item.value : (item.displayValue != null ? item.displayValue : ''));
+                    default: return fieldDefault(item, fieldId);
                 }
             case 'processes':
             case 'projects':
@@ -1597,19 +1711,49 @@
             case 'geography':
                 switch (fieldId) {
                     case 'name': return entityNameCell();
-                    case 'refNumber': return v(item.refNumber || item.ref || item.RefNumber || item.Ref);
-                    case 'type': return v(item.typeName || item.type || item.TypeName || item.Type);
-                    case 'lifecycle': return v(item.lifecycleName || item.lifecycle || item.LifecycleName || item.Lifecycle);
-                    case 'status': return v(item.statusName || item.status || item.StatusName || item.Status);
+                    case 'refNumber': return v(
+                        item.refNumber || item.refnumber || item.RefNumber || item.ref || item.Ref ||
+                        item.processRefNumber || item.ProcessRefNumber || item.processRef || item.ProcessRef ||
+                        item.projectRefNumber || item.ProjectRefNumber || item.projectRef || item.ProjectRef ||
+                        item.productRefNumber || item.ProductRefNumber ||
+                        item.policyRefNumber || item.PolicyRefNumber ||
+                        item.capabilityRefNumber || item.CapabilityRefNumber ||
+                        item.datasetRefNumber || item.DatasetRefNumber ||
+                        item.attributeRefNumber || item.AttributeRefNumber ||
+                        item.glossaryRefNumber || item.GlossaryRefNumber ||
+                        item.interfaceRefNumber || item.InterfaceRefNumber ||
+                        item.systemRef || item.SystemRef ||
+                        item.regulationRefNumber || item.RegulationRefNumber ||
+                        item.regulatoryThemeRefNumber || item.RegulatoryThemeRefNumber ||
+                        item.businessAreaReference || item.BusinessAreaReference ||
+                        item.clientReference || item.ClientReference ||
+                        item.legalReference || item.LegalReference ||
+                        item.sourceProcessRef || item.targetProcessRef
+                    );
+                    case 'type': return v(
+                        item.typeName || item.type || item.TypeName || item.Type ||
+                        item.policyTypeName || item.PolicyTypeName ||
+                        item.productTypeName || item.ProductTypeName ||
+                        item.relationTypeName || item.RelationTypeName
+                    );
+                    case 'lifecycle': return v(item.lifecycleName || item.LifecycleName || item.lifecycle || item.Lifecycle || item.lifecycleStatusName || item.LifecycleStatusName || item.lifecycleStatus || item.LifecycleStatus || item.processLifecycleName || item.ProcessLifecycleName || item.sourceProcessLifecycleName || item.targetProcessLifecycleName || item.datasetLifecycleName || item.DatasetLifecycleName || fieldDefault(item, fieldId));
+                    case 'status': return v(
+                        item.statusName || item.StatusName || item.status || item.Status ||
+                        item.projectStatusName || item.ProjectStatusName ||
+                        item.policyStatusName || item.PolicyStatusName
+                    );
                     case 'ruleName': return v(item.ruleName || item.RuleName);
                     case 'rating': return v(item.rating || item.qualityRating);
                     case 'classification': return v(item.classification || item.privacyClassification);
                     case 'region': return v(item.region || item.Region);
                     case 'country': return v(item.country || item.Country);
-                    default: return v(item[fieldId]);
+                    default: return fieldDefault(item, fieldId);
                 }
-            default:
-                return v(item[fieldId] || item.name || item.primaryName);
+            default: {
+                const fb = fieldDefault(item, fieldId);
+                if (fb) return fb;
+                return v(item.name || item.primaryName);
+            }
         }
     }
 

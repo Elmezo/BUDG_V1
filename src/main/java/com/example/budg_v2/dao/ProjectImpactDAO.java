@@ -3024,10 +3024,12 @@ public class ProjectImpactDAO {
                 pxs.description,
                 p.primaryname as projectName,
                 p.refnumber as projectRefNumber,
+                pst.primaryname as statusName,
                 rt.primaryname as relationTypeName,
                 rt.reversename as relationTypeReverseName
             FROM project_x_system pxs
             LEFT JOIN project p ON pxs.projectid = p.id
+            LEFT JOIN status pst ON pst.ID = p.status
             LEFT JOIN project_x_system_relationtype rt ON pxs.relationtype = rt.id
             WHERE pxs.systemid = ? AND (p.deletedatetime IS NULL OR p.deletedatetime = '1970-01-01 00:00:00')
             ORDER BY p.primaryname
@@ -3050,6 +3052,7 @@ public class ProjectImpactDAO {
                     relationship.put("description", rs.getString("description"));
                     relationship.put("projectName", rs.getString("projectName"));
                     relationship.put("projectRefNumber", rs.getString("projectRefNumber"));
+                    relationship.put("statusName", rs.getString("statusName"));
                     relationship.put("relationTypeName", rs.getString("relationTypeName"));
                     relationship.put("relationTypeReverseName", rs.getString("relationTypeReverseName"));
                     

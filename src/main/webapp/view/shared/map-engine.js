@@ -909,14 +909,16 @@
     /** Set selected overlay columns for a given overlay type. */
     MapEngine.prototype.setOverlayColumns = function (overlayType, columnIds) {
         if (!this._state.overlayColumnsByType) this._state.overlayColumnsByType = {};
-        this._state.overlayColumnsByType[overlayType] = columnIds;
+        this._state.overlayColumnsByType[overlayType] = Array.isArray(columnIds) ? columnIds.slice() : [];
     };
 
     /** Get selected overlay column ids for a given overlay type. */
     MapEngine.prototype.getOverlayColumns = function (overlayType) {
-        if (this._state.overlayColumnsByType && this._state.overlayColumnsByType[overlayType]) {
-            return this._state.overlayColumnsByType[overlayType];
+        var raw = this._state.overlayColumnsByType && this._state.overlayColumnsByType[overlayType];
+        if (window.OverlayColumns && typeof window.OverlayColumns.resolveSelectedColumnIds === 'function') {
+            return window.OverlayColumns.resolveSelectedColumnIds(raw, overlayType);
         }
+        if (Array.isArray(raw) && raw.length > 0) return raw.slice();
         if (window.OverlayColumns && typeof window.OverlayColumns.getDefaultOverlayColumnIds === 'function') {
             return window.OverlayColumns.getDefaultOverlayColumnIds(overlayType);
         }

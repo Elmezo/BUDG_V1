@@ -88,6 +88,10 @@
                     const attrData = attrRes.ok ? await attrRes.json() : [];
                     const dsList = Array.isArray(dsData) ? dsData : (dsData?.data || []);
                     const attrList = Array.isArray(attrData) ? attrData : (attrData?.data || []);
+                    const normDs = window.OverlayRowNormalize && typeof window.OverlayRowNormalize.datasetFromApi === 'function'
+                        ? window.OverlayRowNormalize.datasetFromApi : null;
+                    const normAttr = window.OverlayRowNormalize && typeof window.OverlayRowNormalize.attributeFromApi === 'function'
+                        ? window.OverlayRowNormalize.attributeFromApi : null;
                     dsList.forEach(r => {
                         const sid = r.systemId != null ? String(r.systemId) : (r.system_id != null ? String(r.system_id) : null);
                         if (!sid || !state.impactSystemIds.has(sid)) return;
@@ -96,7 +100,10 @@
                         const ref = r.datasetRefNumber ?? r.dataset_ref_number ?? r.refNumber ?? r.ref ?? '';
                         if (!state.impactSystemIdToDatasets.has(sid)) state.impactSystemIdToDatasets.set(sid, []);
                         const arr = state.impactSystemIdToDatasets.get(sid);
-                        if (!arr.some(x => String(x.id) === String(id))) arr.push({ id, name, ref });
+                        if (!arr.some(x => String(x.id) === String(id))) {
+                            const row = Object.assign({}, r, { id: id, name: name, refNumber: ref, ref: ref, primaryName: name });
+                            arr.push(normDs ? normDs(row) : row);
+                        }
                     });
                     attrList.forEach(r => {
                         const sid = r.systemId != null ? String(r.systemId) : (r.system_id != null ? String(r.system_id) : null);
@@ -106,7 +113,10 @@
                         const ref = r.attributeRefNumber ?? r.attribute_ref_number ?? r.refNumber ?? r.ref ?? '';
                         if (!state.impactSystemIdToAttributes.has(sid)) state.impactSystemIdToAttributes.set(sid, []);
                         const arr = state.impactSystemIdToAttributes.get(sid);
-                        if (!arr.some(x => String(x.id) === String(id))) arr.push({ id, name, ref });
+                        if (!arr.some(x => String(x.id) === String(id))) {
+                            const row = Object.assign({}, r, { id: id, name: name, refNumber: ref, ref: ref });
+                            arr.push(normAttr ? normAttr(row) : row);
+                        }
                     });
                 } catch (e) { console.warn('[ProjectDataMap] loadProjectImpactDatasetsAndAttributes', e); }
             }
@@ -117,6 +127,10 @@
                 state.interfaceAttributesBySystem.clear();
                 state.attributeIdsWithLinks.clear();
                 const api = window.BUDG_API_SERVICE;
+                const normDsI = window.OverlayRowNormalize && typeof window.OverlayRowNormalize.datasetFromApi === 'function'
+                    ? window.OverlayRowNormalize.datasetFromApi : null;
+                const normAttrI = window.OverlayRowNormalize && typeof window.OverlayRowNormalize.attributeFromApi === 'function'
+                    ? window.OverlayRowNormalize.attributeFromApi : null;
                 if (!api || typeof api.getInterfaceDataWithin !== 'function') return;
                 const solidInterfaces = state.interfacesData.filter(iface => {
                     const n = iface.dataAttributes ?? iface.data_attributes ?? 0;
@@ -137,7 +151,10 @@
                                 if (did != null) {
                                     if (!state.interfaceDatasetsBySystem.has(fromId)) state.interfaceDatasetsBySystem.set(fromId, []);
                                     const arr = state.interfaceDatasetsBySystem.get(fromId);
-                                    if (!arr.some(x => String(x.id) === String(did))) arr.push({ id: did, name: dname || ('Dataset ' + did), ref: dref });
+                                    if (!arr.some(x => String(x.id) === String(did))) {
+                                        const row = { id: did, name: dname || ('Dataset ' + did), ref: dref, refNumber: dref };
+                                        arr.push(normDsI ? normDsI(row) : row);
+                                    }
                                 }
                                 const aid = rel.sourceAttributeId ?? rel.source_attribute_id;
                                 const aname = rel.sourceAttribute ?? rel.source_attribute;
@@ -146,7 +163,10 @@
                                     state.attributeIdsWithLinks.add(String(aid));
                                     if (!state.interfaceAttributesBySystem.has(fromId)) state.interfaceAttributesBySystem.set(fromId, []);
                                     const arr = state.interfaceAttributesBySystem.get(fromId);
-                                    if (!arr.some(x => String(x.id) === String(aid))) arr.push({ id: aid, name: aname || ('Attribute ' + aid), ref: aref });
+                                    if (!arr.some(x => String(x.id) === String(aid))) {
+                                        const row = Object.assign({}, rel, { id: aid, name: aname || ('Attribute ' + aid), ref: aref, refNumber: aref });
+                                        arr.push(normAttrI ? normAttrI(row) : row);
+                                    }
                                 }
                             }
                             if (toId) {
@@ -156,7 +176,10 @@
                                 if (did != null) {
                                     if (!state.interfaceDatasetsBySystem.has(toId)) state.interfaceDatasetsBySystem.set(toId, []);
                                     const arr = state.interfaceDatasetsBySystem.get(toId);
-                                    if (!arr.some(x => String(x.id) === String(did))) arr.push({ id: did, name: dname || ('Dataset ' + did), ref: dref });
+                                    if (!arr.some(x => String(x.id) === String(did))) {
+                                        const row = { id: did, name: dname || ('Dataset ' + did), ref: dref, refNumber: dref };
+                                        arr.push(normDsI ? normDsI(row) : row);
+                                    }
                                 }
                                 const aid = rel.targetAttributeId ?? rel.target_attribute_id;
                                 const aname = rel.targetAttribute ?? rel.target_attribute;
@@ -165,7 +188,10 @@
                                     state.attributeIdsWithLinks.add(String(aid));
                                     if (!state.interfaceAttributesBySystem.has(toId)) state.interfaceAttributesBySystem.set(toId, []);
                                     const arr = state.interfaceAttributesBySystem.get(toId);
-                                    if (!arr.some(x => String(x.id) === String(aid))) arr.push({ id: aid, name: aname || ('Attribute ' + aid), ref: aref });
+                                    if (!arr.some(x => String(x.id) === String(aid))) {
+                                        const row = Object.assign({}, rel, { id: aid, name: aname || ('Attribute ' + aid), ref: aref, refNumber: aref });
+                                        arr.push(normAttrI ? normAttrI(row) : row);
+                                    }
                                 }
                             }
                         });
