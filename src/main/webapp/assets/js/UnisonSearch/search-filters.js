@@ -10,6 +10,8 @@ let activeSearchFields = {}; // e.g. { name: true, ref: true, cf_42: true }
 let currentFilterFacetId = null; // the facet currently loaded in the filter panel
 // Custom field metadata per facet: { [facetId]: [{ id, displayName, customFieldName }] }
 let customFieldsMetadata = {};
+// Keyed by uppercase facetId — saved filter rows when switching away from a facet
+let perFacetFilterState = {};
 
 /** Layers that escape .filter-panel-content overflow via fixed positioning */
 const FILTER_DROPDOWN_LAYER_SELECTOR = '.filter-dropdown-values, .filter-dropdown-options, .filter-people-results';
@@ -37,9 +39,13 @@ async function loadFilterFields(facetId) {
         return;
     }
 
-    // If the facet changed, clear existing filter rows so stale filters from a
-    // previous facet are not carried over to the new one.
+    // If the facet changed, save the previous facet's filter state, then clear rows so
+    // stale filters from another facet are not carried over.
     if (currentFilterFacetId && currentFilterFacetId !== facetId) {
+        if (activeFilters.length > 0) {
+            perFacetFilterState[String(currentFilterFacetId).toUpperCase()] =
+                JSON.parse(JSON.stringify(activeFilters));
+        }
         const container = document.getElementById('filterRowsContainer');
         if (container) container.innerHTML = '';
         activeFilters = [];
@@ -107,7 +113,35 @@ async function loadFilterFields(facetId) {
         if (typeof initQuickFilters === 'function') {
             initQuickFilters(facetId);
         }
-        
+
+        // Restore saved filters for this facet (after facet switch left activeFilters empty).
+        // Skip when rows already exist (e.g. reopening the panel on the same facet).
+        const facetKey = String(facetId).toUpperCase();
+        const saved = perFacetFilterState[facetKey];
+        if (saved && saved.length > 0 && activeFilters.length === 0) {
+            const allFields = [
+                ...((filterFieldsMetadata && filterFieldsMetadata.filterFields) || []),
+                ...getCfDropdownFilterFieldEntries(facetId)
+            ];
+            for (const savedFilter of saved) {
+                if (savedFilter.value === null || savedFilter.value === undefined) continue;
+                const field = allFields.find(f => f.id === savedFilter.fieldId);
+                if (!field) continue;
+                addFilterRow(field);
+                const newEntry = activeFilters[activeFilters.length - 1];
+                if (newEntry) {
+                    newEntry.value = savedFilter.value;
+                    if (savedFilter.dropdownLabels) {
+                        newEntry.dropdownLabels = savedFilter.dropdownLabels;
+                    }
+                    window.activeFilters = activeFilters;
+                }
+            }
+            if (typeof updateFilterBadge === 'function') updateFilterBadge();
+            if (typeof renderActiveFiltersChips === 'function') renderActiveFiltersChips();
+            updateAddFilterDropdown();
+        }
+
     } catch (error) {
         console.error('[Filters] Error loading filter fields:', error);
         filterFieldsMetadata = {};
@@ -1287,6 +1321,10 @@ function clearAllFilters() {
     // Clear active filters array
     activeFilters = [];
     window.activeFilters = activeFilters;
+
+    if (currentFilterFacetId) {
+        delete perFacetFilterState[String(currentFilterFacetId).toUpperCase()];
+    }
     
     // Update add filter dropdown
     updateAddFilterDropdown();

@@ -122,6 +122,9 @@ public class UnisonSearchApiServlet extends HttpServlet {
                         if (jsonObject.has("indentLevel") && !jsonObject.get("indentLevel").isJsonNull()) {
                             item.setIndentLevel(jsonObject.get("indentLevel").getAsInt());
                         }
+                        if (jsonObject.has("displayFilter") && !jsonObject.get("displayFilter").isJsonNull()) {
+                            item.setDisplayFilter(jsonObject.get("displayFilter").getAsBoolean());
+                        }
 
                         return item;
                     }

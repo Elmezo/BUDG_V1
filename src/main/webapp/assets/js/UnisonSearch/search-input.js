@@ -2007,6 +2007,25 @@ function updateAllFacetIndicatorsFromConditions() {
         }
     };
 
+    // Prefer client-side display-filtered row count for the active table category so we do not
+    // overwrite updateAllFacets counts with raw Unison facet counts (e.g. People 4 vs 1 after Profile filter).
+    const displayCountForCategory = (category, backendCount) => {
+        const canonicalFn = typeof canonicalCategoryKey === 'function' ? canonicalCategoryKey
+            : (typeof window !== 'undefined' && typeof window.canonicalCategoryKey === 'function'
+                ? window.canonicalCategoryKey : null);
+        if (
+            canonicalFn &&
+            typeof currentFilteredData !== 'undefined' &&
+            Array.isArray(currentFilteredData) &&
+            typeof currentFilteredCategory !== 'undefined' &&
+            currentFilteredCategory != null &&
+            canonicalFn(currentFilteredCategory) === canonicalFn(category)
+        ) {
+            return currentFilteredData.length;
+        }
+        return backendCount;
+    };
+
     // Update indicators for each category with active conditions
     categoriesWithConditions.forEach(category => {
         if (typeof updateFacetIndicator !== 'function') {
@@ -2030,7 +2049,8 @@ function updateAllFacetIndicatorsFromConditions() {
             const totalCount = (facetResult.totalCount !== undefined && typeof facetResult.totalCount === 'number' && !isNaN(facetResult.totalCount))
                 ? Math.max(facetResult.totalCount, searchResultCount) : searchResultCount;
             if (typeof updateCategoryCount === 'function') {
-                updateCategoryCount(category, searchResultCount, totalCount, true);
+                const filteredCount = displayCountForCategory(category, searchResultCount);
+                updateCategoryCount(category, filteredCount, totalCount, true);
             }
             updateFacetIndicator(category, facetResult);
         } else {
@@ -2066,7 +2086,8 @@ function updateAllFacetIndicatorsFromConditions() {
                     const totalCount = (facetResult.totalCount !== undefined && typeof facetResult.totalCount === 'number' && !isNaN(facetResult.totalCount))
                         ? Math.max(facetResult.totalCount, searchResultCount) : searchResultCount;
                     if (typeof updateCategoryCount === 'function') {
-                        updateCategoryCount(category, searchResultCount, totalCount, true);
+                        const filteredCount = displayCountForCategory(category, searchResultCount);
+                        updateCategoryCount(category, filteredCount, totalCount, true);
                     }
                     updateFacetIndicator(category, facetResult);
                 } else if (!categoriesWithConditions.has(category)) {
@@ -2716,8 +2737,16 @@ async function executeMultiConditionSearch() {
         }
     }
 
+    // Skip the early switch when the user is on a facet with an active display-filter
+    // condition (e.g. People tab while FIND is System). The correct tab will be chosen
+    // by the displayCategory resolution after results arrive.
+    const userOnDisplayFilterFacet = activeConditions.some(c =>
+        c.isDisplayFilter &&
+        typeof searchConditionCategoryMatches === 'function' &&
+        searchConditionCategoryMatches(c.category, userActiveCategory)
+    );
     // Update active category in UI to match the category being searched
-    if (category && typeof setActiveCategory === 'function') {
+    if (category && typeof setActiveCategory === 'function' && !userOnDisplayFilterFacet) {
         setActiveCategory(category);
     }
 
@@ -4841,7 +4870,9 @@ function initFilterActionButtons() {
     const clearAllButton = document.getElementById('filterClearAll');
     
     if (applyButton) {
-        applyButton.addEventListener('click', async (e) => {
+        const newApplyButton = applyButton.cloneNode(true);
+        applyButton.parentNode.replaceChild(newApplyButton, applyButton);
+        newApplyButton.addEventListener('click', async (e) => {
             e.preventDefault();
             e.stopPropagation();
             await applyFiltersAndSearch();
