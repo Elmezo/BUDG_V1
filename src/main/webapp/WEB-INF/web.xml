@@ -81,6 +81,24 @@
         <url-pattern>/*</url-pattern>
     </filter-mapping>
 
+    <!-- CSRF (double-submit cookie) — after security headers, before auth -->
+    <filter>
+        <filter-name>CsrfFilter</filter-name>
+        <filter-class>com.example.budg_v2.filter.CsrfFilter</filter-class>
+    </filter>
+    <filter-mapping>
+        <filter-name>CsrfFilter</filter-name>
+        <url-pattern>/api/*</url-pattern>
+    </filter-mapping>
+    <filter-mapping>
+        <filter-name>CsrfFilter</filter-name>
+        <url-pattern>/auth/*</url-pattern>
+    </filter-mapping>
+    <filter-mapping>
+        <filter-name>CsrfFilter</filter-name>
+        <url-pattern>/admin/*</url-pattern>
+    </filter-mapping>
+
     <!-- Authentication Filter -->
     <filter>
         <filter-name>AuthFilter</filter-name>
@@ -113,6 +131,11 @@
         <filter-name>GlobalExceptionFilter</filter-name>
         <url-pattern>/*</url-pattern>
     </filter-mapping>
+
+    <!-- Load .env first so DB_* and JWT_* are available before schedulers run -->
+    <listener>
+        <listener-class>com.example.budg_v2.listener.EnvBootstrapListener</listener-class>
+    </listener>
 
     <!-- LDAP Sync Scheduler -->
     <listener>

@@ -98,11 +98,6 @@ public class EnvFileUpdater {
         // Priority 1: Try to find project root from class location first (most reliable for src/main/resources)
         Path projectRootFromClass = findProjectRootFromClassLocation();
         if (projectRootFromClass != null) {
-            // Check src/main/resources/.env first (this is where the file actually is)
-            Path resourcesEnv = projectRootFromClass.resolve("src/main/resources/.env");
-            if (Files.exists(resourcesEnv)) {
-                searchPaths.add(resourcesEnv);
-            }
             searchPaths.add(projectRootFromClass.resolve(".env"));
         }
         
@@ -121,12 +116,7 @@ public class EnvFileUpdater {
         searchPaths.add(Paths.get("../../.env"));
         searchPaths.add(Paths.get("../../../.env"));
         
-        // Priority 5: Resources directory (if .env is copied there)
-        searchPaths.add(Paths.get("src/main/resources/.env"));
-        searchPaths.add(Paths.get("resources/.env"));
-        
-        // Priority 6: Try to find project root by looking for common markers (pom.xml, build.gradle)
-        // This matches EnvFileLoader's logic, but also check src/main/resources
+        // Priority 5: Try to find project root by looking for common markers (pom.xml, build.gradle)
         if (userDir != null) {
             Path userDirPath = Paths.get(userDir);
             Path current = userDirPath;
@@ -134,11 +124,6 @@ public class EnvFileUpdater {
                 Path pomFile = current.resolve("pom.xml");
                 Path gradleFile = current.resolve("build.gradle");
                 if (Files.exists(pomFile) || Files.exists(gradleFile)) {
-                    // Check src/main/resources/.env first (where file actually is)
-                    Path resourcesEnv = current.resolve("src/main/resources/.env");
-                    if (Files.exists(resourcesEnv)) {
-                        searchPaths.add(resourcesEnv);
-                    }
                     Path envInRoot = current.resolve(".env");
                     // Only add if file exists (same as EnvFileLoader)
                     if (Files.exists(envInRoot)) {

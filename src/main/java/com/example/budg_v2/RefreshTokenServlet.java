@@ -6,6 +6,7 @@ import com.example.budg_v2.util.SessionManager;
 import com.example.budg_v2.util.GuestAuthHelper;
 import com.example.budg_v2.util.CorsUtil;
 import com.example.budg_v2.util.CookieUtil;
+import com.example.budg_v2.util.CsrfTokenUtil;
 import com.example.budg_v2.database.DatabaseConnection;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.google.gson.Gson;
@@ -121,6 +122,8 @@ public class RefreshTokenServlet extends HttpServlet {
             // TOKEN REFRESH ROTATION: Set new refresh token cookie
             CookieUtil.addCookie(response, REFRESH_COOKIE, newRefresh, 
                                 (int) cfg.refreshValiditySeconds, isHttps, "Lax");
+
+            CsrfTokenUtil.setCsrfCookie(request, response, CsrfTokenUtil.newToken());
             
             // Return success response
             Map<String, Object> responseData = new HashMap<>();

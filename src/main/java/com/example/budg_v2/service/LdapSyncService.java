@@ -6,6 +6,7 @@ import com.example.budg_v2.dao.OrgUnitDAO;
 import com.example.budg_v2.database.DatabaseConnection;
 import com.example.budg_v2.model.LdapSettings;
 import com.example.budg_v2.model.OrgUnit;
+import com.example.budg_v2.util.LdapPlaceholderPassword;
 import com.google.gson.JsonObject;
 import com.unboundid.ldap.sdk.*;
 import com.unboundid.util.ssl.SSLUtil;
@@ -37,8 +38,6 @@ public class LdapSyncService {
     private static final int BATCH_SIZE = 200;
     private static final String TEMP_DIR = "/budg_ldap_synchronizer/tmp";
     private static final long TEMP_CLEANUP_EXPIRATION_MS = 60 * 60 * 1000; // 60 minutes
-    // Special password value for LDAP users - must match LoginServlet.LDAP_USER_PASSWORD
-    public static final String LDAP_USER_PASSWORD = "LDAP_AUTH_REQUIRED_#@!$%^&*()";
     
     private final LdapSettingsService ldapSettingsService;
     private final LdapAuthService ldapAuthService;
@@ -1117,7 +1116,7 @@ public class LdapSyncService {
         personData.put("first_name", ldapUser.get("givenName"));
         personData.put("last_name", ldapUser.get("sn"));
         personData.put("email", ldapUser.get("mail"));
-        personData.put("password", LDAP_USER_PASSWORD); // Special password for LDAP users - requires LDAP authentication
+        personData.put("password", LdapPlaceholderPassword.storedValue());
         
         // Optional fields
         personData.put("description", ldapUser.getOrDefault("description", "LDAP User"));

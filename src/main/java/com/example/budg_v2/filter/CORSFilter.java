@@ -1,5 +1,6 @@
 package com.example.budg_v2.filter;
 
+import com.example.budg_v2.util.AllowedOriginsUtil;
 import jakarta.servlet.*;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -53,25 +54,10 @@ public class CORSFilter implements Filter {
     }
     
     /**
-     * Check if origin is allowed (for production, restrict to specific domains)
+     * Check if origin is allowed: {@code ALLOWED_ORIGINS} (comma-separated), or localhost
+     * patterns when {@code ALLOWED_ORIGINS} is unset (development only).
      */
     private boolean isAllowedOrigin(String origin) {
-        if (origin == null) {
-            return false;
-        }
-        
-        // For development, allow localhost and local IPs
-        if (origin.startsWith("http://localhost") || 
-            origin.startsWith("https://localhost") ||
-            origin.startsWith("http://127.0.0.1") ||
-            origin.startsWith("https://127.0.0.1")) {
-            return true;
-        }
-        
-        // For production, add your domain here
-        // return origin.equals("https://yourdomain.com");
-        
-        // For now, allow all origins (change in production)
-        return true;
+        return AllowedOriginsUtil.isAllowedOrigin(origin);
     }
 }

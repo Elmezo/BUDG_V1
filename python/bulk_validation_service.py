@@ -61,7 +61,7 @@ Relationships: System relationships, Category hierarchies
 @since 2024
 """
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Depends, Header
 from pydantic import BaseModel
 from typing import List, Optional, Dict, Any
 import pandas as pd
@@ -158,15 +158,20 @@ try:
         DB_CONFIG.get("database"),
     )
 except Exception as _e:
-    logger.warning("budg_db_config failed (%s); using legacy DB_* env defaults", _e)
-    DB_CONFIG = {
-        "host": os.getenv("DB_HOST", "localhost"),
-        "port": int(os.getenv("DB_PORT", "3306")),
-        "user": os.getenv("DB_USERNAME", "root"),
-        "password": os.getenv("DB_PASSWORD", ""),
-        "database": os.getenv("DB_NAME", "project"),
-        "charset": "utf8mb4",
-    }
+    logger.error("budg_db_config failed (%s); DB_USERNAME/DB_PASSWORD must be set via environment", _e)
+    raise SystemExit(1) from _e
+
+_DEV_DEFAULT_BULK_API_KEY = "BUDG_DEV_BULK_VALIDATION_LOCALHOST_ONLY"
+_bulk_raw = (os.getenv("BULK_VALIDATION_API_KEY") or "").strip()
+BULK_VALIDATION_API_KEY = _bulk_raw if _bulk_raw else _DEV_DEFAULT_BULK_API_KEY
+if not _bulk_raw:
+    logger.warning(
+        "BULK_VALIDATION_API_KEY not set; using dev default matching Java HttpClientUtil. "
+        "Set BULK_VALIDATION_API_KEY for production."
+    )
+if len(BULK_VALIDATION_API_KEY) < 16:
+    logger.critical("BULK_VALIDATION_API_KEY must be at least 16 characters.")
+    raise SystemExit(1)
 
 # ==============================================================================
 # PROCESSOR MODULES LOADING
@@ -205,6 +210,12 @@ role_processor = load_processor_module("processors.roles.role_bulk_processor")
 relationship_processor = load_processor_module("processors.relationships.relationship_bulk_processor")
 
 app = FastAPI(title="Bulk Upload Validation Service")
+
+
+def verify_bulk_api_key(x_api_key: Optional[str] = Header(default=None, alias="X-API-Key")) -> None:
+    """Require X-API-Key matching BULK_VALIDATION_API_KEY (set by Java HttpClientUtil)."""
+    if not x_api_key or x_api_key != BULK_VALIDATION_API_KEY:
+        raise HTTPException(status_code=401, detail="Invalid or missing API key")
 
 # ==============================================================================
 # DATABASE CONFIGURATION
@@ -747,7 +758,11 @@ def read_root():
     }
 
 
-@app.post("/api/validate", response_model=ValidationResponse)
+@app.post(
+    "/api/validate",
+    response_model=ValidationResponse,
+    dependencies=[Depends(verify_bulk_api_key)],
+)
 async def validate_bulk_upload(request: ValidationRequest):
     """
     Main validation endpoint for bulk Excel uploads.
@@ -1177,10 +1192,10 @@ async def validate_bulk_upload(request: ValidationRequest):
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(
-        app, 
-        host="0.0.0.0", 
+        app,
+        host="127.0.0.1",
         port=8000,
         log_level="info",
-        access_log=True
+        access_log=True,
     )
 

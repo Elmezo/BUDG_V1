@@ -7,6 +7,8 @@ import com.example.budg_v2.util.DistributedRateLimiter;
 import com.example.budg_v2.util.SessionManager;
 import com.example.budg_v2.util.LdapConfigUtil;
 import com.example.budg_v2.util.CookieUtil;
+import com.example.budg_v2.util.CsrfTokenUtil;
+import com.example.budg_v2.util.LdapPlaceholderPassword;
 import com.example.budg_v2.service.LdapAuthService;
 import com.example.budg_v2.exception.InactiveAccountException;
 import com.example.budg_v2.exception.LdapConnectionException;
@@ -37,8 +39,6 @@ public class LoginServlet extends HttpServlet {
     private static final String ACCESS_COOKIE = "ACCESS_TOKEN";
     private static final String REFRESH_COOKIE = "REFRESH_TOKEN";
     private static final LdapAuthService ldapAuthService = new LdapAuthService();
-    // Special password value for LDAP users - cannot be used as a regular password
-    public static final String LDAP_USER_PASSWORD = "LDAP_AUTH_REQUIRED_#@!$%^&*()";
 
     @Override
     public void init() throws ServletException {
@@ -219,6 +219,8 @@ public class LoginServlet extends HttpServlet {
             CookieUtil.addCookie(response, REFRESH_COOKIE, refreshToken, 
                                 (int) cfg.refreshValiditySeconds, isHttps, "Lax");
 
+            CsrfTokenUtil.setCsrfCookie(request, response, CsrfTokenUtil.newToken());
+
             // Prepare response data
             Map<String, Object> responseData = new HashMap<>();
             responseData.put("firstName", user.get("first_name"));
@@ -272,7 +274,7 @@ public class LoginServlet extends HttpServlet {
         }
         
         // Step 3: Determine authentication method based on password type
-        if (LDAP_USER_PASSWORD.equals(dbPassword)) {
+        if (LdapPlaceholderPassword.matches(dbPassword)) {
             // User is from LDAP - must authenticate via LDAP only
             if (!LdapConfigUtil.isLdapEnabled()) {
                 logger.error("LDAP user attempted login but LDAP is disabled: {}", email);
@@ -626,7 +628,7 @@ public class LoginServlet extends HttpServlet {
             pstmt.setString(1, (String) ldapUser.get("givenName"));
             pstmt.setString(2, (String) ldapUser.get("sn"));
             pstmt.setString(3, (String) ldapUser.get("email"));
-            pstmt.setString(4, LDAP_USER_PASSWORD); // Special password for LDAP users - requires LDAP authentication
+            pstmt.setString(4, LdapPlaceholderPassword.storedValue()); // LDAP-linked users authenticate via LDAP only
             pstmt.setString(5, "LDAP User");
             pstmt.setString(6, "");
             pstmt.setString(7, "");

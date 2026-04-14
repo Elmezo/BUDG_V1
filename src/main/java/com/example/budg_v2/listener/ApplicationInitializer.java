@@ -6,6 +6,7 @@ import com.example.budg_v2.util.AxonLogger;
 import com.example.budg_v2.util.DefaultWorkflowInitializer;
 import com.example.budg_v2.util.DistributedRateLimiter;
 import com.example.budg_v2.util.EnvFileLoader;
+import com.example.budg_v2.util.HttpClientUtil;
 import com.example.unisonsearch.service.UnisonSchemaInitializer;
 import jakarta.servlet.ServletContextEvent;
 import jakarta.servlet.ServletContextListener;
@@ -68,6 +69,9 @@ public class ApplicationInitializer implements ServletContextListener {
         
         // Validate JWT_SECRET_KEY is set (required for security)
         validateJwtSecretKey();
+
+        DatabaseConnection.verifyJdbcCredentialsConfigured();
+        validateBulkValidationApiKey();
         
         try {
             // Initialize distributed rate limiting table
@@ -226,6 +230,31 @@ public class ApplicationInitializer implements ServletContextListener {
         }
         
         logger.info("JWT_SECRET_KEY validated successfully (length: {} bytes)", keyBytes.length);
+    }
+
+    /**
+     * Shared secret for the Python bulk validation service — must match {@code BULK_VALIDATION_API_KEY} there
+     * and be sent by Java as {@code X-API-Key} on {@code /api/validate} requests.
+     */
+    private void validateBulkValidationApiKey() {
+        String key = System.getenv("BULK_VALIDATION_API_KEY");
+        if (key == null || key.trim().isEmpty()) {
+            key = System.getProperty("BULK_VALIDATION_API_KEY");
+        }
+        if (key != null) {
+            key = key.trim();
+        }
+        if (key == null || key.isEmpty()) {
+            key = HttpClientUtil.BULK_VALIDATION_API_KEY_DEV_DEFAULT;
+            System.setProperty("BULK_VALIDATION_API_KEY", key);
+            logger.warn(
+                    "BULK_VALIDATION_API_KEY not set; using dev default (same as env.example / Python). "
+                            + "Set BULK_VALIDATION_API_KEY in .env for production.");
+        }
+        if (key.length() < 16) {
+            throw new IllegalStateException("BULK_VALIDATION_API_KEY must be at least 16 characters.");
+        }
+        logger.info("BULK_VALIDATION_API_KEY is configured (length: {} characters)", key.length());
     }
     
     @Override

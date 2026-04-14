@@ -73,6 +73,8 @@ public class GuestAuthHelper {
             addCookie(response, ACCESS_COOKIE, accessToken, isHttps, (int) cfg.jwtValiditySeconds);
             addCookie(response, REFRESH_COOKIE, refreshToken, isHttps, (int) cfg.refreshValiditySeconds);
 
+            CsrfTokenUtil.setCsrfCookie(request, response, CsrfTokenUtil.newToken());
+
             attachGuestAttributes(request, sessionId);
             logger.info("Issued guest tokens for IP {}", clientIp);
             return new GuestAuthResult(accessToken, refreshToken, sessionId);

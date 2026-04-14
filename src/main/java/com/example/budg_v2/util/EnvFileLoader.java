@@ -5,9 +5,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -40,22 +37,11 @@ public class EnvFileLoader {
             
             Path envPath = findEnvFile();
             
-            // If not found in file system, try classpath as last resort
-            // Note: File system .env files take priority over classpath to allow deployment-specific configs
+            // Do not load .env from the classpath: packaging a real .env inside the WAR exposes secrets.
+            // Use a file-system .env (e.g. project root or CATALINA_BASE/conf), OS env vars, or env.example as documentation only.
             if (envPath == null || !Files.exists(envPath)) {
-                logger.debug("No .env file found in file system, trying classpath as fallback...");
-                try {
-                    loadEnvFileFromClasspath();
-                    logger.info("Loaded environment variables from .env file in classpath (fallback)");
-                    logger.warn("NOTE: Using .env from classpath. For production, use file system .env file (e.g., Tomcat bin/.env) for deployment-specific configuration.");
-                    loaded = true;
-                    return;
-                } catch (Exception e) {
-                    logger.debug("No .env file found in classpath either: {}", e.getMessage());
-                }
-                
-                logger.debug("No .env file found. Using system environment variables only.");
-                logger.debug("Searched in: current directory, user.dir, classpath, and common project locations");
+                logger.debug("No file-system .env found. Using system environment variables only.");
+                logger.debug("Searched in: current directory, user.dir, and common project locations (see env.example in resources for keys).");
                 loaded = true;
                 return;
             }
@@ -92,11 +78,7 @@ public class EnvFileLoader {
         searchPaths.add("../../.env");
         searchPaths.add("../../../.env");
         
-        // 4. Resources directory (if .env is copied there)
-        searchPaths.add("src/main/resources/.env");
-        searchPaths.add("resources/.env");
-        
-        // 5. Try to find project root by looking for common markers
+        // 4. Try to find project root by looking for common markers
         if (userDir != null) {
             Path userDirPath = Paths.get(userDir);
             // Look for pom.xml or build.gradle in parent directories
@@ -188,55 +170,5 @@ public class EnvFileLoader {
         }
     }
     
-    /**
-     * Try to load .env file from classpath (src/main/resources/.env)
-     */
-    private static void loadEnvFileFromClasspath() throws IOException {
-        InputStream inputStream = EnvFileLoader.class.getClassLoader().getResourceAsStream(".env");
-        if (inputStream == null) {
-            throw new IOException(".env not found in classpath");
-        }
-        
-        try (BufferedReader reader = new BufferedReader(
-                new InputStreamReader(inputStream, StandardCharsets.UTF_8))) {
-            String line;
-            int lineNumber = 0;
-            
-            while ((line = reader.readLine()) != null) {
-                lineNumber++;
-                line = line.trim();
-                
-                // Skip empty lines and comments
-                if (line.isEmpty() || line.startsWith("#")) {
-                    continue;
-                }
-                
-                // Parse KEY=value format
-                int equalsIndex = line.indexOf('=');
-                if (equalsIndex <= 0) {
-                    logger.warn("Invalid line in .env file (line {}): {}", lineNumber, line);
-                    continue;
-                }
-                
-                String key = line.substring(0, equalsIndex).trim();
-                String value = line.substring(equalsIndex + 1).trim();
-                
-                // Remove quotes if present
-                if (value.startsWith("\"") && value.endsWith("\"")) {
-                    value = value.substring(1, value.length() - 1);
-                } else if (value.startsWith("'") && value.endsWith("'")) {
-                    value = value.substring(1, value.length() - 1);
-                }
-                
-                // Only set if not already set in system environment
-                if (System.getenv(key) == null && System.getProperty(key) == null) {
-                    System.setProperty(key, value);
-                    logger.debug("Loaded from .env (classpath): {} = {} (hidden)", key, value.length() > 0 ? "***" : "empty");
-                } else {
-                    logger.debug("Skipping .env value for {} (already set in environment)", key);
-                }
-            }
-        }
-    }
 }
 

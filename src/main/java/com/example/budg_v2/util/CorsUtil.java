@@ -8,7 +8,9 @@ import java.util.List;
 public class CorsUtil {
 
     private static final List<String> DEFAULT_METHODS = Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS");
-    private static final List<String> DEFAULT_HEADERS = Arrays.asList("Content-Type", "Accept", "Authorization");
+    private static final List<String> DEFAULT_HEADERS = Arrays.asList(
+            "Content-Type", "Accept", "Authorization",
+            CsrfTokenUtil.CSRF_HEADER_PRIMARY, CsrfTokenUtil.CSRF_HEADER_ALT);
 
     /**
      * Set standard CORS headers with default methods and headers
@@ -23,8 +25,8 @@ public class CorsUtil {
      */
     public static void setCorsHeaders(HttpServletRequest request, HttpServletResponse response) {
         String origin = request.getHeader("Origin");
-        if (origin != null && !origin.isEmpty()) {
-            setCorsHeaders(response, DEFAULT_METHODS, DEFAULT_HEADERS, origin, 3600);
+        if (origin != null && !origin.isEmpty() && AllowedOriginsUtil.isAllowedOrigin(origin)) {
+            setCorsHeaders(response, DEFAULT_METHODS, DEFAULT_HEADERS, origin.trim(), 3600);
         } else {
             setCorsHeaders(response, DEFAULT_METHODS, DEFAULT_HEADERS, "*", 3600);
         }

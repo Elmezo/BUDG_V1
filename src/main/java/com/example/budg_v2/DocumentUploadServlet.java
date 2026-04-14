@@ -17,6 +17,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.Part;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -179,10 +180,17 @@ public class DocumentUploadServlet extends HttpServlet {
             sendError(response, "Invalid facet ID or document type ID", HttpServletResponse.SC_BAD_REQUEST);
         } catch (SQLException e) {
             logger.error("Database error during document upload", e);
-            sendError(response, "Database error: " + e.getMessage(), HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+            String ref = MDC.get("request_id");
+            sendError(response, ref != null
+                    ? "A database error occurred. Reference: " + ref
+                    : "A database error occurred.",
+                    HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
         } catch (Exception e) {
             logger.error("Error during document upload", e);
-            sendError(response, "Internal server error: " + e.getMessage(),
+            String ref = MDC.get("request_id");
+            sendError(response, ref != null
+                    ? "An unexpected error occurred. Reference: " + ref
+                    : "An unexpected error occurred.",
                     HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
         }
     }

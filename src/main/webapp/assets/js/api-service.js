@@ -48,10 +48,21 @@ class ApiService {
         }
     }
 
+    /** Read double-submit CSRF token from cookie (set by server on login / guest / refresh). */
+    getCsrfTokenFromCookie() {
+        try {
+            const m = document.cookie.match(/(?:^|;\s*)XSRF-TOKEN=([^;]*)/);
+            return m ? decodeURIComponent(m[1].trim()) : null;
+        } catch (e) {
+            return null;
+        }
+    }
+
     // Create request options object
     createRequestOptions(method = 'GET', body = null, customHeaders = {}) {
+        const m = method.toUpperCase();
         const options = {
-            method: method.toUpperCase(),
+            method: m,
             headers: { 
                 ...this.getDefaultHeaders(), 
                 ...customHeaders,
@@ -63,8 +74,15 @@ class ApiService {
             cache: 'no-store' // Prevent browser caching
         };
 
+        if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(m)) {
+            const xsrf = this.getCsrfTokenFromCookie();
+            if (xsrf && !options.headers['X-XSRF-TOKEN']) {
+                options.headers['X-XSRF-TOKEN'] = xsrf;
+            }
+        }
+
         // Add body for non-GET requests
-        if (body && method.toUpperCase() !== 'GET') {
+        if (body && m !== 'GET') {
             options.body = typeof body === 'string' ? body : JSON.stringify(body);
         }
         return options;
@@ -2321,6 +2339,44 @@ class ApiService {
         return this.get(`/changerequests?stakeholder=${userId}&t=${timestamp}`);
     }
 }
+
+// Patch global fetch so raw fetch() calls send CSRF header for mutating /api, /auth, /admin requests
+(function patchFetchWithCsrf() {
+    if (typeof window === 'undefined' || window.__budgCsrfFetchPatched) return;
+    window.__budgCsrfFetchPatched = true;
+    const origFetch = window.fetch.bind(window);
+    const UNSAFE = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
+    function pathNeedsCsrf(url) {
+        if (!url || typeof url !== 'string') return false;
+        let path = url;
+        if (url.startsWith('http')) {
+            try { path = new URL(url).pathname; } catch (e) { return false; }
+        } else {
+            path = url.split('?')[0].split('#')[0];
+        }
+        return path.startsWith('/api/') || path.startsWith('/auth/') || path.startsWith('/admin/');
+    }
+    function readXsrf() {
+        try {
+            const m = document.cookie.match(/(?:^|;\s*)XSRF-TOKEN=([^;]*)/);
+            return m ? decodeURIComponent(m[1].trim()) : null;
+        } catch (e) { return null; }
+    }
+    window.fetch = function (input, init) {
+        init = init ? { ...init } : {};
+        const method = (init.method || 'GET').toUpperCase();
+        const url = typeof input === 'string' ? input : (input && input.url) || '';
+        if (!UNSAFE.has(method) || !pathNeedsCsrf(url)) {
+            return origFetch(input, init);
+        }
+        const tok = readXsrf();
+        if (!tok) return origFetch(input, init);
+        const headers = new Headers(init.headers || {});
+        if (!headers.has('X-XSRF-TOKEN')) headers.set('X-XSRF-TOKEN', tok);
+        init.headers = headers;
+        return origFetch(input, init);
+    };
+})();
 
 // Create and export the API service instance
 window.BUDG_API_SERVICE = new ApiService();

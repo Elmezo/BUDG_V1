@@ -57,10 +57,10 @@ public class SecurityHeadersFilter implements Filter {
         // Strict Transport Security (HTTPS only)
         response.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
 
-        // Content Security Policy
+        // Content Security Policy (unsafe-eval removed; unsafe-inline kept for legacy pages — migrate to nonces later)
         response.setHeader("Content-Security-Policy",
                 "default-src 'self'; " +
-                        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; "
+                        "script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; "
                         +
                         "style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://fonts.googleapis.com; "
                         +
