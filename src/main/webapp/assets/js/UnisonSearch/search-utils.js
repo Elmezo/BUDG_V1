@@ -353,10 +353,31 @@ function isUnisonSearchDebugEnabled() {
     }
 }
 
+/** Last N verbose lines (copy via dumpUnisonSearchDebugState) */
+const UNISON_DEBUG_RING_MAX = 250;
+const unisonSearchDebugRing = [];
+
 function unisonSearchDebugLog(phase, detail) {
     if (!isUnisonSearchDebugEnabled()) return;
     const ts = new Date().toISOString();
-    console.log('[UnisonSearch ' + ts + '] [' + phase + ']', detail === undefined ? '' : detail);
+    let line = '[UnisonSearch ' + ts + '] [' + phase + ']';
+    if (detail !== undefined) {
+        try {
+            line += ' ' + (typeof detail === 'string' ? detail : JSON.stringify(detail));
+        } catch (e) {
+            line += ' ' + String(detail);
+        }
+    }
+    console.log(line);
+    try {
+        unisonSearchDebugRing.push(line);
+        while (unisonSearchDebugRing.length > UNISON_DEBUG_RING_MAX) {
+            unisonSearchDebugRing.shift();
+        }
+        if (typeof window !== 'undefined') {
+            window.__unisonSearchDebugRing = unisonSearchDebugRing;
+        }
+    } catch (e) { /* ignore */ }
 }
 
 function unisonSearchErrorLog(phase, detail) {
@@ -392,7 +413,9 @@ function dumpUnisonSearchDebugState() {
     }
     const help = {
         verboseLogs: 'localStorage.setItem("unisonSearchDebug","1") then reload; disable: localStorage.removeItem("unisonSearchDebug")',
-        orFlag: 'Or: window.__UNISON_SEARCH_DEBUG__ = true'
+        orFlag: 'Or: window.__UNISON_SEARCH_DEBUG__ = true',
+        backendTrace: 'Server console: -Dbudg.unison.trace=true or env BUDG_UNISON_TRACE=1. With unisonSearchDebug=1 the browser sends X-Unison-Trace:1 on /api/unison/search.',
+        copyRing: 'window.__unisonSearchDebugRing — last ' + UNISON_DEBUG_RING_MAX + ' verbose lines'
     };
     const o = {
         help,
@@ -405,7 +428,9 @@ function dumpUnisonSearchDebugState() {
         lastError: window.__lastUnisonSearchError || null,
         facetCountSource: typeof window.getFacetCountSource === 'function' ? window.getFacetCountSource() : null,
         categoryCounts: snapshotCategoryCountsMap(window.categoryCounts),
-        searchConditions: window.searchConditions || null
+        searchConditions: window.searchConditions || null,
+        activeFilters: typeof window.activeFilters !== 'undefined' ? window.activeFilters : null,
+        debugRing: typeof window.__unisonSearchDebugRing !== 'undefined' ? window.__unisonSearchDebugRing : unisonSearchDebugRing
     };
     console.info('[UnisonSearch] === dump (copy JSON below) ===');
     try {

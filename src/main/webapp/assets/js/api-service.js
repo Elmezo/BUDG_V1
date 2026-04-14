@@ -968,6 +968,13 @@ class ApiService {
         return this.post(this.config.ENDPOINTS.PROCESS.CREATE, payload);
     }
 
+    async getNextProcessRefNumber() {
+        const endpoint =
+            this.config?.ENDPOINTS?.PROCESS?.NEXT_REF ||
+            '/process/next-ref';
+        return this.get(endpoint);
+    }
+
     async updateProcess(id, payload) {
         return this.put(this.config.ENDPOINTS.PROCESS.UPDATE, payload, { id });
     }

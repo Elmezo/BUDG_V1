@@ -135,24 +135,17 @@ function initSearchFunctionality() {
                         currentFilteredData = null;
                         currentFilteredCategory = null;
 
-                        // Load related facet counts for the first suggestion item without
-                        // overwriting the table or currentUnisonSearchResults.
-                        const firstRow = currentSuggestionsData[0];
-                        const firstId = firstRow.ID || firstRow.id;
-                        if (firstId) {
-                            try {
-                                _loadRelatedCountsForItem(
-                                    { id: firstId, category: category, name: userQuery },
-                                    category
-                                );
-                            } catch (err) {
-                                console.error('[Search Enter] Error setting up Unison search:', err);
-                            }
-                        }
-
                         // Clear suggestions data to prevent memory leak
                         currentSuggestionsData = null;
                         currentSuggestionsCategory = null;
+
+                        // Execute full cross-facet search so all sidebar facet counts reflect
+                        // the complete keyword search (all matching items), not just the first suggestion.
+                        try {
+                            await executeMultiConditionSearch();
+                        } catch (err) {
+                            console.error('[Search Enter] Error executing Unison search:', err);
+                        }
                     }
                 } else {
                     // No suggestions visible, perform normal search
@@ -240,156 +233,144 @@ function disableOperatorOptions() {
     });
 }
 
+/**
+ * One delegated listener on the sidebar — modules.js calls this after every re-render; previously
+ * each call stacked duplicate per-item listeners and one click fired loadCategoryData N times.
+ */
 function initOrgUnitTable() {
-    const categoryItems = document.querySelectorAll('.category-item');
-    const dataTable = tableContainer || document.querySelector('.data-table-wrapper');
+    if (window.__orgUnitTableDelegated) {
+        return;
+    }
+    const sidebarContainer = document.querySelector('.category-sidebar-container');
+    if (!sidebarContainer) {
+        return;
+    }
+    window.__orgUnitTableDelegated = true;
 
-    categoryItems.forEach(item => {
+    sidebarContainer.addEventListener('click', async (e) => {
+        const item = e.target.closest('.category-item');
+        if (!item || !sidebarContainer.contains(item)) {
+            return;
+        }
+        if (e.target.closest('.cat-remove-btn')) {
+            return;
+        }
         const category = item.getAttribute('data-category');
-        item.addEventListener('click', async () => {
-            categoryItems.forEach(i => i.classList.remove('active', 'current'));
-            item.classList.add('active');
+        if (!category) {
+            return;
+        }
 
-            // Preserve FIND query in search input when switching facets
-            // This allows users to add AND/OR/NOT conditions in the new facet
-            const searchInput = document.querySelector('.search-main-input');
-            if (searchInput && typeof searchConditions !== 'undefined' && searchConditions.length > 0) {
-                const activeConditions = searchConditions.filter(c => !c.muted);
-                const findCondition = activeConditions.find(c => c.operator === 'FIND');
+        const categoryItems = sidebarContainer.querySelectorAll('.category-item');
+        const dataTable = tableContainer || document.querySelector('.data-table-wrapper');
 
-                if (findCondition && findCondition.query) {
-                    // Preserve the FIND query in the input field
-                    // This allows the user to add AND/OR/NOT conditions in the new facet
-                    searchInput.value = findCondition.query;
-                }
+        categoryItems.forEach(i => i.classList.remove('active', 'current'));
+        item.classList.add('active');
+
+        // Preserve FIND query in search input when switching facets
+        const searchInput = document.querySelector('.search-main-input');
+        if (searchInput && typeof searchConditions !== 'undefined' && searchConditions.length > 0) {
+            const activeConditions = searchConditions.filter(c => !c.muted);
+            const findCondition = activeConditions.find(c => c.operator === 'FIND');
+
+            if (findCondition && findCondition.query) {
+                searchInput.value = findCondition.query;
             }
+        }
 
-            // Dashboard will be updated automatically in loadCategoryDataFromUnisonResults
-            // if dashboard view is active, so we don't need to reload it here
-            // This prevents showing all data instead of filtered data
-            if (typeof isMapViewActive === 'function' && isMapViewActive()) {
-                // Reload map for new category
-                if (typeof reloadMapIfActive === 'function') {
-                    reloadMapIfActive();
+        if (typeof isMapViewActive === 'function' && isMapViewActive()) {
+            if (typeof reloadMapIfActive === 'function') {
+                reloadMapIfActive();
+            }
+        } else if (isSearchExecuting) {
+            if (currentUnisonSearchResults &&
+                currentUnisonSearchResults.results &&
+                Object.keys(currentUnisonSearchResults.results).length > 0) {
+                if (dataTable) dataTable.style.display = 'block';
+                updateSearchCounter();
+                if (typeof searchConditions !== 'undefined' && searchConditions.length > 0) {
+                    enableOperatorOptions();
                 }
-            } else if (isSearchExecuting) {
-                // Search in progress: still switch facet if we already have Unison payload (loadCategoryDataFromUnisonResults resolves facet keys).
-                if (currentUnisonSearchResults &&
-                    currentUnisonSearchResults.results &&
-                    Object.keys(currentUnisonSearchResults.results).length > 0) {
-                    if (dataTable) dataTable.style.display = 'block';
+                await loadCategoryDataFromUnisonResults(category);
+            }
+        } else {
+            if (dataTable) dataTable.style.display = 'block';
+
+            if (currentUnisonSearchResults &&
+                currentUnisonSearchResults.results &&
+                Object.keys(currentUnisonSearchResults.results).length > 0) {
+
+                const catToFacetId = typeof categoryToFacetId === 'function' ? categoryToFacetId :
+                    (typeof window !== 'undefined' && typeof window.categoryToFacetId === 'function' ? window.categoryToFacetId : null);
+                let facetId = catToFacetId ? catToFacetId(category) : category.toUpperCase();
+
+                if (facetId === 'DATA-SETS' || facetId === 'DATA_SETS') {
+                    facetId = 'DATASET';
+                }
+
+                const facetResult = currentUnisonSearchResults.results[facetId];
+                const hasData = facetResult && (
+                    (facetResult.count !== undefined && facetResult.count > 0) ||
+                    (Array.isArray(facetResult.rows) && facetResult.rows.length > 0) ||
+                    (facetResult.ids && (Array.isArray(facetResult.ids) ? facetResult.ids.length > 0 : facetResult.ids.size > 0))
+                );
+
+                if (hasData) {
                     updateSearchCounter();
                     if (typeof searchConditions !== 'undefined' && searchConditions.length > 0) {
                         enableOperatorOptions();
                     }
                     await loadCategoryDataFromUnisonResults(category);
-                }
-            } else {
-                // Load table view
-                if (dataTable) dataTable.style.display = 'block';
-
-                // Check if we have Unison Search results - if yes, use filtered data
-                // IMPORTANT: Also check that results object is not empty AND that this category exists in results
-                if (currentUnisonSearchResults &&
-                    currentUnisonSearchResults.results &&
-                    Object.keys(currentUnisonSearchResults.results).length > 0) {
-
-                    // Check if this category exists in Unison Search results
-                    const catToFacetId = typeof categoryToFacetId === 'function' ? categoryToFacetId :
-                        (typeof window !== 'undefined' && typeof window.categoryToFacetId === 'function' ? window.categoryToFacetId : null);
-                    let facetId = catToFacetId ? catToFacetId(category) : category.toUpperCase();
-
-                    // Normalize: "DATA-SETS" -> "DATASET"
-                    if (facetId === 'DATA-SETS' || facetId === 'DATA_SETS') {
-                        facetId = 'DATASET';
-                    }
-
-                    const facetResult = currentUnisonSearchResults.results[facetId];
-                    const hasData = facetResult && (
-                        (facetResult.count !== undefined && facetResult.count > 0) ||
-                        (Array.isArray(facetResult.rows) && facetResult.rows.length > 0) ||
-                        (facetResult.ids && (Array.isArray(facetResult.ids) ? facetResult.ids.length > 0 : facetResult.ids.size > 0))
-                    );
-
-                    // Only use Unison results if this category has data in the results
-                    if (hasData) {
-                        // Update search counter and enable operators when switching facets with existing conditions
-                        updateSearchCounter();
-                        if (typeof searchConditions !== 'undefined' && searchConditions.length > 0) {
-                            enableOperatorOptions();
-                        }
-                        await loadCategoryDataFromUnisonResults(category);
-                    } else {
-                        // Category not in Unison results or has no data - load normally
-                        await loadCategoryData(category);
-                    }
-                } else if (typeof searchConditions !== 'undefined' && searchConditions.length > 0) {
-                    // If there are search conditions but no Unison results (they were cleared),
-                    // we need to re-execute the full multi-condition search to regenerate results
-                    const activeConditions = searchConditions.filter(c => !c.muted);
-
-                    // Update search counter and enable operators when switching facets with existing conditions
-                    updateSearchCounter();
-                    if (activeConditions.length > 0) {
-                        enableOperatorOptions();
-                    }
-
-                    if (activeConditions.length > 0) {
-
-                        // Check if we need Unison Search (multiple facets or FIND condition)
-                        const uniqueFacets = new Set(activeConditions.map(c => {
-                            const facetId = typeof categoryToFacetId === 'function' ? categoryToFacetId(c.category) : c.category.toUpperCase();
-                            return facetId;
-                        }));
-                        const hasFindCondition = activeConditions.some(c => c.operator === 'FIND');
-                        const shouldUseUnisonSearch = uniqueFacets.size > 1 || hasFindCondition;
-
-                        if (shouldUseUnisonSearch) {
-                            // Re-execute full Unison Search to get results for all facets
-                            await executeMultiConditionSearch();
-                        } else {
-                            // Single facet - just load conditions for this category
-                            const conditionsForCategory = activeConditions.filter(c => c.category === category);
-                            if (conditionsForCategory.length > 0) {
-                                await executeSearchWithConditions(category, conditionsForCategory);
-                            } else {
-                                await loadCategoryData(category);
-                            }
-                        }
-                    } else {
-                        // All conditions muted
-                        await loadCategoryData(category);
-                    }
                 } else {
-                    // No conditions, just load category data
                     await loadCategoryData(category);
                 }
-            }
+            } else if (typeof searchConditions !== 'undefined' && searchConditions.length > 0) {
+                const activeConditions = searchConditions.filter(c => !c.muted);
 
-            // Load filter fields for current facet
-            const facetId = typeof categoryToFacetId === 'function' ? categoryToFacetId(category) : category.toUpperCase();
-            if (typeof loadFilterFields === 'function') {
-                await loadFilterFields(facetId);
-            }
-            
-            // Update hierarchical filter visibility based on current facet
-            if (typeof updateHierarchicalFilterVisibility === 'function') {
-                updateHierarchicalFilterVisibility();
-            }
+                updateSearchCounter();
+                if (activeConditions.length > 0) {
+                    enableOperatorOptions();
+                }
 
-            // Update settings button to reflect current category (already called in loadCategoryData)
-            // No need to call again here
+                if (activeConditions.length > 0) {
+                    const uniqueFacets = new Set(activeConditions.map(c => {
+                        const fid = typeof categoryToFacetId === 'function' ? categoryToFacetId(c.category) : c.category.toUpperCase();
+                        return fid;
+                    }));
+                    const hasFindCondition = activeConditions.some(c => c.operator === 'FIND');
+                    const shouldUseUnisonSearch = uniqueFacets.size > 1 || hasFindCondition;
 
-            // Ensure facet indicators are updated after switching facets
-            // This preserves has-active-filter class for facets with active conditions
-            // Use the dedicated function that handles all cases
-            if (typeof updateAllFacetIndicatorsFromConditions === 'function') {
-                // Small delay to ensure data loading is complete
-                setTimeout(() => {
-                    updateAllFacetIndicatorsFromConditions();
-                }, 100);
+                    if (shouldUseUnisonSearch) {
+                        await executeMultiConditionSearch();
+                    } else {
+                        const conditionsForCategory = activeConditions.filter(c => c.category === category);
+                        if (conditionsForCategory.length > 0) {
+                            await executeSearchWithConditions(category, conditionsForCategory);
+                        } else {
+                            await loadCategoryData(category);
+                        }
+                    }
+                } else {
+                    await loadCategoryData(category);
+                }
+            } else {
+                await loadCategoryData(category);
             }
-        });
+        }
+
+        const facetIdForFilters = typeof categoryToFacetId === 'function' ? categoryToFacetId(category) : category.toUpperCase();
+        if (typeof loadFilterFields === 'function') {
+            await loadFilterFields(facetIdForFilters);
+        }
+
+        if (typeof updateHierarchicalFilterVisibility === 'function') {
+            updateHierarchicalFilterVisibility();
+        }
+
+        if (typeof updateAllFacetIndicatorsFromConditions === 'function') {
+            setTimeout(() => {
+                updateAllFacetIndicatorsFromConditions();
+            }, 100);
+        }
     });
 }
 
@@ -644,9 +625,28 @@ async function loadCategoryDataFromUnisonResults(category) {
                         needsFullDataFetch = true;
                     }
                 }
+
+                // People: Unison often returns a slim row shape (e.g. ID + email, or mixed keys). If we already
+                // have an ID and at least two populated display/identity fields, skip the extra fetch — it only
+                // spams the console and duplicates work when fetchFacetDataByIds would return the same shape.
+                if (normalizedCategory === 'people' && rows.length > 0) {
+                    const fr = rows[0];
+                    const hasId = fr.ID != null || fr.id != null;
+                    const peopleWideKeys = [
+                        'First Name', 'Last Name', 'Email',
+                        'First_Name', 'Last_Name', 'first_name', 'last_name', 'FirstName', 'LastName', 'email',
+                        'Profile Name', 'profile_name', 'System_Role', 'system_role',
+                        'Function', 'Org Unit', 'BUDG Status'
+                    ];
+                    const populatedWide = peopleWideKeys.filter(k => fr[k] != null && fr[k] !== '').length;
+                    if (hasId && populatedWide >= 2) {
+                        needsFullDataFetch = false;
+                    }
+                }
                 
-                if (needsFullDataFetch) {
-                    console.warn(`[loadCategoryDataFromUnisonResults] ${category} rows missing correct field names, fetching full data by IDs`);
+                // Set window.__UNISON_VERBOSE_LOAD__ = true to see debug logs for fallback fetches.
+                if (needsFullDataFetch && (typeof window !== 'undefined' && window.__UNISON_VERBOSE_LOAD__)) {
+                    console.debug(`[loadCategoryDataFromUnisonResults] ${category} rows missing correct field names, fetching full data by IDs`);
                 }
             }
 
@@ -719,10 +719,12 @@ async function loadCategoryDataFromUnisonResults(category) {
             // Only fetch additional data if rows are empty but IDs exist (backwards compatibility)
             // OR if category needs correct field names
             if (((!rows || rows.length === 0) && idsArray.length > 0) || (needsFullDataFetch && idsArray.length > 0)) {
-                if (needsFullDataFetch) {
-                    console.warn(`[loadCategoryDataFromUnisonResults] ${category} category: fetching full data with correct field names`);
-                } else {
-                    console.warn(`[loadCategoryDataFromUnisonResults] No rows in Unison results for ${category}, fetching by IDs as fallback`);
+                if (typeof window !== 'undefined' && window.__UNISON_VERBOSE_LOAD__) {
+                    if (needsFullDataFetch) {
+                        console.debug(`[loadCategoryDataFromUnisonResults] ${category} category: fetching full data with correct field names`);
+                    } else {
+                        console.debug(`[loadCategoryDataFromUnisonResults] No rows in Unison results for ${category}, fetching by IDs as fallback`);
+                    }
                 }
                 
                 // Show loading indicator while fetching
@@ -765,6 +767,19 @@ async function loadCategoryDataFromUnisonResults(category) {
             }
 
             if (data && data.length > 0) {
+                // Apply any display-only filter conditions (not sent to backend) client-side.
+                const beforeLen = data.length;
+                const filteredData = applyDisplayFiltersToRows(category, data);
+                data = filteredData;
+                if (filteredData.length !== beforeLen) {
+                    // Update sidebar count to reflect the filtered subset
+                    const totalCount = (facetResult && typeof facetResult.totalCount === 'number' && !isNaN(facetResult.totalCount))
+                        ? facetResult.totalCount : beforeLen;
+                    if (typeof updateCategoryCount === 'function') {
+                        updateCategoryCount(category, filteredData.length, totalCount, true);
+                    }
+                }
+
                 // Store filtered data
                 currentFilteredData = data;
                 currentFilteredCategory = category;
@@ -1463,7 +1478,11 @@ function _loadRelatedCountsForItem(item, activeCategory) {
 
     const searches = [{ operator: 'FIND', facet: normalizedFacetId, keyword: String(item.id), filters: {} }];
     unisonSearchFn(searches, { maxDepth: 1 }).then(result => {
-        if (!result || !result.success) return;
+        if (!result || !result.success) {
+            console.log('[UNISON-DEBUG][_loadRelatedCountsForItem] Search failed for item id=' + item.id, result);
+            return;
+        }
+        console.log('[UNISON-DEBUG][_loadRelatedCountsForItem] Result for item id=' + item.id + ':', Object.keys(result.results || {}));
         // Populate relatedObjects store (used by expand/relate buttons)
         if (result.relatedObjects) {
             if (!window.unisonRelatedObjects) window.unisonRelatedObjects = {};
@@ -2052,7 +2071,10 @@ function updateAllFacetIndicatorsFromConditions() {
                     updateFacetIndicator(category, facetResult);
                 } else if (!categoriesWithConditions.has(category)) {
                     if (typeof updateCategoryCount === 'function') {
-                        updateCategoryCount(category, 0, 0, true);
+                        const canonical = (typeof window.canonicalCategoryKey === 'function') ? window.canonicalCategoryKey(category) : category;
+                        const preservedTotal = (typeof window !== 'undefined' && typeof window.resolveZeroFacetTotal === 'function')
+                            ? window.resolveZeroFacetTotal(canonical) : 0;
+                        updateCategoryCount(category, 0, preservedTotal, true);
                     }
                     // Ensure stale indicator styling is removed when this facet has no
                     // result in the current search cycle and no active condition.
@@ -2246,6 +2268,8 @@ async function updateAllFacets(unisonResults, activeCategory) {
             activeCategory: activeCategory
         });
     }
+    // DEBUG LOG
+    console.log('[UNISON-DEBUG][updateAllFacets] Facet results from backend:', resultKeys, resultCounts, '| active:', activeCategory);
 
     // Get all visible category items from the sidebar to update ALL facets, not just those in results
     const allCategoryItems = document.querySelectorAll('.category-item');
@@ -2597,6 +2621,15 @@ async function updateAllFacets(unisonResults, activeCategory) {
             }
 
             if (data && data.length > 0) {
+                // Same as loadCategoryDataFromUnisonResults: apply client-only display filters (isDisplayFilter)
+                // after fetchFacetDataByIds. updateAllFacets used to skip this, so People profile filters
+                // never affected the table after Apply / Unison refresh.
+                let displayData = data;
+                if (typeof applyDisplayFiltersToRows === 'function') {
+                    displayData = applyDisplayFiltersToRows(activeCategory, data);
+                }
+                data = displayData;
+
                 currentFilteredData = data;
                 currentFilteredCategory = activeCategory;
                 categoryDataCache.set(activeCategory, { data: data, category: activeCategory });
@@ -2697,12 +2730,15 @@ async function executeMultiConditionSearch() {
 
     // Check if we should use Unison Search (cross-facet search)
     // Use Unison Search if there are conditions in different facets OR if there's a FIND condition
-    const uniqueFacets = new Set(activeConditions.map(c => {
+    // Note: exclude display-only filter conditions from this calculation — they are never sent to
+    // the backend and should not affect which code path is chosen.
+    const nonDisplayConditions = activeConditions.filter(c => !c.isDisplayFilter);
+    const uniqueFacets = new Set(nonDisplayConditions.map(c => {
         const facetId = typeof categoryToFacetId === 'function' ? categoryToFacetId(c.category) : c.category.toUpperCase();
         return facetId;
     }));
 
-    const hasFindCondition = activeConditions.some(c => c.operator === 'FIND');
+    const hasFindCondition = nonDisplayConditions.some(c => c.operator === 'FIND');
     const shouldUseUnisonSearch = uniqueFacets.size > 1 || hasFindCondition;
 
 
@@ -2729,13 +2765,28 @@ async function executeMultiConditionSearch() {
 
             // Convert conditions to Unison Search format (backend requires FIND first, then AND/OR/NOT)
             const searches = [];
+            // Collect display-only filter conditions separately — they are NOT sent to the
+            // backend (to avoid interference with cross-facet intersection logic) and are
+            // applied client-side after results are fetched.
+            const displayFilterConditions = activeConditions.filter(c => c.isDisplayFilter);
+            const hasDisplayFilterConditions = displayFilterConditions.length > 0;
             activeConditions.forEach(condition => {
+                // Skip display-only filter conditions in the backend request.
+                if (condition.isDisplayFilter) return;
+
                 const facetId = typeof categoryToFacetId === 'function' ? categoryToFacetId(condition.category) : condition.category.toUpperCase();
                 let filters = condition.filters || {};
-                if (Object.keys(filters).length === 0 && typeof buildFiltersObject === 'function') {
-                    const builtFilters = buildFiltersObject();
-                    if (Object.keys(builtFilters).length > 0) {
-                        filters = builtFilters;
+                if (Object.keys(filters).length === 0 && !hasDisplayFilterConditions && typeof buildFiltersObject === 'function') {
+                    // Only apply the filter panel's filters when the condition belongs to the
+                    // currently active category.  Applying People filters to a System condition
+                    // (or vice-versa) sends the wrong WHERE clause to the backend and returns 0.
+                    const currentActiveCat = typeof getActiveCategoryWithFallback === 'function'
+                        ? getActiveCategoryWithFallback() : null;
+                    if (!currentActiveCat || condition.category === currentActiveCat) {
+                        const builtFilters = buildFiltersObject();
+                        if (Object.keys(builtFilters).length > 0) {
+                            filters = builtFilters;
+                        }
                     }
                 }
 
@@ -2775,12 +2826,44 @@ async function executeMultiConditionSearch() {
                     return;
                 }
 
+                // Keyword for Unison: backend adds a text "query" filter for any non-empty keyword
+                // (see UnisonSearchService.buildSearchDefinition). Stale exactId (e.g. role id) with a
+                // broad FIND (* or filter-only rows) must not override — send * so isKeywordEmpty() is true
+                // and structured filters alone narrow the facet (e.g. Profile Name: Super Admin).
+                const qTrim = condition.query != null ? String(condition.query).trim() : '';
+                const hasStructuredFilters = condition.filters && typeof condition.filters === 'object'
+                    && Object.keys(condition.filters).length > 0;
+                // With filters, a numeric-only query is almost always a leaked role/field id, not a text search.
+                const numericQueryWithFilters = hasStructuredFilters && /^\d+$/.test(qTrim);
+                let keyword;
+                if (condition.exactId != null
+                    && !(hasStructuredFilters && (qTrim === '*' || qTrim === '' || condition.isFilterCondition
+                        || numericQueryWithFilters))) {
+                    keyword = String(condition.exactId);
+                } else {
+                    keyword = qTrim || '';
+                }
+                // If keyword is all digits with structured filters: drop text constraint unless this is a
+                // true entity-id lookup (exactId set and query text is non-numeric, e.g. display name).
+                if (hasStructuredFilters && keyword && /^\d+$/.test(String(keyword).trim())) {
+                    if (condition.exactId == null) {
+                        keyword = '*';
+                    } else if (/^\d+$/.test(String(qTrim || '').trim())) {
+                        keyword = '*';
+                    }
+                }
+
                 const searchItem = {
                     operator: (condition.operator || 'FIND').toUpperCase(),
                     facet: facetId,
-                    keyword: condition.query || '',
+                    // If condition was created from an exact autocomplete selection, use its numeric ID
+                    // so the backend does a direct ID lookup instead of a broad text match.
+                    keyword,
                     filters: filters
                 };
+                if (condition.isDisplayFilter) {
+                    searchItem.displayFilter = true;
+                }
                 const indentLvl = Number(condition.indentLevel);
                 if (Number.isFinite(indentLvl) && indentLvl > 0) {
                     searchItem.indentLevel = indentLvl;
@@ -2818,6 +2901,21 @@ async function executeMultiConditionSearch() {
 
             // Always use depth 1 to keep only direct neighbors (avoid pulling second-hop systems/people).
             const maxDepth = 1;
+            if (typeof window !== 'undefined' && typeof window.unisonSearchDebugLog === 'function') {
+                window.unisonSearchDebugLog('ui.executeMultiConditions.unison', {
+                    category,
+                    userActiveCategory,
+                    uniqueFacets: Array.from(uniqueFacets),
+                    maxDepth,
+                    searchesSummary: searches.map((s) => ({
+                        op: s.operator,
+                        facet: s.facet,
+                        keywordLen: s.keyword != null ? String(s.keyword).length : 0,
+                        filterKeys: s.filters && typeof s.filters === 'object' ? Object.keys(s.filters) : [],
+                        indentLevel: s.indentLevel
+                    }))
+                });
+            }
             const searchToken = ++currentSearchToken;
             const unisonResult = await unisonSearchFn(searches, { maxDepth: maxDepth });
 
@@ -3164,7 +3262,7 @@ function clearInput() {
     }
 }
 
-function addSearchCondition(operator, category, query) {
+function addSearchCondition(operator, category, query, options = {}) {
     // When not in batch mode, clear bulk-selection flag so counter shows actual condition count
     if (!window._searchConditionBatchAdd) {
         window._searchBulkSelectionActive = false;
@@ -3324,6 +3422,11 @@ function addSearchCondition(operator, category, query) {
         muted: false,
         indentLevel: 0
     };
+    // When user selected a specific item from autocomplete, store its numeric ID so
+    // re-searches use the exact ID instead of the display name (which may match multiple records).
+    if (options.exactId != null) {
+        condition.exactId = options.exactId;
+    }
 
     // 6. Duplicate check using enhanced isDuplicateCondition
     if (isDuplicateCondition(condition, searchConditions)) {
@@ -4746,19 +4849,397 @@ function initFilterActionButtons() {
 }
 
 /**
+ * Human-readable field + value for one activeFilters row (chips / query bar).
+ * @param {object} f - activeFilters entry
+ * @returns {{ fieldLabel: string, valueLabel: string }}
+ */
+function computeActiveFilterDisplayParts(f) {
+    const fieldLabel = f.fieldName || f.fieldId || '';
+    let valueLabel = '';
+    if (f.value !== null && f.value !== undefined) {
+        if (f.quickFilterLabel) {
+            valueLabel = f.quickFilterLabel;
+        } else if (typeof f.value === 'object' && !Array.isArray(f.value)) {
+            const parts = [];
+            if (f.value.from) parts.push('from ' + f.value.from);
+            if (f.value.to) parts.push('to ' + f.value.to);
+            valueLabel = parts.join(' ') || '';
+        } else if (Array.isArray(f.value)) {
+            if (f.fieldType === 'PEOPLE' && f.value.length > 0 && typeof f.value[0] === 'object') {
+                valueLabel = f.value.map(p => p.name || p.id).join(', ');
+            } else if (f.fieldType === 'BOOLEAN') {
+                const names = [];
+                for (const id of f.value) {
+                    const cb = document.querySelector(
+                        `input[type="checkbox"][data-filter-id="${f.id}"][value="${id}"]`);
+                    const lab = cb && cb.nextElementSibling
+                        ? cb.nextElementSibling.textContent.split(' (')[0].trim()
+                        : null;
+                    if (lab) {
+                        names.push(lab);
+                    } else if (id === 1 || id === '1') {
+                        names.push('Yes');
+                    } else if (id === 0 || id === '0') {
+                        names.push('No');
+                    } else {
+                        names.push(String(id));
+                    }
+                }
+                valueLabel = names.join(', ');
+            } else if (f.fieldType === 'DROPDOWN' && Array.isArray(f.dropdownLabels)
+                    && f.dropdownLabels.length === f.value.length) {
+                valueLabel = f.dropdownLabels.join(', ');
+            } else if (f.fieldType === 'DROPDOWN') {
+                const names = [];
+                for (const id of f.value) {
+                    const cb = document.querySelector(
+                        `input[type="checkbox"][data-filter-id="${f.id}"][value="${id}"]`);
+                    const lab = cb && cb.nextElementSibling
+                        ? cb.nextElementSibling.textContent.split(' (')[0].trim()
+                        : null;
+                    names.push(lab || String(id));
+                }
+                valueLabel = names.join(', ');
+            } else {
+                valueLabel = f.value.join(', ');
+            }
+        } else {
+            valueLabel = String(f.value);
+        }
+    }
+    return { fieldLabel, valueLabel };
+}
+
+/**
+ * Build query-bar text for all filter keys on a condition (after Apply updates filters).
+ */
+function buildDisplayQueryForConditionFilters(filters) {
+    if (!filters || typeof filters !== 'object' || Object.keys(filters).length === 0) {
+        return '';
+    }
+    const activeFilterMeta = typeof activeFilters !== 'undefined' ? activeFilters : [];
+    const parts = [];
+    Object.keys(filters).forEach((fieldId) => {
+        const f = activeFilterMeta.find(a => a.fieldId === fieldId);
+        if (f) {
+            const { fieldLabel, valueLabel } = computeActiveFilterDisplayParts(f);
+            parts.push(valueLabel ? `${fieldLabel}: ${valueLabel}` : fieldLabel);
+        } else {
+            const v = filters[fieldId];
+            parts.push(`${fieldId}: ${Array.isArray(v) ? v.join(', ') : String(v)}`);
+        }
+    });
+    return parts.join(' · ');
+}
+
+/**
+ * True when two condition categories refer to the same facet (handles slug aliases).
+ */
+function searchConditionCategoryMatches(condCategory, targetCategory) {
+    if (!condCategory || !targetCategory) return false;
+    if (typeof canonicalCategoryKey === 'function') {
+        return canonicalCategoryKey(condCategory) === canonicalCategoryKey(targetCategory);
+    }
+    return String(condCategory).toLowerCase().trim() === String(targetCategory).toLowerCase().trim();
+}
+
+/**
+ * Match activeFilters row to a filtersObj key — Object.keys() yields strings; fieldId may be number.
+ */
+function activeFilterRowForFieldKey(afList, fieldKey) {
+    if (!afList || !afList.length || fieldKey == null) return null;
+    const ks = String(fieldKey);
+    return afList.find(f => f.fieldId != null && String(f.fieldId) === ks) || null;
+}
+
+/**
+ * Label map lookup resilient to string vs numeric fieldId keys.
+ */
+function filterLabelMetaLookup(filterLabelMap, fieldId) {
+    if (!filterLabelMap) return null;
+    return filterLabelMap[fieldId] || filterLabelMap[String(fieldId)] || filterLabelMap[Number(fieldId)] || null;
+}
+
+/**
+ * Refresh condition.displayQuery when panel filters change but searchConditions already exist.
+ */
+function syncDisplayQueriesAfterFilterMerge(category) {
+    if (!searchConditions || !Array.isArray(searchConditions)) return;
+    searchConditions.forEach((condition) => {
+        if (!searchConditionCategoryMatches(condition.category, category) || condition.muted) return;
+        if (!condition.filters || Object.keys(condition.filters).length === 0) return;
+        const filterPart = buildDisplayQueryForConditionFilters(condition.filters);
+        if (!filterPart) return;
+        const q = condition.query != null ? String(condition.query).trim() : '';
+        if (condition.isFilterCondition || !q || q === '*') {
+            condition.displayQuery = filterPart;
+        } else {
+            condition.displayQuery = `${q} · ${filterPart}`;
+        }
+    });
+    window.searchConditions = searchConditions;
+}
+
+/**
  * Apply filters and execute search
  */
+/**
+ * Apply any isDisplayFilter conditions to a row array for a given category.
+ * These conditions are stored in searchConditions but are NOT sent to the backend.
+ * Instead they are applied here, client-side, to the rows already fetched.
+ *
+ * @param {string} category  - e.g. 'people'
+ * @param {Array}  rows      - the fetched row objects for this category
+ * @returns {Array} filtered rows
+ */
+function applyDisplayFiltersToRows(category, rows) {
+    if (!rows || rows.length === 0) return rows;
+    const conditionsSource =
+        (typeof window !== 'undefined' && Array.isArray(window.searchConditions))
+            ? window.searchConditions
+            : searchConditions;
+    if (!conditionsSource || conditionsSource.length === 0) {
+        console.log('[DisplayFilter][DEBUG] no conditions (module len=' +
+            (searchConditions ? searchConditions.length : 0) + ' window len=' +
+            (typeof window !== 'undefined' && window.searchConditions ? window.searchConditions.length : 'n/a') + ')');
+        return rows;
+    }
+
+    // Collect all display-filter conditions targeting this category
+    const dfConditions = conditionsSource.filter(c =>
+        c.isDisplayFilter && !c.muted && searchConditionCategoryMatches(c.category, category) && c.filters && Object.keys(c.filters).length > 0
+    );
+    const moduleVsWindowMismatch =
+        typeof window !== 'undefined' &&
+        Array.isArray(window.searchConditions) &&
+        searchConditions &&
+        window.searchConditions !== searchConditions &&
+        window.searchConditions.length !== searchConditions.length;
+    console.log('[DisplayFilter] checking category=' + category + ' | conditions count=' + conditionsSource.length +
+        ' | dfConditions found=' + dfConditions.length +
+        (moduleVsWindowMismatch ? ' | WARN: window.searchConditions length differs from module searchConditions' : ''));
+    console.log('[DisplayFilter][DEBUG]', {
+        targetCategory: category,
+        usingSource: conditionsSource === window.searchConditions ? 'window.searchConditions' : 'module searchConditions',
+        conditions: conditionsSource.map(c => ({
+            id: c.id,
+            op: c.operator,
+            category: c.category,
+            isDisplayFilter: !!c.isDisplayFilter,
+            isFilterCondition: !!c.isFilterCondition,
+            muted: !!c.muted,
+            filterKeys: c.filters ? Object.keys(c.filters) : [],
+            query: c.query != null ? String(c.query).slice(0, 80) : ''
+        })),
+        dfSkipReason: conditionsSource
+            .filter(c => c.filters && Object.keys(c.filters).length > 0 && searchConditionCategoryMatches(c.category, category) && !c.muted)
+            .map(c => ({
+                id: c.id,
+                isDisplayFilter: !!c.isDisplayFilter,
+                note: c.isDisplayFilter ? 'ok' : 'has filters but isDisplayFilter=false (merge path or bug)'
+            }))
+    });
+    if (dfConditions.length === 0) return rows;
+
+    // Build lookup maps from activeFilters:
+    //   fieldColumnMap[fieldId]      → DB column name   (e.g. 'System_Role')
+    //   fieldNameMap[fieldId]        → display field name (e.g. 'Profile Name')
+    //   filterValueLabelsMap[fieldId][id] → label string (e.g. 2 → 'Super Admin')
+    const fieldColumnMap = {};
+    const fieldNameMap = {};
+    // value-ID → display label built from dropdownLabels (parallel to the value array stored in activeFilters)
+    const filterValueLabelsMap = {};
+    if (typeof activeFilters !== 'undefined') {
+        activeFilters.forEach(af => {
+            if (!af.fieldId) return;
+            if (af.fieldColumn) fieldColumnMap[af.fieldId] = af.fieldColumn;
+            if (af.fieldName) fieldNameMap[af.fieldId] = af.fieldName;
+            // dropdownLabels is a parallel array to af.value e.g. value=[2], dropdownLabels=['Super Admin']
+            if (af.value && af.dropdownLabels && Array.isArray(af.value) && Array.isArray(af.dropdownLabels)) {
+                const map = {};
+                af.value.forEach((v, i) => {
+                    if (af.dropdownLabels[i] != null) {
+                        map[Number(v)] = af.dropdownLabels[i];
+                    }
+                });
+                if (Object.keys(map).length > 0) {
+                    filterValueLabelsMap[af.fieldId] = map;
+                }
+            }
+        });
+    }
+
+    console.log('[DisplayFilter] Applying display filters to', category, 'rows:', rows.length,
+        '| dfConditions:', dfConditions.map(c => c.filters),
+        '| fieldColumnMap:', fieldColumnMap,
+        '| fieldNameMap:', fieldNameMap,
+        '| filterValueLabelsMap:', filterValueLabelsMap,
+        '| sampleRow keys:', rows[0] ? Object.keys(rows[0]).slice(0, 20) : []);
+
+    let filtered = rows;
+    dfConditions.forEach(cond => {
+        Object.entries(cond.filters).forEach(([fieldId, value]) => {
+            if (cond.displayFilterSnapshots) {
+                const snap = cond.displayFilterSnapshots[String(fieldId)] || cond.displayFilterSnapshots[fieldId];
+                if (snap) {
+                    if (snap.fieldColumn) fieldColumnMap[fieldId] = snap.fieldColumn;
+                    if (snap.fieldName) fieldNameMap[fieldId] = snap.fieldName;
+                    if (snap.dropdownLabels && value != null) {
+                        const vals = Array.isArray(value) ? value : [value];
+                        const map = {};
+                        vals.forEach((v, i) => {
+                            if (snap.dropdownLabels[i] != null) {
+                                map[Number(v)] = snap.dropdownLabels[i];
+                            }
+                        });
+                        if (Object.keys(map).length > 0) {
+                            filterValueLabelsMap[fieldId] = map;
+                        }
+                    }
+                }
+            }
+            const wMeta = typeof window !== 'undefined' ? window.filterFieldsMetadata : null;
+            const ftc = typeof facetIdToCategory === 'function' ? facetIdToCategory
+                : (typeof window !== 'undefined' && typeof window.facetIdToCategory === 'function' ? window.facetIdToCategory : null);
+            const metaMatchesCategory = !!(wMeta && wMeta.facetId && typeof ftc === 'function'
+                && searchConditionCategoryMatches(ftc(wMeta.facetId), category));
+            if ((!fieldColumnMap[fieldId] && !fieldColumnMap[String(fieldId)]) && metaMatchesCategory
+                && wMeta && Array.isArray(wMeta.filterFields)) {
+                const ff = wMeta.filterFields.find(f => String(f.id) === String(fieldId));
+                if (ff) {
+                    if (ff.fieldName) fieldColumnMap[fieldId] = ff.fieldName;
+                    if (ff.name) fieldNameMap[fieldId] = ff.name;
+                }
+            }
+            const col = fieldColumnMap[fieldId] || fieldColumnMap[String(fieldId)] || fieldId;
+            const allowed = new Set(
+                (Array.isArray(value) ? value : [value]).map(v => Number(v))
+            );
+            if (allowed.size === 0) return;
+
+            // Build an allowed-names set for string comparison fallback
+            const labelMap = filterValueLabelsMap[fieldId] || filterValueLabelsMap[String(fieldId)] || {};
+            const allowedNames = new Set(
+                Array.from(allowed)
+                    .map(id => labelMap[id])
+                    .filter(name => name != null)
+                    .map(name => name.trim().toLowerCase())
+            );
+
+            // The display field name (e.g. 'Profile Name') to use as fallback
+            const displayFieldName = fieldNameMap[fieldId] || null;
+
+            console.log('[DisplayFilter] col=' + col + ' allowed IDs=' + JSON.stringify(Array.from(allowed)) +
+                ' allowedNames=' + JSON.stringify(Array.from(allowedNames)) +
+                ' displayFieldName=' + displayFieldName +
+                ' | sample row[col]=' + (rows[0] ? (rows[0][col] ?? rows[0][col.toLowerCase()] ?? rows[0][col.toUpperCase()]) : 'N/A') +
+                ' sample row[displayField]=' + (rows[0] && displayFieldName ? rows[0][displayFieldName] : 'N/A'));
+
+            filtered = filtered.filter(row => {
+                // Try ID-based comparison first (exact column match)
+                const rawVal = row[col] ?? row[col.toLowerCase()] ?? row[col.toUpperCase()];
+                if (rawVal != null && rawVal !== '') {
+                    return allowed.has(Number(rawVal));
+                }
+                // Fallback: string comparison using the display field name
+                if (displayFieldName && allowedNames.size > 0) {
+                    const nameVal = row[displayFieldName];
+                    if (nameVal != null) {
+                        return allowedNames.has(String(nameVal).trim().toLowerCase());
+                    }
+                }
+                return false;
+            });
+        });
+    });
+    console.log('[DisplayFilter] Result:', filtered.length, '/', rows.length, 'rows kept');
+    return filtered;
+}
+
 async function applyFiltersAndSearch() {
     
     // Build filters object
     const filtersObj = typeof buildFiltersObject === 'function' ? buildFiltersObject() : {};
     
-    // Get current category
-    const category = getActiveCategoryWithFallback();
+    // Category for merge / isDisplayFilter rows:
+    // 1) Prefer facetId stored on each activeFilters row (stable; not overwritten when sidebar flips).
+    // 2) Else window.currentFilterFacetId from last loadFilterFields (can be wrong after Unison resets tab).
+    // 3) Else DOM active category.
+    const domCategoryBeforePanel = getActiveCategoryWithFallback();
+    let category = domCategoryBeforePanel;
+
+    const afList = typeof activeFilters !== 'undefined' ? activeFilters : [];
+    const facetToCatFn = typeof facetIdToCategory === 'function' ? facetIdToCategory
+        : (typeof window !== 'undefined' && typeof window.facetIdToCategory === 'function' ? window.facetIdToCategory : null);
+
+    const facetIdsFromAppliedFilters = new Set();
+    Object.keys(filtersObj).forEach((fieldKey) => {
+        const row = activeFilterRowForFieldKey(afList, fieldKey);
+        let fid = row && row.facetId;
+        if (!fid && row && typeof window !== 'undefined' && window.filterFieldsMetadata && window.filterFieldsMetadata.facetId) {
+            fid = window.filterFieldsMetadata.facetId;
+        }
+        if (fid) {
+            facetIdsFromAppliedFilters.add(String(fid).toUpperCase());
+        }
+    });
+    let categoryFromFilterFacetIds = null;
+    if (facetIdsFromAppliedFilters.size === 1 && typeof facetToCatFn === 'function') {
+        const onlyFacet = Array.from(facetIdsFromAppliedFilters)[0];
+        const fromFacet = facetToCatFn(onlyFacet);
+        if (fromFacet) {
+            categoryFromFilterFacetIds = typeof canonicalCategoryKey === 'function'
+                ? canonicalCategoryKey(fromFacet)
+                : fromFacet;
+        }
+    }
+
+    let categoryFromOpenFilterMetadata = null;
+    if (!categoryFromFilterFacetIds && Object.keys(filtersObj).length > 0 && typeof window !== 'undefined'
+        && window.filterFieldsMetadata && window.filterFieldsMetadata.facetId && typeof facetToCatFn === 'function') {
+        const fromMeta = facetToCatFn(window.filterFieldsMetadata.facetId);
+        if (fromMeta) {
+            categoryFromOpenFilterMetadata = typeof canonicalCategoryKey === 'function'
+                ? canonicalCategoryKey(fromMeta)
+                : fromMeta;
+        }
+    }
+
+    if (categoryFromFilterFacetIds) {
+        category = categoryFromFilterFacetIds;
+    } else if (categoryFromOpenFilterMetadata) {
+        category = categoryFromOpenFilterMetadata;
+    } else {
+        const panelFacet = typeof window !== 'undefined' ? window.currentFilterFacetId : null;
+        if (panelFacet && typeof facetToCatFn === 'function') {
+            const fromPanel = facetToCatFn(panelFacet);
+            if (fromPanel) {
+                category = typeof canonicalCategoryKey === 'function' ? canonicalCategoryKey(fromPanel) : fromPanel;
+            }
+        }
+    }
     if (!category) {
         console.warn('[Filters] No active category');
         return;
     }
+    if (typeof setActiveCategory === 'function') {
+        setActiveCategory(category);
+    }
+
+    const panelFacet = typeof window !== 'undefined' ? window.currentFilterFacetId : null;
+    console.log('[FilterApply][DEBUG]', {
+        filtersObjKeys: Object.keys(filtersObj),
+        filtersObj,
+        domCategoryBeforePanel,
+        facetIdsFromAppliedFilters: Array.from(facetIdsFromAppliedFilters),
+        categoryFromFilterFacetIds,
+        categoryFromOpenFilterMetadata,
+        metadataFacetId: typeof window !== 'undefined' && window.filterFieldsMetadata ? window.filterFieldsMetadata.facetId : undefined,
+        panelFacet,
+        windowCurrentFilterFacetId: typeof window !== 'undefined' ? window.currentFilterFacetId : undefined,
+        resolvedCategoryForMerge: category,
+        domVsResolvedMatch: domCategoryBeforePanel === category
+    });
     
     // Check if there are any search conditions or filters
     const hasFilters = Object.keys(filtersObj).length > 0;
@@ -4782,50 +5263,14 @@ async function applyFiltersAndSearch() {
         const filterLabelMap = {};
         activeFilterMeta.forEach(f => {
             if (!f.fieldId) return;
-            let valueLabel = '';
-            if (f.value !== null && f.value !== undefined) {
-                if (f.quickFilterLabel) {
-                    // Quick filter: we have a pre-stored human-readable label
-                    valueLabel = f.quickFilterLabel;
-                } else if (typeof f.value === 'object' && !Array.isArray(f.value)) {
-                    // Date range
-                    const parts = [];
-                    if (f.value.from) parts.push('from ' + f.value.from);
-                    if (f.value.to)   parts.push('to '   + f.value.to);
-                    valueLabel = parts.join(' ') || '';
-                } else if (Array.isArray(f.value)) {
-                    if (f.fieldType === 'PEOPLE' && f.value.length > 0 && typeof f.value[0] === 'object') {
-                        valueLabel = f.value.map(p => p.name || p.id).join(', ');
-                    } else if (f.fieldType === 'DROPDOWN' && Array.isArray(f.dropdownLabels)
-                            && f.dropdownLabels.length === f.value.length) {
-                        valueLabel = f.dropdownLabels.join(', ');
-                    } else if (f.fieldType === 'DROPDOWN') {
-                        // Fallback: read labels from checkbox DOM if options were loaded
-                        const names = [];
-                        for (const id of f.value) {
-                            const cb = document.querySelector(
-                                `input[type="checkbox"][data-filter-id="${f.id}"][value="${id}"]`);
-                            const lab = cb && cb.nextElementSibling
-                                ? cb.nextElementSibling.textContent.split(' (')[0].trim()
-                                : null;
-                            names.push(lab || String(id));
-                        }
-                        valueLabel = names.join(', ');
-                    } else {
-                        valueLabel = f.value.join(', ');
-                    }
-                } else {
-                    valueLabel = String(f.value);
-                }
-            }
-            filterLabelMap[f.fieldId] = {
-                fieldLabel: f.fieldName || f.fieldId,
-                valueLabel
-            };
+            const { fieldLabel, valueLabel } = computeActiveFilterDisplayParts(f);
+            const meta = { fieldLabel, valueLabel };
+            filterLabelMap[f.fieldId] = meta;
+            filterLabelMap[String(f.fieldId)] = meta;
         });
 
         filterEntries.forEach(([fieldId, value], index) => {
-            const meta = filterLabelMap[fieldId] || { fieldLabel: fieldId, valueLabel: String(value) };
+            const meta = filterLabelMetaLookup(filterLabelMap, fieldId) || { fieldLabel: fieldId, valueLabel: String(value) };
             const displayQuery = meta.valueLabel
                 ? `${meta.fieldLabel}: ${meta.valueLabel}`
                 : meta.fieldLabel;
@@ -4853,13 +5298,87 @@ async function applyFiltersAndSearch() {
             updateSearchCounter();
         }
     } else if (hasFilters && hasConditions) {
-        // Add filters to existing conditions
+        // Add filters to existing conditions that match the current category
+        let addedToExisting = false;
         searchConditions.forEach(condition => {
-            if (condition.category === category && !condition.muted) {
+            if (searchConditionCategoryMatches(condition.category, category) && !condition.muted) {
                 condition.filters = { ...condition.filters, ...filtersObj };
+                addedToExisting = true;
             }
         });
+
+        console.log('[FilterApply][DEBUG] merge branch', {
+            resolvedCategoryForMerge: category,
+            addedToExisting,
+            existingCategories: searchConditions.map(c => ({ id: c.id, cat: c.category, op: c.operator }))
+        });
+
+        // No existing condition for the current category (e.g. viewing People while
+        // the active FIND is for System). Add the filter as a display-only AND condition
+        // (isDisplayFilter:true) so it is persisted in saved searches, but the backend
+        // skips the intersection phase and only applies it at row-data fetch time.
+        // This filters the displayed People WITHOUT reducing the System count.
+        if (!addedToExisting) {
+            const baseId = Date.now();
+            const activeFilterMeta = typeof activeFilters !== 'undefined' ? activeFilters : [];
+            const filterLabelMap = {};
+            activeFilterMeta.forEach(f => {
+                if (!f.fieldId) return;
+                if (typeof computeActiveFilterDisplayParts === 'function') {
+                    const { fieldLabel, valueLabel } = computeActiveFilterDisplayParts(f);
+                    const meta = { fieldLabel, valueLabel };
+                    filterLabelMap[f.fieldId] = meta;
+                    filterLabelMap[String(f.fieldId)] = meta;
+                }
+            });
+            Object.entries(filtersObj).forEach(([fieldId, value], index) => {
+                const meta = filterLabelMetaLookup(filterLabelMap, fieldId) || { fieldLabel: fieldId, valueLabel: String(value) };
+                const displayQuery = meta.valueLabel
+                    ? `${meta.fieldLabel}: ${meta.valueLabel}`
+                    : meta.fieldLabel;
+                const afRow = activeFilterRowForFieldKey(activeFilterMeta, fieldId);
+                const displayFilterSnapshots = afRow ? {
+                    [fieldId]: {
+                        fieldColumn: afRow.fieldColumn,
+                        fieldName: afRow.fieldName,
+                        dropdownLabels: afRow.dropdownLabels
+                    }
+                } : undefined;
+                searchConditions.push({
+                    id: baseId + index,
+                    operator: 'AND',
+                    category: category,
+                    query: '*',
+                    displayQuery,
+                    fields: [],
+                    muted: false,
+                    filters: { [fieldId]: value },
+                    isFilterCondition: true,
+                    isDisplayFilter: true,
+                    displayFilterSnapshots: displayFilterSnapshots
+                });
+            });
+        }
+
         window.searchConditions = searchConditions;
+        console.log('[FilterApply][DEBUG] after merge / display rows', {
+            addedToExisting,
+            displayFilterRowsAdded: !addedToExisting,
+            searchConditionsSnapshot: searchConditions.map(c => ({
+                id: c.id,
+                op: c.operator,
+                category: c.category,
+                isDisplayFilter: !!c.isDisplayFilter,
+                filterKeys: c.filters ? Object.keys(c.filters) : []
+            }))
+        });
+        syncDisplayQueriesAfterFilterMerge(category);
+        if (typeof renderSearchConditions === 'function') {
+            renderSearchConditions();
+        }
+        if (typeof updateSearchCounter === 'function') {
+            updateSearchCounter();
+        }
     }
 
     // Always sync the current "Search in" selection onto matching conditions so
@@ -4870,7 +5389,7 @@ async function applyFiltersAndSearch() {
         : (typeof getEffectiveSearchFieldsForCategory === 'function' ? getEffectiveSearchFieldsForCategory(category) : null);
     if (fieldsToSync) {
         searchConditions.forEach(condition => {
-            if (condition.category === category && !condition.muted) {
+            if (searchConditionCategoryMatches(condition.category, category) && !condition.muted) {
                 condition.searchFields = { ...fieldsToSync };
             }
         });
@@ -4883,6 +5402,19 @@ async function applyFiltersAndSearch() {
     
     // Execute search
     await executeMultiConditionSearch();
+
+    console.log('[FilterApply][DEBUG] after executeMultiConditionSearch', {
+        searchConditionsLen: searchConditions ? searchConditions.length : 0,
+        windowSearchConditionsLen: typeof window !== 'undefined' && window.searchConditions ? window.searchConditions.length : 0,
+        sameRef: typeof window !== 'undefined' && window.searchConditions === searchConditions,
+        snapshot: (searchConditions || []).map(c => ({
+            id: c.id,
+            op: c.operator,
+            category: c.category,
+            isDisplayFilter: !!c.isDisplayFilter,
+            filterKeys: c.filters ? Object.keys(c.filters) : []
+        }))
+    });
     
     // Update active filters chips
     if (typeof renderActiveFiltersChips === 'function') {
@@ -4892,6 +5424,15 @@ async function applyFiltersAndSearch() {
     // Close filter panel
     closeFilterPanel();
     
+}
+
+/**
+ * Close History + My searches toolbar menus (avoid stacking over the filter panel).
+ */
+function closeSearchToolbarDropdowns() {
+    document.querySelectorAll('.history-dropdown-content, .my-searches-dropdown-content').forEach((dd) => {
+        dd.style.display = 'none';
+    });
 }
 
 /**
@@ -4910,6 +5451,8 @@ async function openFilterPanel() {
         console.warn('[Filter] Filter button element not found');
         return;
     }
+
+    closeSearchToolbarDropdowns();
 
     // Load filter fields for current facet
     const category = getActiveCategoryWithFallback();
@@ -4932,6 +5475,14 @@ async function openFilterPanel() {
 function closeFilterPanel() {
     const filterPanel = document.getElementById('filterPanel');
     const filterBtn = document.querySelector('.filter-btn');
+
+    const layerSel = window.FILTER_DROPDOWN_LAYER_SELECTOR || '.filter-dropdown-values, .filter-dropdown-options, .filter-people-results';
+    document.querySelectorAll(layerSel).forEach((el) => {
+        if (typeof window.resetFilterDropdownFloating === 'function') {
+            window.resetFilterDropdownFloating(el);
+        }
+        el.style.display = 'none';
+    });
 
     if (filterPanel) {
         filterPanel.style.display = 'none';
@@ -4959,11 +5510,15 @@ function initFilterPanelDropdowns() {
             const isInsideDropdown = e.target.closest('.filter-dropdown-btn') || 
                                     e.target.closest('.filter-dropdown-options') ||
                                     e.target.closest('.filter-dropdown-values') ||
+                                    e.target.closest('.filter-people-results') ||
                                     e.target.closest('.filter-add-btn');
             
             if (!isInsideDropdown && !isInsideFilterPanel) {
-                // Close all dropdowns only if click is completely outside
-                document.querySelectorAll('.filter-dropdown-options').forEach(opt => {
+                const layerSel = window.FILTER_DROPDOWN_LAYER_SELECTOR || '.filter-dropdown-values, .filter-dropdown-options, .filter-people-results';
+                document.querySelectorAll(layerSel).forEach((opt) => {
+                    if (typeof window.resetFilterDropdownFloating === 'function') {
+                        window.resetFilterDropdownFloating(opt);
+                    }
                     opt.style.display = 'none';
                 });
             }
@@ -4986,15 +5541,36 @@ function initGeneralFilterDropdowns() {
             e.stopPropagation();
             e.preventDefault();
             
-            // Close all other dropdowns (both options and values)
-            document.querySelectorAll('.filter-dropdown-options, .filter-dropdown-values').forEach(opt => {
+            const layerSel = window.FILTER_DROPDOWN_LAYER_SELECTOR || '.filter-dropdown-values, .filter-dropdown-options, .filter-people-results';
+            document.querySelectorAll(layerSel).forEach((opt) => {
                 if (opt !== addNewOptions) {
+                    if (typeof window.resetFilterDropdownFloating === 'function') {
+                        window.resetFilterDropdownFloating(opt);
+                    }
                     opt.style.display = 'none';
                 }
             });
             
             const isVisible = addNewOptions.style.display !== 'none';
-            addNewOptions.style.display = isVisible ? 'none' : 'block';
+            if (isVisible) {
+                if (typeof window.resetFilterDropdownFloating === 'function') {
+                    window.resetFilterDropdownFloating(addNewOptions);
+                }
+                addNewOptions.style.display = 'none';
+            } else {
+                addNewOptions.style.display = 'block';
+                if (typeof window.positionFilterDropdownFloating === 'function') {
+                    window.positionFilterDropdownFloating(addNewOptions, addNewBtn);
+                }
+                if (typeof window.initFilterDropdownFloatingListeners === 'function') {
+                    window.initFilterDropdownFloatingListeners();
+                }
+                requestAnimationFrame(() => {
+                    if (typeof window.refreshFloatingFilterDropdowns === 'function') {
+                        window.refreshFloatingFilterDropdowns();
+                    }
+                });
+            }
         });
         
         addNewOptions.addEventListener('click', (e) => {
@@ -5009,14 +5585,18 @@ function initGeneralFilterDropdowns() {
             const clickedElement = e.target;
             const isInsideDropdown = clickedElement.closest('.filter-dropdown-options') || 
                                     clickedElement.closest('.filter-dropdown-values') ||
+                                    clickedElement.closest('.filter-people-results') ||
                                     clickedElement.closest('.filter-add-btn') ||
                                     clickedElement.closest('.filter-value-btn') ||
                                     clickedElement.closest('.filter-name-btn') ||
                                     clickedElement.closest('.filter-dropdown-btn');
             
             if (!isInsideDropdown) {
-                // Close all dropdowns
-                document.querySelectorAll('.filter-dropdown-options, .filter-dropdown-values').forEach(dropdown => {
+                const layerSel = window.FILTER_DROPDOWN_LAYER_SELECTOR || '.filter-dropdown-values, .filter-dropdown-options, .filter-people-results';
+                document.querySelectorAll(layerSel).forEach((dropdown) => {
+                    if (typeof window.resetFilterDropdownFloating === 'function') {
+                        window.resetFilterDropdownFloating(dropdown);
+                    }
                     dropdown.style.display = 'none';
                 });
             }
@@ -5041,16 +5621,36 @@ function initDropdown(button, optionsContainer, onSelect) {
     button.addEventListener('click', (e) => {
         e.stopPropagation();
         
-        // Close all other dropdowns first (both options and values)
-        document.querySelectorAll('.filter-dropdown-options, .filter-dropdown-values').forEach(opt => {
+        const layerSel = window.FILTER_DROPDOWN_LAYER_SELECTOR || '.filter-dropdown-values, .filter-dropdown-options, .filter-people-results';
+        document.querySelectorAll(layerSel).forEach((opt) => {
             if (opt !== optionsContainer) {
+                if (typeof window.resetFilterDropdownFloating === 'function') {
+                    window.resetFilterDropdownFloating(opt);
+                }
                 opt.style.display = 'none';
             }
         });
         
-        // Toggle this dropdown
         const isVisible = optionsContainer.style.display !== 'none';
-        optionsContainer.style.display = isVisible ? 'none' : 'block';
+        if (isVisible) {
+            if (typeof window.resetFilterDropdownFloating === 'function') {
+                window.resetFilterDropdownFloating(optionsContainer);
+            }
+            optionsContainer.style.display = 'none';
+        } else {
+            optionsContainer.style.display = 'block';
+            if (typeof window.positionFilterDropdownFloating === 'function') {
+                window.positionFilterDropdownFloating(optionsContainer, button);
+            }
+            if (typeof window.initFilterDropdownFloatingListeners === 'function') {
+                window.initFilterDropdownFloatingListeners();
+            }
+            requestAnimationFrame(() => {
+                if (typeof window.refreshFloatingFilterDropdowns === 'function') {
+                    window.refreshFloatingFilterDropdowns();
+                }
+            });
+        }
     });
     
     // Prevent clicks on the options container from propagating
@@ -5077,7 +5677,9 @@ function initDropdown(button, optionsContainer, onSelect) {
                 onSelect(value, text);
             }
             
-            // Hide dropdown
+            if (typeof window.resetFilterDropdownFloating === 'function') {
+                window.resetFilterDropdownFloating(optionsContainer);
+            }
             optionsContainer.style.display = 'none';
         });
     });
@@ -5389,9 +5991,9 @@ function renderSuggestions(container, data, query, category) {
 
                 // Add one FIND condition so search-counter-number appears and AND/OR/NOT are enabled
                 const hasRelatedCondition = searchConditions.some(c =>
-                    c.operator === 'FIND' && c.category === category && (c.query === displayVal || String(c.query).trim() === displayVal));
+                    c.operator === 'FIND' && c.category === category && (c.query === displayVal || String(c.query).trim() === displayVal || c.exactId === selectedItem.id));
                 if (!hasRelatedCondition && typeof addSearchCondition === 'function') {
-                    addSearchCondition('FIND', category, displayVal);
+                    addSearchCondition('FIND', category, displayVal, { exactId: selectedItem.id });
                 } else if (!hasRelatedCondition) {
                     // Fallback: ensure counter and operators show when only related selection exists
                     if (searchConditions.length === 0) {
@@ -5400,6 +6002,7 @@ function renderSuggestions(container, data, query, category) {
                             operator: 'FIND',
                             category: category,
                             query: displayVal,
+                            exactId: selectedItem.id,
                             fields: [],
                             muted: false
                         });

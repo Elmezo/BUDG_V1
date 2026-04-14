@@ -57,7 +57,15 @@
         /** System IDs in segments user cannot access – show lock */
         inaccessibleSystems: new Set(),
         /** Edge labels visible (fullscreen / toolbar sync) */
-        showEdgeLabels: true
+        showEdgeLabels: true,
+        nodeFilters: {
+            classifications: [],
+            types: [],
+            lifecycles: []
+        },
+        filtersInitialized: false,
+        projectFilterTypeUiActive: false,
+        projectFilterLifecycleUiActive: false
     };
 
     const adapter = window.createMapAdapter(ProjectDataMapState, MAP_ID, { zoomRecenter: false });
@@ -96,36 +104,7 @@
                     <div class="map-control-group">
                         <label>Layout:</label>
                         <div class="map-layout-controls">
-                            <select id="${MAP_ID}LayoutSelect" class="map-select">
-                                <option value="top-to-bottom" selected>Top-To-Bottom</option>
-                                <option value="left-to-right">Left-To-Right</option>
-                                <option value="right-to-left">Right-To-Left</option>
-                            </select>
-                            <div class="map-btn-dropdown-wrapper">
-                                <button type="button" class="map-toolbar-btn-sm" id="${MAP_ID}Spacing" title="Node spacing">
-                                    <i class="fas fa-expand-arrows-alt" id="${MAP_ID}SpacingIcon"></i>
-                                    <i class="fas fa-chevron-down map-toolbar-chevron"></i>
-                                </button>
-                                <div class="map-btn-dropdown-menu" id="${MAP_ID}SpacingMenu">
-                                    <div class="map-btn-dropdown-item" data-spacing="compact">Compact</div>
-                                    <div class="map-btn-dropdown-item active" data-spacing="normal">Normal</div>
-                                    <div class="map-btn-dropdown-item" data-spacing="spacey">Spacey</div>
-                                </div>
-                            </div>
-                            <div class="map-btn-dropdown-wrapper">
-                                <button type="button" class="map-toolbar-btn-sm" id="${MAP_ID}EdgeStyle" title="Edge routing style">
-                                    <i class="fas fa-arrow-right" id="${MAP_ID}EdgeStyleIcon"></i>
-                                    <i class="fas fa-chevron-down map-toolbar-chevron"></i>
-                                </button>
-                                <div class="map-btn-dropdown-menu" id="${MAP_ID}EdgeStyleMenu">
-                                    <div class="map-btn-dropdown-item" data-edge-style="angle">Angle</div>
-                                    <div class="map-btn-dropdown-item" data-edge-style="square">Square</div>
-                                    <div class="map-btn-dropdown-item active" data-edge-style="direct">Direct</div>
-                                    <div class="map-btn-dropdown-item" data-edge-style="loop">Loop</div>
-                                    <div class="map-btn-dropdown-item" data-edge-style="top-down">Top-Down</div>
-                                    <div class="map-btn-dropdown-item" data-edge-style="left-right">Left-Right</div>
-                                </div>
-                            </div>
+                            ${typeof window.SharedMapLayoutRichControlsHtml === 'function' ? window.SharedMapLayoutRichControlsHtml(MAP_ID) : ''}
                         </div>
                     </div>
                     <div class="map-control-group map-hops-group" id="${MAP_ID}HopsGroup">
@@ -258,6 +237,7 @@
     }
 
     function showPlaceholder(message) {
+        clearProjectDataMapFilterOptions();
         if (ProjectDataMapState.canvas) {
             ProjectDataMapState.canvas.innerHTML = window.MapRenderUtils.htmlMapCanvasMessage(message || 'No data to display.');
         }
@@ -320,6 +300,86 @@
         if (panelEl) panelEl.innerHTML = panelHtml;
         const dropdown = document.getElementById(MAP_ID + 'LegendDropdown');
         if (dropdown) dropdown.innerHTML = panelHtml;
+    }
+
+    function getProjectMapRoot() {
+        return document.getElementById(MAP_ID + 'Wrapper') || document.getElementById(MAP_ID + 'Section');
+    }
+
+    function clearProjectDataMapFilterOptions() {
+        const t = document.getElementById(MAP_ID + 'FilterTypeOptions');
+        const l = document.getElementById(MAP_ID + 'FilterLifecycleOptions');
+        if (t) t.innerHTML = '';
+        if (l) l.innerHTML = '';
+        ProjectDataMapState.projectFilterTypeUiActive = false;
+        ProjectDataMapState.projectFilterLifecycleUiActive = false;
+        ProjectDataMapState.filtersInitialized = false;
+        ProjectDataMapState.nodeFilters = { classifications: [], types: [], lifecycles: [] };
+        updateProjectDataMapFilterButtonText();
+    }
+
+    function fillProjectFilterCheckboxGroup(containerId, values, idPrefix) {
+        const container = document.getElementById(containerId);
+        if (!container) return;
+        container.innerHTML = '';
+        const sorted = [...values].filter(Boolean).sort(function (a, b) { return String(a).localeCompare(String(b)); });
+        sorted.forEach(function (val, idx) {
+            const safe = String(val).replace(/[^a-zA-Z0-9_-]/g, '_');
+            const id = MAP_ID + '_' + idPrefix + '_' + idx + '_' + safe;
+            const div = document.createElement('div');
+            div.className = 'map-filter-option';
+            const input = document.createElement('input');
+            input.type = 'checkbox';
+            input.id = id;
+            input.value = val;
+            input.checked = true;
+            const label = document.createElement('label');
+            label.htmlFor = id;
+            label.textContent = val;
+            div.appendChild(input);
+            div.appendChild(label);
+            container.appendChild(div);
+        });
+    }
+
+    function populateProjectDataMapFilterOptions() {
+        const extract = window.MapGraphUtils && typeof window.MapGraphUtils.extractSystemMeta === 'function'
+            ? window.MapGraphUtils.extractSystemMeta : null;
+        if (!extract) return;
+        const types = new Set();
+        const lifes = new Set();
+        ProjectDataMapState.systemsData.forEach(function (sys, sid) {
+            const m = extract(sys, sid);
+            if (m.type) types.add(m.type);
+            if (m.lifecycle) lifes.add(m.lifecycle);
+        });
+        ProjectDataMapState.projectFilterTypeUiActive = types.size > 0;
+        ProjectDataMapState.projectFilterLifecycleUiActive = lifes.size > 0;
+        fillProjectFilterCheckboxGroup(MAP_ID + 'FilterTypeOptions', types, 'typ');
+        fillProjectFilterCheckboxGroup(MAP_ID + 'FilterLifecycleOptions', lifes, 'life');
+    }
+
+    function readProjectFilterChecked(suffix) {
+        const c = document.getElementById(MAP_ID + suffix);
+        if (!c) return [];
+        return Array.prototype.map.call(c.querySelectorAll('input[type="checkbox"]:checked'), function (i) { return i.value; });
+    }
+
+    function updateProjectDataMapFilterButtonText() {
+        const el = document.getElementById(MAP_ID + 'FilterBtnText');
+        if (!el) return;
+        const menu = document.getElementById(MAP_ID + 'FilterMenu');
+        if (!menu) {
+            el.textContent = 'All selected';
+            return;
+        }
+        const visible = Array.from(menu.querySelectorAll('input[type="checkbox"]')).filter(function (c) {
+            return (c.closest('.map-filter-option') || {}).style.display !== 'none';
+        });
+        const checked = visible.filter(function (c) { return c.checked; });
+        if (visible.length === 0) el.textContent = 'No filters';
+        else if (checked.length === visible.length) el.textContent = 'All selected (' + visible.length + ')';
+        else el.textContent = checked.length + ' of ' + visible.length;
     }
 
     /** Fetch system by ID without logging or throwing on 404. On 403 (segment not accessible), track as inaccessible and return placeholder so node shows with lock. */
@@ -408,8 +468,14 @@
 
         const elements = [];
         const currentNodeIds = new Set(graph.nodes.filter(n => n.isImpact).map(n => n.id));
+        const extract = window.MapGraphUtils && typeof window.MapGraphUtils.extractSystemMeta === 'function'
+            ? window.MapGraphUtils.extractSystemMeta : null;
         graph.nodes.forEach(n => {
             const isLocked = n.isLocked || ProjectDataMapState.inaccessibleSystems.has(String(n.id));
+            let meta = {};
+            if (extract && ProjectDataMapState.systemsData.has(n.id)) {
+                meta = extract(ProjectDataMapState.systemsData.get(n.id), n.id) || {};
+            }
             elements.push({
                 data: {
                     id: n.id,
@@ -417,7 +483,9 @@
                     nodeColor: n.nodeColor,
                     borderColor: n.borderColor,
                     backgroundImage: n.backgroundImage || adapter.getSystemIcon(n.isImpact),
-                    isLocked: !!isLocked
+                    isLocked: !!isLocked,
+                    isCurrent: !!n.isImpact,
+                    meta: meta
                 }
             });
         });
@@ -461,6 +529,7 @@
         clearOverlayPanels();
         if (ProjectDataMapState.overlay && ProjectDataMapState.overlay !== 'none') loadOverlayData(ProjectDataMapState.overlay);
         updateProjectDataMapLegend(true);
+        refreshProjectDataMapFiltersAfterRender();
         hideLoading();
     }
 
@@ -518,6 +587,42 @@
         });
     }
 
+    function applyProjectNodeFiltersFromState() {
+        if (!ProjectDataMapState.network || !window.MapGraphUtils) return;
+        window.MapGraphUtils.applySystemNodeFilters(ProjectDataMapState.network, ProjectDataMapState.nodeFilters, {
+            filtersInitialized: ProjectDataMapState.filtersInitialized === true,
+            filterDimensionActive: {
+                classification: false,
+                type: ProjectDataMapState.projectFilterTypeUiActive,
+                lifecycle: ProjectDataMapState.projectFilterLifecycleUiActive
+            },
+            updateOverlayPositions: updateOverlayPositions
+        });
+    }
+
+    function syncProjectNodeFiltersFromDomAndApply() {
+        ProjectDataMapState.nodeFilters = {
+            classifications: [],
+            types: readProjectFilterChecked('FilterTypeOptions'),
+            lifecycles: readProjectFilterChecked('FilterLifecycleOptions')
+        };
+        ProjectDataMapState.filtersInitialized = true;
+        applyProjectNodeFiltersFromState();
+        updateProjectDataMapFilterButtonText();
+    }
+
+    function refreshProjectDataMapFiltersAfterRender() {
+        populateProjectDataMapFilterOptions();
+        ProjectDataMapState.nodeFilters = {
+            classifications: [],
+            types: readProjectFilterChecked('FilterTypeOptions'),
+            lifecycles: readProjectFilterChecked('FilterLifecycleOptions')
+        };
+        ProjectDataMapState.filtersInitialized = true;
+        applyProjectNodeFiltersFromState();
+        updateProjectDataMapFilterButtonText();
+    }
+
     function getOverlayTitle(overlayType) {
         const titles = {
             description: 'Description', glossary: 'Glossaries', datasets: 'Data Sets', dataset: 'Data Sets',
@@ -557,7 +662,8 @@
             case 'policies': return item.policyName || item.PrimaryName || item.primaryName || item.name || item.Name || '';
             case 'business-area': return item.businessAreaName || item.PrimaryName || item.primaryName || item.name || item.Name || '';
             case 'products': return item.productName || item.PrimaryName || item.primaryName || item.name || item.Name || '';
-            case 'legal-entities': return item.legalEntityName || item.longName || item.longname || item.name || item.Name || '';
+            case 'legal-entities': return item.legalEntityName || item.legalShortName || item.LegalShortName ||
+                item.legalLongName || item.LegalLongName || item.longName || item.longname || item.name || item.Name || '';
             case 'data-quality': return item.ruleName || item.name || item.qualityRating || (item.rating != null ? 'Rating: ' + item.rating : '') || (item.score != null ? 'Score: ' + item.score : '') || '';
             case 'data-privacy': return item.privacyClassification || item.classification || item.name || item.value || '';
             case 'geography': return item.name || item.region || item.country || '';
@@ -581,34 +687,118 @@
     function getOverlayItemField(overlayType, item, fieldId) {
         if (!item) return '';
         const v = (x) => (x != null && x !== '') ? String(x) : '';
+        function fieldDefault(it, fid) {
+            const d = it[fid];
+            if (d !== undefined && d !== null && d !== '') return v(d);
+            if (window.MapOverlayFieldPick && typeof window.MapOverlayFieldPick.pick === 'function') {
+                return window.MapOverlayFieldPick.pick(it, fid);
+            }
+            return '';
+        }
+        function entityNameCell() {
+            return v(
+                item.processName || item.ProcessName ||
+                item.projectName || item.ProjectName ||
+                item.policyName || item.PolicyName ||
+                item.businessAreaName || item.BusinessAreaName ||
+                item.productName || item.ProductName ||
+                item.legalEntityName || item.LegalEntityName ||
+                item.legalShortName || item.LegalShortName ||
+                item.legalLongName || item.LegalLongName ||
+                item.clientName || item.ClientName ||
+                item.capabilityName || item.CapabilityName ||
+                item.systemName || item.SystemName ||
+                item.name || item.Name || item.primaryName || item.PrimaryName ||
+                item.glossaryName || item.GlossaryName || item.ruleName || item.RuleName ||
+                item.longName || item.longname ||
+                item.region || item.country
+            );
+        }
         switch (overlayType) {
             case 'glossary':
                 switch (fieldId) {
-                    case 'name': return v(item.glossary || item.name);
+                    case 'name': return v(item.glossary || item.name || item.primaryName || item.glossaryName);
                     case 'source': return item.source === 'dataset' ? 'Dataset Glossary' : item.source === 'attribute' ? 'Attribute Glossary' : item.source === 'system' ? 'System Glossary' : '';
-                    case 'aliasNames': return v(item.aliasNames);
-                    case 'parentName': return v(item.parentName);
-                    case 'lifecycle': return v(item.lifecycle);
-                    case 'securityClassification': return v(item.securityClassification);
-                    default: return v(item[fieldId]);
+                    case 'aliasNames': return v(item.aliasNames || item.aliases || item.alias);
+                    case 'parentName': return v(item.parentName || item.parent?.name);
+                    case 'lifecycle': return v(item.lifecycleName || item.LifecycleName || item.lifecycle || item.Lifecycle || item.lifecycleStatusName || item.LifecycleStatusName || item.lifecycleStatus || item.LifecycleStatus || item.processLifecycleName || item.ProcessLifecycleName || item.sourceProcessLifecycleName || item.targetProcessLifecycleName || item.datasetLifecycleName || item.DatasetLifecycleName || fieldDefault(item, fieldId));
+                    case 'securityClassification': return v(item.securityClassification || item.classification);
+                    default: return fieldDefault(item, fieldId);
+                }
+            case 'description':
+                return fieldId === 'value'
+                    ? v(item.value || item.definition || item.Definition || item.description || item.Description)
+                    : fieldDefault(item, fieldId);
+            case 'datasets': case 'dataset':
+                switch (fieldId) {
+                    case 'name': return v(item.primaryName || item.PrimaryName || item.name || item.shortName || item.datasetName);
+                    case 'refNumber': return v(item.refNumber || item.refnumber || item.RefNumber || item.ref || item.Ref || item.processRefNumber || item.ProcessRefNumber || item.processRef || item.ProcessRef || item.projectRefNumber || item.ProjectRefNumber || item.projectRef || item.ProjectRef || item.productRefNumber || item.ProductRefNumber || item.policyRefNumber || item.PolicyRefNumber || item.capabilityRefNumber || item.CapabilityRefNumber || item.datasetRefNumber || item.DatasetRefNumber || item.attributeRefNumber || item.AttributeRefNumber || item.glossaryRefNumber || item.GlossaryRefNumber || item.interfaceRefNumber || item.InterfaceRefNumber || item.systemRef || item.SystemRef || item.regulationRefNumber || item.RegulationRefNumber || item.regulatoryThemeRefNumber || item.RegulatoryThemeRefNumber || item.businessAreaReference || item.BusinessAreaReference || item.clientReference || item.ClientReference || item.legalReference || item.LegalReference || item.sourceProcessRef || item.targetProcessRef);
+                    case 'type': return v(item.typeName || item.type || item.TypeName || item.Type);
+                    case 'lifecycle': return v(item.lifecycleName || item.LifecycleName || item.lifecycle || item.Lifecycle || item.lifecycleStatusName || item.LifecycleStatusName || item.lifecycleStatus || item.LifecycleStatus || item.processLifecycleName || item.ProcessLifecycleName || item.sourceProcessLifecycleName || item.targetProcessLifecycleName || item.datasetLifecycleName || item.DatasetLifecycleName || fieldDefault(item, fieldId));
+                    default: return fieldDefault(item, fieldId);
                 }
             case 'attributes': case 'linking-attributes':
                 switch (fieldId) {
-                    case 'name': return v(item.name || item.attributeName);
-                    case 'dataType': return v(item.dataType);
-                    case 'lifecycle': return v(item.lifecycle);
-                    case 'securityClassification': return v(item.securityClassification);
-                    default: return v(item[fieldId]);
+                    case 'name': return v(item.name || item['Name attribute'] || item.attributeName || item.primaryName || item.PrimaryName || item.Name);
+                    case 'type': return v(item.typeName || item.type || item.TypeName || item.Type || item.dataType || item.DataType);
+                    case 'glossary': return v(item.glossaryName || item.glossary || item['Glossary Name attribute']);
+                    case 'refNumber': return v(item.refNumber || item.refnumber || item.RefNumber || item.ref || item.Ref || item.processRefNumber || item.ProcessRefNumber || item.processRef || item.ProcessRef || item.projectRefNumber || item.ProjectRefNumber || item.projectRef || item.ProjectRef || item.productRefNumber || item.ProductRefNumber || item.policyRefNumber || item.PolicyRefNumber || item.capabilityRefNumber || item.CapabilityRefNumber || item.datasetRefNumber || item.DatasetRefNumber || item.attributeRefNumber || item.AttributeRefNumber || item.glossaryRefNumber || item.GlossaryRefNumber || item.interfaceRefNumber || item.InterfaceRefNumber || item.systemRef || item.SystemRef || item.regulationRefNumber || item.RegulationRefNumber || item.regulatoryThemeRefNumber || item.RegulatoryThemeRefNumber || item.businessAreaReference || item.BusinessAreaReference || item.clientReference || item.ClientReference || item.legalReference || item.LegalReference || item.sourceProcessRef || item.targetProcessRef);
+                    case 'direction': return v(item.direction || item.Direction);
+                    case 'relatedDataset': return v(item.relatedDataset || item.related_dataset);
+                    case 'relatedAttribute': return v(item.relatedAttribute || item.related_attribute);
+                    case 'dataType': return v(item.dataType || item.typeName || item.type);
+                    case 'lifecycle': return v(item.lifecycleName || item.LifecycleName || item.lifecycle || item.Lifecycle || item.lifecycleStatusName || item.LifecycleStatusName || item.lifecycleStatus || item.LifecycleStatus || item.processLifecycleName || item.ProcessLifecycleName || item.sourceProcessLifecycleName || item.targetProcessLifecycleName || item.datasetLifecycleName || item.DatasetLifecycleName || fieldDefault(item, fieldId));
+                    case 'securityClassification': return v(item.securityClassification || item.classification);
+                    default: return fieldDefault(item, fieldId);
+                }
+            case 'custom-fields':
+                switch (fieldId) {
+                    case 'metadataId': return v(item.metadataId != null ? item.metadataId : item.Metadata_ID);
+                    case 'enumId':
+                        if (item.enumId !== undefined && item.enumId !== null && item.enumId !== '') return v(item.enumId);
+                        if (item.enumIds && item.enumIds.length) return v(item.enumIds.join(', '));
+                        return '';
+                    case 'value': return v(item.value != null && item.value !== '' ? item.value : (item.displayValue != null ? item.displayValue : ''));
+                    default: return fieldDefault(item, fieldId);
                 }
             case 'stakeholders':
                 switch (fieldId) {
-                    case 'name': { const n = item.personName || item.name || ''; const r = item.roleName || item.role || ''; return r ? (n ? n + ' (' + r + ')' : r) : n; }
+                    case 'name': return v(item.personName || item.PersonName || item.name || item.Name);
+                    case 'role': return v(item.roleName || item.RoleName || item.role || item.Role);
                     case 'accepted': return v(item.accepted || item.Accepted || item.acceptedStatus);
                     case 'orgUnit': return v(item.orgUnit || item.OrgUnit || item.orgUnitName);
-                    default: return v(item[fieldId]);
+                    default: return fieldDefault(item, fieldId);
                 }
-            default:
-                return v(item[fieldId] || item.name || item.Name || '');
+            case 'processes':
+            case 'projects':
+            case 'policies':
+            case 'business-area':
+            case 'products':
+            case 'legal-entities':
+            case 'clients':
+            case 'capabilities':
+            case 'systems':
+            case 'data-quality':
+            case 'data-privacy':
+            case 'geography':
+                switch (fieldId) {
+                    case 'name': return entityNameCell();
+                    case 'refNumber': return v(item.refNumber || item.refnumber || item.RefNumber || item.ref || item.Ref || item.processRefNumber || item.ProcessRefNumber || item.processRef || item.ProcessRef || item.projectRefNumber || item.ProjectRefNumber || item.projectRef || item.ProjectRef || item.productRefNumber || item.ProductRefNumber || item.policyRefNumber || item.PolicyRefNumber || item.capabilityRefNumber || item.CapabilityRefNumber || item.datasetRefNumber || item.DatasetRefNumber || item.attributeRefNumber || item.AttributeRefNumber || item.glossaryRefNumber || item.GlossaryRefNumber || item.interfaceRefNumber || item.InterfaceRefNumber || item.systemRef || item.SystemRef || item.regulationRefNumber || item.RegulationRefNumber || item.regulatoryThemeRefNumber || item.RegulatoryThemeRefNumber || item.businessAreaReference || item.BusinessAreaReference || item.clientReference || item.ClientReference || item.legalReference || item.LegalReference || item.sourceProcessRef || item.targetProcessRef);
+                    case 'type': return v(item.typeName || item.type || item.TypeName || item.Type || item.policyTypeName || item.PolicyTypeName || item.productTypeName || item.ProductTypeName || item.relationTypeName || item.RelationTypeName);
+                    case 'lifecycle': return v(item.lifecycleName || item.LifecycleName || item.lifecycle || item.Lifecycle || item.lifecycleStatusName || item.LifecycleStatusName || item.lifecycleStatus || item.LifecycleStatus || item.processLifecycleName || item.ProcessLifecycleName || item.sourceProcessLifecycleName || item.targetProcessLifecycleName || item.datasetLifecycleName || item.DatasetLifecycleName || fieldDefault(item, fieldId));
+                    case 'status': return v(item.statusName || item.StatusName || item.status || item.Status || item.projectStatusName || item.ProjectStatusName || item.policyStatusName || item.PolicyStatusName);
+                    case 'ruleName': return v(item.ruleName || item.RuleName);
+                    case 'rating': return v(item.rating || item.qualityRating);
+                    case 'classification': return v(item.classification || item.privacyClassification);
+                    case 'region': return v(item.region || item.Region);
+                    case 'country': return v(item.country || item.Country);
+                    default: return fieldDefault(item, fieldId);
+                }
+            default: {
+                const fb = fieldDefault(item, fieldId);
+                if (fb) return fb;
+                return v(item.name || item.Name || item.primaryName || item.PrimaryName);
+            }
         }
     }
 
@@ -837,9 +1027,9 @@
             let currentFilter = '';
             let currentMax = 10;
             var colDefs = [];
-            if (overlayType !== 'stakeholders' && window.OverlayColumns) {
+            if (window.OverlayColumns) {
                 var allCols = window.OverlayColumns.getOverlayColumns(overlayType);
-                var selectedIds = ProjectDataMapState.overlayColumnsByType[overlayType] || window.OverlayColumns.getDefaultOverlayColumnIds(overlayType);
+                var selectedIds = window.OverlayColumns.resolveSelectedColumnIds(ProjectDataMapState.overlayColumnsByType[overlayType], overlayType);
                 colDefs = allCols.filter(function(c) { return selectedIds && selectedIds.indexOf(c.id) !== -1; });
             }
             const updateDisplay = () => {
@@ -956,7 +1146,8 @@
                         const gname = s?.primaryGlossaryName ?? s?.glossaryName ?? s?.glossary_name;
                         if (gname && !seenG.has(gname)) {
                             seenG.add(gname);
-                            items.push({ glossaryName: gname, glossaryRefNumber: '', source: 'system' });
+                            const sysGid = s?.primaryGlossaryId ?? s?.glossaryId ?? s?.glossary_id;
+                            items.push({ glossaryName: gname, glossaryRefNumber: '', glossaryId: sysGid, id: sysGid, name: gname, glossary: gname, source: 'system' });
                         }
                     } catch (e) { }
                     // 2) Dataset-level and attribute-level glossary from system datasets
@@ -966,12 +1157,13 @@
                         if (API && typeof API.getSystemDatasets === 'function') {
                             const dsResp = await API.getSystemDatasets(meta.systemId).catch(() => null);
                             const dsList = Array.isArray(dsResp?.data) ? dsResp.data : (Array.isArray(dsResp) ? dsResp : []);
-                            sysDatasets = dsList.map(d => ({ id: d.id || d.ID, glossaryName: d.glossaryName }));
+                            sysDatasets = dsList.map(d => ({ id: d.id || d.ID, glossaryName: d.glossaryName, glossaryId: d.glossaryId ?? d.glossary_id }));
                         }
                         for (const ds of sysDatasets) {
                             if (ds.glossaryName && !seenG.has(ds.glossaryName)) {
                                 seenG.add(ds.glossaryName);
-                                items.push({ glossaryName: ds.glossaryName, glossaryRefNumber: '', source: 'dataset' });
+                                const dgid = ds.glossaryId ?? ds.glossary_id;
+                                items.push({ glossaryName: ds.glossaryName, glossaryRefNumber: '', glossaryId: dgid, id: dgid, name: ds.glossaryName, glossary: ds.glossaryName, source: 'dataset' });
                             }
                             if (ds.id) {
                                 try {
@@ -983,7 +1175,8 @@
                                             const gn = a['Glossary Name attribute'] || a.glossaryName || a.glossary_name || a.GlossaryName;
                                             if (gn && !seenG.has(gn)) {
                                                 seenG.add(gn);
-                                                items.push({ glossaryName: gn, glossaryRefNumber: '', source: 'attribute' });
+                                                const agid = a.glossaryId ?? a.glossary_id ?? a.Glossary_ID;
+                                                items.push({ glossaryName: gn, glossaryRefNumber: '', glossaryId: agid, id: agid, name: gn, glossary: gn, source: 'attribute' });
                                             }
                                         });
                                     }
@@ -991,6 +1184,9 @@
                             }
                         }
                     } catch (e) { }
+                    if (window.OverlayColumns && typeof window.OverlayColumns.enrichGlossaryOverlayTerms === 'function') {
+                        items = await window.OverlayColumns.enrichGlossaryOverlayTerms(items);
+                    }
                 } else if (overlayType === 'linking-attributes') {
                     const systemId = meta.systemId;
                     const isImpact = meta.isImpact;
@@ -1073,7 +1269,11 @@
     }
 
     function getOverlayColumns(overlayType) {
-        return ProjectDataMapState.overlayColumnsByType[overlayType] || (window.OverlayColumns ? window.OverlayColumns.getDefaultOverlayColumnIds(overlayType) : ['name']);
+        var raw = ProjectDataMapState.overlayColumnsByType[overlayType];
+        if (window.OverlayColumns && typeof window.OverlayColumns.resolveSelectedColumnIds === 'function') {
+            return window.OverlayColumns.resolveSelectedColumnIds(raw, overlayType);
+        }
+        return (Array.isArray(raw) && raw.length > 0) ? raw.slice() : (window.OverlayColumns ? window.OverlayColumns.getDefaultOverlayColumnIds(overlayType) : ['name']);
     }
 
     function getState() {
@@ -1134,8 +1334,6 @@
         if (bindOnce) {
             container.dataset.projectDataMapControlsBound = '1';
         }
-        const layoutSelect = document.getElementById(MAP_ID + 'LayoutSelect');
-        if (bindOnce && layoutSelect) layoutSelect.addEventListener('change', () => setLayout(layoutSelect.value));
         const hopsInput = document.getElementById(MAP_ID + 'HopsCount');
         if (bindOnce && hopsInput) {
             hopsInput.addEventListener('change', (e) => {
@@ -1248,6 +1446,28 @@
             });
         }
         if (bindOnce) {
+            const filterBtn = document.getElementById(MAP_ID + 'FilterBtn');
+            const filterMenu = document.getElementById(MAP_ID + 'FilterMenu');
+            const projRoot = getProjectMapRoot();
+            if (filterBtn && filterMenu && projRoot) {
+                filterBtn.addEventListener('click', function (e) {
+                    e.stopPropagation();
+                    const wasOpen = filterMenu.classList.contains('open');
+                    projRoot.querySelectorAll('.map-filter-menu').forEach(function (m) { m.classList.remove('open'); });
+                    if (!wasOpen) filterMenu.classList.add('open');
+                });
+                projRoot.addEventListener('change', function (e) {
+                    const t = e.target;
+                    if (!t || t.tagName !== 'INPUT' || t.type !== 'checkbox') return;
+                    if (!filterMenu.contains(t)) return;
+                    syncProjectNodeFiltersFromDomAndApply();
+                });
+                document.addEventListener('click', function (e) {
+                    if (filterMenu.classList.contains('open') && !filterMenu.contains(e.target) && !filterBtn.contains(e.target)) {
+                        filterMenu.classList.remove('open');
+                    }
+                });
+            }
             window.MapRenderUtils.wireLineageToolbarSharedControls({
                 mapId: MAP_ID,
                 adapter: adapter,
@@ -1256,7 +1476,19 @@
                 setLayout: setLayout,
                 exportAsPng: exportAsPng,
                 openFullscreen: openFullscreen,
-                getLegendHtml: getLegendHtml
+                getLegendHtml: getLegendHtml,
+                mapInstance: {
+                    setNodeFilters: function (filters) {
+                        ProjectDataMapState.nodeFilters = {
+                            classifications: (filters && filters.classifications) || [],
+                            types: (filters && filters.types) || [],
+                            lifecycles: (filters && filters.lifecycles) || []
+                        };
+                        ProjectDataMapState.filtersInitialized = true;
+                        applyProjectNodeFiltersFromState();
+                    },
+                    getState: getState
+                }
             });
         }
     }
@@ -1323,6 +1555,15 @@
         setOverlay: setOverlay,
         setOverlayColumns: setOverlayColumns,
         getOverlayColumns: getOverlayColumns,
+        setNodeFilters: function (filters) {
+            ProjectDataMapState.nodeFilters = {
+                classifications: (filters && filters.classifications) || [],
+                types: (filters && filters.types) || [],
+                lifecycles: (filters && filters.lifecycles) || []
+            };
+            ProjectDataMapState.filtersInitialized = true;
+            applyProjectNodeFiltersFromState();
+        },
         resetMap: function () {
             ProjectDataMapState.hiddenNodes.clear();
             if (ProjectDataMapState.network) ProjectDataMapState.network.fit(undefined, 50);

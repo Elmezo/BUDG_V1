@@ -1771,8 +1771,10 @@
         renderSelectedModules();
     }
     
-    // Initialize modules
-    initializeModules();
+    // Initialize modules; search-init.js awaits this so the first facet can be selected after the sidebar exists
+    window.budgSearchModulesInitialized = initializeModules().catch(function (e) {
+        console.error('[MODULES] initializeModules failed:', e);
+    });
 
     function setOrgUnitBtnLabel(name) {
         if (!orgUnitBtn) return;

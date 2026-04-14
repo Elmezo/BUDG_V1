@@ -729,7 +729,11 @@
 
     /** Get selected overlay column ids for an overlay type. */
     function getOverlayColumns(overlayType) {
-        return DatasetMapState.overlayColumnsByType[overlayType] || (window.OverlayColumns ? window.OverlayColumns.getDefaultOverlayColumnIds(overlayType) : ['name']);
+        var raw = DatasetMapState.overlayColumnsByType[overlayType];
+        if (window.OverlayColumns && typeof window.OverlayColumns.resolveSelectedColumnIds === 'function') {
+            return window.OverlayColumns.resolveSelectedColumnIds(raw, overlayType);
+        }
+        return (Array.isArray(raw) && raw.length > 0) ? raw.slice() : (window.OverlayColumns ? window.OverlayColumns.getDefaultOverlayColumnIds(overlayType) : ['name']);
     }
     
     // Clear overlay panels
@@ -767,9 +771,9 @@
                     const cachedInfo = DatasetMapState.linkedDatasets?.get(String(datasetId));
                     if (cachedInfo?.dataset) {
                         const ds = cachedInfo.dataset;
-                        const desc = ds.description || ds.Definition || ds.definition;
+                        const desc = ds.definition || ds.Definition || ds.description || ds.Description;
                         if (desc) {
-                            return [{ name: 'Description', value: desc }];
+                            return [{ name: 'Definition', value: desc }];
                         }
                     }
                     // Fetch from API
@@ -778,9 +782,9 @@
                         if (resp.ok) {
                             const data = await resp.json();
                             const dataset = data?.data || data;
-                            const desc = dataset?.description || dataset?.Definition || dataset?.definition;
+                            const desc = dataset?.definition || dataset?.Definition || dataset?.description || dataset?.Description;
                             if (desc) {
-                                return [{ name: 'Description', value: desc }];
+                                return [{ name: 'Definition', value: desc }];
                             }
                         }
                     } catch (e) { /* ignore */ }
@@ -941,6 +945,9 @@
                         }
                     } catch (e) { /* ignore */ }
                     embLog('[DATASET-MAP] Glossary overlay for dataset', datasetId, ':', glossaryTerms.length, 'terms', glossaryTerms.map(t => t.name));
+                    if (window.OverlayColumns && typeof window.OverlayColumns.enrichGlossaryOverlayTerms === 'function') {
+                        return await window.OverlayColumns.enrichGlossaryOverlayTerms(glossaryTerms);
+                    }
                     return glossaryTerms;
                 }
 
@@ -1190,6 +1197,9 @@
                             } catch (e) { /* skip */ }
                         }
                     } catch (e) { /* ignore */ }
+                    if (window.OverlayColumns && typeof window.OverlayColumns.enrichGlossaryOverlayTerms === 'function') {
+                        return await window.OverlayColumns.enrichGlossaryOverlayTerms(glossaryTerms);
+                    }
                     return glossaryTerms;
                 }
 
@@ -1530,6 +1540,7 @@
             types: nodeFilters.types || [],
             lifecycles: nodeFilters.lifecycles || []
         };
+        DatasetMapState.filtersInitialized = true;
         applyNodeFiltersToNetwork();
     }
 
@@ -1540,13 +1551,15 @@
         };
         adapter.applyDatasetNodeFilters({
             linkedDatasets: DatasetMapState.linkedDatasets,
-            updateOverlayPositions: updateOverlayPositions
+            updateOverlayPositions: updateOverlayPositions,
+            filtersInitialized: true
         });
     }
 
     function applyNodeFiltersToNetwork() {
         adapter.applySystemNodeFilters({
-            updateOverlayPositions: updateOverlayPositions
+            updateOverlayPositions: updateOverlayPositions,
+            filtersInitialized: DatasetMapState.filtersInitialized === true
         });
     }
 
@@ -1670,7 +1683,10 @@
     // ========== OVERLAY PANEL FUNCTIONS ==========
     
     // Get display title for overlay type
-    function getOverlayTitle(overlayType) {
+    function getOverlayTitle(overlayType, nodeId) {
+        if (overlayType === 'description' && nodeId != null && String(nodeId).indexOf('dataset-') === 0) {
+            return 'Definition';
+        }
         const titles = {
             'description': 'Description',
             'stakeholders': 'Stakeholders',
@@ -1732,7 +1748,9 @@
             case 'products':
                 return item.productName || item.PrimaryName || item.primaryName || item.name || item.Name || '';
             case 'legal-entities':
-                return item.legalEntityName || item.longName || item.longname || item.name || item.Name || '';
+                return item.legalEntityName || item.legalShortName || item.LegalShortName ||
+                    item.legalLongName || item.LegalLongName || item.longName || item.longname ||
+                    item.name || item.Name || '';
             case 'clients':
                 return item.clientName || item.PrimaryName || item.primaryName || item.name || item.Name || '';
             case 'capabilities':
@@ -1760,51 +1778,94 @@
     function getOverlayItemField(overlayType, item, fieldId) {
         if (!item) return '';
         const v = (x) => (x != null && x !== '') ? String(x) : '';
+        function fieldDefault(it, fid) {
+            const d = it[fid];
+            if (d !== undefined && d !== null && d !== '') return v(d);
+            if (window.MapOverlayFieldPick && typeof window.MapOverlayFieldPick.pick === 'function') {
+                return window.MapOverlayFieldPick.pick(it, fid);
+            }
+            return '';
+        }
+        function entityNameCell() {
+            return v(
+                item.processName || item.ProcessName ||
+                item.projectName || item.ProjectName ||
+                item.policyName || item.PolicyName ||
+                item.businessAreaName || item.BusinessAreaName ||
+                item.productName || item.ProductName ||
+                item.legalEntityName || item.LegalEntityName ||
+                item.legalShortName || item.LegalShortName ||
+                item.legalLongName || item.LegalLongName ||
+                item.clientName || item.ClientName ||
+                item.capabilityName || item.CapabilityName ||
+                item.systemName || item.SystemName ||
+                item.name || item.Name || item.primaryName || item.PrimaryName ||
+                item.glossaryName || item.GlossaryName || item.ruleName || item.RuleName ||
+                item.longName || item.longname ||
+                item.region || item.country
+            );
+        }
         switch (overlayType) {
             case 'glossary':
                 switch (fieldId) {
                     case 'name': return v(item.glossary || item.name || item.primaryName);
                     case 'source': return item.source === 'dataset' ? 'Dataset Glossary'
                                         : item.source === 'attribute' ? 'Attribute Glossary' : '';
-                    case 'aliasNames': return v(item.aliasNames || item.aliases || item.alias);
-                    case 'parentName': return v(item.parentName || item.parent?.name);
-                    case 'lifecycle': return v(item.lifecycleName || item.lifecycle);
-                    case 'securityClassification': return v(item.securityClassification || item.classification);
-                    default: return v(item[fieldId]);
+                    case 'aliasNames':
+                        if (Array.isArray(item.aliases) && item.aliases.length) return v(item.aliases.join(', '));
+                        return v(item.aliasNames || item.aliases || item.alias);
+                    case 'parentName': return v(item.parentName || item.ParentName || item.parent?.name);
+                    case 'lifecycle': return v(item.lifecycleName || item.LifecycleName || item.lifecycle || item.Lifecycle || item.lifecycleStatusName || item.LifecycleStatusName || item.lifecycleStatus || item.LifecycleStatus || item.processLifecycleName || item.ProcessLifecycleName || item.sourceProcessLifecycleName || item.targetProcessLifecycleName || item.datasetLifecycleName || item.DatasetLifecycleName || fieldDefault(item, fieldId));
+                    case 'securityClassification': return v(item.securityClassification || item.classification || item.securityName || item.SecurityName);
+                    default: return fieldDefault(item, fieldId);
                 }
             case 'description':
-                return fieldId === 'value' ? v(item.value || item.description) : v(item[fieldId]);
+                return fieldId === 'value'
+                    ? v(item.value || item.definition || item.Definition || item.description || item.Description)
+                    : fieldDefault(item, fieldId);
             case 'datasets':
                 switch (fieldId) {
-                    case 'name': return v(item.primaryName || item.name || item.shortName);
-                    case 'refNumber': return v(item.refNumber || item.ref);
-                    case 'type': return v(item.typeName || item.type);
-                    case 'lifecycle': return v(item.lifecycleName || item.lifecycle);
-                    default: return v(item[fieldId]);
+                    case 'name': return v(item.primaryName || item.PrimaryName || item.name || item.shortName);
+                    case 'refNumber': return v(item.refNumber || item.refnumber || item.RefNumber || item.ref || item.Ref || item.processRefNumber || item.ProcessRefNumber || item.processRef || item.ProcessRef || item.projectRefNumber || item.ProjectRefNumber || item.projectRef || item.ProjectRef || item.productRefNumber || item.ProductRefNumber || item.policyRefNumber || item.PolicyRefNumber || item.capabilityRefNumber || item.CapabilityRefNumber || item.datasetRefNumber || item.DatasetRefNumber || item.attributeRefNumber || item.AttributeRefNumber || item.glossaryRefNumber || item.GlossaryRefNumber || item.interfaceRefNumber || item.InterfaceRefNumber || item.systemRef || item.SystemRef || item.regulationRefNumber || item.RegulationRefNumber || item.regulatoryThemeRefNumber || item.RegulatoryThemeRefNumber || item.businessAreaReference || item.BusinessAreaReference || item.clientReference || item.ClientReference || item.legalReference || item.LegalReference || item.sourceProcessRef || item.targetProcessRef);
+                    case 'type': return v(item.typeName || item.type || item.TypeName || item.Type);
+                    case 'lifecycle': return v(item.lifecycleName || item.LifecycleName || item.lifecycle || item.Lifecycle || item.lifecycleStatusName || item.LifecycleStatusName || item.lifecycleStatus || item.LifecycleStatus || item.processLifecycleName || item.ProcessLifecycleName || item.sourceProcessLifecycleName || item.targetProcessLifecycleName || item.datasetLifecycleName || item.DatasetLifecycleName || fieldDefault(item, fieldId));
+                    default: return fieldDefault(item, fieldId);
                 }
             case 'attributes':
                 switch (fieldId) {
-                    case 'name': return v(item.name || item['Name attribute'] || item.attributeName || item.primaryName);
-                    case 'type': return v(item.typeName || item.type);
+                    case 'name': return v(item.name || item['Name attribute'] || item.attributeName || item.primaryName || item.PrimaryName || item.Name);
+                    case 'type': return v(item.typeName || item.type || item.TypeName || item.Type);
                     case 'glossary': return v(item.glossaryName || item.glossary);
-                    case 'refNumber': return v(item.refNumber || item.ref);
-                    default: return v(item[fieldId]);
+                    case 'refNumber': return v(item.refNumber || item.refnumber || item.RefNumber || item.ref || item.Ref || item.processRefNumber || item.ProcessRefNumber || item.processRef || item.ProcessRef || item.projectRefNumber || item.ProjectRefNumber || item.projectRef || item.ProjectRef || item.productRefNumber || item.ProductRefNumber || item.policyRefNumber || item.PolicyRefNumber || item.capabilityRefNumber || item.CapabilityRefNumber || item.datasetRefNumber || item.DatasetRefNumber || item.attributeRefNumber || item.AttributeRefNumber || item.glossaryRefNumber || item.GlossaryRefNumber || item.interfaceRefNumber || item.InterfaceRefNumber || item.systemRef || item.SystemRef || item.regulationRefNumber || item.RegulationRefNumber || item.regulatoryThemeRefNumber || item.RegulatoryThemeRefNumber || item.businessAreaReference || item.BusinessAreaReference || item.clientReference || item.ClientReference || item.legalReference || item.LegalReference || item.sourceProcessRef || item.targetProcessRef);
+                    default: return fieldDefault(item, fieldId);
                 }
             case 'linking-attributes':
                 switch (fieldId) {
-                    case 'name': return v(item.name || item['Name attribute'] || item.attributeName || item.primaryName);
-                    case 'type': return v(item.typeName || item.type);
+                    case 'name': return v(item.name || item['Name attribute'] || item.attributeName || item.primaryName || item.PrimaryName || item.Name);
+                    case 'type': return v(item.typeName || item.type || item.TypeName || item.Type);
                     case 'glossary': return v(item.glossaryName || item.glossary || item['Glossary Name attribute']);
-                    case 'direction': return v(item.direction);
-                    case 'relatedDataset': return v(item.relatedDataset);
-                    case 'relatedAttribute': return v(item.relatedAttribute);
-                    default: return v(item[fieldId]);
+                    case 'direction': return v(item.direction || item.Direction);
+                    case 'relatedDataset': return v(item.relatedDataset || item.related_dataset);
+                    case 'relatedAttribute': return v(item.relatedAttribute || item.related_attribute);
+                    default: return fieldDefault(item, fieldId);
+                }
+            case 'custom-fields':
+                switch (fieldId) {
+                    case 'metadataId': return v(item.metadataId != null ? item.metadataId : item.Metadata_ID);
+                    case 'enumId':
+                        if (item.enumId !== undefined && item.enumId !== null && item.enumId !== '') return v(item.enumId);
+                        if (item.enumIds && item.enumIds.length) return v(item.enumIds.join(', '));
+                        return '';
+                    case 'value': return v(item.value != null && item.value !== '' ? item.value : (item.displayValue != null ? item.displayValue : ''));
+                    default: return fieldDefault(item, fieldId);
                 }
             case 'stakeholders':
                 switch (fieldId) {
-                    case 'name': return v(item.personName || item.name);
-                    case 'role': return v(item.roleName || item.role);
-                    default: return v(item[fieldId]);
+                    case 'name': return v(item.personName || item.PersonName || item.name || item.Name);
+                    case 'role': return v(item.roleName || item.RoleName || item.role || item.Role);
+                    case 'accepted': return v(item.accepted || item.Accepted || item.acceptedStatus);
+                    case 'orgUnit': return v(item.orgUnit || item.OrgUnit || item.orgUnitName);
+                    default: return fieldDefault(item, fieldId);
                 }
             case 'processes':
             case 'projects':
@@ -1812,25 +1873,30 @@
             case 'business-area':
             case 'products':
             case 'legal-entities':
+            case 'clients':
+            case 'capabilities':
+            case 'systems':
             case 'data-quality':
             case 'data-privacy':
             case 'geography':
-            case 'systems':
                 switch (fieldId) {
-                    case 'name': return v(item.name || item.primaryName || item.PrimaryName || item.glossaryName || item.ruleName);
-                    case 'refNumber': return v(item.refNumber || item.ref);
-                    case 'type': return v(item.typeName || item.type);
-                    case 'lifecycle': return v(item.lifecycleName || item.lifecycle);
-                    case 'status': return v(item.statusName || item.status);
-                    case 'ruleName': return v(item.ruleName);
+                    case 'name': return entityNameCell();
+                    case 'refNumber': return v(item.refNumber || item.refnumber || item.RefNumber || item.ref || item.Ref || item.processRefNumber || item.ProcessRefNumber || item.processRef || item.ProcessRef || item.projectRefNumber || item.ProjectRefNumber || item.projectRef || item.ProjectRef || item.productRefNumber || item.ProductRefNumber || item.policyRefNumber || item.PolicyRefNumber || item.capabilityRefNumber || item.CapabilityRefNumber || item.datasetRefNumber || item.DatasetRefNumber || item.attributeRefNumber || item.AttributeRefNumber || item.glossaryRefNumber || item.GlossaryRefNumber || item.interfaceRefNumber || item.InterfaceRefNumber || item.systemRef || item.SystemRef || item.regulationRefNumber || item.RegulationRefNumber || item.regulatoryThemeRefNumber || item.RegulatoryThemeRefNumber || item.businessAreaReference || item.BusinessAreaReference || item.clientReference || item.ClientReference || item.legalReference || item.LegalReference || item.sourceProcessRef || item.targetProcessRef);
+                    case 'type': return v(item.typeName || item.type || item.TypeName || item.Type || item.policyTypeName || item.PolicyTypeName || item.productTypeName || item.ProductTypeName || item.relationTypeName || item.RelationTypeName);
+                    case 'lifecycle': return v(item.lifecycleName || item.LifecycleName || item.lifecycle || item.Lifecycle || item.lifecycleStatusName || item.LifecycleStatusName || item.lifecycleStatus || item.LifecycleStatus || item.processLifecycleName || item.ProcessLifecycleName || item.sourceProcessLifecycleName || item.targetProcessLifecycleName || item.datasetLifecycleName || item.DatasetLifecycleName || fieldDefault(item, fieldId));
+                    case 'status': return v(item.statusName || item.StatusName || item.status || item.Status || item.projectStatusName || item.ProjectStatusName || item.policyStatusName || item.PolicyStatusName);
+                    case 'ruleName': return v(item.ruleName || item.RuleName);
                     case 'rating': return v(item.rating || item.qualityRating);
                     case 'classification': return v(item.classification || item.privacyClassification);
-                    case 'region': return v(item.region);
-                    case 'country': return v(item.country);
-                    default: return v(item[fieldId]);
+                    case 'region': return v(item.region || item.Region);
+                    case 'country': return v(item.country || item.Country);
+                    default: return fieldDefault(item, fieldId);
                 }
-            default:
-                return v(item[fieldId] || item.name || item.primaryName);
+            default: {
+                const fb = fieldDefault(item, fieldId);
+                if (fb) return fb;
+                return v(item.name || item.primaryName);
+            }
         }
     }
 
@@ -1842,9 +1908,9 @@
             return createOverlayPanelFallback(nodeName, overlayType, arr, nodeId);
         }
         var overlayColumnDefs = [];
-        if (overlayType !== 'stakeholders' && window.OverlayColumns) {
+        if (window.OverlayColumns) {
             var allCols = window.OverlayColumns.getOverlayColumns(overlayType);
-            var selectedIds = DatasetMapState.overlayColumnsByType[overlayType] || window.OverlayColumns.getDefaultOverlayColumnIds(overlayType);
+            var selectedIds = window.OverlayColumns.resolveSelectedColumnIds(DatasetMapState.overlayColumnsByType[overlayType], overlayType);
             overlayColumnDefs = allCols.filter(function(c) { return selectedIds && selectedIds.indexOf(c.id) !== -1; });
         }
         const panel = window.MapOverlayPanel.create(overlayType, arr, nodeId, {
@@ -2064,6 +2130,748 @@
         });
     }
 
+    function getDatasetRelationshipsMapHtml() {
+        if (window.SharedMapHTML) {
+            return window.SharedMapHTML({
+                mapId: 'datasetRelationshipsMap',
+                defaultMapType: 'dataset-lineage',
+                mapTypeOptions: [
+                    { value: 'dataset-lineage', label: 'Dataset Lineage' },
+                    { value: 'system-lineage', label: 'System Lineage' }
+                ],
+                overlayConfig: {
+                    systemLineage: {
+                        columns: [
+                            {
+                                header: 'Data',
+                                items: [
+                                    { overlay: 'description', icon: 'fa-info-circle', label: 'Description' },
+                                    { overlay: 'glossary', icon: 'fa-book', label: 'Glossary' },
+                                    { overlay: 'datasets', icon: 'fa-layer-group', label: 'Data Sets' },
+                                    { overlay: 'attributes', icon: 'fa-th', label: 'Attributes' },
+                                    { overlay: 'linking-attributes', icon: 'fa-th', label: 'Linking Attributes' },
+                                    { overlay: 'data-quality', icon: 'fa-bullseye', label: 'Data Quality' },
+                                    { overlay: 'data-privacy', icon: 'fa-lock', label: 'Data Privacy' }
+                                ]
+                            },
+                            {
+                                header: 'Business',
+                                items: [
+                                    { overlay: 'stakeholders', icon: 'fa-users', label: 'Stakeholders' },
+                                    { overlay: 'processes', icon: 'fa-play', label: 'Processes' },
+                                    { overlay: 'projects', icon: 'fa-project-diagram', label: 'Projects' },
+                                    { overlay: 'policies', icon: 'fa-file-alt', label: 'Policies' }
+                                ]
+                            },
+                            {
+                                header: 'Organizational',
+                                items: [
+                                    { overlay: 'business-area', icon: 'fa-briefcase', label: 'Business Area' },
+                                    { overlay: 'products', icon: 'fa-tag', label: 'Products' },
+                                    { overlay: 'legal-entities', icon: 'fa-landmark', label: 'Legal Entities' }
+                                ]
+                            },
+                            {
+                                header: 'Regulatory',
+                                items: [
+                                    { overlay: 'geography', icon: 'fa-globe', label: 'Geography' }
+                                ]
+                            }
+                        ]
+                    },
+                    datasetLineage: {
+                        columns: [
+                            {
+                                header: 'Data',
+                                items: [
+                                    { overlay: 'description', icon: 'fa-info-circle', label: 'Definition' },
+                                    { overlay: 'glossary', icon: 'fa-book', label: 'Glossary' },
+                                    { overlay: 'attributes', icon: 'fa-th', label: 'Attributes' },
+                                    { overlay: 'linking-attributes', icon: 'fa-th', label: 'Linking Attributes' },
+                                    { overlay: 'data-quality', icon: 'fa-bullseye', label: 'Data Quality' }
+                                ]
+                            },
+                            {
+                                header: 'Business',
+                                items: [
+                                    { overlay: 'stakeholders', icon: 'fa-users', label: 'Stakeholders' },
+                                    { overlay: 'processes', icon: 'fa-play', label: 'Processes' },
+                                    { overlay: 'projects', icon: 'fa-project-diagram', label: 'Projects' },
+                                    { overlay: 'policies', icon: 'fa-file-alt', label: 'Policies' }
+                                ]
+                            }
+                        ]
+                    }
+                },
+                filterConfig: {
+                    systemLineage: {
+                        categories: [
+                            {
+                                header: 'LINKS',
+                                options: [
+                                    { id: 'systemInterfaces', label: 'System Interfaces', checked: true },
+                                    { id: 'dataAttributeLinks', label: 'Data Attribute Links', checked: true }
+                                ]
+                            },
+                            {
+                                header: 'CLASSIFICATION',
+                                dynamic: true,
+                                containerId: 'datasetRelationshipsSystemFilterClassificationOptions'
+                            },
+                            {
+                                header: 'TYPE',
+                                dynamic: true,
+                                containerId: 'datasetRelationshipsSystemFilterTypeOptions'
+                            },
+                            {
+                                header: 'LIFECYCLE',
+                                dynamic: true,
+                                containerId: 'datasetRelationshipsSystemFilterLifecycleOptions'
+                            }
+                        ]
+                    },
+                    datasetLineage: {
+                        categories: [
+                            {
+                                header: 'TYPE',
+                                dynamic: true,
+                                containerId: 'datasetRelationshipsFilterTypeOptions'
+                            },
+                            {
+                                header: 'LIFECYCLE',
+                                dynamic: true,
+                                containerId: 'datasetRelationshipsFilterLifecycleOptions'
+                            }
+                        ]
+                    }
+                }
+            });
+        }
+        
+        // Fallback to basic HTML if shared generator not available
+        return `
+            <div class="map-section" id="datasetRelationshipsMapSection" style="grid-column:1/-1; margin-bottom: 1.5rem;">
+                <div class="map-section-header">
+                    <div class="map-section-title">MAP</div>
+                    <button type="button" class="map-collapse-btn" id="datasetRelationshipsMapCollapseBtn" title="Collapse/Expand">
+                        <i class="fas fa-minus"></i>
+                    </button>
+                </div>
+                <div class="interface-map-toolbar">
+                    <div class="map-control-group">
+                        <label>Map type:</label>
+                        <select id="datasetRelationshipsMapTypeSelect" class="map-select">
+                            <option value="dataset-lineage" selected>Dataset Lineage</option>
+                            <option value="system-lineage">System Lineage</option>
+                        </select>
+                    </div>
+                    <div class="map-control-group">
+                        <label>Layout:</label>
+                        <div class="map-layout-controls">
+                            ${typeof window.SharedMapLayoutRichControlsHtml === 'function' ? window.SharedMapLayoutRichControlsHtml('datasetRelationshipsMap') : ''}
+                        </div>
+                    </div>
+                    <div class="map-control-group map-hops-group" id="datasetRelationshipsMapHopsGroup">
+                        <label>Hops:</label>
+                        <input type="number" id="datasetRelationshipsMapHopsCount" class="map-hops-input" min="1" max="99" value="15" title="Upstream/downstream lineage depth (1-99, recommend 15)">
+                    </div>
+                </div>
+                <div class="interface-map-body">
+                    <div class="interface-map-canvas" id="datasetRelationshipsMapCanvas">
+                        <div class="interface-map-loading" data-map-loading style="display:none;">
+                            <i class="fas fa-spinner fa-spin"></i>
+                            <span>Building lineage map...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    function getDatasetRelationshipsMapRoot() {
+        const roots = document.querySelectorAll('#datasetRelationshipsMapSection');
+        return roots.length ? roots[roots.length - 1] : document;
+    }
+
+    // Update dataset map filters
+    function updateDatasetMapFilters() {
+        const root = getDatasetRelationshipsMapRoot();
+        const filterSystemInterfaces = root.querySelector('#filterdatasetRelationshipsMapsystemInterfaces');
+        const filterDataAttributeLinks = root.querySelector('#filterdatasetRelationshipsMapdataAttributeLinks');
+        
+        if (window.DatasetRelationshipsMap) {
+            if (filterSystemInterfaces) {
+                window.DatasetRelationshipsMap.setFilter('systemInterfaces', filterSystemInterfaces.checked);
+            }
+            if (filterDataAttributeLinks) {
+                window.DatasetRelationshipsMap.setFilter('dataAttributeLinks', filterDataAttributeLinks.checked);
+            }
+        }
+    }
+
+    // Update filter options in UI (for dataset lineage)
+    function updateFilterOptions(options) {
+        const root = getDatasetRelationshipsMapRoot();
+        const typeOptions = root.querySelector('#datasetRelationshipsFilterTypeOptions');
+        const lifecycleOptions = root.querySelector('#datasetRelationshipsFilterLifecycleOptions');
+
+        if (typeOptions && options.types) {
+            typeOptions.innerHTML = options.types.map(type => `
+                <div class="map-filter-option">
+                    <input type="checkbox" id="filterType-${type}" value="${type}" checked>
+                    <label for="filterType-${type}">${type}</label>
+                </div>
+            `).join('');
+            
+            // Add event listeners for type checkboxes
+            typeOptions.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+                cb.addEventListener('change', applyDynamicFilters);
+            });
+        }
+
+        if (lifecycleOptions && options.lifecycles) {
+            lifecycleOptions.innerHTML = options.lifecycles.map(lifecycle => `
+                <div class="map-filter-option">
+                    <input type="checkbox" id="filterLifecycle-${lifecycle}" value="${lifecycle}" checked>
+                    <label for="filterLifecycle-${lifecycle}">${lifecycle}</label>
+                </div>
+            `).join('');
+            
+            // Add event listeners for lifecycle checkboxes
+            lifecycleOptions.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+                cb.addEventListener('change', applyDynamicFilters);
+            });
+        }
+    }
+    
+    // Update filter options in UI (for system lineage)
+    function updateSystemFilterOptions(options) {
+        const root = getDatasetRelationshipsMapRoot();
+        const classificationOptions = root.querySelector('#datasetRelationshipsSystemFilterClassificationOptions');
+        const typeOptions = root.querySelector('#datasetRelationshipsSystemFilterTypeOptions');
+        const lifecycleOptions = root.querySelector('#datasetRelationshipsSystemFilterLifecycleOptions');
+
+        if (classificationOptions && options.classifications) {
+            classificationOptions.innerHTML = options.classifications.map(cls => `
+                <div class="map-filter-option">
+                    <input type="checkbox" id="filterClassification-${cls}" value="${cls}" checked>
+                    <label for="filterClassification-${cls}">${cls}</label>
+                </div>
+            `).join('');
+            
+            // Add event listeners for classification checkboxes
+            classificationOptions.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+                cb.addEventListener('change', applySystemDynamicFilters);
+            });
+        }
+
+        if (typeOptions && options.types) {
+            typeOptions.innerHTML = options.types.map(type => `
+                <div class="map-filter-option">
+                    <input type="checkbox" id="filterSystemType-${type}" value="${type}" checked>
+                    <label for="filterSystemType-${type}">${type}</label>
+                </div>
+            `).join('');
+            
+            // Add event listeners for type checkboxes
+            typeOptions.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+                cb.addEventListener('change', applySystemDynamicFilters);
+            });
+        }
+
+        if (lifecycleOptions && options.lifecycles) {
+            lifecycleOptions.innerHTML = options.lifecycles.map(lifecycle => `
+                <div class="map-filter-option">
+                    <input type="checkbox" id="filterSystemLifecycle-${lifecycle}" value="${lifecycle}" checked>
+                    <label for="filterSystemLifecycle-${lifecycle}">${lifecycle}</label>
+                </div>
+            `).join('');
+            
+            // Add event listeners for lifecycle checkboxes
+            lifecycleOptions.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+                cb.addEventListener('change', applySystemDynamicFilters);
+            });
+        }
+    }
+    
+    // Apply system lineage dynamic filters
+    function applySystemDynamicFilters() {
+        const root = getDatasetRelationshipsMapRoot();
+        const classificationCheckboxes = root.querySelectorAll('#datasetRelationshipsSystemFilterClassificationOptions input[type="checkbox"]');
+        const typeCheckboxes = root.querySelectorAll('#datasetRelationshipsSystemFilterTypeOptions input[type="checkbox"]');
+        const lifecycleCheckboxes = root.querySelectorAll('#datasetRelationshipsSystemFilterLifecycleOptions input[type="checkbox"]');
+        
+        const selectedClassifications = Array.from(classificationCheckboxes).filter(cb => cb.checked).map(cb => cb.value);
+        const selectedTypes = Array.from(typeCheckboxes).filter(cb => cb.checked).map(cb => cb.value);
+        const selectedLifecycles = Array.from(lifecycleCheckboxes).filter(cb => cb.checked).map(cb => cb.value);
+        
+        if (window.DatasetRelationshipsMap) {
+            window.DatasetRelationshipsMap.setNodeFilters({
+                classifications: selectedClassifications,
+                types: selectedTypes,
+                lifecycles: selectedLifecycles
+            });
+        }
+    }
+    
+    // Apply dynamic filters (type, lifecycle)
+    function applyDynamicFilters() {
+        const root = getDatasetRelationshipsMapRoot();
+        const typeOptions = root.querySelector('#datasetRelationshipsFilterTypeOptions');
+        const lifecycleOptions = root.querySelector('#datasetRelationshipsFilterLifecycleOptions');
+        
+        const selectedTypes = [];
+        const selectedLifecycles = [];
+        
+        if (typeOptions) {
+            typeOptions.querySelectorAll('input[type="checkbox"]:checked').forEach(cb => {
+                selectedTypes.push(cb.value);
+            });
+        }
+        
+        if (lifecycleOptions) {
+            lifecycleOptions.querySelectorAll('input[type="checkbox"]:checked').forEach(cb => {
+                selectedLifecycles.push(cb.value);
+            });
+        }
+        
+        if (window.DatasetRelationshipsMap) {
+            window.DatasetRelationshipsMap.setDatasetNodeFilters({
+                types: selectedTypes,
+                lifecycles: selectedLifecycles
+            });
+        }
+    }
+    function initDatasetRelationshipsMapToolbar() {
+        var mapId = 'datasetRelationshipsMap';
+        var mapRoot = document.getElementById(mapId + 'Section') || document;
+        if (mapRoot.dataset && mapRoot.dataset.datasetRelationshipsMapToolbarWired === '1') {
+            return;
+        }
+        if (mapRoot.dataset) {
+            mapRoot.dataset.datasetRelationshipsMapToolbarWired = '1';
+        }
+        var byId = function (id) {
+            return mapRoot.querySelector('#' + id) || document.getElementById(id);
+        };
+
+        // Map type selector
+        const mapTypeSelect = byId('datasetRelationshipsMapTypeSelect');
+        const directionBtn = byId('datasetRelationshipsMapDirection');
+        const collapseBtn = byId('datasetRelationshipsMapCollapseBtn');
+        const mapSection = byId('datasetRelationshipsMapSection');
+        const overlayBtn = byId('datasetRelationshipsMapOverlayBtn');
+        const overlayMenuSystem = byId('datasetRelationshipsMapOverlayMenuSystem');
+        const overlayMenuDataset = byId('datasetRelationshipsMapOverlayMenuDataset');
+        const filterBtn = byId('datasetRelationshipsMapFilterBtn');
+        const systemFilterMenu = byId('datasetRelationshipsMapFilterMenuSystem');
+        const datasetFilterMenu = byId('datasetRelationshipsMapFilterMenuDataset');
+        const clearOverlaysBtnSystem = byId('datasetRelationshipsMapClearOverlaysBtnSystem');
+        const clearOverlaysBtnDataset = byId('datasetRelationshipsMapClearOverlaysBtnDataset');
+        
+        console.log('[DATASET-MAP] Elements found:', {
+            overlayBtn: !!overlayBtn,
+            overlayMenuSystem: !!overlayMenuSystem,
+            overlayMenuDataset: !!overlayMenuDataset,
+            filterBtn: !!filterBtn,
+            systemFilterMenu: !!systemFilterMenu,
+            datasetFilterMenu: !!datasetFilterMenu
+        });
+        
+        // Track current map type for menu switching
+        let currentMapType = 'dataset-lineage';
+        
+        // Function to get active overlay menu based on map type
+        const getActiveOverlayMenu = () => {
+            return currentMapType === 'dataset-lineage' ? overlayMenuDataset : overlayMenuSystem;
+        };
+        
+        // Function to get active filter menu based on map type
+        const getActiveFilterMenu = () => {
+            return currentMapType === 'dataset-lineage' ? datasetFilterMenu : systemFilterMenu;
+        };
+        
+        // Function to switch menus based on map type
+        const switchMenus = (mapType) => {
+            currentMapType = mapType;
+            
+            // Reset overlay button text
+            if (overlayBtn) {
+                overlayBtn.querySelector('span').textContent = 'None';
+            }
+            // Clear active overlays
+            mapRoot.querySelectorAll('.overlay-menu-item').forEach(i => i.classList.remove('active'));
+            // Hide any open menus
+            if (overlayMenuSystem) overlayMenuSystem.classList.remove('open');
+            if (overlayMenuDataset) overlayMenuDataset.classList.remove('open');
+            if (systemFilterMenu) systemFilterMenu.classList.remove('open');
+            if (datasetFilterMenu) datasetFilterMenu.classList.remove('open');
+            
+            // Clear overlay on map
+            if (window.DatasetRelationshipsMap) {
+                window.DatasetRelationshipsMap.setOverlay('none');
+            }
+            
+            // Update filter label based on map type
+            updateDatasetFilterLabel(mapType);
+        };
+        
+        // Update filter label for specific map type
+        const updateDatasetFilterLabel = (mapType) => {
+            const filterBtnText = byId('datasetRelationshipsMapFilterBtnText');
+            if (!filterBtnText) return;
+            
+            const activeFilterMenu = mapType === 'dataset-lineage' ? datasetFilterMenu : systemFilterMenu;
+            if (!activeFilterMenu) return;
+            
+            const checkboxes = activeFilterMenu.querySelectorAll('input[type="checkbox"]');
+            const checkedCount = Array.from(checkboxes).filter(c => c.checked && c.closest('.map-filter-option')?.style.display !== 'none').length;
+            const totalCount = Array.from(checkboxes).filter(c => c.closest('.map-filter-option')?.style.display !== 'none').length;
+            
+            if (totalCount === 0) {
+                filterBtnText.textContent = 'No filters';
+            } else if (checkedCount === totalCount) {
+                filterBtnText.textContent = `All selected (${totalCount})`;
+            } else {
+                filterBtnText.textContent = `${checkedCount} of ${totalCount}`;
+            }
+        };
+        
+        if (mapTypeSelect) {
+            mapTypeSelect.addEventListener('change', (e) => {
+                const mapType = e.target.value;
+                switchMenus(mapType);
+                if (window.DatasetRelationshipsMap) {
+                    window.DatasetRelationshipsMap.setMapType(mapType);
+                }
+            });
+        }
+        
+        
+        // Hops Count (1-99, default 15)
+        const hopsInput = byId('datasetRelationshipsMapHopsCount');
+        if (hopsInput) {
+            hopsInput.addEventListener('change', (e) => {
+                let val = parseInt(e.target.value, 10);
+                if (isNaN(val) || val < 1) val = 1;
+                if (val > 99) val = 99;
+                e.target.value = val;
+                if (window.DatasetRelationshipsMap && typeof window.DatasetRelationshipsMap.setHopsCount === 'function') {
+                    window.DatasetRelationshipsMap.setHopsCount(val);
+                }
+            });
+        }
+        
+        // Initialize shared dropdown menus for expand/collapse & direction buttons
+        if (typeof window.SharedMapDropdowns === 'function') {
+            window.SharedMapDropdowns({
+                mapId: 'datasetRelationshipsMap',
+                getNetwork: () => window.DatasetRelationshipsMap ? window.DatasetRelationshipsMap.cy : null,
+                setLayout: (dir) => {
+                    const ls = byId('datasetRelationshipsMapLayoutSelect');
+                    if (ls) ls.value = dir;
+                    if (window.DatasetRelationshipsMap) window.DatasetRelationshipsMap.setLayout(dir);
+                },
+                getCanvas: () => byId('datasetRelationshipsMapCanvas')
+            });
+        }
+        
+        // Collapse/Expand button
+        if (collapseBtn && mapSection) {
+            collapseBtn.addEventListener('click', () => {
+                const toolbar = mapSection.querySelector('.interface-map-toolbar');
+                const body = mapSection.querySelector('.interface-map-body');
+                const icon = collapseBtn.querySelector('i');
+                
+                if (toolbar && body) {
+                    const isCollapsed = toolbar.style.display === 'none';
+                    toolbar.style.display = isCollapsed ? '' : 'none';
+                    body.style.display = isCollapsed ? '' : 'none';
+                    icon.className = isCollapsed ? 'fas fa-minus' : 'fas fa-plus';
+                }
+            });
+        }
+        
+        // Overlay dropdown
+        if (overlayBtn) {
+            overlayBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const activeOverlayMenu = getActiveOverlayMenu();
+                if (activeOverlayMenu) {
+                    activeOverlayMenu.classList.toggle('open');
+                }
+                // Close filter menus if open
+                if (systemFilterMenu) systemFilterMenu.classList.remove('open');
+                if (datasetFilterMenu) datasetFilterMenu.classList.remove('open');
+            });
+        }
+        
+        // Setup overlay menu item handlers for both menus
+        const setupOverlayMenuHandlers = (menu) => {
+            if (!menu) return;
+            menu.querySelectorAll('.overlay-menu-item').forEach(item => {
+                item.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const overlayType = e.currentTarget.getAttribute('data-overlay');
+                    const wasActive = e.currentTarget.classList.contains('active');
+                    menu.querySelectorAll('.overlay-menu-item').forEach(i => i.classList.remove('active'));
+                    
+                    if (!wasActive) {
+                        e.currentTarget.classList.add('active');
+                        if (overlayBtn) {
+                            overlayBtn.querySelector('span').textContent = e.currentTarget.textContent.trim();
+                        }
+                        if (window.DatasetRelationshipsMap) {
+                            window.DatasetRelationshipsMap.setOverlay(overlayType);
+                        }
+                    } else {
+                        if (overlayBtn) {
+                            overlayBtn.querySelector('span').textContent = 'None';
+                        }
+                        if (window.DatasetRelationshipsMap) {
+                            window.DatasetRelationshipsMap.setOverlay('none');
+                        }
+                    }
+                    menu.classList.remove('open');
+                });
+            });
+        };
+        
+        setupOverlayMenuHandlers(overlayMenuSystem);
+        setupOverlayMenuHandlers(overlayMenuDataset);
+        
+        // Clear overlays button handler
+        const clearOverlaysHandler = () => {
+            mapRoot.querySelectorAll('.overlay-menu-item').forEach(i => i.classList.remove('active'));
+            if (overlayBtn) overlayBtn.querySelector('span').textContent = 'None';
+            if (window.DatasetRelationshipsMap) {
+                window.DatasetRelationshipsMap.setOverlay('none');
+            }
+            const activeOverlayMenu = getActiveOverlayMenu();
+            if (activeOverlayMenu) activeOverlayMenu.classList.remove('open');
+        };
+        
+        if (clearOverlaysBtnSystem) {
+            clearOverlaysBtnSystem.addEventListener('click', clearOverlaysHandler);
+        }
+        if (clearOverlaysBtnDataset) {
+            clearOverlaysBtnDataset.addEventListener('click', clearOverlaysHandler);
+        }
+        
+        // Overlay grid button: overlay fields as columns dropdown
+        const overlayGridBtn = byId('datasetRelationshipsMapOverlayGrid');
+        const overlayColumnsMenu = byId('datasetRelationshipsMapOverlayColumnsMenu');
+        const overlayColumnsOptions = byId('datasetRelationshipsMapOverlayColumnsOptions');
+        if (overlayGridBtn && overlayColumnsMenu && overlayColumnsOptions) {
+            function populateOverlayColumnsMenu() {
+                overlayColumnsOptions.innerHTML = '';
+                const overlayType = window.DatasetRelationshipsMap && window.DatasetRelationshipsMap.getState ? (window.DatasetRelationshipsMap.getState().overlay || '') : '';
+                if (!overlayType || overlayType === 'none') {
+                    overlayColumnsOptions.innerHTML = '<div class="map-overlay-columns-empty">Select an overlay first.</div>';
+                    return;
+                }
+                const columns = window.OverlayColumns && window.OverlayColumns.getOverlayColumns ? window.OverlayColumns.getOverlayColumns(overlayType) : [];
+                const selectedIds = window.DatasetRelationshipsMap && typeof window.DatasetRelationshipsMap.getOverlayColumns === 'function' ? window.DatasetRelationshipsMap.getOverlayColumns(overlayType) : [];
+                if (!columns || columns.length === 0) {
+                    overlayColumnsOptions.innerHTML = '<div class="map-overlay-columns-empty">No columns for this overlay.</div>';
+                    return;
+                }
+                columns.forEach(col => {
+                    const div = document.createElement('div');
+                    div.className = 'map-filter-option';
+                    const input = document.createElement('input');
+                    input.type = 'checkbox';
+                    input.id = 'overlayCol_dataset_' + overlayType + '_' + col.id;
+                    input.checked = selectedIds.indexOf(col.id) !== -1;
+                    input.dataset.columnId = col.id;
+                    const label = document.createElement('label');
+                    label.htmlFor = input.id;
+                    label.textContent = col.label;
+                    div.appendChild(input);
+                    div.appendChild(label);
+                    input.addEventListener('change', () => {
+                        const checked = Array.from(overlayColumnsOptions.querySelectorAll('input:checked')).map(i => i.dataset.columnId);
+                        if (window.DatasetRelationshipsMap && typeof window.DatasetRelationshipsMap.setOverlayColumns === 'function') {
+                            window.DatasetRelationshipsMap.setOverlayColumns(overlayType, checked);
+                        }
+                    });
+                    overlayColumnsOptions.appendChild(div);
+                });
+            }
+            overlayGridBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const filterMenu = byId('datasetRelationshipsMapFilterMenuSystem');
+                const systemOverlayMenu = byId('datasetRelationshipsMapOverlayMenuSystem');
+                const datasetOverlayMenu = byId('datasetRelationshipsMapOverlayMenuDataset');
+                if (filterMenu) filterMenu.classList.remove('open');
+                if (systemOverlayMenu) systemOverlayMenu.classList.remove('open');
+                if (datasetOverlayMenu) datasetOverlayMenu.classList.remove('open');
+                const isOpen = overlayColumnsMenu.classList.toggle('open');
+                if (isOpen) {
+                    overlayColumnsMenu.style.display = 'block';
+                    populateOverlayColumnsMenu();
+                    const rect = overlayGridBtn.getBoundingClientRect();
+                    overlayColumnsMenu.style.position = 'fixed';
+                    overlayColumnsMenu.style.left = rect.left + 'px';
+                    overlayColumnsMenu.style.top = (rect.bottom + 4) + 'px';
+                    overlayColumnsMenu.style.minWidth = '200px';
+                } else {
+                    overlayColumnsMenu.style.display = 'none';
+                }
+                overlayGridBtn.classList.toggle('active', isOpen);
+            });
+        }
+        
+        // Filter dropdown toggle
+        if (filterBtn) {
+            filterBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const activeFilterMenu = getActiveFilterMenu();
+                if (activeFilterMenu) {
+                    activeFilterMenu.classList.toggle('open');
+                }
+                // Close overlay menus if open
+                if (overlayMenuSystem) overlayMenuSystem.classList.remove('open');
+                if (overlayMenuDataset) overlayMenuDataset.classList.remove('open');
+            });
+        }
+        
+        // Filter checkboxes - using correct IDs from SharedMapHTML
+        const filterSystemInterfaces = byId('filterdatasetRelationshipsMapsystemInterfaces');
+        const filterDataAttributeLinks = byId('filterdatasetRelationshipsMapdataAttributeLinks');
+        
+        if (filterSystemInterfaces) {
+            filterSystemInterfaces.addEventListener('change', () => {
+                if (window.DatasetRelationshipsMap) {
+                    window.DatasetRelationshipsMap.setFilter('systemInterfaces', filterSystemInterfaces.checked);
+                }
+                updateDatasetFilterLabel(currentMapType);
+            });
+        }
+        if (filterDataAttributeLinks) {
+            filterDataAttributeLinks.addEventListener('change', () => {
+                if (window.DatasetRelationshipsMap) {
+                    window.DatasetRelationshipsMap.setFilter('dataAttributeLinks', filterDataAttributeLinks.checked);
+                }
+                updateDatasetFilterLabel(currentMapType);
+            });
+        }
+        
+        // Close dropdowns when clicking outside
+        document.addEventListener('click', (e) => {
+            const activeFilterMenu = getActiveFilterMenu();
+            const activeOverlayMenu = getActiveOverlayMenu();
+            
+            if (filterBtn && activeFilterMenu && !filterBtn.contains(e.target) && !activeFilterMenu.contains(e.target)) {
+                activeFilterMenu.classList.remove('open');
+            }
+            if (overlayBtn && activeOverlayMenu && !overlayBtn.contains(e.target) && !activeOverlayMenu.contains(e.target)) {
+                activeOverlayMenu.classList.remove('open');
+            }
+            if (overlayColumnsMenu && overlayGridBtn && !overlayColumnsMenu.contains(e.target) && !overlayGridBtn.contains(e.target)) {
+                overlayColumnsMenu.classList.remove('open');
+                overlayColumnsMenu.style.display = 'none';
+                overlayGridBtn.classList.remove('active');
+            }
+        });
+        
+        // Toolbar buttons
+        const zoomInBtn = byId('datasetRelationshipsMapZoomIn');
+        const zoomOutBtn = byId('datasetRelationshipsMapZoomOut');
+        const redrawBtn = byId('datasetRelationshipsMapRedraw');
+        const resetBtn = byId('datasetRelationshipsMapReset');
+        const exportBtn = byId('datasetRelationshipsMapExport');
+        const fullscreenBtn = byId('datasetRelationshipsMapFullscreen');
+        const legendBtn = byId('datasetRelationshipsMapLegend');
+        const toggleLabelsBtn = byId('datasetRelationshipsMapToggleLabels');
+        const navigatorBtn = byId('datasetRelationshipsMapNavigator');
+
+        if (zoomInBtn) {
+            zoomInBtn.addEventListener('click', () => {
+                if (window.DatasetRelationshipsMap) window.DatasetRelationshipsMap.zoomIn();
+            });
+        }
+
+        if (zoomOutBtn) {
+            zoomOutBtn.addEventListener('click', () => {
+                if (window.DatasetRelationshipsMap) window.DatasetRelationshipsMap.zoomOut();
+            });
+        }
+
+        if (redrawBtn) {
+            redrawBtn.addEventListener('click', () => {
+                if (window.DatasetRelationshipsMap) window.DatasetRelationshipsMap.redrawMap();
+            });
+        }
+
+        if (resetBtn) {
+            resetBtn.addEventListener('click', () => {
+                if (window.DatasetRelationshipsMap) window.DatasetRelationshipsMap.resetMap();
+            });
+        }
+
+        if (exportBtn) {
+            exportBtn.addEventListener('click', () => {
+                if (window.DatasetRelationshipsMap) window.DatasetRelationshipsMap.exportAsPng();
+            });
+        }
+        
+        if (fullscreenBtn) {
+            fullscreenBtn.addEventListener('click', () => {
+                if (window.DatasetRelationshipsMap && window.DatasetRelationshipsMap.openFullscreen) {
+                    window.DatasetRelationshipsMap.openFullscreen();
+                }
+            });
+        }
+        
+        if (legendBtn) {
+            if (typeof window.setupMapLegendDropdown === 'function') {
+                window.setupMapLegendDropdown('datasetRelationshipsMapLegend', 'datasetRelationshipsMapLegendDropdown', function() {
+                    return (window.DatasetRelationshipsMap && window.DatasetRelationshipsMap.getLegendHtml) ? window.DatasetRelationshipsMap.getLegendHtml() : '';
+                });
+            } else {
+                legendBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const html = (window.DatasetRelationshipsMap && window.DatasetRelationshipsMap.getLegendHtml) ? window.DatasetRelationshipsMap.getLegendHtml() : '';
+                    alert(html ? 'Legend loaded' : 'No legend available');
+                });
+            }
+        }
+        
+        if (navigatorBtn) {
+            navigatorBtn.addEventListener('click', () => {
+                navigatorBtn.classList.toggle('active');
+                if (window.DatasetRelationshipsMap && window.DatasetRelationshipsMap.toggleNavigator) {
+                    window.DatasetRelationshipsMap.toggleNavigator();
+                }
+            });
+        }
+        
+        if (toggleLabelsBtn) {
+            let labelsVisible = true;
+            toggleLabelsBtn.classList.add('active');
+            toggleLabelsBtn.addEventListener('click', () => {
+                labelsVisible = !labelsVisible;
+                if (window.DatasetRelationshipsMap && window.DatasetRelationshipsMap.toggleInterfaceLabels) {
+                    window.DatasetRelationshipsMap.toggleInterfaceLabels(labelsVisible);
+                }
+                toggleLabelsBtn.classList.toggle('active', labelsVisible);
+            });
+        }
+
+        // Listen for filter options updates (dataset lineage)
+        window.addEventListener('datasetMapFilterOptionsUpdated', (event) => {
+            updateFilterOptions(event.detail);
+            updateDatasetFilterLabel(currentMapType);
+        });
+        
+        // Listen for filter options updates (system lineage)
+        window.addEventListener('systemMapFilterOptionsUpdated', (event) => {
+            updateSystemFilterOptions(event.detail);
+            updateDatasetFilterLabel(currentMapType);
+        });
+    }
+
     var _datasetRelationshipsEngine = new window.MapEngine('dataset-lineage');
 
     Object.assign(_datasetRelationshipsEngine, {
@@ -2087,7 +2895,8 @@
         getState: function () { return DatasetMapState; },
         setOverlay: setOverlay,
         setOverlayColumns: setOverlayColumns,
-        getOverlayColumns: getOverlayColumns
+        getOverlayColumns: getOverlayColumns,
+        initToolbar: function () { initDatasetRelationshipsMapToolbar(); }
     });
 
     Object.defineProperty(_datasetRelationshipsEngine, 'cy', {
@@ -2096,6 +2905,8 @@
     });
 
     window.DatasetRelationshipsMap = _datasetRelationshipsEngine;
+
+    window.getDatasetRelationshipsMapHtml = getDatasetRelationshipsMapHtml;
 
 })();
 

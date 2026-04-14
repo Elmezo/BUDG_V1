@@ -25,7 +25,7 @@ public class DatabaseConnection {
         return defaultValue;
     }
 
-    private static final String DB_URL = resolveEnv("DB_URL", "jdbc:mysql://192.168.1.104:3306/project");
+    private static final String DB_URL = resolveEnv("DB_URL", "jdbc:mysql://localhost:3306/project");
     private static final String DB_USER = resolveEnv("DB_USERNAME", "root");
     private static final String DB_PASS = resolveEnv("DB_PASSWORD", "");
     

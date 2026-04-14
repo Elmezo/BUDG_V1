@@ -968,67 +968,7 @@
                         <div class="map-control-group">
                             <label>Layout:</label>
                             <div class="map-layout-controls">
-                                <!-- Rich layout dropdown (BUDG-style) -->
-                                <div class="map-btn-dropdown-wrapper map-layout-dropdown-wrapper">
-                                    <button type="button" class="map-select" id="interfaceMapLayoutBtn">
-                                        <span id="interfaceMapLayoutBtnText">Top-To-Bottom</span>
-                                        <i class="fas fa-chevron-down" style="font-size: 9px; margin-left: 6px; opacity: 0.6;"></i>
-                                    </button>
-                                    <div class="map-btn-dropdown-menu map-layout-rich-menu" id="interfaceMapLayoutMenu">
-                                        <div class="map-layout-rich-item active" data-layout="top-to-bottom">
-                                            <div class="map-layout-rich-icon"><i class="fas fa-arrow-down"></i></div>
-                                            <div class="map-layout-rich-content">
-                                                <div class="map-layout-rich-title">Top-To-Bottom</div>
-                                                <div class="map-layout-rich-desc">Most useful in representing information flows that aggregate into a central point.</div>
-                                            </div>
-                                        </div>
-                                        <div class="map-layout-rich-item" data-layout="left-to-right">
-                                            <div class="map-layout-rich-icon"><i class="fas fa-arrow-right"></i></div>
-                                            <div class="map-layout-rich-content">
-                                                <div class="map-layout-rich-title">Left-To-Right</div>
-                                                <div class="map-layout-rich-desc">The best way to view your information flow for small to medium sized maps.</div>
-                                            </div>
-                                        </div>
-                                        <div class="map-layout-rich-item" data-layout="force">
-                                            <div class="map-layout-rich-icon"><i class="fas fa-project-diagram"></i></div>
-                                            <div class="map-layout-rich-content">
-                                                <div class="map-layout-rich-title">Organic</div>
-                                                <div class="map-layout-rich-desc">Ideal for larger maps or maps with no overriding direction in the information flow.</div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <!-- Hidden select to keep SharedMapDropdowns in sync -->
-                                <select id="interfaceMapLayoutSelect" class="map-select" style="display:none;">
-                                    <option value="top-to-bottom" selected>Top-To-Bottom</option>
-                                    <option value="left-to-right">Left-To-Right</option>
-                                    <option value="force">Organic</option>
-                                </select>
-                                <div class="map-btn-dropdown-wrapper">
-                                    <button type="button" class="map-toolbar-btn-sm" id="interfaceMapSpacing" title="Node spacing">
-                                        <i class="fas fa-expand-arrows-alt" id="interfaceMapSpacingIcon"></i>
-                                        <i class="fas fa-chevron-down" style="font-size: 8px; margin-left: 2px;"></i>
-                                    </button>
-                                    <div class="map-btn-dropdown-menu" id="interfaceMapSpacingMenu">
-                                        <div class="map-btn-dropdown-item" data-spacing="compact">Compact</div>
-                                        <div class="map-btn-dropdown-item active" data-spacing="normal">Normal</div>
-                                        <div class="map-btn-dropdown-item" data-spacing="spacey">Spacey</div>
-                                    </div>
-                                </div>
-                                <div class="map-btn-dropdown-wrapper">
-                                    <button type="button" class="map-toolbar-btn-sm" id="interfaceMapEdgeStyle" title="Edge routing style">
-                                        <i class="fas fa-arrow-right" id="interfaceMapEdgeStyleIcon"></i>
-                                        <i class="fas fa-chevron-down" style="font-size: 8px; margin-left: 2px;"></i>
-                                    </button>
-                                    <div class="map-btn-dropdown-menu" id="interfaceMapEdgeStyleMenu">
-                                        <div class="map-btn-dropdown-item" data-edge-style="angle">Angle</div>
-                                        <div class="map-btn-dropdown-item" data-edge-style="square">Square</div>
-                                        <div class="map-btn-dropdown-item active" data-edge-style="direct">Direct</div>
-                                        <div class="map-btn-dropdown-item" data-edge-style="loop">Loop</div>
-                                        <div class="map-btn-dropdown-item" data-edge-style="top-down">Top-Down</div>
-                                        <div class="map-btn-dropdown-item" data-edge-style="left-right">Left-Right</div>
-                                    </div>
-                                </div>
+                                ${typeof window.SharedMapLayoutRichControlsHtml === 'function' ? window.SharedMapLayoutRichControlsHtml('interfaceMap') : ''}
                             </div>
                         </div>
                         
@@ -1117,7 +1057,7 @@
                                             <div class="overlay-menu-column">
                                                 <div class="overlay-menu-header">Data</div>
                                                 <div class="overlay-menu-item" data-overlay="description">
-                                                    <i class="fas fa-info-circle"></i> Description
+                                                    <i class="fas fa-info-circle"></i> Definition
                                                 </div>
                                                 <div class="overlay-menu-item" data-overlay="glossary">
                                                     <i class="fas fa-book"></i> Glossary
@@ -1393,7 +1333,6 @@
             window.SystemInterfacesMap.init(systemId, canvasEl || '#interfaceMapCanvas');
             // Note: No need to call setMapType() here - init() already handles it
         }
-        const layoutSelect = byId('interfaceMapLayoutSelect');
         const filterBtn = byId('interfaceMapFilterBtn');
         const filterMenu = byId('interfaceMapFilterMenu');
         const filterSystemInterfaces = byId('filterSystemInterfaces');
@@ -1507,57 +1446,6 @@
                 if (window.SystemInterfacesMap) {
                     window.SystemInterfacesMap.setMapType(mapType);
                 }
-            });
-        }
-
-        // Layout change – rich dropdown
-        const layoutBtn = byId('interfaceMapLayoutBtn');
-        const layoutMenu = byId('interfaceMapLayoutMenu');
-        const layoutBtnText = byId('interfaceMapLayoutBtnText');
-
-        if (layoutBtn && layoutMenu) {
-            layoutBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const wasOpen = layoutMenu.classList.contains('show');
-                // Close all other dropdowns first
-                mapRoot.querySelectorAll('.map-btn-dropdown-menu.show').forEach(m => m.classList.remove('show'));
-                if (!wasOpen) layoutMenu.classList.add('show');
-            });
-
-            layoutMenu.addEventListener('click', (e) => {
-                const item = e.target.closest('.map-layout-rich-item');
-                if (!item) return;
-                const dir = item.dataset.layout;
-                if (!dir) return;
-                // Update active state
-                layoutMenu.querySelectorAll('.map-layout-rich-item').forEach(it => it.classList.remove('active'));
-                item.classList.add('active');
-                // Update button text
-                const title = item.querySelector('.map-layout-rich-title');
-                if (layoutBtnText && title) layoutBtnText.textContent = title.textContent;
-                // Sync hidden select
-                if (layoutSelect) layoutSelect.value = dir;
-                // Apply layout
-                if (window.SystemInterfacesMap) window.SystemInterfacesMap.setLayout(dir);
-                layoutMenu.classList.remove('show');
-            });
-        }
-
-        // Also keep hidden select in sync (for SharedMapDropdowns)
-        if (layoutSelect) {
-            layoutSelect.addEventListener('change', (e) => {
-                if (window.SystemInterfacesMap) {
-                    window.SystemInterfacesMap.setLayout(e.target.value);
-                }
-                // Sync rich dropdown active state
-                if (layoutMenu) {
-                    layoutMenu.querySelectorAll('.map-layout-rich-item').forEach(it => {
-                        it.classList.toggle('active', it.dataset.layout === e.target.value);
-                    });
-                }
-                // Sync button text
-                const activeItem = layoutMenu && layoutMenu.querySelector('.map-layout-rich-item.active .map-layout-rich-title');
-                if (layoutBtnText && activeItem) layoutBtnText.textContent = activeItem.textContent;
             });
         }
 
@@ -1974,18 +1862,6 @@
                 mapId: 'interfaceMap',
                 getNetwork: () => window.SystemInterfacesMap ? window.SystemInterfacesMap.cy : null,
                 setLayout: (dir) => {
-                    // Sync hidden select
-                    if (layoutSelect) layoutSelect.value = dir;
-                    // Sync rich dropdown UI
-                    const richMenu = byId('interfaceMapLayoutMenu');
-                    const richBtnText = byId('interfaceMapLayoutBtnText');
-                    if (richMenu) {
-                        richMenu.querySelectorAll('.map-layout-rich-item').forEach(it => {
-                            it.classList.toggle('active', it.dataset.layout === dir);
-                        });
-                        const activeTitle = richMenu.querySelector('.map-layout-rich-item.active .map-layout-rich-title');
-                        if (richBtnText && activeTitle) richBtnText.textContent = activeTitle.textContent;
-                    }
                     if (window.SystemInterfacesMap) window.SystemInterfacesMap.setLayout(dir);
                 },
                 getCanvas: () => mapRoot.querySelector('.interface-map-container, .map-network-canvas')

@@ -1051,6 +1051,7 @@ public class BusinessAreaImpactDAO {
                 r.RelationType,
                 r.Description,
                 ba.PrimaryName as businessAreaName,
+                ba.RefNumber as businessAreaReference,
                 rt.PrimaryName as relationTypeName,
                 rt.ReverseName as relationTypeReverseName
             FROM businessarea_x_system r
@@ -1077,6 +1078,7 @@ public class BusinessAreaImpactDAO {
                     relationship.put("relationType", rs.getObject("RelationType"));
                     relationship.put("description", rs.getString("Description"));
                     relationship.put("businessAreaName", rs.getString("businessAreaName"));
+                    relationship.put("businessAreaReference", rs.getString("businessAreaReference"));
                     relationship.put("relationTypeName", rs.getString("relationTypeName"));
                     relationship.put("relationTypeReverseName", rs.getString("relationTypeReverseName"));
                     

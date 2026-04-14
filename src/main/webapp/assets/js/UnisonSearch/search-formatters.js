@@ -36,7 +36,9 @@ function prettifyLabel(key) {
         'cia_rating': 'CIA Rating',
         'kde': 'KDE',
         'budg_status': 'BUDG Status',
-        'budg_viewing': 'BUDG Viewing'
+        'budg_viewing': 'BUDG Viewing',
+        'system_role': 'System Role',
+        'systemrole': 'System Role'
     };
 
     const lowerKey = key.toLowerCase().replace(/[.\s_-]+/g, '_');

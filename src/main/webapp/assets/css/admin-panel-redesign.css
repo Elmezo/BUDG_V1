@@ -463,7 +463,13 @@
 }
 
 /* ======================== CARD GRIDS ======================== */
-.admin-panel-page .operating-model-grid,
+/* Operating model cards are a horizontal row (icon | text | button); need enough min column width for text */
+.admin-panel-page .operating-model-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 8px;
+}
+
 .admin-panel-page .dashboard-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
@@ -506,6 +512,7 @@
 .admin-panel-page .operating-model-card .card-content {
     flex: 1;
     min-width: 0;
+    padding: 0;
 }
 
 .admin-panel-page .operating-model-card .card-action {

@@ -10,6 +10,7 @@ import com.example.unisonsearch.service.RelationshipManager;
 import com.example.unisonsearch.service.RelationshipService;
 import com.example.unisonsearch.parser.*;
 import com.example.unisonsearch.util.FuzzySearchUtil;
+import com.example.unisonsearch.util.UnisonTrace;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -2020,6 +2021,7 @@ public class QueryBuilder {
 						"    ou.ID AS 'Org Unit_ID',\n" +
 						"    s.PrimaryName AS 'BUDG Status',\n" +
 						"    r.primaryname AS 'Profile Name',\n" +
+						"    p.System_Role AS System_Role,\n" +
 						"    p.last_User_LogIn AS 'Last Login',\n" +
 						"    ls.Primary_Name AS Lifecycle,\n" +
 						"    et.primary_Name AS 'Employee Type',\n" +
@@ -3133,6 +3135,10 @@ public class QueryBuilder {
 
 		if (allConditions.length() > 0) {
 			sql = insertWhereClause(sql, allConditions.toString());
+			if (UnisonTrace.enabled()) {
+				UnisonTrace.log(null, "QueryBuilder.where",
+						"module=" + module + " searchWhereChars=" + allConditions.length() + " params=" + parameters.size());
+			}
 		}
 
 		// Apply segment filtering if user is authenticated
@@ -3438,6 +3444,17 @@ public class QueryBuilder {
 	 * @param parameters List to add SQL parameters to
 	 * @return SQL condition string
 	 */
+	private static boolean isSystemExternalFilterColumn(String module, String qualifiedColumn) {
+		if (module == null || qualifiedColumn == null) {
+			return false;
+		}
+		if (!module.trim().equalsIgnoreCase("system")) {
+			return false;
+		}
+		String c = qualifiedColumn.trim();
+		return c.equalsIgnoreCase("s.External") || c.toLowerCase(Locale.ROOT).endsWith(".external");
+	}
+
 	private String buildFieldCondition(String module, String field, String condition, String value,
 			boolean useFuzzy, List<Object> parameters) {
 		// Map field names to column names
@@ -3447,6 +3464,20 @@ public class QueryBuilder {
 			return buildConditionForModule(module, module, value, useFuzzy, parameters);
 		}
 		columnName = qualifyFilterColumnExpression(module, columnName);
+
+		// BOOLEAN equals on System.External (0/1) — avoid LIKE; treat NULL as false for 0
+		if (condition != null && "equals".equalsIgnoreCase(condition) && value != null) {
+			String v = value.trim();
+			if (("0".equals(v) || "1".equals(v)) && isSystemExternalFilterColumn(module, columnName)) {
+				int b = Integer.parseInt(v);
+				if (b == 0) {
+					parameters.add(0);
+					return "(" + columnName + " = ? OR " + columnName + " IS NULL)";
+				}
+				parameters.add(1);
+				return columnName + " = ?";
+			}
+		}
 
 		// Support IN condition for id lists
 		if (condition != null && "in".equalsIgnoreCase(condition)) {
@@ -3490,6 +3521,15 @@ public class QueryBuilder {
 			}
 			if (parseErrors > 0) {
 				System.err.println("[QueryBuilder] buildFieldCondition: IN condition parsed " + ints.size() + " IDs with " + parseErrors + " parse errors. Module: " + module + ", Field: " + field);
+			}
+			// System.External: DB often stores NULL for "not external"; UI "No" sends IN (0). Match NULL as false.
+			if (ints.size() == 1 && ints.get(0) == 0 && isSystemExternalFilterColumn(module, columnName)) {
+				parameters.add(0);
+				return "(" + columnName + " = ? OR " + columnName + " IS NULL)";
+			}
+			if (ints.size() == 1 && ints.get(0) == 1 && isSystemExternalFilterColumn(module, columnName)) {
+				parameters.add(1);
+				return columnName + " = ?";
 			}
 			String placeholders = getPlaceholders(ints.size());
 			parameters.addAll(ints);
@@ -3549,6 +3589,12 @@ public class QueryBuilder {
 				};
 			}
 			return field;
+		case "external":
+			// System: External flag (0/1) — matches SELECT s.External AS External
+			if (module != null && module.trim().equalsIgnoreCase("system")) {
+				return "s.External";
+			}
+			return null;
 		case "status":
 			// Map status field to appropriate column based on module
 			if (module != null) {

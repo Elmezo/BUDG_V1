@@ -173,17 +173,34 @@
     }
 
     function initMapControls(wrapper) {
+        const layoutHost = wrapper.querySelector('#mapViewLayoutControlsHost');
+        if (layoutHost && typeof window.SharedMapLayoutRichControlsHtml === 'function') {
+            layoutHost.innerHTML = window.SharedMapLayoutRichControlsHtml('map', { richItems: 'four' });
+        }
+
         const layoutSelect = wrapper.querySelector('#mapLayoutSelect');
         const overlaySelect = wrapper.querySelector('#mapOverlaySelect');
         const mapTypeSelect = wrapper.querySelector('#mapTypeSelect');
         const refreshBtn = wrapper.querySelector('#mapRefreshBtn');
 
-        layoutSelect.addEventListener('change', (e) => {
-            MapState.layout = e.target.value;
-            updateNetworkLayout();
-        });
+        if (typeof window.SharedMapDropdowns === 'function') {
+            window.SharedMapDropdowns({
+                mapId: 'map',
+                getNetwork: () => MapState.network,
+                setLayout: (dir) => {
+                    MapState.layout = dir;
+                    updateNetworkLayout();
+                },
+                getCanvas: () => MapState.canvas
+            });
+        } else if (layoutSelect) {
+            layoutSelect.addEventListener('change', (e) => {
+                MapState.layout = e.target.value;
+                updateNetworkLayout();
+            });
+        }
 
-        overlaySelect.addEventListener('change', (e) => {
+        if (overlaySelect) overlaySelect.addEventListener('change', (e) => {
             MapState.overlay = e.target.value;
             applyOverlay();
         });

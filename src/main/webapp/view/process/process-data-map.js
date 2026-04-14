@@ -123,36 +123,7 @@
                     <div class="map-control-group">
                         <label>Layout:</label>
                         <div class="map-layout-controls">
-                            <select id="${MAP_ID}LayoutSelect" class="map-select">
-                                <option value="top-to-bottom" selected>Top-To-Bottom</option>
-                                <option value="left-to-right">Left-To-Right</option>
-                                <option value="right-to-left">Right-To-Left</option>
-                            </select>
-                            <div class="map-btn-dropdown-wrapper">
-                                <button type="button" class="map-toolbar-btn-sm" id="${MAP_ID}Spacing" title="Node spacing">
-                                    <i class="fas fa-expand-arrows-alt" id="${MAP_ID}SpacingIcon"></i>
-                                    <i class="fas fa-chevron-down map-toolbar-chevron"></i>
-                                </button>
-                                <div class="map-btn-dropdown-menu" id="${MAP_ID}SpacingMenu">
-                                    <div class="map-btn-dropdown-item" data-spacing="compact">Compact</div>
-                                    <div class="map-btn-dropdown-item active" data-spacing="normal">Normal</div>
-                                    <div class="map-btn-dropdown-item" data-spacing="spacey">Spacey</div>
-                                </div>
-                            </div>
-                            <div class="map-btn-dropdown-wrapper">
-                                <button type="button" class="map-toolbar-btn-sm" id="${MAP_ID}EdgeStyle" title="Edge routing style">
-                                    <i class="fas fa-arrow-right" id="${MAP_ID}EdgeStyleIcon"></i>
-                                    <i class="fas fa-chevron-down map-toolbar-chevron"></i>
-                                </button>
-                                <div class="map-btn-dropdown-menu" id="${MAP_ID}EdgeStyleMenu">
-                                    <div class="map-btn-dropdown-item" data-edge-style="angle">Angle</div>
-                                    <div class="map-btn-dropdown-item" data-edge-style="square">Square</div>
-                                    <div class="map-btn-dropdown-item active" data-edge-style="direct">Direct</div>
-                                    <div class="map-btn-dropdown-item" data-edge-style="loop">Loop</div>
-                                    <div class="map-btn-dropdown-item" data-edge-style="top-down">Top-Down</div>
-                                    <div class="map-btn-dropdown-item" data-edge-style="left-right">Left-Right</div>
-                                </div>
-                            </div>
+                            ${typeof window.SharedMapLayoutRichControlsHtml === 'function' ? window.SharedMapLayoutRichControlsHtml(MAP_ID) : ''}
                         </div>
                     </div>
                     <div class="map-control-group map-hops-group" id="${MAP_ID}HopsGroup">
@@ -171,7 +142,8 @@
                                     <div class="overlay-menu-grid">
                                         <div class="overlay-menu-column" data-overlay-column="data">
                                             <div class="overlay-menu-header">Data</div>
-                                            <div class="overlay-menu-item" data-overlay="description"><i class="fas fa-info-circle"></i> Description</div>
+                                            <div class="overlay-menu-item" data-overlay="description" data-map-type="system-lineage"><i class="fas fa-info-circle"></i> Description</div>
+                                            <div class="overlay-menu-item" data-overlay="description" data-map-type="dataset-lineage"><i class="fas fa-info-circle"></i> Definition</div>
                                             <div class="overlay-menu-item" data-overlay="glossary"><i class="fas fa-book"></i> Glossary</div>
                                             <div class="overlay-menu-item" data-overlay="datasets" data-map-type="system-lineage"><i class="fas fa-layer-group"></i> Data Sets</div>
                                             <div class="overlay-menu-item" data-overlay="attributes"><i class="fas fa-th"></i> Attributes</div>
@@ -473,7 +445,10 @@
             lifecycles: readCheckedValues(MAP_ID + 'filterLifecycleOptions')
         };
         if (ProcessDataMapState.network && ProcessDataMapState.mapType === 'system-lineage') {
-            adapter.applySystemNodeFilters(ProcessDataMapState.network, ProcessDataMapState.nodeFilters, {});
+            adapter.applySystemNodeFilters({
+                filtersInitialized: true,
+                updateOverlayPositions: updateOverlayPositions
+            });
         }
     }
 
@@ -483,8 +458,10 @@
             lifecycles: readCheckedValues(MAP_ID + 'filterDatasetLifecycleOptions')
         };
         if (ProcessDataMapState.network && ProcessDataMapState.mapType === 'dataset-lineage') {
-            adapter.applyDatasetNodeFilters(ProcessDataMapState.network, ProcessDataMapState.datasetNodeFilters, {
-                linkedDatasets: ProcessDataMapState.linkedDatasets
+            adapter.applyDatasetNodeFilters({
+                linkedDatasets: ProcessDataMapState.linkedDatasets,
+                filtersInitialized: true,
+                updateOverlayPositions: updateOverlayPositions
             });
         }
     }
@@ -727,7 +704,10 @@
         legendBtn.classList.toggle('active', !isVisible);
     }
 
-    function getOverlayTitle(overlayType) {
+    function getOverlayTitle(overlayType, nodeId) {
+        if (overlayType === 'description' && nodeId != null && String(nodeId).indexOf('dataset-') === 0) {
+            return 'Definition';
+        }
         const titles = {
             description: 'Description', glossary: 'Glossaries', datasets: 'Data Sets', dataset: 'Data Sets',
             attributes: 'Attributes', 'linking-attributes': 'Linking Attributes',
@@ -902,13 +882,13 @@
             switch (overlayType) {
                 case 'description': {
                     if (dataset) {
-                        const desc = dataset.description || dataset.Definition || dataset.definition || dataset.Description;
-                        if (desc) return [{ name: 'Description', value: desc }];
+                        const desc = dataset.definition || dataset.Definition || dataset.description || dataset.Description;
+                        if (desc) return [{ name: 'Definition', value: desc }];
                     }
                     const res = API?.getDatasetById ? await API.getDatasetById(datasetId, null, { silent404: true }).catch(() => null) : null;
                     const d = res?.data || res;
-                    const desc = d?.description || d?.Definition || d?.definition;
-                    if (desc) return [{ name: 'Description', value: desc }];
+                    const desc = d?.definition || d?.Definition || d?.description || d?.Description;
+                    if (desc) return [{ name: 'Definition', value: desc }];
                     return [];
                 }
                 case 'stakeholders': {
@@ -1143,7 +1123,7 @@
             const header = document.createElement('div');
             header.className = 'map-node-overlay-header';
             const titleSpan = document.createElement('span');
-            titleSpan.textContent = getOverlayTitle(overlayType);
+            titleSpan.textContent = getOverlayTitle(overlayType, nodeId);
             header.appendChild(titleSpan);
             const filterIcon = document.createElement('button');
             filterIcon.type = 'button';
@@ -1174,9 +1154,9 @@
             body.className = 'map-node-overlay-body';
             panel.appendChild(body);
             var colDefs = [];
-            if (overlayType !== 'stakeholders' && window.OverlayColumns) {
+            if (window.OverlayColumns) {
                 var allCols = window.OverlayColumns.getOverlayColumns(overlayType);
-                var selectedIds = ProcessDataMapState.overlayColumnsByType[overlayType] || window.OverlayColumns.getDefaultOverlayColumnIds(overlayType);
+                var selectedIds = window.OverlayColumns.resolveSelectedColumnIds(ProcessDataMapState.overlayColumnsByType[overlayType], overlayType);
                 colDefs = allCols.filter(function(c) { return selectedIds && selectedIds.indexOf(c.id) !== -1; });
             }
             let currentFilter = '';
@@ -1259,6 +1239,10 @@
         const overlayData = new Map();
         const isSystemLineage = ProcessDataMapState.mapType === 'system-lineage';
         const nodeIds = network.nodes().map(n => n.data('id'));
+        const normAttr = window.OverlayRowNormalize && typeof window.OverlayRowNormalize.attributeFromApi === 'function'
+            ? window.OverlayRowNormalize.attributeFromApi : null;
+        const normDs = window.OverlayRowNormalize && typeof window.OverlayRowNormalize.datasetFromApi === 'function'
+            ? window.OverlayRowNormalize.datasetFromApi : null;
 
         if (overlayType === 'attributes') {
             for (const nodeId of nodeIds) {
@@ -1274,12 +1258,14 @@
                                     const r = await fetch(`/api/attribute/${did}`, { credentials: 'include' });
                                     const json = r.ok ? await r.json() : null;
                                     const arr = Array.isArray(json?.data) ? json.data : (Array.isArray(json) ? json : []);
-                                    ProcessDataMapState.impactDatasetIdToAttributes.set(did, arr.map(a => ({
-                                        id: a.id || a.ID,
-                                        name: a['Name attribute'] || a.name || a.primaryName || '',
-                                        glossaryId: a.glossaryId ?? a.glossary_id ?? a.Glossary_ID,
-                                        glossaryName: a['Glossary Name attribute'] || a.glossaryName || a.glossary_name || a.GlossaryName || ''
-                                    })));
+                                    ProcessDataMapState.impactDatasetIdToAttributes.set(did, arr.map(a => (
+                                        normAttr ? normAttr(a, { datasetId: String(did) }) : {
+                                            id: a.id || a.ID,
+                                            name: a['Name attribute'] || a.name || a.primaryName || '',
+                                            glossaryId: a.glossaryId ?? a.glossary_id ?? a.Glossary_ID,
+                                            glossaryName: a['Glossary Name attribute'] || a.glossaryName || a.glossary_name || a.GlossaryName || ''
+                                        }
+                                    )));
                                 } catch (e) { ProcessDataMapState.impactDatasetIdToAttributes.set(did, []); }
                             }
                             items = items.concat(ProcessDataMapState.impactDatasetIdToAttributes.get(did) || []);
@@ -1315,7 +1301,9 @@
                                 const attrRes = await fetch(`/api/attribute/${did}`, { credentials: 'include' });
                                 const attrJson = attrRes.ok ? await attrRes.json() : null;
                                 const arr = Array.isArray(attrJson?.data) ? attrJson.data : (Array.isArray(attrJson) ? attrJson : []);
-                                items = items.concat(arr.map(a => ({ id: a.id || a.ID, name: a['Name attribute'] || a.name || a.primaryName || '' })));
+                                items = items.concat(arr.map(a => (
+                                    normAttr ? normAttr(a, { datasetId: String(did) }) : { id: a.id || a.ID, name: a['Name attribute'] || a.name || a.primaryName || '' }
+                                )));
                             }
                         } catch (e) { }
                         // Attributes overlay: show all attributes for this system (no filter)
@@ -1329,12 +1317,14 @@
                                     const r = await fetch(`/api/attribute/${meta.datasetId}`, { credentials: 'include' });
                                     const json = r.ok ? await r.json() : null;
                                     const arr = Array.isArray(json?.data) ? json.data : (Array.isArray(json) ? json : []);
-                                    ProcessDataMapState.impactDatasetIdToAttributes.set(meta.datasetId, arr.map(a => ({
-                                        id: a.id || a.ID,
-                                        name: a['Name attribute'] || a.name || a.primaryName || '',
-                                        glossaryId: a.glossaryId ?? a.glossary_id ?? a.Glossary_ID,
-                                        glossaryName: a['Glossary Name attribute'] || a.glossaryName || a.glossary_name || a.GlossaryName || ''
-                                    })));
+                                    ProcessDataMapState.impactDatasetIdToAttributes.set(meta.datasetId, arr.map(a => (
+                                        normAttr ? normAttr(a, { datasetId: String(meta.datasetId) }) : {
+                                            id: a.id || a.ID,
+                                            name: a['Name attribute'] || a.name || a.primaryName || '',
+                                            glossaryId: a.glossaryId ?? a.glossary_id ?? a.Glossary_ID,
+                                            glossaryName: a['Glossary Name attribute'] || a.glossaryName || a.glossary_name || a.GlossaryName || ''
+                                        }
+                                    )));
                                 } catch (e) { ProcessDataMapState.impactDatasetIdToAttributes.set(meta.datasetId, []); }
                             }
                             items = ProcessDataMapState.impactDatasetIdToAttributes.get(meta.datasetId) || [];
@@ -1347,12 +1337,14 @@
                                 const r = await fetch(`/api/attribute/${meta.datasetId}`, { credentials: 'include' });
                                 const json = r.ok ? await r.json() : null;
                                 const arr = Array.isArray(json?.data) ? json.data : (Array.isArray(json) ? json : []);
-                                ProcessDataMapState.impactDatasetIdToAttributes.set(meta.datasetId, arr.map(a => ({
-                                    id: a.id || a.ID,
-                                    name: a['Name attribute'] || a.name || a.primaryName || '',
-                                    glossaryId: a.glossaryId ?? a.glossary_id ?? a.Glossary_ID,
-                                    glossaryName: a['Glossary Name attribute'] || a.glossaryName || a.glossary_name || a.GlossaryName || ''
-                                })));
+                                ProcessDataMapState.impactDatasetIdToAttributes.set(meta.datasetId, arr.map(a => (
+                                    normAttr ? normAttr(a, { datasetId: String(meta.datasetId) }) : {
+                                        id: a.id || a.ID,
+                                        name: a['Name attribute'] || a.name || a.primaryName || '',
+                                        glossaryId: a.glossaryId ?? a.glossary_id ?? a.Glossary_ID,
+                                        glossaryName: a['Glossary Name attribute'] || a.glossaryName || a.glossary_name || a.GlossaryName || ''
+                                    }
+                                )));
                             } catch (e) { ProcessDataMapState.impactDatasetIdToAttributes.set(meta.datasetId, []); }
                         }
                         // Attributes overlay: show all attributes for this dataset (no filter)
@@ -1377,12 +1369,14 @@
                                 const r = await fetch(`/api/attribute/${did}`, { credentials: 'include' });
                                 const json = r.ok ? await r.json() : null;
                                 const arr = Array.isArray(json?.data) ? json.data : (Array.isArray(json) ? json : []);
-                                const mapped = arr.map(a => ({
-                                    id: a.id || a.ID,
-                                    name: a['Name attribute'] || a.name || a.primaryName || '',
-                                    glossaryId: a.glossaryId ?? a.glossary_id ?? a.Glossary_ID,
-                                    glossaryName: a['Glossary Name attribute'] || a.glossaryName || a.glossary_name || a.GlossaryName || ''
-                                }));
+                                const mapped = arr.map(a => (
+                                    normAttr ? normAttr(a, { datasetId: String(did) }) : {
+                                        id: a.id || a.ID,
+                                        name: a['Name attribute'] || a.name || a.primaryName || '',
+                                        glossaryId: a.glossaryId ?? a.glossary_id ?? a.Glossary_ID,
+                                        glossaryName: a['Glossary Name attribute'] || a.glossaryName || a.glossary_name || a.GlossaryName || ''
+                                    }
+                                ));
                                 ProcessDataMapState.impactDatasetIdToAttributes.set(did, mapped);
                                 allAttrs = allAttrs.concat(mapped);
                             } catch (e) { }
@@ -1398,12 +1392,14 @@
                             const r = await fetch(`/api/attribute/${meta.datasetId}`, { credentials: 'include' });
                             const json = r.ok ? await r.json() : null;
                             const arr = Array.isArray(json?.data) ? json.data : (Array.isArray(json) ? json : []);
-                            allAttrs = arr.map(a => ({
-                                id: a.id || a.ID,
-                                name: a['Name attribute'] || a.name || a.primaryName || '',
-                                glossaryId: a.glossaryId ?? a.glossary_id ?? a.Glossary_ID,
-                                glossaryName: a['Glossary Name attribute'] || a.glossaryName || a.glossary_name || a.GlossaryName || ''
-                            }));
+                            allAttrs = arr.map(a => (
+                                normAttr ? normAttr(a, { datasetId: String(meta.datasetId) }) : {
+                                    id: a.id || a.ID,
+                                    name: a['Name attribute'] || a.name || a.primaryName || '',
+                                    glossaryId: a.glossaryId ?? a.glossary_id ?? a.Glossary_ID,
+                                    glossaryName: a['Glossary Name attribute'] || a.glossaryName || a.glossary_name || a.GlossaryName || ''
+                                }
+                            ));
                             ProcessDataMapState.impactDatasetIdToAttributes.set(meta.datasetId, allAttrs);
                         } catch (e) { }
                     }
@@ -1429,9 +1425,11 @@
                                         const r = await fetch(`/api/attribute/${did}`, { credentials: 'include' });
                                         const json = r.ok ? await r.json() : null;
                                         const arr = Array.isArray(json?.data) ? json.data : (Array.isArray(json) ? json : []);
-                                        ProcessDataMapState.impactDatasetIdToAttributes.set(did, arr.map(a => ({
-                                            id: a.id || a.ID, name: a['Name attribute'] || a.name || '', glossaryId: a.glossaryId ?? a.glossary_id ?? a.Glossary_ID, glossaryName: a['Glossary Name attribute'] || a.glossaryName || a.glossary_name || a.GlossaryName || ''
-                                        })));
+                                        ProcessDataMapState.impactDatasetIdToAttributes.set(did, arr.map(a => (
+                                            normAttr ? normAttr(a, { datasetId: String(did) }) : {
+                                                id: a.id || a.ID, name: a['Name attribute'] || a.name || '', glossaryId: a.glossaryId ?? a.glossary_id ?? a.Glossary_ID, glossaryName: a['Glossary Name attribute'] || a.glossaryName || a.glossary_name || a.GlossaryName || ''
+                                            }
+                                        )));
                                     } catch (e) { ProcessDataMapState.impactDatasetIdToAttributes.set(did, []); }
                                 }
                                 (ProcessDataMapState.impactDatasetIdToAttributes.get(did) || []).forEach(a => {
@@ -1453,14 +1451,30 @@
                             return true;
                         });
                         glossaryItems.length = 0;
-                        deduped.forEach(x => glossaryItems.push({ glossaryName: x.glossaryName, glossaryRefNumber: '', source: x.source }));
+                        deduped.forEach(x => glossaryItems.push({
+                            glossaryName: x.glossaryName,
+                            glossaryRefNumber: x.glossaryRefNumber || '',
+                            glossaryId: x.glossaryId,
+                            id: x.glossaryId,
+                            name: x.glossaryName,
+                            glossary: x.glossaryName,
+                            source: x.source
+                        }));
                         // System glossary first (associated with this system).
                         try {
                             const sys = API && typeof API.getSystemById === 'function' ? await API.getSystemById(meta.systemId) : null;
                             const s = sys?.data || sys;
                             const gid = s?.primaryGlossaryId ?? s?.glossaryId ?? s?.glossary_id;
                             const gname = s?.primaryGlossaryName ?? s?.glossaryName ?? s?.glossary_name;
-                            if (gid != null && gname) glossaryItems.unshift({ glossaryName: gname, glossaryRefNumber: '', source: 'system' });
+                            if (gid != null && gname) glossaryItems.unshift({
+                                glossaryName: gname,
+                                glossaryRefNumber: '',
+                                glossaryId: gid,
+                                id: gid,
+                                name: gname,
+                                glossary: gname,
+                                source: 'system'
+                            });
                         } catch (e) { }
                     } else {
                         // Black systems: unknown (system vs attribute glossaries may differ).
@@ -1496,7 +1510,11 @@
                         });
                     }
                 }
-                overlayData.set(String(nodeId), { items: glossaryItems });
+                let glossaryOut = glossaryItems;
+                if (window.OverlayColumns && typeof window.OverlayColumns.enrichGlossaryOverlayTerms === 'function') {
+                    glossaryOut = await window.OverlayColumns.enrichGlossaryOverlayTerms(glossaryItems);
+                }
+                overlayData.set(String(nodeId), { items: glossaryOut });
             }
         } else if (overlayType === 'dataset') {
             for (const nodeId of nodeIds) {
@@ -1506,7 +1524,7 @@
                 if (isSystemLineage && meta.systemId) {
                     if (meta.isImpact) {
                         datasetItems = ProcessDataMapState.impactSystemIdToDatasets.get(meta.systemId) || [];
-                        datasetItems = datasetItems.map(d => ({ id: d.id, name: d.name, refNumber: d.ref }));
+                        datasetItems = datasetItems.map(d => (normDs ? normDs(d) : { id: d.id, name: d.name, refNumber: d.ref }));
                     } else {
                         try {
                             const API = window.BUDG_API_SERVICE;
@@ -1520,17 +1538,19 @@
                                 const json = r.ok ? await r.json() : null;
                                 arr = Array.isArray(json?.data) ? json.data : (Array.isArray(json) ? json : []);
                             }
-                            datasetItems = arr.filter(d => ProcessDataMapState.impactLinkedDatasetIds.has(String(d.id ?? d.datasetId ?? d.dataset_id))).map(d => ({
-                                id: d.id ?? d.datasetId ?? d.dataset_id,
-                                name: d.name || d.datasetName || d.primaryName || '',
-                                refNumber: d.refNumber || d.ref || ''
-                            }));
+                            datasetItems = arr.filter(d => ProcessDataMapState.impactLinkedDatasetIds.has(String(d.id ?? d.datasetId ?? d.dataset_id))).map(d => (
+                                normDs ? normDs(d) : {
+                                    id: d.id ?? d.datasetId ?? d.dataset_id,
+                                    name: d.name || d.datasetName || d.primaryName || '',
+                                    refNumber: d.refNumber || d.ref || ''
+                                }
+                            ));
                         } catch (e) { }
                     }
                 } else if (!isSystemLineage && meta.datasetId) {
                     const info = ProcessDataMapState.linkedDatasets.get(meta.datasetId);
                     const d = info?.dataset;
-                    if (d) datasetItems = [{ id: d.id ?? meta.datasetId, name: d.name || d.primaryName || '', refNumber: d.refNumber || d.ref || '' }];
+                    if (d) datasetItems = [normDs ? normDs(d, { id: d.id ?? meta.datasetId }) : { id: d.id ?? meta.datasetId, name: d.name || d.primaryName || '', refNumber: d.refNumber || d.ref || '' }];
                 }
                 overlayData.set(String(nodeId), { items: datasetItems });
             }
@@ -1542,7 +1562,7 @@
                 if (isSystemLineage && meta.systemId) {
                     if (meta.isImpact) {
                         datasetItems = ProcessDataMapState.impactSystemIdToDatasets.get(meta.systemId) || [];
-                        datasetItems = datasetItems.map(d => ({ id: d.id, name: d.name, refNumber: d.ref }));
+                        datasetItems = datasetItems.map(d => (normDs ? normDs(d) : { id: d.id, name: d.name, refNumber: d.ref }));
                     } else {
                         try {
                             const API = window.BUDG_API_SERVICE;
@@ -1556,17 +1576,19 @@
                                 const json = r.ok ? await r.json() : null;
                                 arr = Array.isArray(json?.data) ? json.data : (Array.isArray(json) ? json : []);
                             }
-                            datasetItems = arr.filter(d => ProcessDataMapState.impactLinkedDatasetIds.has(String(d.id ?? d.datasetId ?? d.dataset_id))).map(d => ({
-                                id: d.id ?? d.datasetId ?? d.dataset_id,
-                                name: d.name || d.datasetName || d.primaryName || '',
-                                refNumber: d.refNumber || d.ref || ''
-                            }));
+                            datasetItems = arr.filter(d => ProcessDataMapState.impactLinkedDatasetIds.has(String(d.id ?? d.datasetId ?? d.dataset_id))).map(d => (
+                                normDs ? normDs(d) : {
+                                    id: d.id ?? d.datasetId ?? d.dataset_id,
+                                    name: d.name || d.datasetName || d.primaryName || '',
+                                    refNumber: d.refNumber || d.ref || ''
+                                }
+                            ));
                         } catch (e) { }
                     }
                 } else if (!isSystemLineage && meta.datasetId) {
                     const info = ProcessDataMapState.linkedDatasets.get(meta.datasetId);
                     const d = info?.dataset;
-                    if (d) datasetItems = [{ id: d.id ?? meta.datasetId, name: d.name || d.primaryName || '', refNumber: d.refNumber || d.ref || '' }];
+                    if (d) datasetItems = [normDs ? normDs(d, { id: d.id ?? meta.datasetId }) : { id: d.id ?? meta.datasetId, name: d.name || d.primaryName || '', refNumber: d.refNumber || d.ref || '' }];
                 }
                 overlayData.set(String(nodeId), { items: datasetItems });
             }
@@ -1604,7 +1626,11 @@
     }
 
     function getOverlayColumns(overlayType) {
-        return ProcessDataMapState.overlayColumnsByType[overlayType] || (window.OverlayColumns ? window.OverlayColumns.getDefaultOverlayColumnIds(overlayType) : ['name']);
+        var raw = ProcessDataMapState.overlayColumnsByType[overlayType];
+        if (window.OverlayColumns && typeof window.OverlayColumns.resolveSelectedColumnIds === 'function') {
+            return window.OverlayColumns.resolveSelectedColumnIds(raw, overlayType);
+        }
+        return (Array.isArray(raw) && raw.length > 0) ? raw.slice() : (window.OverlayColumns ? window.OverlayColumns.getDefaultOverlayColumnIds(overlayType) : ['name']);
     }
 
     function getState() {
@@ -1614,34 +1640,119 @@
     function getOverlayItemField(overlayType, item, fieldId) {
         if (!item) return '';
         const v = (x) => (x != null && x !== '') ? String(x) : '';
+        function fieldDefault(it, fid) {
+            const d = it[fid];
+            if (d !== undefined && d !== null && d !== '') return v(d);
+            if (window.MapOverlayFieldPick && typeof window.MapOverlayFieldPick.pick === 'function') {
+                return window.MapOverlayFieldPick.pick(it, fid);
+            }
+            return '';
+        }
+        function entityNameCell() {
+            return v(
+                item.processName || item.ProcessName ||
+                item.projectName || item.ProjectName ||
+                item.policyName || item.PolicyName ||
+                item.businessAreaName || item.BusinessAreaName ||
+                item.productName || item.ProductName ||
+                item.legalEntityName || item.LegalEntityName ||
+                item.legalShortName || item.LegalShortName ||
+                item.legalLongName || item.LegalLongName ||
+                item.clientName || item.ClientName ||
+                item.capabilityName || item.CapabilityName ||
+                item.systemName || item.SystemName ||
+                item.name || item.Name || item.primaryName || item.PrimaryName ||
+                item.glossaryName || item.GlossaryName || item.ruleName || item.RuleName ||
+                item.longName || item.longname ||
+                item.region || item.country
+            );
+        }
         switch (overlayType) {
             case 'glossary':
                 switch (fieldId) {
-                    case 'name': return v(item.glossaryName || item.glossary_name || item.glossary || item.name);
+                    case 'name': return v(item.glossaryName || item.glossary_name || item.glossary || item.name || item.primaryName);
                     case 'source': return item.source === 'dataset' ? 'Dataset Glossary' : item.source === 'attribute' ? 'Attribute Glossary' : item.source === 'system' ? 'System Glossary' : '';
-                    case 'aliasNames': return v(item.aliasNames);
-                    case 'parentName': return v(item.parentName);
-                    case 'lifecycle': return v(item.lifecycle);
-                    case 'securityClassification': return v(item.securityClassification);
-                    default: return v(item[fieldId]);
+                    case 'aliasNames': return v(item.aliasNames || item.aliases || item.alias);
+                    case 'parentName': return v(item.parentName || item.parent?.name);
+                    case 'lifecycle': return v(item.lifecycleName || item.LifecycleName || item.lifecycle || item.Lifecycle || item.lifecycleStatusName || item.LifecycleStatusName || item.lifecycleStatus || item.LifecycleStatus || item.processLifecycleName || item.ProcessLifecycleName || item.sourceProcessLifecycleName || item.targetProcessLifecycleName || item.datasetLifecycleName || item.DatasetLifecycleName || fieldDefault(item, fieldId));
+                    case 'securityClassification': return v(item.securityClassification || item.classification);
+                    default: return fieldDefault(item, fieldId);
                 }
-            case 'attributes': case 'linking-attributes':
+            case 'description':
+                return fieldId === 'value'
+                    ? v(item.value || item.definition || item.Definition || item.description || item.Description)
+                    : fieldDefault(item, fieldId);
+            case 'datasets':
                 switch (fieldId) {
-                    case 'name': return v(item.name || item.attributeName);
-                    case 'dataType': return v(item.dataType);
-                    case 'lifecycle': return v(item.lifecycle);
-                    case 'securityClassification': return v(item.securityClassification);
-                    default: return v(item[fieldId]);
+                    case 'name': return v(item.primaryName || item.PrimaryName || item.name || item.shortName || item.datasetName);
+                    case 'refNumber': return v(item.refNumber || item.refnumber || item.RefNumber || item.ref || item.Ref || item.processRefNumber || item.ProcessRefNumber || item.processRef || item.ProcessRef || item.projectRefNumber || item.ProjectRefNumber || item.projectRef || item.ProjectRef || item.productRefNumber || item.ProductRefNumber || item.policyRefNumber || item.PolicyRefNumber || item.capabilityRefNumber || item.CapabilityRefNumber || item.datasetRefNumber || item.DatasetRefNumber || item.attributeRefNumber || item.AttributeRefNumber || item.glossaryRefNumber || item.GlossaryRefNumber || item.interfaceRefNumber || item.InterfaceRefNumber || item.systemRef || item.SystemRef || item.regulationRefNumber || item.RegulationRefNumber || item.regulatoryThemeRefNumber || item.RegulatoryThemeRefNumber || item.businessAreaReference || item.BusinessAreaReference || item.clientReference || item.ClientReference || item.legalReference || item.LegalReference || item.sourceProcessRef || item.targetProcessRef);
+                    case 'type': return v(item.typeName || item.type || item.TypeName || item.Type);
+                    case 'lifecycle': return v(item.lifecycleName || item.LifecycleName || item.lifecycle || item.Lifecycle || item.lifecycleStatusName || item.LifecycleStatusName || item.lifecycleStatus || item.LifecycleStatus || item.processLifecycleName || item.ProcessLifecycleName || item.sourceProcessLifecycleName || item.targetProcessLifecycleName || item.datasetLifecycleName || item.DatasetLifecycleName || fieldDefault(item, fieldId));
+                    default: return fieldDefault(item, fieldId);
+                }
+            case 'attributes':
+            case 'linking-attributes':
+                switch (fieldId) {
+                    case 'name': return v(item.name || item['Name attribute'] || item.attributeName || item.primaryName || item.PrimaryName || item.Name);
+                    case 'type': return v(item.typeName || item.type || item.TypeName || item.Type || item.dataType || item.DataType);
+                    case 'glossary': return v(item.glossaryName || item.glossary || item['Glossary Name attribute']);
+                    case 'refNumber': return v(item.refNumber || item.refnumber || item.RefNumber || item.ref || item.Ref || item.processRefNumber || item.ProcessRefNumber || item.processRef || item.ProcessRef || item.projectRefNumber || item.ProjectRefNumber || item.projectRef || item.ProjectRef || item.productRefNumber || item.ProductRefNumber || item.policyRefNumber || item.PolicyRefNumber || item.capabilityRefNumber || item.CapabilityRefNumber || item.datasetRefNumber || item.DatasetRefNumber || item.attributeRefNumber || item.AttributeRefNumber || item.glossaryRefNumber || item.GlossaryRefNumber || item.interfaceRefNumber || item.InterfaceRefNumber || item.systemRef || item.SystemRef || item.regulationRefNumber || item.RegulationRefNumber || item.regulatoryThemeRefNumber || item.RegulatoryThemeRefNumber || item.businessAreaReference || item.BusinessAreaReference || item.clientReference || item.ClientReference || item.legalReference || item.LegalReference || item.sourceProcessRef || item.targetProcessRef);
+                    case 'direction': return v(item.direction || item.Direction);
+                    case 'relatedDataset': return v(item.relatedDataset || item.related_dataset);
+                    case 'relatedAttribute': return v(item.relatedAttribute || item.related_attribute);
+                    case 'dataType': return v(item.dataType || item.typeName || item.type);
+                    case 'lifecycle': return v(item.lifecycleName || item.LifecycleName || item.lifecycle || item.Lifecycle || item.lifecycleStatusName || item.LifecycleStatusName || item.lifecycleStatus || item.LifecycleStatus || item.processLifecycleName || item.ProcessLifecycleName || item.sourceProcessLifecycleName || item.targetProcessLifecycleName || item.datasetLifecycleName || item.DatasetLifecycleName || fieldDefault(item, fieldId));
+                    case 'securityClassification': return v(item.securityClassification || item.classification);
+                    default: return fieldDefault(item, fieldId);
+                }
+            case 'custom-fields':
+                switch (fieldId) {
+                    case 'metadataId': return v(item.metadataId != null ? item.metadataId : item.Metadata_ID);
+                    case 'enumId':
+                        if (item.enumId !== undefined && item.enumId !== null && item.enumId !== '') return v(item.enumId);
+                        if (item.enumIds && item.enumIds.length) return v(item.enumIds.join(', '));
+                        return '';
+                    case 'value': return v(item.value != null && item.value !== '' ? item.value : (item.displayValue != null ? item.displayValue : ''));
+                    default: return fieldDefault(item, fieldId);
                 }
             case 'stakeholders':
                 switch (fieldId) {
-                    case 'name': { const n = item.personName || item.name || ''; const r = item.roleName || item.role || ''; return r ? (n ? n + ' (' + r + ')' : r) : n; }
+                    case 'name': return v(item.personName || item.PersonName || item.name || item.Name);
+                    case 'role': return v(item.roleName || item.RoleName || item.role || item.Role);
                     case 'accepted': return v(item.accepted || item.Accepted || item.acceptedStatus);
                     case 'orgUnit': return v(item.orgUnit || item.OrgUnit || item.orgUnitName);
-                    default: return v(item[fieldId]);
+                    default: return fieldDefault(item, fieldId);
                 }
-            default:
-                return v(item[fieldId] || item.name || item.Name || '');
+            case 'processes':
+            case 'projects':
+            case 'policies':
+            case 'business-area':
+            case 'products':
+            case 'legal-entities':
+            case 'clients':
+            case 'capabilities':
+            case 'systems':
+            case 'data-quality':
+            case 'data-privacy':
+            case 'geography':
+                switch (fieldId) {
+                    case 'name': return entityNameCell();
+                    case 'refNumber': return v(item.refNumber || item.refnumber || item.RefNumber || item.ref || item.Ref || item.processRefNumber || item.ProcessRefNumber || item.processRef || item.ProcessRef || item.projectRefNumber || item.ProjectRefNumber || item.projectRef || item.ProjectRef || item.productRefNumber || item.ProductRefNumber || item.policyRefNumber || item.PolicyRefNumber || item.capabilityRefNumber || item.CapabilityRefNumber || item.datasetRefNumber || item.DatasetRefNumber || item.attributeRefNumber || item.AttributeRefNumber || item.glossaryRefNumber || item.GlossaryRefNumber || item.interfaceRefNumber || item.InterfaceRefNumber || item.systemRef || item.SystemRef || item.regulationRefNumber || item.RegulationRefNumber || item.regulatoryThemeRefNumber || item.RegulatoryThemeRefNumber || item.businessAreaReference || item.BusinessAreaReference || item.clientReference || item.ClientReference || item.legalReference || item.LegalReference || item.sourceProcessRef || item.targetProcessRef);
+                    case 'type': return v(item.typeName || item.type || item.TypeName || item.Type || item.policyTypeName || item.PolicyTypeName || item.productTypeName || item.ProductTypeName || item.relationTypeName || item.RelationTypeName);
+                    case 'lifecycle': return v(item.lifecycleName || item.LifecycleName || item.lifecycle || item.Lifecycle || item.lifecycleStatusName || item.LifecycleStatusName || item.lifecycleStatus || item.LifecycleStatus || item.processLifecycleName || item.ProcessLifecycleName || item.sourceProcessLifecycleName || item.targetProcessLifecycleName || item.datasetLifecycleName || item.DatasetLifecycleName || fieldDefault(item, fieldId));
+                    case 'status': return v(item.statusName || item.StatusName || item.status || item.Status || item.projectStatusName || item.ProjectStatusName || item.policyStatusName || item.PolicyStatusName);
+                    case 'ruleName': return v(item.ruleName || item.RuleName);
+                    case 'rating': return v(item.rating || item.qualityRating);
+                    case 'classification': return v(item.classification || item.privacyClassification);
+                    case 'region': return v(item.region || item.Region);
+                    case 'country': return v(item.country || item.Country);
+                    default: return fieldDefault(item, fieldId);
+                }
+            default: {
+                const fb = fieldDefault(item, fieldId);
+                if (fb) return fb;
+                return v(item.name || item.Name || item.primaryName || item.PrimaryName);
+            }
         }
     }
 
@@ -1731,10 +1842,8 @@
         }
 
         const typeSelect = document.getElementById(MAP_ID + 'TypeSelect');
-        const layoutSelect = document.getElementById(MAP_ID + 'LayoutSelect');
         if (bindOnce) {
             if (typeSelect) typeSelect.addEventListener('change', () => setMapType(typeSelect.value));
-            if (layoutSelect) layoutSelect.addEventListener('change', () => setLayout(layoutSelect.value));
         }
         const hopsInput = document.getElementById(MAP_ID + 'HopsCount');
         if (bindOnce && hopsInput) {

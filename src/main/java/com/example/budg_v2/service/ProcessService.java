@@ -219,43 +219,55 @@ public class ProcessService {
         }
         if (process.getDescription() == null) process.setDescription("");
         if (process.getIsPublic() == null) process.setIsPublic(1);
-        
-        // Validate refnumber uniqueness for update
-        // Only validate if the ref number has actually changed
-        if (process.getRefNumber() != null && !process.getRefNumber().trim().isEmpty()) {
-            // Get the current process to check if ref number has changed
-            Process currentProcess = processDAO.getProcessById(process.getId());
+
+        Process currentProcess = processDAO.getProcessById(process.getId());
+        String incomingRefNumber = process.getRefNumber() != null ? process.getRefNumber().trim() : null;
+
+        // If update payload has no ref, keep existing ref when present; otherwise auto-generate one.
+        if (incomingRefNumber == null || incomingRefNumber.isEmpty()) {
+            String currentRefNumber = currentProcess != null && currentProcess.getRefNumber() != null
+                    ? currentProcess.getRefNumber().trim()
+                    : null;
+            if (currentRefNumber != null && !currentRefNumber.isEmpty()) {
+                process.setRefNumber(currentRefNumber);
+            } else {
+                try {
+                    process.setRefNumber(ReferenceNumberGenerator.generateProcessRefNumber());
+                } catch (SQLException e) {
+                    logger.warn("Failed to auto-generate process ref number during update, using null: {}", e.getMessage());
+                    process.setRefNumber(null);
+                }
+            }
+        } else {
+            // Validate refnumber uniqueness for update only when changed
             if (currentProcess != null) {
                 String currentRefNumber = currentProcess.getRefNumber();
-                String newRefNumber = process.getRefNumber().trim();
-                
-                // Only validate if the ref number has actually changed
-                if (currentRefNumber == null || !currentRefNumber.trim().equalsIgnoreCase(newRefNumber)) {
+                if (currentRefNumber == null || !currentRefNumber.trim().equalsIgnoreCase(incomingRefNumber)) {
                     boolean isUnique;
                     if (originalProcessId != null && !originalProcessId.equals(process.getId())) {
                         // Updating a cloned process - exclude both cloned ID and original ID
-                        isUnique = processDAO.isRefNumberUniqueForUpdate(process.getRefNumber(), process.getId(), originalProcessId);
+                        isUnique = processDAO.isRefNumberUniqueForUpdate(incomingRefNumber, process.getId(), originalProcessId);
                     } else {
                         // Normal update - exclude only the current process ID
-                        isUnique = processDAO.isRefNumberUniqueForUpdate(process.getRefNumber(), process.getId());
+                        isUnique = processDAO.isRefNumberUniqueForUpdate(incomingRefNumber, process.getId());
                     }
                     if (!isUnique) {
                         throw new IllegalArgumentException("This reference number is already in use. Please enter a unique reference number.");
                     }
                 }
-                // If ref number hasn't changed, skip validation (allow update of other fields like parent_id)
             } else {
                 // If we can't get current process, validate anyway (shouldn't happen, but be safe)
                 boolean isUnique;
                 if (originalProcessId != null && !originalProcessId.equals(process.getId())) {
-                    isUnique = processDAO.isRefNumberUniqueForUpdate(process.getRefNumber(), process.getId(), originalProcessId);
+                    isUnique = processDAO.isRefNumberUniqueForUpdate(incomingRefNumber, process.getId(), originalProcessId);
                 } else {
-                    isUnique = processDAO.isRefNumberUniqueForUpdate(process.getRefNumber(), process.getId());
+                    isUnique = processDAO.isRefNumberUniqueForUpdate(incomingRefNumber, process.getId());
                 }
                 if (!isUnique) {
                     throw new IllegalArgumentException("This reference number is already in use. Please enter a unique reference number.");
                 }
             }
+            process.setRefNumber(incomingRefNumber);
         }
         
         // Update the process in the main table
@@ -263,6 +275,10 @@ public class ProcessService {
         boolean success = processDAO.updateProcess(process);
         
         return success;
+    }
+
+    public String getNextProcessRefNumber() throws SQLException {
+        return ReferenceNumberGenerator.generateProcessRefNumber();
     }
 
     public boolean updateProcess(int id, String primaryName, String description, Integer parentId, 

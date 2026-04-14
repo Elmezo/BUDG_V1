@@ -82,7 +82,7 @@
             {
                 header: 'Data',
                 items: [
-                    { overlay: 'description',  icon: 'fa-info-circle', label: 'Description' },
+                    { overlay: 'description',  icon: 'fa-info-circle', label: 'Definition' },
                     { overlay: 'glossary',     icon: 'fa-book',        label: 'Glossary' },
                     { overlay: 'attributes',   icon: 'fa-th',          label: 'Attributes' },
                     { overlay: 'data-quality', icon: 'fa-bullseye',    label: 'Data Quality' }

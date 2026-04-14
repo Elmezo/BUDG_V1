@@ -792,12 +792,29 @@ async function executeUnisonSearch(searches, options = {}) {
             };
         }
 
+        const traceHdr =
+            typeof window !== 'undefined'
+            && typeof window.isUnisonSearchDebugEnabled === 'function'
+            && window.isUnisonSearchDebugEnabled();
+        const fetchHeaders = {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+        };
+        if (traceHdr) {
+            fetchHeaders['X-Unison-Trace'] = '1';
+        }
+        if (traceHdr && typeof window.unisonSearchDebugLog === 'function') {
+            window.unisonSearchDebugLog('api.request', {
+                maxDepth: maxDepthValue,
+                includeCounts: options.includeCounts !== false,
+                clauseCount: Array.isArray(searches) ? searches.length : 0,
+                xUnisonTrace: '1'
+            });
+        }
+
         const response = await fetch('/api/unison/search', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json'
-            },
+            headers: fetchHeaders,
             credentials: 'include',
             body: JSON.stringify({
                 searches: searches,

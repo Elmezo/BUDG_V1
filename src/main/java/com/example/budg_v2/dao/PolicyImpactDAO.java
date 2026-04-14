@@ -3702,10 +3702,15 @@ public class PolicyImpactDAO {
                 pxs.Relation_Type,
                 pxs.Description,
                 p.PrimaryName as policyName,
+                p.refNumber as policyRefNumber,
+                ptype.PrimaryName as policyTypeName,
+                pst.PrimaryName as policyStatusName,
                 rt.PrimaryName as relationTypeName,
                 rt.ReverseName as relationTypeReverseName
             FROM policy_x_system pxs
             LEFT JOIN policy p ON pxs.Policy_ID = p.ID
+            LEFT JOIN policy_type ptype ON p.Policy_Type = ptype.ID
+            LEFT JOIN status pst ON pst.ID = p.Status
             LEFT JOIN policy_x_system_relationtype rt ON pxs.Relation_Type = rt.ID
             WHERE pxs.System_ID = ? AND (p.DeletedDatetime IS NULL OR p.DeletedDatetime = '1970-01-01 00:00:00')
             ORDER BY p.PrimaryName
@@ -3729,6 +3734,9 @@ public class PolicyImpactDAO {
                     relationship.put("relationType", rs.getObject("Relation_Type"));
                     relationship.put("description", rs.getString("Description"));
                     relationship.put("policyName", rs.getString("policyName"));
+                    relationship.put("policyRefNumber", rs.getString("policyRefNumber"));
+                    relationship.put("policyTypeName", rs.getString("policyTypeName"));
+                    relationship.put("policyStatusName", rs.getString("policyStatusName"));
                     relationship.put("relationTypeName", rs.getString("relationTypeName"));
                     relationship.put("relationTypeReverseName", rs.getString("relationTypeReverseName"));
                     
