@@ -3290,6 +3290,56 @@ public class QueryBuilder {
 	}
 
 	/**
+	 * EXISTS on {@code Custom_Field_Data} for dropdown / multiselect custom fields
+	 * ({@code Custom_Field_Enum_ID IN (...)}).
+	 */
+	private String buildCustomFieldEnumInCondition(String module, JsonObject filterGroup, List<Object> parameters) {
+		if (!filterGroup.has("customFieldId") || !filterGroup.has("value")) {
+			return null;
+		}
+		int cfMetaId = filterGroup.get("customFieldId").getAsInt();
+		JsonElement valEl = filterGroup.get("value");
+		if (valEl == null || !valEl.isJsonArray()) {
+			return null;
+		}
+		JsonArray arr = valEl.getAsJsonArray();
+		if (arr.size() == 0) {
+			return null;
+		}
+		String objectIdColumn = getFacetObjectIdColumn(module);
+		if (objectIdColumn == null) {
+			return null;
+		}
+		List<Integer> enumRowIds = new ArrayList<>();
+		for (JsonElement el : arr) {
+			if (el == null || el.isJsonNull()) {
+				continue;
+			}
+			try {
+				if (el.isJsonPrimitive() && el.getAsJsonPrimitive().isNumber()) {
+					enumRowIds.add(el.getAsInt());
+				} else {
+					enumRowIds.add(Integer.parseInt(el.getAsString().trim()));
+				}
+			} catch (NumberFormatException e) {
+				// skip invalid token
+			}
+		}
+		if (enumRowIds.isEmpty()) {
+			return null;
+		}
+		parameters.add(cfMetaId);
+		List<String> placeholders = new ArrayList<>();
+		for (Integer id : enumRowIds) {
+			parameters.add(id);
+			placeholders.add("?");
+		}
+		return "EXISTS (SELECT 1 FROM Custom_Field_Data cfd_cf WHERE cfd_cf.Facet_Object_ID = " + objectIdColumn
+				+ " AND cfd_cf.Custom_Field_Metadata_ID = ? AND cfd_cf.Custom_Field_Enum_ID IN ("
+				+ String.join(",", placeholders) + "))";
+	}
+
+	/**
 	 * Build SQL condition from filterGroups in a search object.
 	 * 
 	 * @param module     The module to search in
@@ -3317,10 +3367,13 @@ public class QueryBuilder {
 			// Support different filterGroup formats
 			// Format 1: { "field": "name", "condition": "contains", "value": "test" }
 			// Format 2: { "query": "test" } - simple query
+			// Format 3: { "customFieldId": N, "condition": "in", "value": [enumRowIds...] } - custom dropdown CF
 
 			String condition = null;
 
-			if (filterGroup.has("field")) {
+			if (filterGroup.has("customFieldId")) {
+				condition = buildCustomFieldEnumInCondition(module, filterGroup, parameters);
+			} else if (filterGroup.has("field")) {
 				// Format 1: field-based filter
 				String field = filterGroup.get("field").getAsString();
 				String filterCondition = filterGroup.has("condition") ? filterGroup.get("condition").getAsString()

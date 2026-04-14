@@ -428,7 +428,19 @@ public class AttributeServlet extends HttpServlet {
             obj.addProperty("success", ok);
             response.getWriter().write(obj.toString());
         } catch (Exception e) {
-            sendError(response, e.getMessage(), 400);
+            String msg = e.getMessage();
+            if (msg != null && msg.contains("foreign key constraint")) {
+                if (msg.contains("process_x_attribute")) {
+                    msg = "This attribute is linked to one or more processes. Remove those process links before deleting it.";
+                } else if (msg.contains("policy_x_attribute")) {
+                    msg = "This attribute is linked to one or more policies. Remove those policy links before deleting it.";
+                } else if (msg.contains("project_x_attribute")) {
+                    msg = "This attribute is linked to one or more projects. Remove those project links before deleting it.";
+                } else {
+                    msg = "This attribute cannot be deleted because it is still referenced by other records. Remove those links first.";
+                }
+            }
+            sendError(response, msg != null ? msg : "An error occurred while deleting the attribute.", 400);
         }
     }
 

@@ -156,13 +156,15 @@ function renderSearchFieldSelector(facetId) {
         }
     });
 
-    // Append custom field entries (keyed as "cf_<id>") after the static ones
+    // Append custom field entries (keyed as "cf_<id>") after the static ones — only dropdown / multiselect
     const cfList = (window.customFieldsMetadata && window.customFieldsMetadata[facetId]) || [];
-    cfList.forEach(cf => {
-        const cfKey = 'cf_' + cf.id;
-        const cfLabel = cf.displayName || cf.customFieldName || ('CF ' + cf.id);
-        fieldEntries.push({ key: cfKey, label: cfLabel, isCf: true });
-    });
+    cfList
+        .filter(cf => cf.type === 'dropdown' || cf.type === 'multiselect')
+        .forEach(cf => {
+            const cfKey = 'cf_' + cf.id;
+            const cfLabel = cf.displayName || cf.technicalName || cf.customFieldName || ('CF ' + cf.id);
+            fieldEntries.push({ key: cfKey, label: cfLabel, isCf: true });
+        });
 
     // If there are no fields to show, don't render the selector
     if (fieldEntries.length === 0) return;
@@ -259,6 +261,25 @@ function getEffectiveSearchFieldsForCategory(category) {
 }
 
 /**
+ * Synthetic filter-field entries for custom dropdown / multiselect CFs (for "Add new filter" and field changer).
+ * @param {string} facetId
+ * @returns {Array<{id:string,name:string,type:string,enumValues:Array,fieldName:null}>}
+ */
+function getCfDropdownFilterFieldEntries(facetId) {
+    const list = (window.customFieldsMetadata && facetId && window.customFieldsMetadata[facetId]) || [];
+    return list
+        .filter(cf => (cf.type === 'dropdown' || cf.type === 'multiselect')
+            && Array.isArray(cf.enumValues) && cf.enumValues.length > 0)
+        .map(cf => ({
+            id: 'cf_' + cf.id,
+            name: cf.displayName || cf.technicalName || cf.customFieldName || ('CF ' + cf.id),
+            type: 'CF_DROPDOWN',
+            enumValues: cf.enumValues,
+            fieldName: null
+        }));
+}
+
+/**
  * Update the "Add new filter" dropdown with available filter fields
  */
 function updateAddFilterDropdown() {
@@ -270,26 +291,26 @@ function updateAddFilterDropdown() {
     // Clear existing options
     addNewOptions.innerHTML = '';
     
-    if (!filterFieldsMetadata.filterFields || filterFieldsMetadata.filterFields.length === 0) {
+    const staticFields = (filterFieldsMetadata && filterFieldsMetadata.filterFields) || [];
+    const facetId = (filterFieldsMetadata && filterFieldsMetadata.facetId) || currentFilterFacetId;
+    const cfFields = getCfDropdownFilterFieldEntries(facetId);
+
+    if (staticFields.length === 0 && cfFields.length === 0) {
         const noFiltersOption = document.createElement('div');
         noFiltersOption.className = 'filter-dropdown-option disabled';
         noFiltersOption.textContent = 'No filters available';
         addNewOptions.appendChild(noFiltersOption);
         return;
     }
-    
-    // Add options for each available filter
-    filterFieldsMetadata.filterFields.forEach(field => {
-        // Check if this filter is already added
+
+    const appendOption = (field) => {
         const isAlreadyAdded = activeFilters.some(f => f.fieldId === field.id);
-        
         const option = document.createElement('div');
         option.className = 'filter-dropdown-option';
         option.setAttribute('data-value', field.id);
         option.setAttribute('data-field-name', field.name);
         option.setAttribute('data-field-type', field.type);
         option.textContent = field.name;
-        
         if (isAlreadyAdded) {
             option.classList.add('disabled');
             option.style.opacity = '0.5';
@@ -297,19 +318,19 @@ function updateAddFilterDropdown() {
         } else {
             option.addEventListener('click', (e) => {
                 e.stopPropagation();
-                // Close the dropdown after selection
-                const addNewOptions = document.getElementById('filterAddNewOptions');
-                if (addNewOptions) {
-                    resetFilterDropdownFloating(addNewOptions);
-                    addNewOptions.style.display = 'none';
+                const opts = document.getElementById('filterAddNewOptions');
+                if (opts) {
+                    resetFilterDropdownFloating(opts);
+                    opts.style.display = 'none';
                 }
                 addFilterRow(field);
             });
         }
-        
         addNewOptions.appendChild(option);
-    });
-    
+    };
+
+    staticFields.forEach(appendOption);
+    cfFields.forEach(appendOption);
 }
 
 /**
@@ -419,6 +440,8 @@ function createValueSelector(filterField, filterId) {
     switch (filterField.type) {
         case 'DROPDOWN':
             return createDropdownValueSelector(filterField, filterId);
+        case 'CF_DROPDOWN':
+            return createDropdownValueSelector(filterField, filterId);
         case 'DATE_RANGE':
             return createDateRangeValueSelector(filterField, filterId);
         case 'PEOPLE':
@@ -492,9 +515,14 @@ function createDropdownValueSelector(filterField, filterId) {
             requestAnimationFrame(() => refreshFloatingFilterDropdowns());
         }
         
-        // Load values if not loaded yet
+        // Load values if not loaded yet (inline enum list for custom fields, else API)
         if (!isVisible && valuesContainer.children.length === 0) {
-            await loadDropdownValues(filterField, filterId, valuesContainer, loadingMsg);
+            if (Array.isArray(filterField.enumValues) && filterField.enumValues.length > 0) {
+                loadingMsg.style.display = 'none';
+                populateInlineCfEnumDropdown(filterField, filterId, valuesContainer);
+            } else {
+                await loadDropdownValues(filterField, filterId, valuesContainer, loadingMsg);
+            }
         }
         
         // Update highlights when opening
@@ -523,6 +551,75 @@ function createDropdownValueSelector(filterField, filterId) {
     });
     
     return container;
+}
+
+/**
+ * Populate dropdown checkboxes from custom-field enumValues (no API call).
+ */
+function populateInlineCfEnumDropdown(filterField, filterId, container) {
+    container.innerHTML = '';
+    const enumValues = filterField.enumValues || [];
+    if (enumValues.length === 0) {
+        container.innerHTML = '<div class="filter-no-values">No values available</div>';
+        return;
+    }
+
+    const actionsDiv = document.createElement('div');
+    actionsDiv.className = 'filter-value-actions';
+    const selectAllBtn = document.createElement('button');
+    selectAllBtn.className = 'filter-action-btn';
+    selectAllBtn.textContent = 'Select All';
+    selectAllBtn.addEventListener('click', () => {
+        container.querySelectorAll(`input[type="checkbox"][data-filter-id="${filterId}"]`).forEach(cb => { cb.checked = true; });
+        updateFilterValue(filterId, filterField);
+    });
+    const deselectAllBtn = document.createElement('button');
+    deselectAllBtn.className = 'filter-action-btn';
+    deselectAllBtn.textContent = 'Deselect All';
+    deselectAllBtn.addEventListener('click', () => {
+        container.querySelectorAll(`input[type="checkbox"][data-filter-id="${filterId}"]`).forEach(cb => { cb.checked = false; });
+        updateFilterValue(filterId, filterField);
+    });
+    actionsDiv.appendChild(selectAllBtn);
+    actionsDiv.appendChild(deselectAllBtn);
+    container.appendChild(actionsDiv);
+
+    enumValues.forEach(ev => {
+        const id = ev.id != null ? Number(ev.id) : NaN;
+        if (Number.isNaN(id)) return;
+        const labelText = ev.enumValue != null ? String(ev.enumValue) : (ev.name != null ? String(ev.name) : String(id));
+
+        const item = document.createElement('div');
+        item.className = 'filter-value-item';
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.id = `${filterId}-value-${id}`;
+        checkbox.value = String(id);
+        checkbox.setAttribute('data-filter-id', filterId);
+        checkbox.addEventListener('change', () => {
+            updateFilterValue(filterId, filterField);
+            updateValueHighlight(filterId, filterField);
+        });
+        const label = document.createElement('label');
+        label.htmlFor = checkbox.id;
+        label.textContent = labelText;
+        item.appendChild(checkbox);
+        item.appendChild(label);
+        container.appendChild(item);
+    });
+
+    const filterAfterLoad = activeFilters.find(f => f.id === filterId);
+    if (filterAfterLoad && (filterAfterLoad.fieldType === 'DROPDOWN' || filterAfterLoad.fieldType === 'CF_DROPDOWN')
+        && Array.isArray(filterAfterLoad.value)) {
+        container.querySelectorAll(`input[type="checkbox"][data-filter-id="${filterId}"]`).forEach(cb => {
+            cb.checked = filterAfterLoad.value.includes(parseInt(cb.value, 10));
+        });
+        updateFilterValue(filterId, filterField);
+    }
+
+    requestAnimationFrame(() => {
+        if (typeof refreshFloatingFilterDropdowns === 'function') refreshFloatingFilterDropdowns();
+    });
 }
 
 /**
@@ -616,7 +713,8 @@ async function loadDropdownValues(filterField, filterId, container, loadingMsg) 
 
         // Restore selection from quick filter / saved value and capture display labels
         const filterAfterLoad = activeFilters.find(f => f.id === filterId);
-        if (filterAfterLoad && filterAfterLoad.fieldType === 'DROPDOWN' && Array.isArray(filterAfterLoad.value)) {
+        if (filterAfterLoad && (filterAfterLoad.fieldType === 'DROPDOWN' || filterAfterLoad.fieldType === 'CF_DROPDOWN')
+            && Array.isArray(filterAfterLoad.value)) {
             container.querySelectorAll(`input[type="checkbox"][data-filter-id="${filterId}"]`).forEach(cb => {
                 cb.checked = filterAfterLoad.value.includes(parseInt(cb.value, 10));
             });
@@ -677,7 +775,7 @@ function updateFilterValue(filterId, filterField) {
 
     filter.value = selectedValues.length > 0 ? selectedValues : null;
     // Human-readable labels for query bar / chips (parallel to filter.value IDs)
-    if (filterField && filterField.type === 'DROPDOWN' && selectedValues.length > 0) {
+    if (filterField && (filterField.type === 'DROPDOWN' || filterField.type === 'CF_DROPDOWN') && selectedValues.length > 0) {
         filter.dropdownLabels = selectedLabels;
     } else {
         delete filter.dropdownLabels;
@@ -1315,7 +1413,8 @@ function renderActiveFiltersChips() {
             if (filter.value.length > 0) {
                 if (filter.fieldType === 'PEOPLE' && typeof filter.value[0] === 'object') {
                     valueText = `: ${filter.value.map(p => p.name || p.id).join(', ')}`;
-                } else if (filter.fieldType === 'DROPDOWN' && Array.isArray(filter.dropdownLabels)
+                } else if ((filter.fieldType === 'DROPDOWN' || filter.fieldType === 'CF_DROPDOWN')
+                    && Array.isArray(filter.dropdownLabels)
                         && filter.dropdownLabels.length === filter.value.length) {
                     valueText = `: ${filter.dropdownLabels.join(', ')}`;
                 } else if (filter.value.length === 1) {
@@ -1328,7 +1427,8 @@ function renderActiveFiltersChips() {
                         valueText = `: ${filter.value[0]}`;
                     }
                 } else {
-                    const fromDom = filter.fieldType === 'DROPDOWN' && filter.value.every(id => {
+                    const fromDom = (filter.fieldType === 'DROPDOWN' || filter.fieldType === 'CF_DROPDOWN')
+                        && filter.value.every(id => {
                         const cb = document.querySelector(`input[type="checkbox"][data-filter-id="${filter.id}"][value="${id}"]`);
                         return cb && cb.nextElementSibling;
                     });
@@ -1706,9 +1806,12 @@ function showFieldChangerDropdown(anchor, filterId) {
         document.body.appendChild(changer);
     }
 
-    // Populate options from available fields
+    // Populate options from available fields (static + custom dropdown CFs)
     changer.innerHTML = '';
-    const fields = (filterFieldsMetadata && filterFieldsMetadata.filterFields) || [];
+    const staticFields = (filterFieldsMetadata && filterFieldsMetadata.filterFields) || [];
+    const facetId = (filterFieldsMetadata && filterFieldsMetadata.facetId) || currentFilterFacetId;
+    const cfFields = getCfDropdownFilterFieldEntries(facetId);
+    const fields = staticFields.concat(cfFields);
     const currentEntry = activeFilters.find(f => f.id === filterId);
     const currentFieldId = currentEntry ? currentEntry.fieldId : null;
 

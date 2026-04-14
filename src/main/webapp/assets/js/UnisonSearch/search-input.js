@@ -3471,8 +3471,22 @@ function addSearchCondition(operator, category, query, options = {}) {
         enableOperatorOptions();
     }
 
-    // 10. Reset dropdown to FIND and clear input
-    resetOperatorToFIND();
+    // 10. Operator dropdown + clear input
+    // - After AND/OR/NOT: keep the selected operator so the user can chain another term on the same facet (e.g. OR then OR).
+    // - After FIND: default back to FIND; if multiple conditions remain on this facet (e.g. FIND replaced root but OR rows stayed), pre-select OR as a hint for the next term.
+    if (normalizedOperator === 'FIND') {
+        const sameFacetCount = searchConditions.filter(
+            c => c.category === normalizedCategory && !c.muted
+        ).length;
+        if (sameFacetCount > 1) {
+            const operatorSelect = document.querySelector('.search-type-select');
+            if (operatorSelect) {
+                operatorSelect.value = 'or';
+            }
+        } else {
+            resetOperatorToFIND();
+        }
+    }
     clearInput();
     isSearchCommitted = false; // wait for explicit search
 }

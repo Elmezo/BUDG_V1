@@ -1845,7 +1845,7 @@ public class DeletionValidationServlet extends HttpServlet {
         
         // Check process relationships
         try {
-            String sql = "SELECT COUNT(*) FROM process_x_attribute WHERE Attribute_ID = ?";
+            String sql = "SELECT COUNT(*) FROM process_x_attribute WHERE attributeid = ?";
             try (PreparedStatement stmt = conn.prepareStatement(sql)) {
                 stmt.setInt(1, attributeId);
                 try (ResultSet rs = stmt.executeQuery()) {
@@ -1856,7 +1856,7 @@ public class DeletionValidationServlet extends HttpServlet {
         
         // Check policy relationships
         try {
-            String sql = "SELECT COUNT(*) FROM policy_x_attribute WHERE Attribute_ID = ?";
+            String sql = "SELECT COUNT(*) FROM policy_x_attribute WHERE attributeid = ?";
             try (PreparedStatement stmt = conn.prepareStatement(sql)) {
                 stmt.setInt(1, attributeId);
                 try (ResultSet rs = stmt.executeQuery()) {
@@ -1867,7 +1867,7 @@ public class DeletionValidationServlet extends HttpServlet {
         
         // Check project relationships
         try {
-            String sql = "SELECT COUNT(*) FROM project_x_attribute WHERE Attribute_ID = ?";
+            String sql = "SELECT COUNT(*) FROM project_x_attribute WHERE attributeid = ?";
             try (PreparedStatement stmt = conn.prepareStatement(sql)) {
                 stmt.setInt(1, attributeId);
                 try (ResultSet rs = stmt.executeQuery()) {
