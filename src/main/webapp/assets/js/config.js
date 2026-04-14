@@ -212,7 +212,8 @@ const BUDG_CONFIG = {
             DELETE: '/process/{id}',
             GET_BY_ID: '/process/{id}',
             LIST: '/process/list',
-            PARENT_PICKER: '/process/parent-picker'
+            PARENT_PICKER: '/process/parent-picker',
+            NEXT_REF: '/process/next-ref'
         },
         /* Added from EDITOR - BUSINESS_AREA endpoints */
         BUSINESS_AREA: {

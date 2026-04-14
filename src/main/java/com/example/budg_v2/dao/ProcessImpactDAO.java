@@ -816,10 +816,13 @@ public class ProcessImpactDAO {
                 r.RelationType,
                 p.PrimaryName as processName,
                 p.RefNumber as processRefNumber,
+                p.lifecycle_status as processLifecycleId,
+                pls.PrimaryName as processLifecycleName,
                 rt.PrimaryName as relationTypeName,
                 rt.ReverseName as relationTypeReverseName
             FROM client_x_process r
             LEFT JOIN process p ON r.Process_ID = p.ID
+            LEFT JOIN process_lifecycle_status pls ON pls.id = p.lifecycle_status
             LEFT JOIN client_x_process_relationtype rt ON r.RelationType = rt.ID
             WHERE r.Client_ID = ? AND (p.DeletedDatetime IS NULL OR p.DeletedDatetime = '1970-01-01 00:00:00')
             ORDER BY p.PrimaryName
@@ -843,6 +846,8 @@ public class ProcessImpactDAO {
                     relationship.put("relationType", rs.getObject("RelationType"));
                     relationship.put("processName", rs.getString("processName"));
                     relationship.put("processRefNumber", rs.getString("processRefNumber"));
+                    relationship.put("processLifecycleId", rs.getObject("processLifecycleId"));
+                    relationship.put("processLifecycleName", rs.getString("processLifecycleName"));
                     relationship.put("relationTypeName", rs.getString("relationTypeName"));
                     relationship.put("relationTypeReverseName", rs.getString("relationTypeReverseName"));
                     
@@ -3590,9 +3595,12 @@ public class ProcessImpactDAO {
                 rt.primaryname as relationTypeName,
                 rt.reversename as relationTypeReverseName,
                 p.primaryname as processName,
-                p.refnumber as processRefNumber
+                p.refnumber as processRefNumber,
+                p.lifecycle_status as processLifecycleId,
+                pls.primaryname as processLifecycleName
             FROM process_x_system r
             LEFT JOIN process p ON r.process_id = p.id
+            LEFT JOIN process_lifecycle_status pls ON pls.id = p.lifecycle_status
             LEFT JOIN process_x_system_relationtype rt ON r.relationtype = rt.id
             WHERE r.system_id = ? AND (p.deleteddatetime IS NULL OR p.deleteddatetime = '1970-01-01 00:00:00')
             ORDER BY p.primaryname
@@ -3616,6 +3624,8 @@ public class ProcessImpactDAO {
                     relationship.put("relationTypeReverseName", rs.getString("relationTypeReverseName"));
                     relationship.put("processName", rs.getString("processName"));
                     relationship.put("processRefNumber", rs.getString("processRefNumber"));
+                    relationship.put("processLifecycleId", rs.getObject("processLifecycleId"));
+                    relationship.put("processLifecycleName", rs.getString("processLifecycleName"));
                     
                     relationships.add(relationship);
                 }
@@ -3638,10 +3648,13 @@ public class ProcessImpactDAO {
                 r.Description,
                 p.primaryname as processName,
                 p.refnumber as processRefNumber,
+                p.lifecycle_status as processLifecycleId,
+                pls.primaryname as processLifecycleName,
                 rt.PrimaryName as relationTypeName,
                 rt.ReverseName as relationTypeReverseName
             FROM glossary_x_process r
             LEFT JOIN process p ON r.Process_ID = p.id
+            LEFT JOIN process_lifecycle_status pls ON pls.id = p.lifecycle_status
             LEFT JOIN glossary_x_process_relationtype rt ON r.RelationType = rt.ID
             WHERE r.Glossary_ID = ? AND (p.deleteddatetime IS NULL OR p.deleteddatetime = '1970-01-01 00:00:00')
             ORDER BY p.primaryname
@@ -3666,6 +3679,8 @@ public class ProcessImpactDAO {
                     relationship.put("description", rs.getString("Description"));
                     relationship.put("processName", rs.getString("processName"));
                     relationship.put("processRefNumber", rs.getString("processRefNumber"));
+                    relationship.put("processLifecycleId", rs.getObject("processLifecycleId"));
+                    relationship.put("processLifecycleName", rs.getString("processLifecycleName"));
                     relationship.put("relationTypeName", rs.getString("relationTypeName"));
                     relationship.put("relationTypeReverseName", rs.getString("relationTypeReverseName"));
                     
@@ -3703,9 +3718,12 @@ public class ProcessImpactDAO {
                 rt.primaryname as relationTypeName,
                 rt.reversename as relationTypeReverseName,
                 p.primaryname as processName,
-                p.refnumber as processRefNumber
+                p.refnumber as processRefNumber,
+                p.lifecycle_status as processLifecycleId,
+                pls.primaryname as processLifecycleName
             FROM product_x_process r
             LEFT JOIN process p ON r.processid = p.id
+            LEFT JOIN process_lifecycle_status pls ON pls.id = p.lifecycle_status
             LEFT JOIN product_x_process_relationtype rt ON r.relationtype = rt.id
             WHERE r.productid = ? AND (p.deleteddatetime IS NULL OR p.deleteddatetime = '1970-01-01 00:00:00')
             ORDER BY p.primaryname
@@ -3731,6 +3749,8 @@ public class ProcessImpactDAO {
                     relationship.put("relationTypeReverseName", rs.getString("relationTypeReverseName"));
                     relationship.put("processName", rs.getString("processName"));
                     relationship.put("processRefNumber", rs.getString("processRefNumber"));
+                    relationship.put("processLifecycleId", rs.getObject("processLifecycleId"));
+                    relationship.put("processLifecycleName", rs.getString("processLifecycleName"));
                     
                     // Get process owners
                     if (processId != null) {
@@ -3766,9 +3786,12 @@ public class ProcessImpactDAO {
                 rt.PrimaryName as relationTypeName,
                 rt.ReverseName as relationTypeReverseName,
                 p.primaryname as processName,
-                p.refnumber as processRefNumber
+                p.refnumber as processRefNumber,
+                p.lifecycle_status as processLifecycleId,
+                pls.primaryname as processLifecycleName
             FROM process_x_legal r
             LEFT JOIN process p ON r.Process_ID = p.id
+            LEFT JOIN process_lifecycle_status pls ON pls.id = p.lifecycle_status
             LEFT JOIN process_x_legal_relationtype rt ON r.RelationType = rt.ID
             WHERE r.Legal_ID = ? AND (p.deleteddatetime IS NULL OR p.deleteddatetime = '1970-01-01 00:00:00')
             ORDER BY p.primaryname
@@ -3794,6 +3817,8 @@ public class ProcessImpactDAO {
                     relationship.put("relationTypeReverseName", rs.getString("relationTypeReverseName"));
                     relationship.put("processName", rs.getString("processName"));
                     relationship.put("processRefNumber", rs.getString("processRefNumber"));
+                    relationship.put("processLifecycleId", rs.getObject("processLifecycleId"));
+                    relationship.put("processLifecycleName", rs.getString("processLifecycleName"));
                     
                     // Get process owners
                     if (processId != null) {
@@ -3828,10 +3853,13 @@ public class ProcessImpactDAO {
                 r.relation_type,
                 p.primaryname as processName,
                 p.refnumber as processRefNumber,
+                p.lifecycle_status as processLifecycleId,
+                pls.primaryname as processLifecycleName,
                 rt.primaryname as relationTypeName,
                 rt.reversename as relationTypeReverseName
             FROM process_x_dataset r
             LEFT JOIN process p ON r.processid = p.id
+            LEFT JOIN process_lifecycle_status pls ON pls.id = p.lifecycle_status
             LEFT JOIN process_x_dataset_relationtype rt ON r.relation_type = rt.id
             WHERE r.datasetid = ? AND (p.deleteddatetime IS NULL OR p.deleteddatetime = '1970-01-01 00:00:00')
             ORDER BY p.primaryname
@@ -3855,6 +3883,8 @@ public class ProcessImpactDAO {
                     relationship.put("relationType", rs.getInt("relation_type"));
                     relationship.put("processName", rs.getString("processName"));
                     relationship.put("processRefNumber", rs.getString("processRefNumber"));
+                    relationship.put("processLifecycleId", rs.getObject("processLifecycleId"));
+                    relationship.put("processLifecycleName", rs.getString("processLifecycleName"));
                     relationship.put("relationTypeName", rs.getString("relationTypeName"));
                     relationship.put("relationTypeReverseName", rs.getString("relationTypeReverseName"));
                     

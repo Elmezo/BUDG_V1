@@ -32,11 +32,14 @@ public class SystemDataDAO {
                 s.Name AS systemName,
                 d.status,
                 st.primaryname AS statusName,
-                dt.PrimaryName AS typeName
+                dt.PrimaryName AS typeName,
+                d.lifecycle AS lifecycleId,
+                dlc.PrimaryName AS lifecycleName
             FROM dataset d
             LEFT JOIN system s ON s.id = d.MasterSource
             LEFT JOIN status st ON st.ID = d.status
             LEFT JOIN dataset_type dt ON dt.ID = d.DatasetType
+            LEFT JOIN dataset_lifecycle dlc ON dlc.ID = d.lifecycle
             WHERE d.MasterSource = ? AND d.DeletedDatetime IS NULL
             ORDER BY d.PrimaryName
         """;
@@ -60,6 +63,8 @@ public class SystemDataDAO {
                     row.put("status", rs.getObject("status"));
                     row.put("statusName", rs.getString("statusName"));
                     row.put("typeName", rs.getString("typeName"));
+                    row.put("lifecycleId", rs.getObject("lifecycleId"));
+                    row.put("lifecycleName", rs.getString("lifecycleName"));
                     results.add(row);
                 }
             }

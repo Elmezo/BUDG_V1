@@ -79,6 +79,11 @@ public class ProcessServlet extends HttpServlet {
                     //system.out.println("ProcessServlet: Added process to response: " + p.getPrimaryName());
                 }
                 response.getWriter().write(arr.toString());
+            } else if ("/next-ref".equals(pathInfo)) {
+                JsonObject refResponse = new JsonObject();
+                refResponse.addProperty("success", true);
+                refResponse.addProperty("refnumber", processService.getNextProcessRefNumber());
+                response.getWriter().write(refResponse.toString());
             } else if ("/parent-picker".equals(pathInfo)) {
                 // Return processes for parent picker (excluding current process)
                 String excludeIdParam = request.getParameter("excludeId");

@@ -750,7 +750,11 @@
 
     /** Get selected overlay column ids for an overlay type. */
     function getOverlayColumns(overlayType) {
-        return GlossaryRelationshipsMapState.overlayColumnsByType[overlayType] || (window.OverlayColumns ? window.OverlayColumns.getDefaultOverlayColumnIds(overlayType) : ['name']);
+        var raw = GlossaryRelationshipsMapState.overlayColumnsByType[overlayType];
+        if (window.OverlayColumns && typeof window.OverlayColumns.resolveSelectedColumnIds === 'function') {
+            return window.OverlayColumns.resolveSelectedColumnIds(raw, overlayType);
+        }
+        return (Array.isArray(raw) && raw.length > 0) ? raw.slice() : (window.OverlayColumns ? window.OverlayColumns.getDefaultOverlayColumnIds(overlayType) : ['name']);
     }
 
     function setOverlay(overlayType) {
@@ -962,6 +966,9 @@
                             }
                         } catch (e) { /* ignore */ }
                     }
+                    if (window.OverlayColumns && typeof window.OverlayColumns.enrichGlossaryOverlayTerms === 'function') {
+                        return await window.OverlayColumns.enrichGlossaryOverlayTerms(glossaries);
+                    }
                     return glossaries;
                 }
                     
@@ -1075,15 +1082,20 @@
                 case 'attributes':
                     try {
                         const API = window.BUDG_API_SERVICE;
+                        const normSysA = window.OverlayRowNormalize && typeof window.OverlayRowNormalize.attributeFromApi === 'function'
+                            ? window.OverlayRowNormalize.attributeFromApi : null;
                         if (API && typeof API.getSystemAttributes === 'function') {
                             const attrs = await API.getSystemAttributes(systemId);
-                            return Array.isArray(attrs?.data) ? attrs.data : (Array.isArray(attrs) ? attrs : []);
+                            const raw = Array.isArray(attrs?.data) ? attrs.data : (Array.isArray(attrs) ? attrs : []);
+                            return normSysA ? raw.map(a => normSysA(a, { systemId: systemId })) : raw;
                         }
                     } catch (e) { embWarn('[GLOSSARY-RELATIONSHIPS-MAP] Error fetching system attributes:', e); }
                     return [];
                 case 'linking-attributes':
                     try {
                         const API = window.BUDG_API_SERVICE;
+                        const normLink = window.OverlayRowNormalize && typeof window.OverlayRowNormalize.attributeFromApi === 'function'
+                            ? window.OverlayRowNormalize.attributeFromApi : null;
                         const allAttrs = API && typeof API.getSystemAttributes === 'function'
                             ? await API.getSystemAttributes(systemId)
                             : [];
@@ -1095,7 +1107,8 @@
                             if (sid != null) linkingIds.add(String(sid));
                             if (tid != null) linkingIds.add(String(tid));
                         });
-                        return attrsList.filter(a => linkingIds.has(String(a.id ?? a.ID ?? '')));
+                        const filtered = attrsList.filter(a => linkingIds.has(String(a.attributeId ?? a.id ?? a.ID ?? '')));
+                        return normLink ? filtered.map(a => normLink(a, { systemId: systemId })) : filtered;
                     } catch (e) { embWarn('[GLOSSARY-RELATIONSHIPS-MAP] Error fetching system linking attributes:', e); }
                     return [];
 
@@ -1173,17 +1186,25 @@
                             });
                         }
                     } catch (e) { /* ignore */ }
+                    if (window.OverlayColumns && typeof window.OverlayColumns.enrichGlossaryOverlayTerms === 'function') {
+                        return await window.OverlayColumns.enrichGlossaryOverlayTerms(glossaryTerms);
+                    }
                     return glossaryTerms;
                 }
                     
                 case 'attributes':
                     try {
+                        const normAttr = window.OverlayRowNormalize && typeof window.OverlayRowNormalize.attributeFromApi === 'function'
+                            ? window.OverlayRowNormalize.attributeFromApi : null;
                         const datasetData = GlossaryRelationshipsMapState.datasetsData.get(String(datasetId));
                         if (datasetData && datasetData.attributes) {
-                            return datasetData.attributes.map(attr => ({
-                                id: attr.id || attr.ID,
-                                name: attr.name || attr.attributeName || attr.Name || `Attribute ${attr.id}`
-                            }));
+                            return datasetData.attributes.map(attr => {
+                                const base = Object.assign({}, attr, { id: attr.id || attr.ID || attr.attributeId });
+                                return normAttr ? normAttr(base, { datasetId: String(datasetId) }) : {
+                                    id: attr.id || attr.ID,
+                                    name: attr.name || attr.attributeName || attr.Name || `Attribute ${attr.id}`
+                                };
+                            });
                         }
                         const API = window.BUDG_API_SERVICE;
                         if (API) {
@@ -1347,9 +1368,9 @@
             return createOverlayPanelFallback(nodeName, overlayType, arr, nodeId);
         }
         var overlayColumnDefs = [];
-        if (overlayType !== 'stakeholders' && window.OverlayColumns) {
+        if (window.OverlayColumns) {
             var allCols = window.OverlayColumns.getOverlayColumns(overlayType);
-            var selectedIds = GlossaryRelationshipsMapState.overlayColumnsByType[overlayType] || window.OverlayColumns.getDefaultOverlayColumnIds(overlayType);
+            var selectedIds = window.OverlayColumns.resolveSelectedColumnIds(GlossaryRelationshipsMapState.overlayColumnsByType[overlayType], overlayType);
             overlayColumnDefs = allCols.filter(function(c) { return selectedIds && selectedIds.indexOf(c.id) !== -1; });
         }
         const panel = window.MapOverlayPanel.create(overlayType, arr, nodeId, {
@@ -1557,7 +1578,9 @@
             case 'products':
                 return item.productName || item.name || item.primaryName || item.PrimaryName || item.Name || '';
             case 'legal-entities':
-                return item.legalEntityName || item.longName || item.name || item.primaryName || item.Name || '';
+                return item.legalEntityName || item.legalShortName || item.LegalShortName ||
+                    item.legalLongName || item.LegalLongName || item.longName ||
+                    item.name || item.primaryName || item.Name || '';
             case 'geography':
                 return item.name || item.region || item.country || item.primaryName || item.Name || '';
             case 'data-quality':
@@ -1579,6 +1602,14 @@
     function getOverlayItemField(overlayType, item, fieldId) {
         if (!item) return '';
         const v = (x) => (x != null && x !== '') ? String(x) : '';
+        function fieldDefault(it, fid) {
+            const d = it[fid];
+            if (d !== undefined && d !== null && d !== '') return v(d);
+            if (window.MapOverlayFieldPick && typeof window.MapOverlayFieldPick.pick === 'function') {
+                return window.MapOverlayFieldPick.pick(it, fid);
+            }
+            return '';
+        }
         function entityNameCell() {
             return v(
                 item.processName || item.ProcessName ||
@@ -1587,6 +1618,10 @@
                 item.businessAreaName || item.BusinessAreaName ||
                 item.productName || item.ProductName ||
                 item.legalEntityName || item.LegalEntityName ||
+                item.legalShortName || item.LegalShortName ||
+                item.legalLongName || item.LegalLongName ||
+                item.clientName || item.ClientName ||
+                item.capabilityName || item.CapabilityName ||
                 item.systemName || item.SystemName ||
                 item.name || item.Name || item.primaryName || item.PrimaryName ||
                 item.glossaryName || item.GlossaryName || item.ruleName || item.RuleName ||
@@ -1598,39 +1633,43 @@
             case 'description':
                 return fieldId === 'value'
                     ? v(item.value || item.definition || item.Definition || item.description || item.Description)
-                    : v(item[fieldId]);
+                    : fieldDefault(item, fieldId);
             case 'stakeholders':
                 switch (fieldId) {
                     case 'name': return v(item.personName || item.PersonName || item.name || item.Name);
                     case 'role': return v(item.roleName || item.RoleName || item.role || item.Role);
-                    default: return v(item[fieldId]);
+                    case 'accepted': return v(item.accepted || item.Accepted || item.acceptedStatus);
+                    case 'orgUnit': return v(item.orgUnit || item.OrgUnit || item.orgUnitName);
+                    default: return fieldDefault(item, fieldId);
                 }
             case 'glossary':
                 switch (fieldId) {
                     case 'name': return v(item.name || item.glossaryName || item.primaryName || item.PrimaryName);
                     case 'source': return item.source === 'dataset' ? 'Dataset Glossary'
                                         : item.source === 'attribute' ? 'Attribute Glossary' : '';
-                    case 'aliasNames': return v(item.aliasNames || item.aliases || item.alias);
-                    case 'parentName': return v(item.parentName || item.parent?.name);
-                    case 'lifecycle': return v(item.lifecycleName || item.lifecycle);
-                    case 'securityClassification': return v(item.securityClassification || item.classification);
-                    default: return v(item[fieldId]);
+                    case 'aliasNames':
+                        if (Array.isArray(item.aliases) && item.aliases.length) return v(item.aliases.join(', '));
+                        return v(item.aliasNames || item.aliases || item.alias);
+                    case 'parentName': return v(item.parentName || item.ParentName || item.parent?.name);
+                    case 'lifecycle': return v(item.lifecycleName || item.LifecycleName || item.lifecycle || item.Lifecycle || item.lifecycleStatusName || item.LifecycleStatusName || item.lifecycleStatus || item.LifecycleStatus || item.processLifecycleName || item.ProcessLifecycleName || item.sourceProcessLifecycleName || item.targetProcessLifecycleName || item.datasetLifecycleName || item.DatasetLifecycleName || fieldDefault(item, fieldId));
+                    case 'securityClassification': return v(item.securityClassification || item.classification || item.securityName || item.SecurityName);
+                    default: return fieldDefault(item, fieldId);
                 }
             case 'datasets':
                 switch (fieldId) {
                     case 'name': return v(item.name || item.datasetName || item.primaryName || item.PrimaryName);
-                    case 'refNumber': return v(item.refNumber || item.ref || item.RefNumber || item.Ref);
+                    case 'refNumber': return v(item.refNumber || item.refnumber || item.RefNumber || item.ref || item.Ref || item.processRefNumber || item.ProcessRefNumber || item.processRef || item.ProcessRef || item.projectRefNumber || item.ProjectRefNumber || item.projectRef || item.ProjectRef || item.productRefNumber || item.ProductRefNumber || item.policyRefNumber || item.PolicyRefNumber || item.capabilityRefNumber || item.CapabilityRefNumber || item.datasetRefNumber || item.DatasetRefNumber || item.attributeRefNumber || item.AttributeRefNumber || item.glossaryRefNumber || item.GlossaryRefNumber || item.interfaceRefNumber || item.InterfaceRefNumber || item.systemRef || item.SystemRef || item.regulationRefNumber || item.RegulationRefNumber || item.regulatoryThemeRefNumber || item.RegulatoryThemeRefNumber || item.businessAreaReference || item.BusinessAreaReference || item.clientReference || item.ClientReference || item.legalReference || item.LegalReference || item.sourceProcessRef || item.targetProcessRef);
                     case 'type': return v(item.typeName || item.type || item.TypeName || item.Type);
-                    case 'lifecycle': return v(item.lifecycleName || item.lifecycle || item.LifecycleName || item.Lifecycle);
-                    default: return v(item[fieldId]);
+                    case 'lifecycle': return v(item.lifecycleName || item.LifecycleName || item.lifecycle || item.Lifecycle || item.lifecycleStatusName || item.LifecycleStatusName || item.lifecycleStatus || item.LifecycleStatus || item.processLifecycleName || item.ProcessLifecycleName || item.sourceProcessLifecycleName || item.targetProcessLifecycleName || item.datasetLifecycleName || item.DatasetLifecycleName || fieldDefault(item, fieldId));
+                    default: return fieldDefault(item, fieldId);
                 }
             case 'attributes':
                 switch (fieldId) {
                     case 'name': return v(item.name || item['Name attribute'] || item.attributeName || item.primaryName || item.PrimaryName || item.Name);
                     case 'type': return v(item.typeName || item.type || item.TypeName || item.Type);
                     case 'glossary': return v(item.glossaryName || item.glossary || item['Glossary Name attribute']);
-                    case 'refNumber': return v(item.refNumber || item.ref || item.RefNumber || item.Ref);
-                    default: return v(item[fieldId]);
+                    case 'refNumber': return v(item.refNumber || item.refnumber || item.RefNumber || item.ref || item.Ref || item.processRefNumber || item.ProcessRefNumber || item.processRef || item.ProcessRef || item.projectRefNumber || item.ProjectRefNumber || item.projectRef || item.ProjectRef || item.productRefNumber || item.ProductRefNumber || item.policyRefNumber || item.PolicyRefNumber || item.capabilityRefNumber || item.CapabilityRefNumber || item.datasetRefNumber || item.DatasetRefNumber || item.attributeRefNumber || item.AttributeRefNumber || item.glossaryRefNumber || item.GlossaryRefNumber || item.interfaceRefNumber || item.InterfaceRefNumber || item.systemRef || item.SystemRef || item.regulationRefNumber || item.RegulationRefNumber || item.regulatoryThemeRefNumber || item.RegulatoryThemeRefNumber || item.businessAreaReference || item.BusinessAreaReference || item.clientReference || item.ClientReference || item.legalReference || item.LegalReference || item.sourceProcessRef || item.targetProcessRef);
+                    default: return fieldDefault(item, fieldId);
                 }
             case 'linking-attributes':
                 switch (fieldId) {
@@ -1640,7 +1679,17 @@
                     case 'direction': return v(item.direction || item.Direction);
                     case 'relatedDataset': return v(item.relatedDataset || item.related_dataset);
                     case 'relatedAttribute': return v(item.relatedAttribute || item.related_attribute);
-                    default: return v(item[fieldId]);
+                    default: return fieldDefault(item, fieldId);
+                }
+            case 'custom-fields':
+                switch (fieldId) {
+                    case 'metadataId': return v(item.metadataId != null ? item.metadataId : item.Metadata_ID);
+                    case 'enumId':
+                        if (item.enumId !== undefined && item.enumId !== null && item.enumId !== '') return v(item.enumId);
+                        if (item.enumIds && item.enumIds.length) return v(item.enumIds.join(', '));
+                        return '';
+                    case 'value': return v(item.value != null && item.value !== '' ? item.value : (item.displayValue != null ? item.displayValue : ''));
+                    default: return fieldDefault(item, fieldId);
                 }
             case 'processes':
             case 'projects':
@@ -1648,25 +1697,30 @@
             case 'business-area':
             case 'products':
             case 'legal-entities':
+            case 'clients':
+            case 'capabilities':
             case 'systems':
             case 'data-quality':
             case 'data-privacy':
             case 'geography':
                 switch (fieldId) {
                     case 'name': return entityNameCell();
-                    case 'refNumber': return v(item.refNumber || item.ref || item.RefNumber || item.Ref);
-                    case 'type': return v(item.typeName || item.type || item.TypeName || item.Type);
-                    case 'lifecycle': return v(item.lifecycleName || item.lifecycle || item.LifecycleName || item.Lifecycle);
-                    case 'status': return v(item.statusName || item.status || item.StatusName || item.Status);
+                    case 'refNumber': return v(item.refNumber || item.refnumber || item.RefNumber || item.ref || item.Ref || item.processRefNumber || item.ProcessRefNumber || item.processRef || item.ProcessRef || item.projectRefNumber || item.ProjectRefNumber || item.projectRef || item.ProjectRef || item.productRefNumber || item.ProductRefNumber || item.policyRefNumber || item.PolicyRefNumber || item.capabilityRefNumber || item.CapabilityRefNumber || item.datasetRefNumber || item.DatasetRefNumber || item.attributeRefNumber || item.AttributeRefNumber || item.glossaryRefNumber || item.GlossaryRefNumber || item.interfaceRefNumber || item.InterfaceRefNumber || item.systemRef || item.SystemRef || item.regulationRefNumber || item.RegulationRefNumber || item.regulatoryThemeRefNumber || item.RegulatoryThemeRefNumber || item.businessAreaReference || item.BusinessAreaReference || item.clientReference || item.ClientReference || item.legalReference || item.LegalReference || item.sourceProcessRef || item.targetProcessRef);
+                    case 'type': return v(item.typeName || item.type || item.TypeName || item.Type || item.policyTypeName || item.PolicyTypeName || item.productTypeName || item.ProductTypeName || item.relationTypeName || item.RelationTypeName);
+                    case 'lifecycle': return v(item.lifecycleName || item.LifecycleName || item.lifecycle || item.Lifecycle || item.lifecycleStatusName || item.LifecycleStatusName || item.lifecycleStatus || item.LifecycleStatus || item.processLifecycleName || item.ProcessLifecycleName || item.sourceProcessLifecycleName || item.targetProcessLifecycleName || item.datasetLifecycleName || item.DatasetLifecycleName || fieldDefault(item, fieldId));
+                    case 'status': return v(item.statusName || item.StatusName || item.status || item.Status || item.projectStatusName || item.ProjectStatusName || item.policyStatusName || item.PolicyStatusName);
                     case 'ruleName': return v(item.ruleName || item.RuleName);
                     case 'rating': return v(item.rating || item.qualityRating);
                     case 'classification': return v(item.classification || item.privacyClassification);
                     case 'region': return v(item.region || item.Region);
                     case 'country': return v(item.country || item.Country);
-                    default: return v(item[fieldId]);
+                    default: return fieldDefault(item, fieldId);
                 }
-            default:
-                return v(item[fieldId] || item.name || item.primaryName);
+            default: {
+                const fb = fieldDefault(item, fieldId);
+                if (fb) return fb;
+                return v(item.name || item.primaryName);
+            }
         }
     }
 

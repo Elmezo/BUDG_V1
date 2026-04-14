@@ -723,6 +723,7 @@ public class SystemImpactDAO {
                     relationship.put("relationType", rs.getInt("relation_type"));
                     relationship.put("legalShortName", rs.getString("legalShortName"));
                     relationship.put("legalLongName", rs.getString("legalLongName"));
+                    relationship.put("legalReference", rs.getString("legalShortName"));
                     relationship.put("relationTypeName", rs.getString("relationTypeName"));
                     
                     // Get all legal owners for this legal entity (concatenated)
