@@ -677,6 +677,36 @@ async function executeSearchGroups(definition) {
         }
     }
 
+    // Restore filter panel state from saved definition (legacy definitions omit activeFilters)
+    if (definition.filterFacetId != null && definition.filterFacetId !== undefined && definition.filterFacetId !== '') {
+        if (typeof currentFilterFacetId !== 'undefined') {
+            currentFilterFacetId = definition.filterFacetId;
+        }
+        if (typeof window !== 'undefined') {
+            window.currentFilterFacetId = definition.filterFacetId;
+        }
+    }
+    if (Array.isArray(definition.activeFilters)) {
+        if (typeof activeFilters !== 'undefined') {
+            activeFilters.length = 0;
+            definition.activeFilters.forEach(f => activeFilters.push(f));
+            if (typeof window !== 'undefined') {
+                window.activeFilters = activeFilters;
+            }
+        } else if (typeof window !== 'undefined') {
+            window.activeFilters = definition.activeFilters.slice();
+        }
+        if (typeof syncFilterMetadataGlobals === 'function') {
+            syncFilterMetadataGlobals();
+        }
+        if (typeof renderActiveFiltersChips === 'function') {
+            renderActiveFiltersChips();
+        }
+        if (typeof updateFilterBadge === 'function') {
+            updateFilterBadge();
+        }
+    }
+
     // Update UI to show query builder with conditions
     if (typeof renderSearchConditions === 'function') {
         renderSearchConditions();
@@ -1025,16 +1055,37 @@ function buildSearchDefinitionFromCurrentState(name) {
         firstGroup = false;
     }
 
+    const afSource =
+        (typeof activeFilters !== 'undefined' && Array.isArray(activeFilters))
+            ? activeFilters
+            : (typeof window !== 'undefined' && Array.isArray(window.activeFilters) ? window.activeFilters : []);
+    const serializedActiveFilters = afSource.map(f => ({
+        fieldId: f.fieldId,
+        fieldName: f.fieldName,
+        fieldColumn: f.fieldColumn,
+        value: f.value,
+        dropdownLabels: f.dropdownLabels,
+        filterType: f.filterType
+    }));
+    const filterFacetId =
+        typeof currentFilterFacetId !== 'undefined'
+            ? currentFilterFacetId
+            : (typeof window !== 'undefined' ? window.currentFilterFacetId : null);
+
     console.log('[SAVE] Building search definition:', {
         name: name,
         userId: userId,
-        searchGroups: searchGroups
+        searchGroups: searchGroups,
+        activeFiltersCount: serializedActiveFilters.length,
+        filterFacetId: filterFacetId
     });
 
     return {
         userRef: String(userId),
         name: name,
         searchGroups: searchGroups,
+        activeFilters: serializedActiveFilters,
+        filterFacetId: filterFacetId,
         public: false
     };
 }

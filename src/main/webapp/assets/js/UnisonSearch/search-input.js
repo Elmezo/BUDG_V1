@@ -2765,18 +2765,12 @@ async function executeMultiConditionSearch() {
 
             // Convert conditions to Unison Search format (backend requires FIND first, then AND/OR/NOT)
             const searches = [];
-            // Collect display-only filter conditions separately — they are NOT sent to the
-            // backend (to avoid interference with cross-facet intersection logic) and are
-            // applied client-side after results are fetched.
-            const displayFilterConditions = activeConditions.filter(c => c.isDisplayFilter);
-            const hasDisplayFilterConditions = displayFilterConditions.length > 0;
+            // Display-only filter conditions are sent with displayFilter:true so UnisonSearchService
+            // registers facetFilters and skips intersection (row-data filtering on that facet).
             activeConditions.forEach(condition => {
-                // Skip display-only filter conditions in the backend request.
-                if (condition.isDisplayFilter) return;
-
                 const facetId = typeof categoryToFacetId === 'function' ? categoryToFacetId(condition.category) : condition.category.toUpperCase();
                 let filters = condition.filters || {};
-                if (Object.keys(filters).length === 0 && !hasDisplayFilterConditions && typeof buildFiltersObject === 'function') {
+                if (Object.keys(filters).length === 0 && typeof buildFiltersObject === 'function') {
                     // Only apply the filter panel's filters when the condition belongs to the
                     // currently active category.  Applying People filters to a System condition
                     // (or vice-versa) sends the wrong WHERE clause to the backend and returns 0.
@@ -2820,6 +2814,9 @@ async function executeMultiConditionSearch() {
                                 childInclusion: hierarchicalFilterOptions.childInclusion,
                                 applyFilters: hierarchicalFilterOptions.applyFilters
                             };
+                        }
+                        if (condition.isDisplayFilter) {
+                            searchItem.displayFilter = true;
                         }
                         searches.push(searchItem);
                     });
