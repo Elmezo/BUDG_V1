@@ -58,6 +58,15 @@ public class UnisonSearchRequest {
          */
         private Integer indentLevel;
 
+        /**
+         * When true this condition is treated as a "display-only filter": its filters are applied to
+         * the row-data retrieval stage (so only matching rows are shown in the UI) but it is completely
+         * excluded from the AND/OR/NOT accumulation phase.  This allows, e.g., filtering the People
+         * panel by Profile Name without reducing the root System count.
+         * The condition is still persisted in saved searches so the filter is restored on reload.
+         */
+        private boolean displayFilter;
+
         public SearchItem() {
         }
 
@@ -122,6 +131,14 @@ public class UnisonSearchRequest {
 
         public void setIndentLevel(Integer indentLevel) {
             this.indentLevel = indentLevel;
+        }
+
+        public boolean isDisplayFilter() {
+            return displayFilter;
+        }
+
+        public void setDisplayFilter(boolean displayFilter) {
+            this.displayFilter = displayFilter;
         }
     }
 

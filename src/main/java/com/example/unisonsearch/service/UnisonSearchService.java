@@ -224,6 +224,13 @@ public class UnisonSearchService {
                 searchDefinition = buildSearchDefinition(search.getFacet(), search.getKeyword(), null, search.getSearchFields());
             }
 
+            // Display-only filter: register for row-data filtering but skip the full intersection phase.
+            // This allows e.g. filtering the People panel by Profile Name without shrinking the root SYSTEM count.
+            if (search.isDisplayFilter()) {
+                // facetFilters already populated above — that is all we need.
+                continue;
+            }
+
             // Variables for cross-facet AND with keyword (e.g. FIND DataSets AND "foo" in People)
             Set<Integer> crossFacetAndTargetIds = null;
             String crossFacetAndTargetFacet = null;
@@ -891,13 +898,17 @@ public class UnisonSearchService {
             return new HashSet<>();
         }
 
-        // Check if keyword is a numeric ID (for selected items from suggestions)
-        try {
-            int id = Integer.parseInt(keyword.trim());
+        // Numeric-ID shortcut (suggestion pick) must not run when panel filters are present — otherwise
+        // a role id like "2" is mistaken for Person.ID and filters are ignored.
+        if (filters == null || filters.isEmpty()) {
+            // Check if keyword is a numeric ID (for selected items from suggestions)
+            try {
+                int id = Integer.parseInt(keyword.trim());
 
-            return executeSingleSearchById(facet, id);
-        } catch (NumberFormatException e) {
-            // Not a number, proceed with text search
+                return executeSingleSearchById(facet, id);
+            } catch (NumberFormatException e) {
+                // Not a number, proceed with text search
+            }
         }
 
         // Convert facet ID to module name
@@ -1437,14 +1448,25 @@ public class UnisonSearchService {
             }
         }
 
+        // With structured filters, a purely numeric keyword is almost always a leaked role/field id from the
+        // client (same as dropdown value), not a literal text search — treat as broad so QueryBuilder only
+        // applies filterGroups (e.g. System_Role IN (...)).
+        String effectiveKeyword = keyword;
+        if (filters != null && !filters.isEmpty() && effectiveKeyword != null) {
+            String t = effectiveKeyword.trim();
+            if (!t.isEmpty() && !"*".equals(t) && t.matches("\\d+")) {
+                effectiveKeyword = "*";
+            }
+        }
+
         JsonArray filterGroups = new JsonArray();
 
         // Add keyword as a query filter (BUDG FIND across searchable fields).
         // Must match isKeywordEmpty(): "*" and blank mean "no text constraint" — do NOT pass "*" into
         // QueryBuilder or LIKE runs on literal asterisk and AND with real filters returns zero rows.
-        if (keyword != null && !isKeywordEmpty(keyword)) {
+        if (effectiveKeyword != null && !isKeywordEmpty(effectiveKeyword)) {
             JsonObject qFilter = new JsonObject();
-            qFilter.addProperty("query", keyword.trim());
+            qFilter.addProperty("query", effectiveKeyword.trim());
             // Embed the user's "Search in" selection so QueryBuilder can restrict columns
             if (searchFields != null && !searchFields.isEmpty()) {
                 JsonObject sfJson = new JsonObject();
@@ -3607,6 +3629,12 @@ public class UnisonSearchService {
         // Apply final deduplication and deterministic sorting
         results = applyFinalDeduplicationAndSorting(results, context);
 
+        System.out.println("[UNISON-DEBUG][FINAL] Facets returned:");
+        for (Map.Entry<String, FacetResult> e : results.entrySet()) {
+            FacetResult fr = e.getValue();
+            System.out.println("[UNISON-DEBUG]   " + e.getKey() + " count=" + (fr != null ? fr.getCount() : "null") + " ids=" + (fr != null ? fr.getIds() : "null"));
+        }
+
         return results;
     }
 
@@ -3651,6 +3679,7 @@ public class UnisonSearchService {
 
         // Collect all object IDs and their facet types - only from seed facets (direct relations only)
         Map<String, Set<Integer>> facetToObjectIds = new HashMap<>();
+        System.out.println("[UNISON-DEBUG][enrichWithStakeholders] Seed facets: " + seedFacets);
         for (Map.Entry<String, FacetResult> entry : results.entrySet()) {
             String facetId = entry.getKey();
             FacetResult fr = entry.getValue();
@@ -3711,10 +3740,12 @@ public class UnisonSearchService {
         for (Map.Entry<String, Set<Integer>> entry : facetToObjectIds.entrySet()) {
             String facetId = entry.getKey();
             Set<Integer> objectIds = entry.getValue();
+            System.out.println("[UNISON-DEBUG][enrichWithStakeholders] Querying facet=" + facetId + " ids=" + objectIds);
 
             for (Integer objectId : objectIds) {
                 try {
                     List<Map<String, Object>> stakeholders = queryDirectStakeholders(facetId, objectId);
+                    System.out.println("[UNISON-DEBUG][enrichWithStakeholders]   " + facetId + " ID=" + objectId + " -> " + stakeholders.size() + " stakeholders: " + stakeholders);
                     for (Map<String, Object> stakeholder : stakeholders) {
                         // Extract people ID
                         Object peopleIdObj = stakeholder.get("people_id");
@@ -3757,7 +3788,23 @@ public class UnisonSearchService {
             }
         }
 
+        // Also collect "Created By" people for each seed facet (e.g. system.CreatedBy_ID)
+        for (Map.Entry<String, Set<Integer>> entry : facetToObjectIds.entrySet()) {
+            String facetId = entry.getKey();
+            Set<Integer> objectIds = entry.getValue();
+            try {
+                Set<Integer> creatorIds = queryCreatedByPeopleIdsForObjects(facetId, objectIds);
+                if (!creatorIds.isEmpty()) {
+                    System.out.println("[UNISON-DEBUG][enrichWithStakeholders] CreatedBy people for " + facetId + ": " + creatorIds);
+                    allPeopleIds.addAll(creatorIds);
+                }
+            } catch (Exception e) {
+                System.err.println("[UnisonSearchService] Error querying CreatedBy people for " + facetId + ": " + e.getMessage());
+            }
+        }
+
         // Add People results to accumulated results
+        System.out.println("[UNISON-DEBUG][enrichWithStakeholders] Total people from stakeholders: " + allPeopleIds + " | org units: " + allOrgUnitIds);
         if (!allPeopleIds.isEmpty()) {
             String peopleFacetId = "PEOPLE";
             FacetResult existingPeopleResult = results.get(peopleFacetId);
@@ -3944,6 +3991,51 @@ public class UnisonSearchService {
         }
 
         return stakeholders;
+    }
+
+    /**
+     * Returns the set of people IDs found in the "Created By" column of the given facet's table
+     * for the provided object IDs. Only returns non-null, non-deleted people.
+     */
+    private Set<Integer> queryCreatedByPeopleIdsForObjects(String facetId, Set<Integer> objectIds) {
+        if (facetId == null || objectIds == null || objectIds.isEmpty()) {
+            return new HashSet<>();
+        }
+        String canonical = canonFacet(facetId);
+        if (canonical == null) {
+            canonical = normalizedFacetToFacetId(normalizeFacetName(facetId));
+        }
+        String createdByCol = getCreatedByDatabaseColumn(canonical);
+        if (createdByCol == null) {
+            return new HashSet<>();
+        }
+        String moduleName = facetIdToModuleName(canonical);
+        if (moduleName == null) {
+            return new HashSet<>();
+        }
+        String table = getTableNameForModule(moduleName);
+        if (table == null || table.isBlank()) {
+            return new HashSet<>();
+        }
+        String pkCol = getEntityPrimaryKeyColumn(canonical);
+        try {
+            com.example.unisonsearch.repository.DatabaseHelper dbHelper =
+                    new com.example.unisonsearch.repository.DatabaseHelper();
+            String placeholders = String.join(",", Collections.nCopies(objectIds.size(), "?"));
+            // JOIN people to exclude deleted creators
+            String sql = "SELECT DISTINCT t.`" + createdByCol + "` AS creator_id" +
+                    " FROM `" + table + "` t" +
+                    " INNER JOIN people p ON t.`" + createdByCol + "` = p.ID" +
+                    " WHERE t.`" + pkCol + "` IN (" + placeholders + ")" +
+                    " AND t.`" + createdByCol + "` IS NOT NULL" +
+                    " AND p.Deleted_date IS NULL";
+            List<Object> params = new ArrayList<>(objectIds);
+            List<Map<String, Object>> rows = dbHelper.executeQuery(sql, params);
+            return extractIntColumnFromRows(rows, "creator_id");
+        } catch (Exception e) {
+            System.err.println("[UnisonSearchService] queryCreatedByPeopleIdsForObjects " + facetId + ": " + e.getMessage());
+            return new HashSet<>();
+        }
     }
 
     /**
@@ -11701,6 +11793,7 @@ public class UnisonSearchService {
             try {
                 // Get people belonging to this org unit
                 Set<Integer> peopleIds = queryOrgUnitPeople(orgUnitId);
+                System.out.println("[UNISON-DEBUG][enrichOrgUnit] OrgUnit ID=" + orgUnitId + " -> people=" + peopleIds);
                 for (Integer peopleId : peopleIds) {
                     allPeopleIds.add(peopleId);
                     peopleDepth.put(peopleId, 1);

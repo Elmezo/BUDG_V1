@@ -454,6 +454,8 @@
         "orgUnitRef": "Org Unit Ref",
         "orgUnit": "Org Unit",
         "profileName": "Profile Name",
+        "systemRole": "System Role",
+        "System_Role": "System Role",
         "lastLogin": "Last Login",
         "employeeType": "Employee Type",
         "lanId": "LAN ID",

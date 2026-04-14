@@ -105,6 +105,7 @@ public class FilterMetadataConfig {
         // People filters
         List<FilterField> peopleFilters = new ArrayList<>();
         peopleFilters.add(new FilterField("status", "Status", FilterType.DROPDOWN, "status", "status_id"));
+        peopleFilters.add(new FilterField("profileName", "Profile Name", FilterType.DROPDOWN, "role", "System_Role"));
         peopleFilters.add(new FilterField("systemRole", "System Role", FilterType.DROPDOWN, "role_type", "System_Role"));
         peopleFilters.add(new FilterField("source", "Source", FilterType.DROPDOWN, "people_source", "source_id"));
         peopleFilters.add(new FilterField("orgUnit", "Org Unit", FilterType.DROPDOWN, "org_unit", "Org_Unit_ID"));

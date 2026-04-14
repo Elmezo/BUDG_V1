@@ -2021,6 +2021,7 @@ public class QueryBuilder {
 						"    ou.ID AS 'Org Unit_ID',\n" +
 						"    s.PrimaryName AS 'BUDG Status',\n" +
 						"    r.primaryname AS 'Profile Name',\n" +
+						"    p.System_Role AS System_Role,\n" +
 						"    p.last_User_LogIn AS 'Last Login',\n" +
 						"    ls.Primary_Name AS Lifecycle,\n" +
 						"    et.primary_Name AS 'Employee Type',\n" +
