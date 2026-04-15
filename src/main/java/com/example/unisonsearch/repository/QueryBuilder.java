@@ -3716,7 +3716,8 @@ public class QueryBuilder {
 						return col;
 					}
 				}
-				return null;
+				// Raw DB column from FilterMetadataConfig; qualifyFilterColumnExpression adds table alias
+				return field;
 		}
 	}
 

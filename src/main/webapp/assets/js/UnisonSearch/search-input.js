@@ -739,7 +739,8 @@ async function loadCategoryDataFromUnisonResults(category) {
                     const fullData = await fetchFacetDataByIds(category, idsArray);
                     
                     if (fullData && fullData.length > 0) {
-                        data = fullData;
+                        data = mergeUnisonPartialIntoFetchedRows(rows, fullData, category);
+                        rememberUnisonMergedRowsForCategory(category, data);
                         const totalCount = (facetResult && typeof facetResult.totalCount === 'number' && !isNaN(facetResult.totalCount))
                             ? facetResult.totalCount : data.length;
                         if (typeof updateCategoryCount === 'function') {
@@ -1592,6 +1593,7 @@ async function executeUnisonSearchForSelectedItem(selectedItem) {
         // Execute Unison Search
         // Direct neighbors only for selected item as well
         const searchToken = ++currentSearchToken;
+        clearUnisonRowMergeBackup();
         const unisonResult = await unisonSearchFn(searches, { maxDepth: 1 });
 
         if (searchToken !== currentSearchToken) return;
@@ -2623,8 +2625,9 @@ async function updateAllFacets(unisonResults, activeCategory) {
                 try {
                     const fullData = await fetchFacetDataByIds(activeCategory, idsArray);
                     if (fullData && fullData.length > 0) {
-                        // Use full data instead of partial rows
-                        data = fullData;
+                        // Prefer list payload but keep Unison row fields the endpoint may omit (e.g. People System_Role)
+                        data = mergeUnisonPartialIntoFetchedRows(rows, fullData, activeCategory);
+                        rememberUnisonMergedRowsForCategory(activeCategory, data);
                     } else if (data && data.length > 0) {
                         // Fallback to rows if fetchFacetDataByIds returns empty
                     }
@@ -2695,6 +2698,162 @@ async function updateAllFacets(unisonResults, activeCategory) {
             dataTable.classList.remove('loading');
         }
     }
+
+    if (typeof syncPeopleConstraintToolbar === 'function') {
+        syncPeopleConstraintToolbar();
+    }
+}
+
+/**
+ * Cross-facet filter: narrow other facet tabs to objects linked to selected people (backend peopleConstraintIds).
+ */
+function currentCategoryIsPeople() {
+    const cat = typeof getActiveCategory === 'function' ? getActiveCategory() : null;
+    if (!cat) {
+        return false;
+    }
+    const facetFn = typeof categoryToFacetId === 'function' ? categoryToFacetId
+        : (typeof window !== 'undefined' && typeof window.categoryToFacetId === 'function' ? window.categoryToFacetId : null);
+    const fid = facetFn ? String(facetFn(cat)).toUpperCase() : '';
+    return fid === 'PEOPLE' || fid === 'PERSON';
+}
+
+function collectVisiblePeopleIds() {
+    const addRow = (r) => {
+        const id = Number(r && (r.ID ?? r.id ?? r.Id));
+        if (Number.isFinite(id) && id > 0) {
+            return id;
+        }
+        return null;
+    };
+    const out = [];
+    const active = typeof getActiveCategory === 'function' ? getActiveCategory() : null;
+    if (currentFilteredData && active && currentFilteredCategory === active && currentCategoryIsPeople()) {
+        currentFilteredData.forEach((r) => {
+            const id = addRow(r);
+            if (id != null) {
+                out.push(id);
+            }
+        });
+        return [...new Set(out)];
+    }
+    const fr = (typeof currentUnisonSearchResults !== 'undefined' && currentUnisonSearchResults && currentUnisonSearchResults.results)
+        ? (currentUnisonSearchResults.results.PEOPLE || currentUnisonSearchResults.results.PERSON)
+        : null;
+    if (fr && Array.isArray(fr.rows)) {
+        fr.rows.forEach((r) => {
+            const id = addRow(r);
+            if (id != null) {
+                out.push(id);
+            }
+        });
+    } else if (fr && fr.ids) {
+        const arr = Array.isArray(fr.ids) ? fr.ids : Array.from(fr.ids);
+        arr.forEach((id) => {
+            const n = Number(id);
+            if (Number.isFinite(n) && n > 0) {
+                out.push(n);
+            }
+        });
+    }
+    return [...new Set(out)];
+}
+
+function syncPeopleConstraintToolbar() {
+    const wrap = (typeof tableContainer !== 'undefined' && tableContainer)
+        ? tableContainer
+        : document.querySelector('.data-table-wrapper');
+    if (!wrap || !wrap.parentElement) {
+        return;
+    }
+
+    const hasUnison = typeof currentUnisonSearchResults !== 'undefined' && currentUnisonSearchResults
+        && currentUnisonSearchResults.results;
+    const peopleFr = hasUnison && (currentUnisonSearchResults.results.PEOPLE || currentUnisonSearchResults.results.PERSON);
+    const hasPeople = peopleFr && (
+        (typeof peopleFr.count === 'number' && peopleFr.count > 0)
+        || (Array.isArray(peopleFr.rows) && peopleFr.rows.length > 0)
+        || (peopleFr.ids && (Array.isArray(peopleFr.ids) ? peopleFr.ids.length > 0 : (peopleFr.ids.size > 0)))
+    );
+
+    let bar = document.getElementById('unison-people-constraint-toolbar');
+    if (!hasPeople || !currentCategoryIsPeople()) {
+        if (bar) {
+            bar.style.display = 'none';
+        }
+        return;
+    }
+
+    if (!bar) {
+        bar = document.createElement('div');
+        bar.id = 'unison-people-constraint-toolbar';
+        bar.className = 'unison-people-constraint-toolbar';
+        bar.setAttribute('role', 'region');
+        bar.setAttribute('aria-label', 'People cross-facet filter');
+        bar.style.cssText = 'display:flex;gap:8px;align-items:center;margin:8px 0;flex-wrap:wrap;';
+        wrap.parentElement.insertBefore(bar, wrap);
+
+        const filterBtn = document.createElement('button');
+        filterBtn.type = 'button';
+        filterBtn.className = 'btn-secondary';
+        filterBtn.id = 'unisonFilterByPeopleBtn';
+        filterBtn.textContent = (typeof window !== 'undefined' && window.I18n && typeof window.I18n.t === 'function')
+            ? window.I18n.t('search.filterByThesePeople', 'Filter by these People')
+            : 'Filter by these People';
+
+        const clearBtn = document.createElement('button');
+        clearBtn.type = 'button';
+        clearBtn.className = 'btn-secondary';
+        clearBtn.id = 'unisonClearPeopleConstraintBtn';
+        clearBtn.textContent = (typeof window !== 'undefined' && window.I18n && typeof window.I18n.t === 'function')
+            ? window.I18n.t('search.clearPeopleFilter', 'Clear people filter')
+            : 'Clear people filter';
+
+        bar.appendChild(filterBtn);
+        bar.appendChild(clearBtn);
+
+        filterBtn.addEventListener('click', async () => {
+            const ids = collectVisiblePeopleIds();
+            if (!ids.length) {
+                if (typeof showMessage === 'function') {
+                    showMessage('No people rows to filter by.', 'warning');
+                } else {
+                    alert('No people rows to filter by.');
+                }
+                return;
+            }
+            if (typeof window !== 'undefined') {
+                window.__unisonPeopleConstraintIds = ids.slice();
+            }
+            if (typeof executeMultiConditionSearch === 'function') {
+                await executeMultiConditionSearch();
+            }
+            syncPeopleConstraintToolbar();
+        });
+        clearBtn.addEventListener('click', async () => {
+            if (typeof window !== 'undefined') {
+                window.__unisonPeopleConstraintIds = null;
+            }
+            if (typeof executeMultiConditionSearch === 'function') {
+                await executeMultiConditionSearch();
+            }
+            syncPeopleConstraintToolbar();
+        });
+    }
+
+    bar.style.display = 'flex';
+    const clearBtn = document.getElementById('unisonClearPeopleConstraintBtn');
+    if (clearBtn) {
+        const activePc = typeof window !== 'undefined' && Array.isArray(window.__unisonPeopleConstraintIds)
+            && window.__unisonPeopleConstraintIds.length > 0;
+        clearBtn.style.display = activePc ? 'inline-flex' : 'none';
+    }
+}
+
+if (typeof window !== 'undefined') {
+    window.syncPeopleConstraintToolbar = syncPeopleConstraintToolbar;
+    window.collectVisiblePeopleIds = collectVisiblePeopleIds;
+    window.currentCategoryIsPeople = currentCategoryIsPeople;
 }
 
 async function executeMultiConditionSearch() {
@@ -2943,7 +3102,12 @@ async function executeMultiConditionSearch() {
                 });
             }
             const searchToken = ++currentSearchToken;
-            const unisonResult = await unisonSearchFn(searches, { maxDepth: maxDepth });
+            const peopleConstraintIds = (typeof window !== 'undefined' && Array.isArray(window.__unisonPeopleConstraintIds)
+                && window.__unisonPeopleConstraintIds.length > 0)
+                ? [...window.__unisonPeopleConstraintIds]
+                : undefined;
+            clearUnisonRowMergeBackup();
+            const unisonResult = await unisonSearchFn(searches, { maxDepth: maxDepth, peopleConstraintIds });
 
             if (searchToken !== currentSearchToken) return;
 
@@ -5025,6 +5189,110 @@ function syncDisplayQueriesAfterFilterMerge(category) {
 /**
  * Apply filters and execute search
  */
+/**
+ * Clear client-side row backup used to re-merge display-filter columns after tab switches.
+ * Call before a full Unison search that replaces the main result set.
+ */
+function clearUnisonRowMergeBackup() {
+    if (typeof window !== 'undefined') {
+        window.__unisonRowBackupByCategory = {};
+    }
+}
+
+/**
+ * Remember merged rows (post-fetch, pre-display-filter) per canonical category so we can
+ * restore columns when FacetResult.rows is empty but ids still match this search.
+ */
+function rememberUnisonMergedRowsForCategory(category, rows) {
+    if (typeof window === 'undefined' || !category || !rows || !rows.length) {
+        return;
+    }
+    const canonFn = typeof canonicalCategoryKey === 'function' ? canonicalCategoryKey
+        : (typeof window !== 'undefined' && typeof window.canonicalCategoryKey === 'function'
+            ? window.canonicalCategoryKey : null);
+    const canon = canonFn ? canonFn(category) : category;
+    if (!window.__unisonRowBackupByCategory) {
+        window.__unisonRowBackupByCategory = {};
+    }
+    const store = window.__unisonRowBackupByCategory[canon] || {};
+    for (const r of rows) {
+        const id = Number(r && (r.ID ?? r.id ?? r.Id));
+        if (!Number.isFinite(id) || id <= 0) {
+            continue;
+        }
+        store[id] = { ...(store[id] || {}), ...r };
+    }
+    window.__unisonRowBackupByCategory[canon] = store;
+}
+
+/**
+ * Merge Unison facet rows (often richer, e.g. System_Role for People) into rows from
+ * GET /UnisonSearch/{module} used by fetchFacetDataByIds. The list endpoint can return
+ * a slimmer shape after tab switches; display filters then see undefined columns and drop
+ * every row. Fills only keys where the fetched row has empty/undefined/null.
+ *
+ * Sources for partial data (in order): facet rows, currentUnisonSearchResults facet rows,
+ * remembered merge backup for this category (survives empty FacetResult.rows).
+ *
+ * @param {Array} partialRows - rows from FacetResult.rows (Unison)
+ * @param {Array} fetchedRows - rows from fetchFacetDataByIds
+ * @param {string} [category] - sidebar category (e.g. people) for fallbacks
+ * @returns {Array} fetchedRows with missing fields back-filled from partialRows
+ */
+function mergeUnisonPartialIntoFetchedRows(partialRows, fetchedRows, category) {
+    if (!fetchedRows || fetchedRows.length === 0) {
+        return fetchedRows;
+    }
+    const partialById = new Map();
+    const ingestRow = (pr) => {
+        if (!pr || typeof pr !== 'object') {
+            return;
+        }
+        const id = Number(pr.ID ?? pr.id ?? pr.Id);
+        if (!Number.isFinite(id) || id <= 0) {
+            return;
+        }
+        const prev = partialById.get(id) || {};
+        partialById.set(id, { ...prev, ...pr });
+    };
+    (partialRows || []).forEach(ingestRow);
+    if (category && typeof lookupUnisonFacetResultForCategory === 'function') {
+        const fr = lookupUnisonFacetResultForCategory(category);
+        if (fr && Array.isArray(fr.rows)) {
+            fr.rows.forEach(ingestRow);
+        }
+    }
+    if (category && typeof window !== 'undefined' && window.__unisonRowBackupByCategory) {
+        const canonFn = typeof canonicalCategoryKey === 'function' ? canonicalCategoryKey
+            : (typeof window.canonicalCategoryKey === 'function' ? window.canonicalCategoryKey : null);
+        const canon = canonFn ? canonFn(category) : category;
+        const backup = window.__unisonRowBackupByCategory[canon];
+        if (backup && typeof backup === 'object') {
+            Object.keys(backup).forEach((k) => ingestRow(backup[k]));
+        }
+    }
+    if (partialById.size === 0) {
+        return fetchedRows;
+    }
+    return fetchedRows.map((fr) => {
+        const id = Number(fr && (fr.ID ?? fr.id ?? fr.Id));
+        const pr = Number.isFinite(id) && id > 0 ? partialById.get(id) : null;
+        if (!pr) {
+            return fr;
+        }
+        const merged = { ...fr };
+        Object.keys(pr).forEach((k) => {
+            const fv = merged[k];
+            const pv = pr[k];
+            const fvEmpty = fv === undefined || fv === null || fv === '';
+            if (fvEmpty && pv !== undefined && pv !== null && pv !== '') {
+                merged[k] = pv;
+            }
+        });
+        return merged;
+    });
+}
+
 /**
  * Apply any isDisplayFilter conditions to a row array for a given category.
  * These conditions are stored in searchConditions but are NOT sent to the backend.

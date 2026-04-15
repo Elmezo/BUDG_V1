@@ -431,11 +431,14 @@ public class AttributeServlet extends HttpServlet {
             String msg = e.getMessage();
             if (msg != null && msg.contains("foreign key constraint")) {
                 if (msg.contains("process_x_attribute")) {
-                    msg = "This attribute is linked to one or more processes. Remove those process links before deleting it.";
+                    msg = "This attribute is linked to one or more Processes. Open the attribute's Impact tab and remove the Process links before deleting it.";
                 } else if (msg.contains("policy_x_attribute")) {
-                    msg = "This attribute is linked to one or more policies. Remove those policy links before deleting it.";
+                    msg = "This attribute is linked to one or more Policies. Open the attribute's Impact tab and remove the Policy links before deleting it.";
                 } else if (msg.contains("project_x_attribute")) {
-                    msg = "This attribute is linked to one or more projects. Remove those project links before deleting it.";
+                    msg = "This attribute is linked to one or more Projects. Open the attribute's Impact tab and remove the Project links before deleting it.";
+                } else if (msg.contains("attribute_x_attribute")) {
+                    msg = "This attribute is used in one or more attribute relationships (as a source or target). "
+                        + "Go to the Relationships tab and remove those relationships before deleting it.";
                 } else {
                     msg = "This attribute cannot be deleted because it is still referenced by other records. Remove those links first.";
                 }

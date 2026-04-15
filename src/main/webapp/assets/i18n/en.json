@@ -785,7 +785,9 @@
         "manageSearchesLink": "Manage searches",
         "recentHistoryTitle": "Recent searches",
         "noRecentSearches": "No recent searches",
-        "bulkNoSelection": "Please select one or more rows first."
+        "bulkNoSelection": "Please select one or more rows first.",
+        "filterByThesePeople": "Filter by these People",
+        "clearPeopleFilter": "Clear people filter"
     },
     "tab": {
         "list": "List",

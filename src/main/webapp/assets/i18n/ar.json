@@ -785,7 +785,9 @@
         "manageSearchesLink": "إدارة عمليات البحث",
         "recentHistoryTitle": "عمليات البحث الأخيرة",
         "noRecentSearches": "لا توجد عمليات بحث حديثة",
-        "bulkNoSelection": "يرجى تحديد صف أو أكثر أولاً."
+        "bulkNoSelection": "يرجى تحديد صف أو أكثر أولاً.",
+        "filterByThesePeople": "تصفية حسب هؤلاء الأشخاص",
+        "clearPeopleFilter": "إلغاء تصفية الأشخاص"
     },
     "tab": {
         "list": "القائمة",
