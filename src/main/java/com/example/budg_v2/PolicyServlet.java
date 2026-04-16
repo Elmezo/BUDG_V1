@@ -84,6 +84,9 @@ public class PolicyServlet extends HttpServlet {
                     o.addProperty("primaryname", p.getPrimaryName());
                     o.addProperty("description", p.getDescription());
                     o.addProperty("refnumber", p.getRefNumber());
+                    if (p.getPolicyType() != null) {
+                        o.addProperty("policyType", p.getPolicyType());
+                    }
                     if (p.getParentId() != null) {
                         o.addProperty("parentId", p.getParentId());
                     }
@@ -105,6 +108,9 @@ public class PolicyServlet extends HttpServlet {
                     o.addProperty("primaryname", p.getPrimaryName());
                     o.addProperty("description", p.getDescription());
                     o.addProperty("refnumber", p.getRefNumber());
+                    if (p.getPolicyType() != null) {
+                        o.addProperty("policyType", p.getPolicyType());
+                    }
                     if (p.getParentId() != null) {
                         o.addProperty("parentId", p.getParentId());
                     }

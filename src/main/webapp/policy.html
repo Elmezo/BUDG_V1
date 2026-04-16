@@ -91,6 +91,22 @@
             transform: rotate(180deg);
         }
 
+        .ref-policy-picker-row {
+            position: relative;
+            display: flex;
+            align-items: stretch;
+            gap: 0.5rem;
+        }
+        .ref-policy-picker-row .form-input {
+            flex: 1;
+            cursor: default;
+        }
+        .ref-policy-picker-actions {
+            display: flex;
+            gap: 0.35rem;
+            align-items: center;
+        }
+
         .searchable-dropdown-menu {
             position: absolute;
             top: 100%;
@@ -284,6 +300,22 @@
                                     <div class="form-group">
                                         <label class="form-label" data-i18n="createPage.label.url">URL</label>
                                         <input type="url" class="form-input" id="url" data-i18n-placeholder="createPage.placeholder.enterUrl" placeholder="Enter URL">
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label class="form-label" for="securityClassificationRefDisplay">Security or Classification Policy Reference</label>
+                                        <div class="ref-policy-picker-row">
+                                            <input type="text" class="form-input" id="securityClassificationRefDisplay" readonly placeholder="Choose Security or Classification Policy Reference">
+                                            <input type="hidden" id="securityClassificationRefPolicyId" value="">
+                                            <div class="ref-policy-picker-actions">
+                                                <button type="button" class="btn btn-sm btn-outline-secondary" id="securityClassificationRefClear" title="Clear" aria-label="Clear selection">
+                                                    <i class="fas fa-times"></i>
+                                                </button>
+                                                <button type="button" class="btn btn-sm btn-secondary" id="securityClassificationRefOpen" title="Select" aria-label="Select policy">
+                                                    <i class="fas fa-pencil-alt"></i>
+                                                </button>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
