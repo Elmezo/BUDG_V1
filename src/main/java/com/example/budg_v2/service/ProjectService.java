@@ -6,6 +6,7 @@ import com.example.budg_v2.model.Project;
 import com.example.budg_v2.model.ProjectType;
 import com.example.budg_v2.model.ProjectLifecycle;
 import com.example.budg_v2.util.DefaultStakeholderUtil;
+import com.example.budg_v2.util.ReferenceNumberGenerator;
 
 import jakarta.servlet.http.HttpServletRequest;
 import java.sql.Connection;
@@ -142,17 +143,41 @@ public class ProjectService {
         }
         if (project.getDescription() == null) project.setDescription("");
         if (project.getIsPublic() == null) project.setIsPublic(1);
-        
-        // Validate refnumber uniqueness for update
-        if (project.getRefNumber() != null && !project.getRefNumber().trim().isEmpty()) {
-            if (!projectDAO.isRefNumberUniqueForUpdate(project.getRefNumber(), project.getId())) {
-                throw new IllegalArgumentException("This reference number is already in use. Please enter a unique reference number.");
-            }
+
+        Project currentProject = projectDAO.getProjectById(project.getId());
+        if (currentProject == null) {
+            throw new IllegalArgumentException("Project not found");
         }
-        
-        // Update the project in the main table
+
+        String incomingRefNumber = project.getRefNumber() != null ? project.getRefNumber().trim() : null;
+
+        // If update payload has no ref: keep existing ref when present; otherwise auto-generate (same idea as Process update).
+        if (incomingRefNumber == null || incomingRefNumber.isEmpty()) {
+            String currentRefNumber = currentProject.getRefNumber() != null
+                    ? currentProject.getRefNumber().trim()
+                    : null;
+            if (currentRefNumber != null && !currentRefNumber.isEmpty()) {
+                project.setRefNumber(currentRefNumber);
+            } else {
+                try {
+                    project.setRefNumber(ReferenceNumberGenerator.generateProjectRefNumber());
+                } catch (SQLException e) {
+                    System.err.println("Failed to auto-generate project ref number during update: " + e.getMessage());
+                    project.setRefNumber(null);
+                }
+            }
+        } else {
+            String currentRefNumber = currentProject.getRefNumber();
+            if (currentRefNumber == null || !currentRefNumber.trim().equalsIgnoreCase(incomingRefNumber)) {
+                if (!projectDAO.isRefNumberUniqueForUpdate(incomingRefNumber, project.getId())) {
+                    throw new IllegalArgumentException("This reference number is already in use. Please enter a unique reference number.");
+                }
+            }
+            project.setRefNumber(incomingRefNumber);
+        }
+
         boolean success = projectDAO.updateProject(project);
-        
+
         return success;
     }
 
