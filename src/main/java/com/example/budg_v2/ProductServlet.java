@@ -5,6 +5,7 @@ import com.example.budg_v2.database.DatabaseConnection;
 import com.example.budg_v2.model.Product;
 import com.example.budg_v2.service.ProductService;
 import com.example.budg_v2.service.SegmentAccessService;
+import com.example.budg_v2.service.SegmentValidationService;
 import com.example.budg_v2.util.CorsUtil;
 import com.example.budg_v2.util.JsonUtil;
 import com.example.budg_v2.util.PermissionCheckUtil;
@@ -31,11 +32,13 @@ public class ProductServlet extends HttpServlet {
 
     private ProductService productService;
     private SegmentDAO segmentDAO;
+    private SegmentValidationService segmentValidationService;
 
     @Override
     public void init() {
         this.productService = new ProductService();
         this.segmentDAO = new SegmentDAO();
+        this.segmentValidationService = new SegmentValidationService();
     }
 
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException {
@@ -99,12 +102,14 @@ public class ProductServlet extends HttpServlet {
                 //system.out.println("ProductServlet /hierarchy - JSON response size: " + arr.size());
                 response.getWriter().write(arr.toString());
             } else if ("/parent-picker".equals(pathInfo)) {
-                // Return products for parent picker (excluding current product)
-                //system.out.println("ProductServlet: Getting products for parent picker (userId: " + userId + ")");
                 List<Product> products = userId > 0 ? 
                     productService.getProductsForDropdown(userId) : 
                     productService.getProductsForDropdown();
-                //system.out.println("ProductServlet: Retrieved " + products.size() + " products for parent picker");
+                products = RequestedSegmentFilterUtil.filterByRequestedSegment(
+                        products,
+                        RequestedSegmentFilterUtil.resolveEffectiveSegmentId(request, segmentDAO),
+                        "Product",
+                        Product::getId);
                 
                 com.google.gson.JsonArray arr = new com.google.gson.JsonArray();
                 for (Product p : products) {
@@ -251,15 +256,28 @@ public class ProductServlet extends HttpServlet {
             product.setCreatedById(createdById);
             product.setLastUpdateUserId(lastUpdateUserId);
 
+            // Validate segment hierarchy before creating product
+            Integer segmentId = JsonUtil.getJsonInt(jsonData, "segmentId");
+            if (segmentId == null) segmentId = 1;
+            if (parentId != null && parentId > 0) {
+                try {
+                    var hierarchyResult = segmentValidationService.validateParentChildSegment(parentId, segmentId, "Product");
+                    if (!hierarchyResult.isValid) {
+                        JsonUtil.sendErrorResponse(response.getWriter(), hierarchyResult.message, 400);
+                        return;
+                    }
+                } catch (Exception e) {
+                    System.err.println("Error validating product hierarchy: " + e.getMessage());
+                    JsonUtil.sendErrorResponse(response.getWriter(), "Error validating segment hierarchy: " + e.getMessage(), 500);
+                    return;
+                }
+            }
+
             //system.out.println("ProductServlet: Creating product: " + product.getPrimaryName());
             int productId = productService.createProduct(product, request);
             
             if (productId > 0) {
                 //system.out.println("ProductServlet: Product created successfully with ID: " + productId);
-                
-                // Assign product to segment
-                Integer segmentId = JsonUtil.getJsonInt(jsonData, "segmentId");
-                if (segmentId == null) segmentId = 1; // Default to Enterprise segment
                 int userId = UserContextUtil.getCurrentUserId(request);
                 try {
                     segmentDAO.assignObjectToSegment(segmentId, productId, "Product", userId > 0 ? userId : 1);

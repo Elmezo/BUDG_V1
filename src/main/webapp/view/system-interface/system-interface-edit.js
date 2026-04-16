@@ -138,6 +138,12 @@
             if (display) {
                 display.value = 'Enterprise';
             }
+            // Reset to Enterprise if no target system
+            const sfContainer = document.getElementById('segmentFieldContainer');
+            const sfInstance = sfContainer && sfContainer._segmentFieldInstance;
+            if (sfInstance && typeof sfInstance.setValue === 'function') {
+                sfInstance.setValue(1);
+            }
             return;
         }
 
@@ -148,6 +154,12 @@
             const segmentName = system?.segmentName || system?.segment_name || system?.Segment_Name || (segmentId === 1 ? 'Enterprise' : '');
             if (display) {
                 display.value = segmentName || 'Enterprise';
+            }
+            // Sync the disabled segment field to match the target system's segment
+            const sfContainer = document.getElementById('segmentFieldContainer');
+            const sfInstance = sfContainer && sfContainer._segmentFieldInstance;
+            if (sfInstance && typeof sfInstance.setValue === 'function') {
+                sfInstance.setValue(segmentId);
             }
         } catch (error) {
             console.error('Error deriving segment from target system:', error);
@@ -1367,7 +1379,13 @@
                     if (container) {
                         container._segmentFieldInstance = segmentField;
                     }
-                    console.log('Segment field initialized');
+                    // Segment is auto-derived from target system; make field read-only
+                    const segSelectEl = container ? container.querySelector('select') : null;
+                    if (segSelectEl) {
+                        segSelectEl.disabled = true;
+                        segSelectEl.title = 'Segment is automatically assigned from the target system';
+                    }
+                    console.log('Segment field initialized (read-only for interface)');
                 } catch (error) {
                     console.error('Error initializing segment field:', error);
                 }

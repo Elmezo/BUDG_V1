@@ -1612,6 +1612,7 @@
             "errorLoadingImpact": "Error loading impact data",
             "impactScriptNotLoaded": "Impact view script not loaded. Please refresh the page.",
             "systemNoSegment": "Cannot save: System '{systemName}' has no segment. Assign a segment to the system first, then try again.",
+            "systemPrivateSegmentRule": "Cannot save: when a System belongs to a private segment, its Data Sets must belong to the same segment.",
             "editSystem": "Edit system",
             "glossaryNoSegment": "Cannot save: {glossaryName} has no segment assignment. Please assign a segment to this glossary first, then try saving the dataset again."
         },

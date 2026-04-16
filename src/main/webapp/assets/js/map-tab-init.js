@@ -563,6 +563,24 @@
             mapTabOverlayShim.mapType = currentMapType;
             mapTabOverlayShim.overlay = liveActiveOverlay;
             mapTabOverlayShim.overlayColumnsByType = liveOverlayColumns;
+            // Dataset / system lineage overlays read live engine state (linkedDatasets, relationships, etc.).
+            // Keep shim references in sync with SystemInterfacesMap — do not use the empty Maps from first init.
+            if (window.SystemInterfacesMap && typeof window.SystemInterfacesMap.getState === 'function') {
+                var ls = window.SystemInterfacesMap.getState();
+                if (ls) {
+                    if (ls.linkedDatasets != null) mapTabOverlayShim.linkedDatasets = ls.linkedDatasets;
+                    if (ls.datasetRelationships != null) mapTabOverlayShim.datasetRelationships = ls.datasetRelationships;
+                    if (ls.systemData != null) mapTabOverlayShim.systemData = ls.systemData;
+                    if (ls.interfacesData != null) mapTabOverlayShim.interfacesData = ls.interfacesData;
+                    if (ls.dataFlowData != null) mapTabOverlayShim.dataFlowData = ls.dataFlowData;
+                    if (ls.connectedSystems != null) mapTabOverlayShim.connectedSystems = ls.connectedSystems;
+                    if (ls.inaccessibleSystems != null) mapTabOverlayShim.inaccessibleSystems = ls.inaccessibleSystems;
+                    if (ls.attributeRelationships != null) mapTabOverlayShim.attributeRelationships = ls.attributeRelationships;
+                    if (ls.systemId != null && ls.systemId !== '') {
+                        mapTabOverlayShim.systemId = ls.systemId;
+                    }
+                }
+            }
         }
 
         function ensureTabOverlayController() {
@@ -905,6 +923,7 @@
                     }
                     if (mapTabOverlayCtl && mapTabOverlayShim && liveActiveOverlay === overlayType && liveActiveOverlay !== 'none') {
                         mapTabOverlayShim.overlayColumnsByType = liveOverlayColumns;
+                        syncShimFromTab();
                         mapTabOverlayCtl.loadOverlayData(overlayType, { quiet: true });
                     }
                 });
@@ -1132,8 +1151,12 @@
                 var hasDataset = !!(dsScope.querySelector('#datasetFilterTypeOptions') || dsScope.querySelector('#datasetFilterLifecycleOptions')
                     || dsScope.querySelector('[id$="datasetFilterTypeOptions"]') || dsScope.querySelector('[id$="datasetFilterLifecycleOptions"]'));
                 if (hasDataset && typeof window.MapGraphUtils.applyDatasetNodeFilters === 'function') {
+                    var ld = (window.SystemInterfacesMap && typeof window.SystemInterfacesMap.getState === 'function' && window.SystemInterfacesMap.getState().linkedDatasets)
+                        ? window.SystemInterfacesMap.getState().linkedDatasets
+                        : new Map();
                     window.MapGraphUtils.applyDatasetNodeFilters(cy, collectDatasetNodeFiltersFromDom(dsScope), {
                         filtersInitialized: true,
+                        linkedDatasets: ld,
                         updateOverlayPositions: positionAllOverlayPanels
                     });
                 }
@@ -1168,8 +1191,12 @@
                 });
             }
             if (hasDataset && typeof window.MapGraphUtils.applyDatasetNodeFilters === 'function') {
+                var ld2 = (window.SystemInterfacesMap && typeof window.SystemInterfacesMap.getState === 'function' && window.SystemInterfacesMap.getState().linkedDatasets)
+                    ? window.SystemInterfacesMap.getState().linkedDatasets
+                    : new Map();
                 window.MapGraphUtils.applyDatasetNodeFilters(cy, collectDatasetNodeFiltersFromDom(scope), {
                     filtersInitialized: true,
+                    linkedDatasets: ld2,
                     updateOverlayPositions: positionAllOverlayPanels
                 });
             }

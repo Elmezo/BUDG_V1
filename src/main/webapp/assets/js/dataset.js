@@ -712,13 +712,25 @@ async function saveDataset(closeAfter) {
             }
         } else {
             const errInfo = window.getCreateSaveErrorInfo ? window.getCreateSaveErrorInfo(serverMsg, 'Data Sets') : null;
+            const lowerMsg = String(serverMsg || '').toLowerCase();
             if (errInfo) {
                 const errMsg = I18n.t(errInfo.key, errInfo.params);
                 if (typeof window.showNotification === 'function') { window.showNotification(errMsg, 'error'); } else { alert(errMsg); }
                 const fieldKey = errInfo.focus === 'name' ? 'primaryName' : errInfo.focus === 'reference' ? 'refNumber' : null;
                 if (fieldKey) mapDatasetServerError(fieldKey, I18n.t(errInfo.key, errInfo.params));
+            } else if (
+                lowerMsg.includes('dataset/system segment rule violation') ||
+                lowerMsg.includes('when a system belongs to a private segment') ||
+                lowerMsg.includes('visibility rule violation') ||
+                lowerMsg.includes('cannot be set to public because')
+            ) {
+                const visMsg = I18n.t('dataset.errors.systemPrivateSegmentRule');
+                if (typeof window.showNotification === 'function') { window.showNotification(visMsg, 'error'); } else { alert(visMsg); }
             } else if (serverField) {
                 mapDatasetServerError(serverField, serverMsg || I18n.t('createPage.message.required'));
+            } else if (serverMsg) {
+                // Prefer specific backend message over generic duplicate/reference hint.
+                if (typeof window.showNotification === 'function') { window.showNotification(serverMsg, 'error'); } else { alert(serverMsg); }
             } else {
                 const failMsg = I18n.t('createPage.message.failedToSaveWithHint', { facet: 'Data Sets' });
                 if (typeof window.showNotification === 'function') { window.showNotification(failMsg, 'error'); } else { alert(failMsg); }

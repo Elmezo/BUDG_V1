@@ -16,22 +16,20 @@ import java.util.Set;
 
 /**
  * Segment Validation Service
-
- * 1. HIERARCHY RULE: Parent-child relationships must stay within the SAME segment
- *    - A child object cannot be in a different segment than its parent
- *    - Entire hierarchy (parent → child → grandchild) must be in same segment
  *
- * 2. CROSS-SEGMENT RELATIONSHIP RULES:
- *    - Enterprise ↔ Enterprise: ✅ ALLOWED
- *    - Enterprise ↔ Private: ✅ ALLOWED
- *    - Private ↔ Enterprise: ✅ ALLOWED
- *    - Private1 ↔ Private1 (same): ✅ ALLOWED
- *    - Private1 ↔ Private2 (different): ❌ NOT ALLOWED
+ * <p><b>A) Generic links (not parent/child table hierarchies)</b> — {@link #validateCrossSegmentRelationship} /
+ * {@link #validateCrossSegmentRelationshipBySegmentIds}: same segment allowed; Enterprise involved allowed;
+ * two different private segments not allowed (Enterprise bridges private silos).</p>
  *
- * 3. VISIBILITY RULE:
- *    - Data Set cannot be public if System is private
+ * <p><b>B) Strict parent/child hierarchies</b> — {@link #validateParentChildSegment}, {@link #validateSegmentChangeWithChildren}:
+ * parent and child must resolve to the same segment ID after normalizing unassigned ({@code -1}) to Enterprise.
+ * Applies to glossary, policy, system tree, regulation, project, process, org unit, client, product, business area, etc.</p>
  *
- * Enterprise Segment ID = 1 (always)
+ * <p><b>C) System → Dataset → Attribute and glossary links on attributes</b> — dedicated methods (not parent/child of one table):
+ * {@link #validateDatasetSystemSegment}, {@link #validateDatasetVisibility}, {@link #validateDatasetGlossarySegment},
+ * {@link #validateAttributeGlossarySegment}. Attribute↔glossary follows dataset/glossary rules, not hierarchy equality.</p>
+ *
+ * <p>Enterprise segment ID = 1.</p>
  */
 public class SegmentValidationService {
 
@@ -163,12 +161,7 @@ public class SegmentValidationService {
     }
 
     /**
-     * HIERARCHY RULE VALIDATION (per requirements):
-     * Parent and Child Hierarchy:
-     * - Both Enterprise = OK
-     * - One Enterprise, one Private = OK
-     * - Both same Private = OK
-     * - Different Private = NOT OK
+     * HIERARCHY RULE: parent and child must be in the same segment after normalizing {@code -1} (unassigned) to Enterprise.
      *
      * @param parentId The parent object's ID (null if no parent)
      * @param childSegmentId The segment ID the child object will be assigned to
@@ -182,37 +175,19 @@ public class SegmentValidationService {
             return ValidationResult.success();
         }
 
-        // Get parent's segment
-        int parentSegmentId = segmentDAO.getObjectSegmentId(parentId, objectType);
+        int parentSegmentId = normalizeSegmentId(segmentDAO.getObjectSegmentId(parentId, objectType));
+        int childNorm = normalizeSegmentId(childSegmentId);
 
-        // If parent has no segment assignment (-1), treat it as Enterprise (default segment)
-        // This allows operations to proceed when parent hasn't been assigned a segment yet
-        if (parentSegmentId == -1) {
-            parentSegmentId = ENTERPRISE_SEGMENT_ID;
-        }
-
-        // Both Enterprise = OK
-        if (isEnterpriseSegment(parentSegmentId) && isEnterpriseSegment(childSegmentId)) {
+        if (parentSegmentId == childNorm) {
             return ValidationResult.success();
         }
 
-        // One Enterprise, one Private = OK
-        if (isEnterpriseSegment(parentSegmentId) || isEnterpriseSegment(childSegmentId)) {
-            return ValidationResult.success();
-        }
-
-        // Both same Private = OK
-        if (parentSegmentId == childSegmentId) {
-            return ValidationResult.success();
-        }
-
-        // Different Private segments = NOT OK
         String parentSegmentName = getSegmentName(parentSegmentId);
-        String childSegmentName = getSegmentName(childSegmentId);
+        String childSegmentName = getSegmentName(childNorm);
 
         return ValidationResult.hierarchyConflict(
                 parentSegmentId, parentSegmentName,
-                childSegmentId, childSegmentName
+                childNorm, childSegmentName
         );
     }
 
@@ -235,8 +210,8 @@ public class SegmentValidationService {
     }
 
     /**
-     * Validate that changing a parent's segment won't break hierarchy with its children
-     * Per requirements: Enterprise parent can have children in any segment
+     * Validate that changing this object's segment would leave any direct child in a different segment
+     * (after normalizing unassigned to Enterprise). Same rule as {@link #validateParentChildSegment} for hierarchy.
      *
      * @param objectId The object whose segment is being changed
      * @param newSegmentId The new segment ID
@@ -245,12 +220,6 @@ public class SegmentValidationService {
      */
     public ValidationResult validateSegmentChangeWithChildren(int objectId, int newSegmentId, String objectType)
             throws SQLException {
-        // Enterprise parent may have children in other segments = OK
-        if (isEnterpriseSegment(newSegmentId)) {
-            return ValidationResult.success();
-        }
-
-        // Get children count in different private segments (Enterprise children are OK)
         String childTable = getChildTableName(objectType);
         String parentColumn = getParentColumnName(objectType);
 
@@ -258,34 +227,37 @@ public class SegmentValidationService {
             return ValidationResult.success(); // No hierarchy for this type
         }
 
-        // Find first child in a conflicting private segment (not Enterprise, not same target segment).
+        int targetNorm = normalizeSegmentId(newSegmentId);
+
+        // First direct child whose normalized segment differs from the parent's new segment (including Enterprise targets).
         String sql = String.format(
                 "SELECT c.ID AS child_id, sxr.Segment_ID AS child_segment_id FROM %s c " +
                         "JOIN object_reference orr ON orr.Object_ID = c.ID " +
                         "JOIN segment_object_type sot ON orr.Object_Type_ID = sot.ID " +
                         "JOIN segment_x_resource sxr ON sxr.Object_Reference_ID = orr.ID " +
                         "WHERE sot.Type = ? AND c.%s = ? " +
-                        "  AND sxr.Segment_ID != ? AND sxr.Segment_ID != 1 AND sxr.Deleted_At IS NULL " +
+                        "  AND (CASE WHEN sxr.Segment_ID IS NULL OR sxr.Segment_ID = -1 THEN %d ELSE sxr.Segment_ID END) <> ? " +
+                        "  AND sxr.Deleted_At IS NULL " +
                         "LIMIT 1",
-                childTable, parentColumn
+                childTable, parentColumn, ENTERPRISE_SEGMENT_ID
         );
 
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setString(1, objectType);
             pstmt.setInt(2, objectId);
-            pstmt.setInt(3, newSegmentId);
+            pstmt.setInt(3, targetNorm);
 
             try (ResultSet rs = pstmt.executeQuery()) {
                 if (rs.next()) {
                     int childId = rs.getInt("child_id");
                     int childSegmentId = normalizeSegmentId(rs.getInt("child_segment_id"));
                     String childSegmentName = getSegmentName(childSegmentId);
-                    String targetSegmentName = getSegmentName(newSegmentId);
+                    String targetSegmentName = getSegmentName(targetNorm);
                     return ValidationResult.error(
                             String.format(
                                     "%s Blocked: Child relation prevents move. %s (ID: %d) has child %s (ID: %d) " +
-                                            "in private segment '%s', but target segment is '%s'.",
+                                            "in segment '%s', but target segment is '%s'. Move or align the child segment first.",
                                     SEGMENT_RELATIONSHIP_BLOCK_MESSAGE,
                                     objectType, objectId, objectType, childId, childSegmentName, targetSegmentName
                             )
@@ -683,7 +655,8 @@ public class SegmentValidationService {
     }
 
     /**
-     * CROSS-SEGMENT RELATIONSHIP VALIDATION
+     * CROSS-SEGMENT RELATIONSHIP VALIDATION (generic links; see class-level section A).
+     * System interfaces between two systems are not validated through this method (segment follows target system elsewhere).
      *
      * Validates if a relationship can be created between two objects in different segments.
      *
@@ -966,7 +939,8 @@ public class SegmentValidationService {
      * - Attributes in public dataset can attach to ANY glossary (public or private)
      * - Attributes in private dataset can attach to Enterprise glossary OR same private segment glossary
      *
-     * Attribute inherits dataset segment, so any glossary linked via the attribute must respect the dataset rule.
+     * <p>Attribute↔glossary is a <b>reference link</b>, not a table parent/child hierarchy; rules follow
+     * {@link #validateDatasetGlossarySegment} via the owning dataset's segment (attribute inherits dataset segment).</p>
      *
      * @param datasetId The dataset ID
      * @param glossaryId The glossary ID

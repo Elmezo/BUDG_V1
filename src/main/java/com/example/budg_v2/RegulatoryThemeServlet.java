@@ -355,17 +355,37 @@ public class RegulatoryThemeServlet extends HttpServlet {
                 }
             }
 
-            int themeId = regulatoryThemeService.createRegulatoryTheme(theme, request);
-            //system.out.println("RegulatoryThemeServlet POST - Created regulatory theme with ID: " + themeId);
-
-            // Assign regulatory theme to segment - parse from JSON
-            Integer segmentId = 1; // Default to Enterprise segment
+            // Validate segment hierarchy before creating regulatory theme
+            Integer segmentId = 1;
             try {
                 JsonObject jsonObj = com.google.gson.JsonParser.parseString(jsonData).getAsJsonObject();
                 if (jsonObj.has("segmentId") && !jsonObj.get("segmentId").isJsonNull()) {
                     segmentId = jsonObj.get("segmentId").getAsInt();
                 }
             } catch (Exception ignored) {}
+            Integer themeParentId = theme.getParentId();
+            if (themeParentId != null && themeParentId > 0) {
+                try {
+                    var hierarchyResult = segmentValidationService.validateParentChildSegment(themeParentId, segmentId, "RegulatoryTheme");
+                    if (!hierarchyResult.isValid) {
+                        response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                        JsonObject error = new JsonObject();
+                        error.addProperty("error", hierarchyResult.message);
+                        response.getWriter().write(gson.toJson(error));
+                        return;
+                    }
+                } catch (Exception e) {
+                    System.err.println("Error validating regulatory theme hierarchy: " + e.getMessage());
+                    response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+                    JsonObject error = new JsonObject();
+                    error.addProperty("error", "Error validating segment hierarchy: " + e.getMessage());
+                    response.getWriter().write(gson.toJson(error));
+                    return;
+                }
+            }
+
+            int themeId = regulatoryThemeService.createRegulatoryTheme(theme, request);
+            //system.out.println("RegulatoryThemeServlet POST - Created regulatory theme with ID: " + themeId);
             int userId = UserContextUtil.getCurrentUserId(request);
             try {
                 segmentDAO.assignObjectToSegment(segmentId, themeId, "RegulatoryTheme", userId > 0 ? userId : 1);

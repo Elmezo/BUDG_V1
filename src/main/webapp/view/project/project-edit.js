@@ -411,6 +411,11 @@ async function saveProject(id, closeAfter) {
                 syncAdvancedRichTextToTextarea('projectDescription');
             }
 
+            if (segmentField && !segmentField.validate()) {
+                restoreButtons();
+                return;
+            }
+
             const payload = collectFormData(currentUserId);
             const res = await window.BUDG_API_SERVICE.updateProject(id, payload);
 
@@ -574,6 +579,10 @@ async function saveProjectData(id) {
         // Sync rich-text editor content back to textarea before reading
         if (typeof syncAdvancedRichTextToTextarea === 'function') {
             syncAdvancedRichTextToTextarea('projectDescription');
+        }
+
+        if (segmentField && !segmentField.validate()) {
+            return false;
         }
 
         const payload = collectFormData(currentUserId);
@@ -1429,10 +1438,16 @@ async function selectParent() {
         let useServerFilter = false;
 
         try {
-            parentOptions = await window.BUDG_API_SERVICE.getProjectParentOptions(currentProjectId);
+            const svc = window.BUDG_API_SERVICE;
+            const endpoint = svc.config?.ENDPOINTS?.PROJECT?.PARENT_PICKER || '/project/parent-picker';
+            const pickerParams = { excludeId: currentProjectId };
+            const activeSegId = segmentField ? parseInt(segmentField.getValue(), 10) : null;
+            if (Number.isInteger(activeSegId) && activeSegId > 0) {
+                pickerParams.segmentId = activeSegId;
+            }
+            parentOptions = await svc.get(endpoint, pickerParams);
             console.log('Parent options (server-filtered):', parentOptions);
 
-            // Check if server response includes parentid field for hierarchy checking
             if (Array.isArray(parentOptions) && parentOptions.length > 0) {
                 const hasParentId = parentOptions.some(p => p.hasOwnProperty('parentid'));
                 if (hasParentId) {
@@ -1594,9 +1609,16 @@ async function refreshProjectParentForSelectedSegment(previousSegmentId) {
     const currentProjectId = parseId();
     if (!currentProjectId) return;
 
+    const activeSegmentId = segmentField ? parseInt(segmentField.getValue(), 10) : null;
     let candidates = [];
     try {
-        const parentOptions = await window.BUDG_API_SERVICE.getProjectParentOptions(currentProjectId);
+        const svc = window.BUDG_API_SERVICE;
+        const endpoint = svc.config?.ENDPOINTS?.PROJECT?.PARENT_PICKER || '/project/parent-picker';
+        const params = { excludeId: currentProjectId };
+        if (Number.isInteger(activeSegmentId) && activeSegmentId > 0) {
+            params.segmentId = activeSegmentId;
+        }
+        const parentOptions = await svc.get(endpoint, params);
         candidates = Array.isArray(parentOptions?.data) ? parentOptions.data : (Array.isArray(parentOptions) ? parentOptions : []);
     } catch (_) {
         candidates = [];

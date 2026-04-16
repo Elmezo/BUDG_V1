@@ -1099,7 +1099,9 @@ document.addEventListener('DOMContentLoaded', async function() {
 
             parentClientSelect.innerHTML = '<option value="">Loading parent committees...</option>';
 
-            const response = await fetch('/api/committee/lookup?type=committees');
+            const activeSegmentId = segmentField ? parseInt(segmentField.getValue(), 10) : null;
+            const segQuery = Number.isInteger(activeSegmentId) && activeSegmentId > 0 ? `&segmentId=${activeSegmentId}` : '';
+            const response = await fetch(`/api/committee/lookup?type=committees${segQuery}`);
             const data = await response.json();
 
             if (data && Array.isArray(data) && data.length > 0) {

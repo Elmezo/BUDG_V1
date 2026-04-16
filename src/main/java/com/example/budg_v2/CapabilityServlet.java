@@ -270,6 +270,21 @@ public class CapabilityServlet extends HttpServlet {
             capability.setIsPublic(isPublic);
             capability.setLastUpdateUserId(lastUpdateUserId);
 
+            // Validate segment hierarchy before creating capability
+            if (parentId != null && parentId > 0) {
+                try {
+                    var hierarchyResult = segmentValidationService.validateParentChildSegment(parentId, segmentId, "Capability");
+                    if (!hierarchyResult.isValid) {
+                        JsonUtil.sendErrorResponse(response.getWriter(), hierarchyResult.message, 400);
+                        return;
+                    }
+                } catch (Exception e) {
+                    System.err.println("Error validating capability hierarchy: " + e.getMessage());
+                    JsonUtil.sendErrorResponse(response.getWriter(), "Error validating segment hierarchy: " + e.getMessage(), 500);
+                    return;
+                }
+            }
+
             Capability createdCapability = capabilityService.createCapability(capability);
             
             // Assign capability to segment

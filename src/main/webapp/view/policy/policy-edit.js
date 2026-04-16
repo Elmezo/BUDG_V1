@@ -709,6 +709,11 @@ async function savePolicy(policyId, closeAfter = false) {
                 return;
             }
 
+            if (segmentField && !segmentField.validate()) {
+                restoreButtons();
+                return;
+            }
+
             // Update policy
             const response = await window.BUDG_API_SERVICE.updatePolicy(policyId, policyData);
 

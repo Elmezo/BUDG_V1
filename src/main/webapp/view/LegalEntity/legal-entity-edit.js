@@ -1,12 +1,5 @@
 // Legal Entity Edit Page JavaScript
 let segmentField = null; // Segment field component reference
-let originalLegalSegmentId = null; // segment loaded from server; used to detect segment change
-
-function normalizeLegalSegmentId(value) {
-    if (value == null || value === '') return null;
-    const n = parseInt(value, 10);
-    return Number.isInteger(n) ? n : null;
-}
 
 document.addEventListener('DOMContentLoaded', async function() {
     console.log('DOMContentLoaded event fired');
@@ -214,33 +207,24 @@ document.addEventListener('DOMContentLoaded', async function() {
             }
             
             // Set status and viewing selections after they're loaded
-            // Use explicit check so that 0 or other valid IDs are not treated as missing (avoid resetting to Active after reload)
             if (statusSelect) {
-                const statusValue = data.status ?? data.status_id ?? data.Status_ID;
-                if (statusValue !== undefined && statusValue !== null && statusValue !== '') {
-                    const valueStr = String(statusValue);
-                    if (Array.from(statusSelect.options).some(opt => opt.value === valueStr)) {
-                        statusSelect.value = valueStr;
-                        console.log('Set Status to:', valueStr);
-                    } else {
-                        setDefaultStatus();
-                    }
+                const statusValue = data.status || data.status_id || data.Status_ID;
+                if (statusValue) {
+                    statusSelect.value = statusValue;
+                    console.log('Set Status to:', statusValue);
                 } else {
+                    // Set default status if no existing value
                     setDefaultStatus();
                 }
             }
             
             if (viewingSelect) {
-                const viewingValue = data.is_public ?? data.viewing_id ?? data.Viewing_ID;
-                if (viewingValue !== undefined && viewingValue !== null && viewingValue !== '') {
-                    const valueStr = String(viewingValue);
-                    if (Array.from(viewingSelect.options).some(opt => opt.value === valueStr)) {
-                        viewingSelect.value = valueStr;
-                        console.log('Set Viewing to:', valueStr);
-                    } else {
-                        setDefaultViewing();
-                    }
+                const viewingValue = data.is_public || data.viewing_id || data.Viewing_ID;
+                if (viewingValue) {
+                    viewingSelect.value = viewingValue;
+                    console.log('Set Viewing to:', viewingValue);
                 } else {
+                    // Set default viewing if no existing value
                     setDefaultViewing();
                 }
             }
@@ -260,7 +244,6 @@ document.addEventListener('DOMContentLoaded', async function() {
 
             // Set segment value if available (check for null/undefined, not falsy, since 0 could be valid)
             const serverSegmentId = data.segmentId ?? data.segment_id ?? data.Segment_ID;
-            originalLegalSegmentId = normalizeLegalSegmentId(serverSegmentId);
             console.log('🔍 Legal Entity segment data:', {
                 segmentId: data.segmentId,
                 segment_id: data.segment_id,
@@ -301,12 +284,6 @@ document.addEventListener('DOMContentLoaded', async function() {
             } else {
                 console.warn('⚠️ Segment field not initialized yet');
             }
-
-            setTimeout(() => {
-                if (segmentField && typeof segmentField.getValue === 'function') {
-                    originalLegalSegmentId = normalizeLegalSegmentId(segmentField.getValue());
-                }
-            }, 400);
             
             // Store original data for change detection
             const resolvedSegmentId = (serverSegmentId != null && serverSegmentId !== undefined && serverSegmentId !== -1) 
@@ -322,7 +299,6 @@ document.addEventListener('DOMContentLoaded', async function() {
                 parent_id: data.parent_id || data.Parent_ID || data.parent_legal_entity_id || null,
                 segment_id: resolvedSegmentId
             };
-            window._legalEntitySegmentId = resolvedSegmentId != null ? resolvedSegmentId : (segmentField ? segmentField.getValue() : null);
             
             console.log('Original data stored:', originalData);
             console.log('Form fields populated successfully');
@@ -342,16 +318,6 @@ document.addEventListener('DOMContentLoaded', async function() {
             const errorMsg = window.I18n ? window.I18n.t('legalEntity.errors.failedToLoad') : 'Failed to load legal entity data. Please try again.';
             alert(errorMsg);
         }
-    }
-
-    // Robust success detection for update API response (backend returns { success: true, message: "..." })
-    function isUpdateSuccess(response) {
-        if (!response || typeof response !== 'object') return false;
-        if (response.error) return false;
-        if (response.success === true) return true;
-        if (response.id != null) return true;
-        if (response.message && response.message.length > 0) return true;
-        return false;
     }
 
     // Save legal entity to API
@@ -463,11 +429,6 @@ document.addEventListener('DOMContentLoaded', async function() {
                 console.warn('Client-side validation failed, falling back to server-side validation:', error);
             }
 
-            // Sync rich-text editor content back to textarea before reading
-            if (typeof syncAdvancedRichTextToTextarea === 'function') {
-                syncAdvancedRichTextToTextarea('descriptionInput');
-            }
-
             // Collect form data
             const formData = {
                 longname: nameInput.value.trim(),
@@ -476,8 +437,12 @@ document.addEventListener('DOMContentLoaded', async function() {
                 status: parseInt(statusSelect.value) || 1,
                 is_public: parseInt(viewingSelect.value) || 1,
                 parent_id: parentLegalEntitySelect?.value || null,
-                segmentId: segmentField ? segmentField.getValue() : null
+                segmentId: segmentField ? segmentField.getValue() : 1
             };
+
+            if (segmentField && !segmentField.validate()) {
+                return;
+            }
 
             // Show loading state on buttons
             const savingText = window.I18n ? window.I18n.t('legalEntity.messages.saving') : 'Saving...';
@@ -503,7 +468,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 responseType: typeof response
             });
 
-            if (isUpdateSuccess(response)) {
+            if (response && (response.success === true || response.id || response.message)) {
                 // Save custom fields if context exists
                 if (window.customFieldsContext && window.customFieldsContext.saveValues) {
                     try {
@@ -627,9 +592,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         // Check if form has unsaved changes
         if (hasAnyDataChanged()) {
             const confirmMsg = window.I18n ? window.I18n.t('legalEntity.confirm.cancelWithChanges') : 'You have unsaved changes. Are you sure you want to cancel without saving?';
-            const confirmClose = await (typeof window.showConfirmDialog === 'function'
-                ? window.showConfirmDialog({ message: confirmMsg, type: 'warning' })
-                : Promise.resolve(confirm(confirmMsg)));
+            const confirmClose = confirm(confirmMsg);
             if (confirmClose) {
                 await window.LockInitHelper.releaseLock();
                 window.location.href = `/view/LegalEntity/${entityId}`;
@@ -737,13 +700,18 @@ document.addEventListener('DOMContentLoaded', async function() {
                 });
             }
 
-            // Wire up editor button – advanced rich text editor
+            // Wire up editor button
             const editorButton = document.querySelector('.editor-button');
             if (editorButton) {
                 editorButton.addEventListener('click', function(e) {
                     e.preventDefault();
                     e.stopPropagation();
-                    toggleAdvancedRichTextEditor('descriptionInput', editorButton);
+                    // Check if toggleRichTextEditor function exists (from system-interface.js or similar)
+                    if (typeof toggleRichTextEditor === 'function') {
+                        toggleRichTextEditor('descriptionInput', editorButton);
+                    } else {
+                        console.warn('toggleRichTextEditor function not found');
+                    }
                 });
             }
             
@@ -755,7 +723,6 @@ document.addEventListener('DOMContentLoaded', async function() {
                     segmentField = await SegmentField.init('segmentFieldContainer', {
                         label: segmentLabel,
                         required: true,
-                        // Removed defaultValue - let API data set the correct value
                         sectionTitle: sectionTitle,
                         objectType: 'Legal Entity',
                         fieldId: 'legalEntitySegment',
@@ -959,7 +926,22 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
     }
 
-    // Load parent legal entities from API for dropdown
+    async function refreshLegalEntityParentForSelectedSegment(previousSegmentId) {
+        const parentSelect = document.getElementById('parentLegalEntitySelect');
+        const selectedParentId = parseInt(parentSelect?.value || '', 10);
+        await loadParentLegalEntities();
+        if (selectedParentId > 0 && parentSelect) {
+            const stillExists = Array.from(parentSelect.options).some(o => parseInt(o.value, 10) === selectedParentId);
+            if (!stillExists) {
+                parentSelect.value = '';
+                alert('The selected parent is not compatible with the new segment and has been cleared.');
+            } else {
+                parentSelect.value = String(selectedParentId);
+            }
+        }
+        return true;
+    }
+
     async function loadParentLegalEntities() {
         try {
             const parentLegalEntitySelect = document.getElementById('parentLegalEntitySelect');
@@ -974,7 +956,10 @@ document.addEventListener('DOMContentLoaded', async function() {
                 return;
             }
 
-            const response = await window.BUDG_API_SERVICE.getLegalEntities();
+            const activeSegmentId = segmentField ? parseInt(segmentField.getValue(), 10) : null;
+            const response = await window.BUDG_API_SERVICE.getLegalEntities(
+                Number.isInteger(activeSegmentId) && activeSegmentId > 0 ? { segmentId: activeSegmentId } : {}
+            );
 
             if (response && Array.isArray(response) && response.length > 0) {
                 parentLegalEntitySelect.innerHTML = '';
@@ -1017,40 +1002,10 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
     }
 
-    async function refreshLegalEntityParentForSelectedSegment(previousSegmentId) {
-        const parentLegalEntitySelect = document.getElementById('parentLegalEntitySelect');
-        const previousParentId = parentLegalEntitySelect?.value || '';
-        await loadParentLegalEntities();
-
-        if (!parentLegalEntitySelect || !previousParentId) {
-            return;
-        }
-
-        const stillAllowed = Array.from(parentLegalEntitySelect.options || [])
-            .some(option => String(option.value) === String(previousParentId));
-
-        if (!stillAllowed) {
-            alert('This parent is not valid for the selected segment. Please remove the parent first.');
-            return false;
-        } else {
-            parentLegalEntitySelect.value = previousParentId;
-        }
-        return true;
-    }
-
     // Tab system functions
-    function getLegalEntityTabPanels() {
-        // Only hide top-level tab panels. Do not include nested form containers
-        // like segmentFieldContainer/customFieldsContainer.
-        return [
-            document.getElementById('legalEntityRelationshipsContainer'),
-            document.getElementById('legalEntityStakeholdersContainer')
-        ].filter(Boolean);
-    }
-
     function initTabs() {
         const tabs = document.querySelectorAll('.tab');
-        const containers = getLegalEntityTabPanels();
+        const containers = document.querySelectorAll('[id$="Container"]');
         
         tabs.forEach(tab => {
             tab.addEventListener('click', () => {
@@ -1081,10 +1036,9 @@ document.addEventListener('DOMContentLoaded', async function() {
                 if (tabName === 'impact') {
                     if (impactTab) {
                         impactTab.style.display = 'block';
-                        // Initialize impact edit with legal entity's segment so geography dropdown is filtered
+                        // Initialize impact edit
                         if (entityId && window.initImpactEdit) {
-                            const segId = segmentField ? segmentField.getValue() : (window._legalEntitySegmentId != null ? window._legalEntitySegmentId : null);
-                            window.initImpactEdit(parseInt(entityId), segId);
+                            window.initImpactEdit(parseInt(entityId));
                         }
                     }
                 } else if (tabName === 'view') {
@@ -1152,59 +1106,10 @@ document.addEventListener('DOMContentLoaded', async function() {
         return false;
     }
 
-    // Restore active main tab and (if impact) impact sub-tab after save
-    function restoreActiveTab(mainTabName, impactSubTabName) {
-        const tabs = document.querySelectorAll('.tab');
-        const containers = getLegalEntityTabPanels();
-        const impactTab = document.getElementById('impactTab');
-        const viewContainer = document.getElementById('legalEntityViewContainer');
-        const tabName = mainTabName || 'summary';
-        tabs.forEach(t => {
-            t.classList.remove('active');
-            if (t.getAttribute('data-tab') === tabName) t.classList.add('active');
-        });
-        containers.forEach(container => { container.style.display = 'none'; });
-        if (impactTab) impactTab.style.display = 'none';
-        if (viewContainer) viewContainer.style.display = 'none';
-        if (tabName === 'impact' && impactTab) {
-            impactTab.style.display = 'block';
-            if (entityId && window.initImpactEdit) {
-                const segId = segmentField ? segmentField.getValue() : (window._legalEntitySegmentId != null ? window._legalEntitySegmentId : null);
-                window.initImpactEdit(parseInt(entityId), segId);
-            }
-            const subTab = document.querySelector(`#impact .sub-tab[data-sub-tab="${impactSubTabName || 'geography'}"]`);
-            if (subTab) {
-                document.querySelectorAll('#impact .sub-tab').forEach(st => st.classList.remove('active'));
-                subTab.classList.add('active');
-                document.querySelectorAll('#impact .sub-tab-content').forEach(c => { c.classList.remove('active'); c.style.display = 'none'; });
-                const contentId = impactSubTabName === 'geography' ? 'impactGeographyContent' : null;
-                const content = contentId ? document.getElementById(contentId) : document.querySelector('#impact .sub-tab-content');
-                if (content) { content.classList.add('active'); content.style.display = 'block'; }
-            }
-        } else if (tabName === 'view' && viewContainer) {
-            viewContainer.style.display = 'grid';
-        } else {
-            const targetContainer = document.getElementById(`legalEntity${(tabName || '').charAt(0).toUpperCase() + (tabName || '').slice(1)}Container`);
-            if (targetContainer) targetContainer.style.display = 'grid';
-        }
-        loadTabContentForEdit(tabName);
-    }
-
     // Save data based on active tab
     async function saveBasedOnActiveTab(closeAfterSave = false) {
         const savingText = window.I18n ? window.I18n.t('legalEntity.messages.saving') : 'Saving...';
-        const saveText = window.I18n ? window.I18n.t('legalEntity.buttons.save') : 'Save';
-        const saveAndCloseText = window.I18n ? window.I18n.t('legalEntity.buttons.saveAndClose') : 'Save & Close';
         const buttons = [document.getElementById('saveBtn'), document.getElementById('saveAndCloseBtn'), document.getElementById('cancelBtn')];
-        const restoreButtons = () => {
-            buttons.forEach(btn => {
-                if (btn) {
-                    btn.disabled = false;
-                    if (btn.id === 'saveBtn') btn.textContent = saveText;
-                    if (btn.id === 'saveAndCloseBtn') btn.textContent = saveAndCloseText;
-                }
-            });
-        };
         buttons.forEach(btn => {
             if (btn) {
                 btn.disabled = true;
@@ -1212,108 +1117,129 @@ document.addEventListener('DOMContentLoaded', async function() {
                 if (btn.id === 'saveAndCloseBtn') btn.textContent = savingText;
             }
         });
-
-        const activeMainTab = getCurrentActiveTab();
-        console.log(`=== SAVING LEGAL ENTITY (active tab: ${activeMainTab}) ===`);
-
+        
         try {
-            if (activeMainTab === 'relationships') {
-                // Relationships tab is read-only for legal entity
-                const noDataMsg = window.I18n ? window.I18n.t('regulation.messages.noDataToSaveOnTab') : 'No data to save on this tab';
-                showSuccessMessage(noDataMsg, false);
-                restoreButtons();
-                return true;
-
-            } else if (activeMainTab === 'stakeholders') {
-                const stakeholdersHaveChanges = window.LegalEntityStakeholderEdit &&
-                    window.LegalEntityStakeholderEdit.hasDataChanged &&
-                    window.LegalEntityStakeholderEdit.hasDataChanged();
-                if (!stakeholdersHaveChanges) {
-                    const noChangesMsg = window.I18n ? window.I18n.t('legalEntity.messages.noChangesToSave') : 'No changes to save.';
-                    showSuccessMessage(noChangesMsg, false);
-                    restoreButtons();
-                    return true;
-                }
-                await window.LegalEntityStakeholderEdit.saveStakeholders();
-                console.log('✅ Stakeholders saved successfully');
-
-            } else if (activeMainTab === 'impact') {
-                const impactHasChanges = window.hasImpactChanges && typeof window.hasImpactChanges === 'function' &&
-                    window.hasImpactChanges();
-                if (!impactHasChanges) {
-                    const noChangesMsg = window.I18n ? window.I18n.t('legalEntity.messages.noChangesToSave') : 'No changes to save.';
-                    showSuccessMessage(noChangesMsg, false);
-                    restoreButtons();
-                    return true;
-                }
-                const impactResult = await window.saveAllImpactData(entityId);
-                if (impactResult && impactResult.geography && impactResult.geography.success !== false) {
-                    if (window.initImpactEdit && entityId) {
-                        const segId = segmentField ? segmentField.getValue() : (window._legalEntitySegmentId != null ? window._legalEntitySegmentId : null);
-                        await window.initImpactEdit(entityId, segId);
+            console.log('=== SAVING LEGAL ENTITY (ALL TABS) ===');
+            
+            // Detect changes across all tabs BEFORE saving
+            const formHasChanges = hasDataChanged();
+            const stakeholdersHaveChanges = window.LegalEntityStakeholderEdit && 
+                window.LegalEntityStakeholderEdit.hasDataChanged && 
+                window.LegalEntityStakeholderEdit.hasDataChanged();
+            const impactHasChanges = window.hasImpactChanges && typeof window.hasImpactChanges === 'function' && 
+                window.hasImpactChanges();
+            const hasCustomFieldsContext = window.customFieldsContext && window.customFieldsContext.saveValues;
+            
+            console.log('Form changes:', formHasChanges);
+            console.log('Stakeholders changes:', stakeholdersHaveChanges);
+            console.log('Impact changes:', impactHasChanges);
+            
+            // If no changes at all across any tab, show message and return
+            if (!formHasChanges && !stakeholdersHaveChanges && !impactHasChanges && !hasCustomFieldsContext) {
+                const noChangesMsg = window.I18n ? window.I18n.t('legalEntity.messages.noChangesToSave') : 'No changes to save. No data has been modified.';
+                alert(noChangesMsg);
+                buttons.forEach(btn => {
+                    if (btn) {
+                        btn.disabled = false;
+                        const saveText = window.I18n ? window.I18n.t('legalEntity.buttons.save') : 'Save';
+                        const saveAndCloseText = window.I18n ? window.I18n.t('legalEntity.buttons.saveAndClose') : 'Save & Close';
+                        if (btn.id === 'saveBtn') btn.textContent = saveText;
+                        if (btn.id === 'saveAndCloseBtn') btn.textContent = saveAndCloseText;
                     }
-                    console.log('✅ Impact saved successfully');
-                } else {
-                    console.warn('Impact save returned unsuccessful result:', impactResult);
-                }
-
-            } else {
-                // view (summary) tab
-                const formHasChanges = hasDataChanged();
-                const hasCustomFieldsContext = window.customFieldsContext && window.customFieldsContext.saveValues;
-                if (!formHasChanges && !hasCustomFieldsContext) {
-                    const noChangesMsg = window.I18n ? window.I18n.t('legalEntity.messages.noChangesToSave') : 'No changes to save. No data has been modified.';
-                    showSuccessMessage(noChangesMsg, false);
-                    restoreButtons();
-                    return true;
-                }
-
-                if (formHasChanges) {
-                    const saveSuccess = await saveLegalEntityData();
-                    if (!saveSuccess) {
-                        restoreButtons();
-                        return false;
-                    }
-                }
-
-                // Save custom fields if context exists
-                if (hasCustomFieldsContext && entityId) {
-                    try {
-                        await window.customFieldsContext.saveValues(entityId);
-                        console.log('✅ Custom fields saved successfully');
-                    } catch (error) {
-                        console.error('Error saving custom fields:', error);
-                    }
-                }
-
-                // If segment changed, reload impact data (do not save impact from summary)
-                const currentLegalSegment = normalizeLegalSegmentId(segmentField ? segmentField.getValue() : null);
-                const legalSegmentChanged = currentLegalSegment !== normalizeLegalSegmentId(originalLegalSegmentId);
-                if (legalSegmentChanged && window.initImpactEdit) {
-                    console.log('=== Segment changed; reloading legal entity impact from server ===');
-                    const segId = segmentField ? segmentField.getValue() : (window._legalEntitySegmentId != null ? window._legalEntitySegmentId : null);
-                    await window.initImpactEdit(entityId, segId);
-                }
-
-                originalLegalSegmentId = normalizeLegalSegmentId(segmentField ? segmentField.getValue() : null);
+                });
+                return false;
             }
-
-            const savedMsg = window.I18n ? window.I18n.t('legalEntity.messages.updatesSaved') : 'UPDATES SAVED';
-            showSuccessMessage(savedMsg);
-
+            
+            let anythingSaved = false;
+            
+            // Save summary/form data if changed
+            if (formHasChanges) {
+                try {
+                    let saveSuccess = await saveLegalEntityData();
+                    if (saveSuccess) {
+                        anythingSaved = true;
+                    } else {
+                        console.warn('Main form save returned false, continuing with other tabs...');
+                    }
+                } catch (formError) {
+                    console.error('Error saving main form data:', formError);
+                    // Continue to save other tabs even if main form fails
+                }
+            }
+            
+            // Save stakeholders data (if available and has changes)
+            if (stakeholdersHaveChanges && window.LegalEntityStakeholderEdit && window.LegalEntityStakeholderEdit.saveStakeholders) {
+                try {
+                    await window.LegalEntityStakeholderEdit.saveStakeholders();
+                    console.log('✅ Stakeholders saved successfully');
+                    anythingSaved = true;
+                } catch (stakeholdersError) {
+                    console.error('Error saving stakeholders:', stakeholdersError);
+                    // Continue even if stakeholders fail
+                }
+            }
+            
+            // Save impact data (if available and has changes)
+            if (impactHasChanges && window.saveAllImpactData && typeof window.saveAllImpactData === 'function') {
+                try {
+                    console.log('Saving impact data...');
+                    const impactResult = await window.saveAllImpactData();
+                    if (impactResult && impactResult.geography && impactResult.geography.success !== false) {
+                        if (window.initImpactEdit && entityId) {
+                            await window.initImpactEdit(entityId);
+                        }
+                        console.log('✅ Impact saved successfully');
+                        anythingSaved = true;
+                    } else {
+                        console.warn('Impact save returned unsuccessful result:', impactResult);
+                    }
+                } catch (impactError) {
+                    console.error('Error saving impact:', impactError);
+                    // Continue even if impact fails
+                }
+            }
+            
+            // Save custom fields if context exists
+            if (hasCustomFieldsContext && entityId) {
+                try {
+                    await window.customFieldsContext.saveValues(entityId);
+                    console.log('✅ Custom fields saved successfully');
+                    anythingSaved = true;
+                } catch (error) {
+                    console.error('Error saving custom fields:', error);
+                }
+            }
+            
+            if (anythingSaved) {
+                const savedMsg = window.I18n ? window.I18n.t('legalEntity.messages.updatesSaved') : 'UPDATES SAVED';
+                showSuccessMessage(savedMsg);
+            } else {
+                const noChangesMsg = window.I18n ? window.I18n.t('legalEntity.messages.noChangesToSave') : 'No changes could be saved.';
+                showSuccessMessage(noChangesMsg, true);
+            }
+            
             if (closeAfterSave) {
                 setTimeout(() => {
                     window.location.href = `/view/LegalEntity/legal-entity.html?id=${entityId}`;
                 }, 1500);
             }
-
+            
             return true;
         } catch (error) {
             console.error('Error saving:', error);
             alert('Error saving: ' + (error.message || 'Unknown error'));
             return false;
         } finally {
-            restoreButtons();
+            // Reset button states
+            const saveText = window.I18n ? window.I18n.t('legalEntity.buttons.save') : 'Save';
+            const saveAndCloseText = window.I18n ? window.I18n.t('legalEntity.buttons.saveAndClose') : 'Save & Close';
+            buttons.forEach(btn => {
+                if (btn) {
+                    btn.disabled = false;
+                    if (btn.id === 'saveBtn') btn.textContent = saveText;
+                    if (btn.id === 'saveAndCloseBtn') btn.textContent = saveAndCloseText;
+                }
+            });
         }
     }
 
@@ -1422,6 +1348,10 @@ document.addEventListener('DOMContentLoaded', async function() {
             console.warn('Client-side validation failed, falling back to server-side validation:', error);
         }
 
+        if (segmentField && !segmentField.validate()) {
+            return false;
+        }
+
         // Collect form data
         const formData = {
             longname: nameInput.value.trim(),
@@ -1430,7 +1360,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             status: parseInt(statusSelect.value) || 1,
             is_public: parseInt(viewingSelect.value) || 1,
             parent_id: parentLegalEntitySelect?.value || null,
-            segmentId: segmentField ? segmentField.getValue() : null
+            segmentId: segmentField ? segmentField.getValue() : 1
         };
 
         // Call API to update legal entity
@@ -1452,8 +1382,8 @@ document.addEventListener('DOMContentLoaded', async function() {
         
         console.log('Update response:', response);
 
-        // Handle API response (use same robust success detection as saveLegalEntity)
-        if (isUpdateSuccess(response)) {
+        // Handle API response
+        if (response && (response.success === true || response.id || response.message)) {
             // Save custom fields if context exists
             if (window.customFieldsContext && window.customFieldsContext.saveValues) {
                 try {

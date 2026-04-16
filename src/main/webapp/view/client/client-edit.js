@@ -1180,7 +1180,10 @@ document.addEventListener('DOMContentLoaded', async function() {
                 return;
             }
 
-            const response = await window.BUDG_API_SERVICE.getClients();
+            const activeSegmentId = segmentField ? parseInt(segmentField.getValue(), 10) : null;
+            const response = await window.BUDG_API_SERVICE.getClients(
+                Number.isInteger(activeSegmentId) && activeSegmentId > 0 ? { segmentId: activeSegmentId } : {}
+            );
 
             if (response && Array.isArray(response) && response.length > 0) {
                 parentClientSelect.innerHTML = '';

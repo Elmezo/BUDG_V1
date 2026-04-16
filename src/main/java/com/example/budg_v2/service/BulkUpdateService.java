@@ -28,6 +28,7 @@ public class BulkUpdateService {
     @SuppressWarnings("unused") // reserved for change-request integration
     private final ChangeRequestDAO changeRequestDAO;
     private final DFCRService dfcrService;
+    private final SegmentValidationService segmentValidationService = new SegmentValidationService();
 
     // Error messages matching BUDG
     public static final String ERROR_MUTUALLY_EXCLUSIVE = "Cannot update the Segment field together with System or Glossary fields for a dataset.";
@@ -334,6 +335,30 @@ public class BulkUpdateService {
                             }
                         }
 
+                        // Parent / hierarchy segment rules (same as facet edit pages)
+                        if ("parent".equals(fieldId) && value != null) {
+                            int newParentId = -1;
+                            if (value instanceof Number) {
+                                newParentId = ((Number) value).intValue();
+                            } else {
+                                try {
+                                    newParentId = Integer.parseInt(value.toString().trim());
+                                } catch (NumberFormatException e) {
+                                    newParentId = -1;
+                                }
+                            }
+                            if (newParentId > 0) {
+                                String objectTypeForSegment = normalizeFacetForSegment(facet);
+                                int childSegmentId = segmentDAO.getObjectSegmentId(objectId, objectTypeForSegment);
+                                SegmentValidationService.ValidationResult parentSegResult =
+                                        segmentValidationService.validateParentChildSegment(
+                                                newParentId, childSegmentId, objectTypeForSegment);
+                                if (!parentSegResult.isValid && !parentSegResult.canProceedWithWarning) {
+                                    throw new SQLException(parentSegResult.message);
+                                }
+                            }
+                        }
+
                         // Special handling for Segment assignment
                         // Segment operations should always use original objectId, not cloned
                         if (field.getFieldId().equals("segment") || field.getFieldId().equals("segment_id")) {
@@ -391,6 +416,12 @@ public class BulkUpdateService {
                     }
 
                     if (rowUpdated) {
+                        String normFacet = facet != null ? facet.toLowerCase().replace("-", "") : "";
+                        if ("dataset".equals(normFacet)) {
+                            validateDatasetSegmentConsistencyAfterBulk(conn, targetObjectId, objectId, userId);
+                        } else if ("attribute".equals(normFacet) || "attributes".equals(normFacet)) {
+                            validateAttributeSegmentConsistencyAfterBulk(conn, targetObjectId, userId);
+                        }
                         updatedCount++;
                     }
                     conn.commit();
@@ -410,6 +441,92 @@ public class BulkUpdateService {
         result.setSkippedRows(skippedCount);
         result.setMessage(SUCCESS_MESSAGE);
         return result;
+    }
+
+    /**
+     * After bulk column updates on a dataset row, enforce the same segment rules as {@link DatasetServlet}
+     * (system vs segment, glossary vs segment, public vs private system).
+     */
+    private void validateDatasetSegmentConsistencyAfterBulk(Connection conn, int targetObjectId, int logicalDatasetId,
+            int userId) throws SQLException {
+        Integer masterSource = null;
+        Integer glossary = null;
+        Integer accessControl = null;
+        String sql = "SELECT MasterSource, glossary, AccessControlType FROM dataset WHERE ID = ? AND DeletedDatetime IS NULL";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, targetObjectId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    Object ms = rs.getObject(1);
+                    masterSource = (ms != null) ? ((Number) ms).intValue() : null;
+                    Object gl = rs.getObject(2);
+                    glossary = (gl != null) ? ((Number) gl).intValue() : null;
+                    Object ac = rs.getObject(3);
+                    accessControl = (ac != null) ? ((Number) ac).intValue() : null;
+                }
+            }
+        }
+        boolean datasetIsPublic = accessControl != null && accessControl == 1;
+        int segmentId = segmentDAO.getObjectSegmentId(logicalDatasetId, "Dataset");
+        if (masterSource != null && masterSource > 0) {
+            SegmentValidationService.ValidationResult sysResult =
+                    segmentValidationService.validateDatasetSystemSegment(masterSource, segmentId, userId);
+            if (!sysResult.isValid) {
+                throw new SQLException(sysResult.message);
+            }
+            SegmentValidationService.ValidationResult visResult =
+                    segmentValidationService.validateDatasetVisibility(logicalDatasetId, masterSource, datasetIsPublic);
+            if (!visResult.isValid) {
+                throw new SQLException(visResult.message);
+            }
+        }
+        if (glossary != null && glossary > 0) {
+            SegmentValidationService.ValidationResult gloResult =
+                    segmentValidationService.validateDatasetGlossarySegment(glossary, segmentId, datasetIsPublic, userId);
+            if (!gloResult.isValid) {
+                throw new SQLException(gloResult.message);
+            }
+        }
+    }
+
+    /**
+     * After bulk updates on an attribute row, enforce attribute↔glossary segment rules (same as {@link com.example.budg_v2.AttributeServlet}).
+     */
+    private void validateAttributeSegmentConsistencyAfterBulk(Connection conn, int targetAttributeId, int userId)
+            throws SQLException {
+        Integer datasetId = null;
+        Integer glossaryId = null;
+        String attrSql = "SELECT Dataset_ID, Glossary_ID FROM attribute WHERE ID = ? AND DeletedDatetime IS NULL";
+        try (PreparedStatement ps = conn.prepareStatement(attrSql)) {
+            ps.setInt(1, targetAttributeId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    Object d = rs.getObject(1);
+                    datasetId = (d != null) ? ((Number) d).intValue() : null;
+                    Object g = rs.getObject(2);
+                    glossaryId = (g != null) ? ((Number) g).intValue() : null;
+                }
+            }
+        }
+        if (datasetId == null || datasetId <= 0 || glossaryId == null || glossaryId <= 0) {
+            return;
+        }
+        boolean datasetIsPublic = false;
+        String dsSql = "SELECT AccessControlType FROM dataset WHERE ID = ? AND DeletedDatetime IS NULL";
+        try (PreparedStatement ps = conn.prepareStatement(dsSql)) {
+            ps.setInt(1, datasetId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    Object ac = rs.getObject(1);
+                    datasetIsPublic = ac != null && ((Number) ac).intValue() == 1;
+                }
+            }
+        }
+        SegmentValidationService.ValidationResult r =
+                segmentValidationService.validateAttributeGlossarySegment(datasetId, glossaryId, datasetIsPublic);
+        if (!r.isValid) {
+            throw new SQLException(r.message);
+        }
     }
 
     /**

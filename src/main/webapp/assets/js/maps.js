@@ -2513,7 +2513,7 @@
         const layoutOption = MapState.mapType === 'multi-node-lineage' ? 'force' : MapState.layout;
 
         // Organic / force-directed — spacing affects nodeRepulsion, idealEdgeLength, and padding
-        if (layoutOption === 'force') {
+        if (layoutOption === 'force' || layoutOption === 'organic') {
             const spPad = getSpacingPadding();
             const spMult = MapState.spacing === 'compact' ? 0.6 : (MapState.spacing === 'spacey' ? 1.8 : 1.0);
             if (MapState.mapType === 'multi-node-lineage') {

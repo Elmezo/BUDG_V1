@@ -837,8 +837,11 @@
                 const datasetIds = new Set();
                 GlossaryRelationshipsMapState.network.nodes().forEach(node => {
                     const nodeData = node.data();
-                    if (nodeData.isDataset && nodeData.datasetId) {
-                        datasetIds.add(String(nodeData.datasetId));
+                    if (!nodeData.isDataset) return;
+                    const meta = nodeData.meta || {};
+                    const dsId = nodeData.datasetId != null && nodeData.datasetId !== '' ? nodeData.datasetId : meta.datasetId;
+                    if (dsId != null && String(dsId) !== '') {
+                        datasetIds.add(String(dsId));
                     }
                 });
                 
@@ -1326,8 +1329,10 @@
                 entityId = String(nodeData.glossaryId);
             } else if (nodeData.isSystem && nodeData.systemId) {
                 entityId = String(nodeData.systemId);
-            } else if (nodeData.isDataset && nodeData.datasetId) {
-                entityId = String(nodeData.datasetId);
+            } else if (nodeData.isDataset) {
+                const m = nodeData.meta || {};
+                const did = nodeData.datasetId != null ? nodeData.datasetId : m.datasetId;
+                if (did != null && String(did) !== '') entityId = String(did);
             }
             
             if (!entityId) return;
