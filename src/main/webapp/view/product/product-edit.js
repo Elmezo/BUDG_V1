@@ -256,6 +256,26 @@ function loadParentProduct(product) {
     }
 }
 
+async function refreshProductParentForSelectedSegment(previousSegmentId) {
+    const parentNameInput = document.getElementById('parentName');
+    const selectedParentId = parseInt(parentNameInput?.dataset?.parentId || '', 10);
+    if (!selectedParentId || selectedParentId <= 0) return true;
+
+    const selectedSegmentId = segmentField ? segmentField.getValue() : null;
+    if (segmentField && typeof segmentField.validateParentForSegment === 'function') {
+        try {
+            const isValid = await segmentField.validateParentForSegment(selectedParentId, selectedSegmentId);
+            if (!isValid) {
+                alert('The current parent product is not compatible with the selected segment. Please remove or change the parent.');
+                return false;
+            }
+        } catch (e) {
+            console.warn('Error validating parent for segment:', e);
+        }
+    }
+    return true;
+}
+
 function updateTitle(product) {
     const titleElement = document.getElementById('productTitle');
     if (titleElement && product) {
@@ -319,6 +339,11 @@ async function saveProduct(id, closeAfter) {
             if (typeof syncAdvancedRichTextToTextarea === 'function') {
                 syncAdvancedRichTextToTextarea('productDescription');
             }
+            if (segmentField && !segmentField.validate()) {
+                restoreButtons();
+                return;
+            }
+
             const payload = collectFormData();
 
             const res = await window.BUDG_API_SERVICE.updateProduct(id, payload);
@@ -1394,11 +1419,13 @@ async function initializePage() {
                 segmentField = await SegmentField.init('segmentFieldContainer', {
                     label: 'Segment',
                     required: true,
-                    // Removed defaultValue - let API data set the correct value
                     sectionTitle: 'SEGMENTATION',
                     objectType: 'Product',
                     fieldId: 'productSegment',
-                    errorId: 'productSegmentError'
+                    errorId: 'productSegmentError',
+                    onChange: async (selectedSegmentId, previousSegmentId) => {
+                        return await refreshProductParentForSelectedSegment(previousSegmentId);
+                    }
                 });
                 if (pendingSegmentId != null) {
                     segmentField.setValue(pendingSegmentId);

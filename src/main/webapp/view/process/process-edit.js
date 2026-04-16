@@ -1031,6 +1031,11 @@ async function saveNewProcess(closeAfter) {
             syncAdvancedRichTextToTextarea('outputDescription');
         }
 
+        if (segmentField && !segmentField.validate()) {
+            restoreButtons();
+            return;
+        }
+
         const payload = collectFormData(currentUserId);
         if (!window.BUDG_API_SERVICE || typeof window.BUDG_API_SERVICE.createProcess !== 'function') {
             throw new Error('API service not available');
@@ -1167,6 +1172,11 @@ async function saveProcess(id, closeAfter) {
                 syncAdvancedRichTextToTextarea('processDescription');
                 syncAdvancedRichTextToTextarea('inputDescription');
                 syncAdvancedRichTextToTextarea('outputDescription');
+            }
+
+            if (segmentField && !segmentField.validate()) {
+                restoreButtons();
+                return;
             }
 
             const payload = collectFormData(currentUserId);

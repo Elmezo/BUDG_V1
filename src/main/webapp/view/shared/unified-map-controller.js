@@ -2157,11 +2157,13 @@
             var ddApi = mapId && window._sharedDropdownApis && window._sharedDropdownApis[mapId];
             var sf = (ddApi && typeof ddApi.getSpacingFactor === 'function') ? ddApi.getSpacingFactor() : 2.2;
             var sp = (ddApi && typeof ddApi.getSpacingPadding === 'function') ? ddApi.getSpacingPadding() : 90;
+            var coseOrganicBase = { name: 'cose', idealEdgeLength: Math.round(100 * sf), nodeOverlap: 20, refresh: 20, fit: true, padding: sp, randomize: false, componentSpacing: 100, nodeRepulsion: Math.round(4000000 * sf), edgeElasticity: 100, nestingFactor: 5, gravity: 0.25, numIter: 1000, initialTemp: 200, coolingFactor: 0.95, minTemp: 1.0 };
             var layoutMap = {
                 'left-to-right': { name: 'dagre', rankDir: 'LR', nodeSep: 50, edgeSep: 20, rankSep: 100, padding: sp },
                 'right-to-left': { name: 'dagre', rankDir: 'RL', nodeSep: 50, edgeSep: 20, rankSep: 100, padding: sp },
                 'top-to-bottom': { name: 'dagre', rankDir: 'TB', nodeSep: 50, edgeSep: 20, rankSep: 100, padding: sp },
-                'force': { name: 'cose', idealEdgeLength: Math.round(100 * sf), nodeOverlap: 20, refresh: 20, fit: true, padding: sp, randomize: false, componentSpacing: 100, nodeRepulsion: Math.round(4000000 * sf), edgeElasticity: 100, nestingFactor: 5, gravity: 0.25, numIter: 1000, initialTemp: 200, coolingFactor: 0.95, minTemp: 1.0 }
+                'force': coseOrganicBase,
+                'organic': coseOrganicBase
             };
             var layout = layoutMap[MapState.layout] || layoutMap['left-to-right'];
             if (window.InterfaceMapStyles && window.InterfaceMapStyles.getLayoutConfig) {

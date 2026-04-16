@@ -1,6 +1,8 @@
 package com.example.budg_v2;
 
+import com.example.budg_v2.dao.SegmentDAO;
 import com.example.budg_v2.database.DatabaseConnection;
+import com.example.budg_v2.util.RequestedSegmentFilterUtil;
 import com.google.gson.Gson;
 
 import jakarta.servlet.ServletException;
@@ -24,6 +26,7 @@ import java.util.Map;
 public class CommitteeLookupServlet extends HttpServlet {
     private static final long serialVersionUID = 1L;
     private Gson gson = new Gson();
+    private final SegmentDAO segmentDAO = new SegmentDAO();
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
@@ -36,12 +39,17 @@ public class CommitteeLookupServlet extends HttpServlet {
             String type = request.getParameter("type");
 
             if (type == null || type.isEmpty()) {
-                // Return all lookup data
                 Map<String, List<Map<String, Object>>> allLookups = getAllLookupData(conn);
                 out.print(gson.toJson(allLookups));
             } else {
-                // Return specific lookup data
                 List<Map<String, Object>> lookupData = getLookupDataByType(conn, type);
+                if ("committees".equalsIgnoreCase(type)) {
+                    lookupData = RequestedSegmentFilterUtil.filterByRequestedSegment(
+                            lookupData,
+                            RequestedSegmentFilterUtil.resolveEffectiveSegmentId(request, segmentDAO),
+                            "Committee",
+                            m -> ((Number) m.get("ID")).intValue());
+                }
                 out.print(gson.toJson(lookupData));
             }
         } catch (SQLException e) {

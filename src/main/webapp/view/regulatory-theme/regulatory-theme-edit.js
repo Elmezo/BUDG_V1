@@ -782,7 +782,9 @@ async function selectParent() {
         
         // Load all regulatory themes using the same pattern as geography
         console.log('=== CALLING getRegulatoryThemes API ===');
-        const response = await fetch('/api/regulatory-theme');
+        const activeSegmentId = segmentField ? parseInt(segmentField.getValue(), 10) : null;
+        const segQuery = Number.isInteger(activeSegmentId) && activeSegmentId > 0 ? `?segmentId=${activeSegmentId}` : '';
+        const response = await fetch(`/api/regulatory-theme${segQuery}`);
         console.log('Loaded regulatory themes response:', response);
         
         if (!response.ok) {

@@ -660,6 +660,10 @@ function setActiveCategory(category) {
     });
     const el = document.querySelector(`.category-item[data-category="${canonical}"]`);
     if (el) el.classList.add('active');
+
+    if (typeof window !== 'undefined' && typeof window.syncPeopleConstraintToolbar === 'function') {
+        window.syncPeopleConstraintToolbar();
+    }
 }
 
 function categoryToModule(category) {

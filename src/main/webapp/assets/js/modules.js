@@ -1281,12 +1281,13 @@
         menuEl.style.position = 'fixed';
         menuEl.style.display = 'block';
 
-        // Use the actual rendered size when available to center vertically on the button
+        // Use the actual rendered size when available (may be 0 on first paint; one rAF reflow below fixes it)
         const measuredWidth = menuEl.offsetWidth || 320;
         const measuredHeight = menuEl.offsetHeight || 300;
 
-        // Align menu vertically centered relative to the Add Category button
-        let top = rect.top + (rect.height / 2) - (measuredHeight / 2);
+        // Prefer opening below the button (clear association with trigger; avoids shoving the
+        // whole panel to y=~16 when centering + clamp fights a fixed header / tall menu).
+        let top = rect.bottom + gap;
         let left;
         const rtl = isSearchPageRTL();
 
@@ -1306,11 +1307,16 @@
             }
         }
 
-        // Clamp vertically within viewport with safe padding
-        const viewportTop = 16;
+        // Clamp vertically within viewport (reserve top for fixed app header when needed)
+        const viewportTop = 56;
         const viewportBottom = window.innerHeight - 16;
         if (top + measuredHeight > viewportBottom) {
-            top = viewportBottom - measuredHeight;
+            const aboveTop = rect.top - measuredHeight - gap;
+            if (aboveTop >= viewportTop) {
+                top = aboveTop;
+            } else {
+                top = Math.max(viewportTop, viewportBottom - measuredHeight);
+            }
         }
         if (top < viewportTop) {
             top = viewportTop;
@@ -1345,16 +1351,22 @@
         const submenuBorderTop = parseFloat(submenuStyles.borderTopWidth || '0') || 0;
         const submenuMarginTop = parseFloat(submenuStyles.marginTop || '0') || 0;
 
-        // Lift submenu slightly above for visual preference
-        const lift = 150; // px
-        let top = menuRect.top + menuBorderTop + menuPaddingTop - submenuBorderTop - submenuMarginTop - lift;
+        // Align submenu content top with main menu content top (no large negative offset)
+        let top = menuRect.top + menuBorderTop + menuPaddingTop - submenuBorderTop - submenuMarginTop;
         let left = menuRect.right + gap;
 
         if (left + measuredWidth > window.innerWidth - 10) {
             left = Math.max(10, menuRect.left - measuredWidth - gap);
         }
 
-        // Keep same aligned top as menu; avoid re-clamping to maintain alignment
+        const pad = 12;
+        const vBottom = window.innerHeight - pad;
+        if (top + measuredHeight > vBottom) {
+            top = Math.max(pad, vBottom - measuredHeight);
+        }
+        if (top < pad) {
+            top = pad;
+        }
 
         submenuEl.style.top = `${Math.round(top)}px`;
         submenuEl.style.left = `${left}px`;
@@ -1374,6 +1386,15 @@
             setSubmenuMaxHeight();
             positionSubmenu();
         }
+        // Second pass after layout so offsetHeight/width reflect real content
+        requestAnimationFrame(() => {
+            setMenuMaxHeight();
+            positionMenu();
+            if (submenuEl && submenuEl.style.display !== 'none') {
+                setSubmenuMaxHeight();
+                positionSubmenu();
+            }
+        });
         
         // Smooth entrance animation
         setTimeout(() => {

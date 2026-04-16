@@ -5,6 +5,7 @@ import com.example.budg_v2.dao.SegmentDAO;
 import com.example.budg_v2.model.Legal;
 import com.example.budg_v2.service.LegalService;
 import com.example.budg_v2.service.SegmentAccessService;
+import com.example.budg_v2.service.SegmentValidationService;
 import com.example.budg_v2.util.CorsUtil;
 import com.example.budg_v2.util.JsonUtil;
 import com.example.budg_v2.util.PermissionCheckUtil;
@@ -30,11 +31,13 @@ public class LegalEntityServlet extends HttpServlet {
     private final LegalService legalService;
     private final LegalDAO legalDAO;
     private final SegmentDAO segmentDAO;
+    private final SegmentValidationService segmentValidationService;
 
     public LegalEntityServlet() {
         this.legalService = new LegalService();
         this.legalDAO = new LegalDAO();
         this.segmentDAO = new SegmentDAO();
+        this.segmentValidationService = new SegmentValidationService();
     }
 
     @Override
@@ -191,6 +194,23 @@ public class LegalEntityServlet extends HttpServlet {
                 return;
             }
 
+            // Validate segment hierarchy before creating legal entity
+            Integer segmentId = JsonUtil.getJsonInt(jsonData, "segmentId");
+            if (segmentId == null) segmentId = 1;
+            if (parentId != null && parentId > 0) {
+                try {
+                    var hierarchyResult = segmentValidationService.validateParentChildSegment(parentId, segmentId, "LegalEntity");
+                    if (!hierarchyResult.isValid) {
+                        JsonUtil.sendErrorResponse(response.getWriter(), hierarchyResult.message, 400);
+                        return;
+                    }
+                } catch (Exception e) {
+                    System.err.println("Error validating legal entity hierarchy: " + e.getMessage());
+                    JsonUtil.sendErrorResponse(response.getWriter(), "Error validating segment hierarchy: " + e.getMessage(), 500);
+                    return;
+                }
+            }
+
             Legal newLegal = legalService.createLegal(
                 longName.trim(), 
                 shortName.trim(), 
@@ -200,10 +220,6 @@ public class LegalEntityServlet extends HttpServlet {
                 isPublic, 
                 lastUpdateUserId
             );
-
-            // Assign legal entity to segment
-            Integer segmentId = JsonUtil.getJsonInt(jsonData, "segmentId");
-            if (segmentId == null) segmentId = 1; // Default to Enterprise segment
             try {
                 segmentDAO.assignObjectToSegment(segmentId, newLegal.getId(), "LegalEntity", lastUpdateUserId > 0 ? lastUpdateUserId : 1);
                 //system.out.println("✅ LegalEntity " + newLegal.getId() + " assigned to segment " + segmentId);

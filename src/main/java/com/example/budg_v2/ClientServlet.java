@@ -171,14 +171,31 @@ public class ClientServlet extends HttpServlet {
                 }
 
                 int userId = UserContextUtil.getCurrentUserId(request);
+
+                // Validate segment hierarchy before creating client
+                Integer parentId = clientData.get("parent_id") != null
+                        ? ((Number) clientData.get("parent_id")).intValue() : null;
+                Integer segmentId = clientData.get("segmentId") != null
+                        ? ((Number) clientData.get("segmentId")).intValue() : 1;
+                if (parentId != null && parentId > 0) {
+                    try {
+                        var hierarchyResult = segmentValidationService.validateParentChildSegment(parentId, segmentId, "Client");
+                        if (!hierarchyResult.isValid) {
+                            sendError(response, hierarchyResult.message, 400);
+                            return;
+                        }
+                    } catch (Exception e) {
+                        System.err.println("Error validating client hierarchy: " + e.getMessage());
+                        sendError(response, "Error validating segment hierarchy: " + e.getMessage(), 500);
+                        return;
+                    }
+                }
+
                 Map<String, Object> createdClient = clientService.createClient(clientData, userId);
 
                 // Assign client to segment
                 Integer clientId = (Integer) createdClient.get("id");
                 if (clientId != null) {
-                    Integer segmentId = clientData.get("segmentId") != null
-                            ? ((Number) clientData.get("segmentId")).intValue()
-                            : 1;
                     try {
                         segmentDAO.assignObjectToSegment(segmentId, clientId, "Client", userId > 0 ? userId : 1);
                         // system.out.println("✅ Client " + clientId + " assigned to segment " +

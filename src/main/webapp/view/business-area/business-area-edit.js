@@ -1780,6 +1780,9 @@ async function saveBusinessArea(closeAfterSave = false) {
                 showSuccessMessage(validationErrors, true);
                 return;
             }
+            if (segmentField && !segmentField.validate()) {
+                return;
+            }
             // No changes on summary tab
             const formHasChanges = hasFormChanges || checkFormHasActualChanges();
             const hasCustomFieldsContext = window.customFieldsContext && window.customFieldsContext.saveValues;
@@ -1990,6 +1993,10 @@ async function saveBusinessAreaData() {
             return false;
         }
         
+        if (segmentField && !segmentField.validate()) {
+            return false;
+        }
+
         // Make API call to save business area using the API service
         console.log('=== CALLING updateBusinessArea API ===');
         console.log('ID:', currentBusinessAreaId);

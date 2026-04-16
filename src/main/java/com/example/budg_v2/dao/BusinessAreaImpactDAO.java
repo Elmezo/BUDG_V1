@@ -1051,7 +1051,7 @@ public class BusinessAreaImpactDAO {
                 r.RelationType,
                 r.Description,
                 ba.PrimaryName as businessAreaName,
-                ba.RefNumber as businessAreaReference,
+                ba.`Reference` as businessAreaReference,
                 rt.PrimaryName as relationTypeName,
                 rt.ReverseName as relationTypeReverseName
             FROM businessarea_x_system r

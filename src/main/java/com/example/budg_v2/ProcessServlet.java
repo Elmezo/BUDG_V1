@@ -7,6 +7,7 @@ import com.example.budg_v2.model.Process;
 import com.example.budg_v2.service.DFCRService;
 import com.example.budg_v2.service.ProcessService;
 import com.example.budg_v2.service.SegmentAccessService;
+import com.example.budg_v2.service.SegmentValidationService;
 import com.example.budg_v2.util.CorsUtil;
 import com.example.budg_v2.util.JsonUtil;
 import com.example.budg_v2.util.PermissionCheckUtil;
@@ -38,10 +39,12 @@ public class ProcessServlet extends HttpServlet {
     private final SegmentDAO segmentDAO;
     private final FacetChangesDAO facetChangesDAO;
     private final DFCRService dfcrService;
+    private final SegmentValidationService segmentValidationService;
 
     public ProcessServlet() {
         this.processService = new ProcessService();
         this.segmentDAO = new SegmentDAO();
+        this.segmentValidationService = new SegmentValidationService();
         this.facetChangesDAO = new FacetChangesDAO();
         this.dfcrService = new DFCRService();
     }
@@ -220,15 +223,28 @@ public class ProcessServlet extends HttpServlet {
                 }
             }
 
+            // Validate segment hierarchy before creating process
+            Integer segmentId = JsonUtil.getJsonInt(jsonData, "segmentId");
+            if (segmentId == null) segmentId = 1;
+            if (parentId != null && parentId > 0) {
+                try {
+                    var hierarchyResult = segmentValidationService.validateParentChildSegment(parentId, segmentId, "Process");
+                    if (!hierarchyResult.isValid) {
+                        JsonUtil.sendErrorResponse(response.getWriter(), hierarchyResult.message, 400);
+                        return;
+                    }
+                } catch (Exception e) {
+                    System.err.println("Error validating process hierarchy: " + e.getMessage());
+                    JsonUtil.sendErrorResponse(response.getWriter(), "Error validating segment hierarchy: " + e.getMessage(), 500);
+                    return;
+                }
+            }
+
             Process newProcess = processService.createProcess(
                     primaryName.trim(), description, parentId, status, type, durationType, duration,
                     lifecycleStatus, processClassId, processAutomationId, refNumber,
                     inputDescription, outputDescription, stepType, isPublic, 
                     canCreate, canRead, canUpdate, canDelete, canArchive, lastUpdateUserId, request);
-
-            // Assign process to segment
-            Integer segmentId = JsonUtil.getJsonInt(jsonData, "segmentId");
-            if (segmentId == null) segmentId = 1; // Default to Enterprise segment
             try {
                 segmentDAO.assignObjectToSegment(segmentId, newProcess.getId(), "Process", lastUpdateUserId != null ? lastUpdateUserId : 1);
                 //system.out.println("✅ Process " + newProcess.getId() + " assigned to segment " + segmentId);

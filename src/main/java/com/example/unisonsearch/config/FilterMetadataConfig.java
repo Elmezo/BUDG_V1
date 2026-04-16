@@ -21,6 +21,7 @@ public class FilterMetadataConfig {
         datasetFilters.add(new FilterField("createdDate", "Created Date", FilterType.DATE_RANGE, null, "CreateDatetime"));
         datasetFilters.add(new FilterField("lastUpdated", "Last Updated", FilterType.DATE_RANGE, null, "LastUpdateDatetime"));
         datasetFilters.add(new FilterField("createdBy", "Created By", FilterType.PEOPLE, null, "Createdby_ID"));
+        datasetFilters.add(new FilterField("updatedBy", "Updated By", FilterType.PEOPLE, null, "LastUpdateUser_id"));
         FACET_FILTERS.put("DATASET", datasetFilters);
         
         // Glossary filters
@@ -248,6 +249,7 @@ public class FilterMetadataConfig {
         changeRequestFilters.add(new FilterField("updatedDate", "Updated Date", FilterType.DATE_RANGE, null, "Updated_At"));
         changeRequestFilters.add(new FilterField("createdBy", "Created By", FilterType.PEOPLE, null, "Created_By"));
         changeRequestFilters.add(new FilterField("lastUserChange", "Last Changed By", FilterType.PEOPLE, null, "LastUserChange"));
+        changeRequestFilters.add(new FilterField("updatedBy", "Last Changed By", FilterType.PEOPLE, null, "LastUserChange"));
         FACET_FILTERS.put("CHANGE_REQUESTS", changeRequestFilters);
         FACET_FILTERS.put("CHANGE_REQUEST", changeRequestFilters); // Alias
         

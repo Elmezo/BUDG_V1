@@ -856,6 +856,11 @@
                     return false;
                 }
 
+                if (segmentField && !segmentField.validate()) {
+                    restoreButtons();
+                    return false;
+                }
+
                 let saveSuccess = await saveCapabilityData();
                 if (!saveSuccess) {
                     restoreButtons();

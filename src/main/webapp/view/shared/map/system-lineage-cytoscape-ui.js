@@ -259,6 +259,7 @@
                         circle: false
                     });
                 case 'force':
+                case 'organic':
                     return {
                         name: 'cose',
                         animate: true,

@@ -215,14 +215,13 @@ public class GlossarySaveServlet extends HttpServlet {
                     }
                 }
 
-                conn.commit();
-
-                // Validate segment hierarchy before assigning segment
+                // Validate segment hierarchy before commit
                 if (parentId != null && parentId > 0) {
                     try {
                         SegmentValidationService validationService = new SegmentValidationService();
                         var hierarchyValidation = validationService.validateParentChildSegment(parentId, segmentId, "Glossary");
                         if (!hierarchyValidation.isValid) {
+                            conn.rollback();
                             resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
                             JsonObject err = new JsonObject();
                             err.addProperty("error", hierarchyValidation.message);
@@ -231,7 +230,8 @@ public class GlossarySaveServlet extends HttpServlet {
                             return;
                         }
                     } catch (Exception e) {
-                        System.err.println("❌ Error validating glossary hierarchy: " + e.getMessage());
+                        conn.rollback();
+                        System.err.println("Error validating glossary hierarchy: " + e.getMessage());
                         resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
                         JsonObject err = new JsonObject();
                         err.addProperty("error", "Error validating segment hierarchy: " + e.getMessage());
@@ -240,6 +240,8 @@ public class GlossarySaveServlet extends HttpServlet {
                         return;
                     }
                 }
+
+                conn.commit();
 
                 // Assign glossary to segment
                 try {

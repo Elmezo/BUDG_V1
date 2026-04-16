@@ -387,6 +387,24 @@
         var sf = (ddApi && typeof ddApi.getSpacingFactor  === 'function') ? ddApi.getSpacingFactor()  : DEFAULT_SF;
         var sp = (ddApi && typeof ddApi.getSpacingPadding === 'function') ? ddApi.getSpacingPadding() : DEFAULT_PAD;
 
+        var coseOrganicBase = {
+            name:             'cose',
+            idealEdgeLength:   Math.round(100 * sf),
+            nodeOverlap:       20,
+            refresh:           20,
+            fit:               true,
+            padding:           sp,
+            randomize:         false,
+            componentSpacing:  100,
+            nodeRepulsion:     Math.round(4000000 * sf),
+            edgeElasticity:    100,
+            nestingFactor:     5,
+            gravity:           0.25,
+            numIter:           1000,
+            initialTemp:       200,
+            coolingFactor:     0.95,
+            minTemp:           1.0
+        };
         var layoutMap = {
             'left-to-right': {
                 name:    'dagre',
@@ -412,24 +430,8 @@
                 rankSep: 100,
                 padding: sp
             },
-            'force': {
-                name:             'cose',
-                idealEdgeLength:   Math.round(100 * sf),
-                nodeOverlap:       20,
-                refresh:           20,
-                fit:               true,
-                padding:           sp,
-                randomize:         false,
-                componentSpacing:  100,
-                nodeRepulsion:     Math.round(4000000 * sf),
-                edgeElasticity:    100,
-                nestingFactor:     5,
-                gravity:           0.25,
-                numIter:           1000,
-                initialTemp:       200,
-                coolingFactor:     0.95,
-                minTemp:           1.0
-            }
+            'force': coseOrganicBase,
+            'organic': coseOrganicBase
         };
 
         var layoutCfg = layoutMap[layout] || layoutMap['top-to-bottom'];

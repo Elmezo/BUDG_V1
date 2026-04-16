@@ -52,7 +52,7 @@ public class ActivityLog {
     public void setComponent(String component) {
         this.component = component;
     }
-    
+
     public Integer getUserId() {
         return userId;
     }

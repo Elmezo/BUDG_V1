@@ -80,13 +80,15 @@ public class ProjectServlet extends HttpServlet {
                 }
                 response.getWriter().write(arr.toString());
             } else if ("/parent-picker".equals(pathInfo)) {
-                // Return projects for parent picker (excluding current project)
                 String excludeIdParam = request.getParameter("excludeId");
                 int excludeId = excludeIdParam != null ? Integer.parseInt(excludeIdParam) : 0;
                 
-                //system.out.println("ProjectServlet: Getting parent picker projects, excludeId: " + excludeId);
                 List<Project> projects = projectService.getProjectsForParentPicker(excludeId);
-                //system.out.println("ProjectServlet: Retrieved " + projects.size() + " parent projects");
+                projects = RequestedSegmentFilterUtil.filterByRequestedSegment(
+                        projects,
+                        RequestedSegmentFilterUtil.resolveEffectiveSegmentId(request, segmentDAO),
+                        "Project",
+                        Project::getId);
                 
                 com.google.gson.JsonArray arr = new com.google.gson.JsonArray();
                 for (Project p : projects) {

@@ -812,6 +812,10 @@ async function saveGlossary(closeAfter = false) {
         { ok: Number.isInteger(securityClassification), field: 'Security Classification' }
     ];
     
+    if (segmentField && !segmentField.validate()) {
+        return false;
+    }
+
     const missing = required.filter(r => !r.ok).map(r => r.field);
     if (missing.length > 0) {
         alert(`Please fill in the following required fields: ${missing.join(', ')}`);

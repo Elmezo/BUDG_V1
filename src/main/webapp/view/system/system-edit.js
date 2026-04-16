@@ -998,6 +998,10 @@
 
             if (activeTab === 'summary') {
                 try {
+                    if (segmentField && !segmentField.validate()) {
+                        restoreButtons();
+                        return;
+                    }
                     const payload = collectFormData();
                     const updatePayload = { ...payload, id: parseInt(id, 10) };
                     const res = await window.BUDG_API_SERVICE.updateSystem(id, updatePayload);

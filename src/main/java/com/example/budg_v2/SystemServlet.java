@@ -1110,6 +1110,31 @@ public class SystemServlet extends HttpServlet {
             }
             ////system.out.println("🔍 Resolved userId: " + userId);
 
+            // Validate segment hierarchy before insert
+            Integer segmentId = getIntOrNull(body, "segmentId");
+            if (segmentId == null) segmentId = 1;
+            if (parentId != null && parentId > 0) {
+                try {
+                    var hierarchyValidation = segmentValidationService.validateParentChildSegment(parentId, segmentId, "System");
+                    if (!hierarchyValidation.isValid) {
+                        resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                        com.google.gson.JsonObject err = new com.google.gson.JsonObject();
+                        err.addProperty("error", hierarchyValidation.message);
+                        err.addProperty("status", 400);
+                        resp.getWriter().write(err.toString());
+                        return;
+                    }
+                } catch (Exception e) {
+                    System.err.println("Error validating system hierarchy: " + e.getMessage());
+                    resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+                    com.google.gson.JsonObject err = new com.google.gson.JsonObject();
+                    err.addProperty("error", "Error validating segment hierarchy: " + e.getMessage());
+                    err.addProperty("status", 500);
+                    resp.getWriter().write(err.toString());
+                    return;
+                }
+            }
+
             int newId = systemDAO.insertSystem(
                     name,
                     parentId,
@@ -1134,35 +1159,6 @@ public class SystemServlet extends HttpServlet {
                 resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
                 resp.getWriter().write("{\"error\":\"Failed to save system\",\"status\":500}");
                 return;
-            }
-
-            ////system.out.println("🔍 System ID: " + newId);
-
-            // Validate segment hierarchy before assigning segment
-            Integer segmentId = getIntOrNull(body, "segmentId");
-            if (segmentId == null) segmentId = 1; // Default to Enterprise segment
-            
-            // Validate hierarchy: parent-child relationships must stay within the same segment
-            if (parentId != null && parentId > 0) {
-                try {
-                    var hierarchyValidation = segmentValidationService.validateParentChildSegment(parentId, segmentId, "System");
-                    if (!hierarchyValidation.isValid) {
-                        resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-                        com.google.gson.JsonObject err = new com.google.gson.JsonObject();
-                        err.addProperty("error", hierarchyValidation.message);
-                        err.addProperty("status", 400);
-                        resp.getWriter().write(err.toString());
-                        return;
-                    }
-                } catch (Exception e) {
-                    System.err.println("❌ Error validating system hierarchy: " + e.getMessage());
-                    resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-                    com.google.gson.JsonObject err = new com.google.gson.JsonObject();
-                    err.addProperty("error", "Error validating segment hierarchy: " + e.getMessage());
-                    err.addProperty("status", 500);
-                    resp.getWriter().write(err.toString());
-                    return;
-                }
             }
 
             // Assign system to segment

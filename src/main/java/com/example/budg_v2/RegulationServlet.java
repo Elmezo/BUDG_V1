@@ -9,6 +9,7 @@ import com.example.budg_v2.database.DatabaseConnection;
 import com.example.budg_v2.util.DefaultStakeholderUtil;
 import com.example.budg_v2.util.PermissionCheckUtil;
 import com.example.budg_v2.util.SegmentScopedPrimaryNameCheck;
+import com.example.budg_v2.util.RequestedSegmentFilterUtil;
 import com.example.budg_v2.util.SegmentResponseUtil;
 import com.example.budg_v2.util.SegmentResponseUtil.SegmentInfo;
 import com.example.budg_v2.util.UserContextUtil;
@@ -59,10 +60,14 @@ public class RegulationServlet extends HttpServlet {
             int userId = UserContextUtil.getCurrentUserId(request);
             
             if (pathInfo == null || pathInfo.equals("/")) {
-                // Get all regulations - filtered by segment access
                 List<Regulation> regulations = userId > 0 
                     ? regulationService.getAllRegulationsBySegmentAccess(userId)
                     : regulationService.getAllRegulations();
+                regulations = RequestedSegmentFilterUtil.filterByRequestedSegment(
+                        regulations,
+                        RequestedSegmentFilterUtil.resolveEffectiveSegmentId(request, segmentDAO),
+                        "Regulation",
+                        Regulation::getId);
                 response.getWriter().write(gson.toJson(regulations));
             } else if (pathInfo.equals("/list")) {
                 // Get regulations for dropdown - filtered by segment access
@@ -336,17 +341,37 @@ public class RegulationServlet extends HttpServlet {
                 }
             }
 
-            int regulationId = regulationService.createRegulation(regulation);
-            //system.out.println("RegulationServlet POST - Created regulation with ID: " + regulationId);
-
-            // Assign regulation to segment - parse from JSON
-            Integer segmentId = 1; // Default to Enterprise segment
+            // Validate segment hierarchy before creating regulation
+            Integer segmentId = 1;
             try {
                 JsonObject jsonObj = com.google.gson.JsonParser.parseString(jsonData).getAsJsonObject();
                 if (jsonObj.has("segmentId") && !jsonObj.get("segmentId").isJsonNull()) {
                     segmentId = jsonObj.get("segmentId").getAsInt();
                 }
             } catch (Exception ignored) {}
+            Integer regulationParentId = regulation.getParentId();
+            if (regulationParentId != null && regulationParentId > 0) {
+                try {
+                    var hierarchyResult = segmentValidationService.validateParentChildSegment(regulationParentId, segmentId, "Regulation");
+                    if (!hierarchyResult.isValid) {
+                        response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                        JsonObject error = new JsonObject();
+                        error.addProperty("error", hierarchyResult.message);
+                        response.getWriter().write(gson.toJson(error));
+                        return;
+                    }
+                } catch (Exception e) {
+                    System.err.println("Error validating regulation hierarchy: " + e.getMessage());
+                    response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+                    JsonObject error = new JsonObject();
+                    error.addProperty("error", "Error validating segment hierarchy: " + e.getMessage());
+                    response.getWriter().write(gson.toJson(error));
+                    return;
+                }
+            }
+
+            int regulationId = regulationService.createRegulation(regulation);
+            //system.out.println("RegulationServlet POST - Created regulation with ID: " + regulationId);
             int userId = UserContextUtil.getCurrentUserId(request);
             try {
                 segmentDAO.assignObjectToSegment(segmentId, regulationId, "Regulation", userId > 0 ? userId : 1);

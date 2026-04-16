@@ -919,6 +919,24 @@ public class CommitteeServlet extends HttpServlet {
             createdById = currentUserId > 0 ? currentUserId : null;
         }
 
+        // Validate segment hierarchy before insert
+        Integer parentIdVal = jsonObject.has("parentId") && !jsonObject.get("parentId").isJsonNull()
+                ? jsonObject.get("parentId").getAsInt() : null;
+        Integer segmentIdVal = jsonObject.has("segmentId") && !jsonObject.get("segmentId").isJsonNull()
+                ? jsonObject.get("segmentId").getAsInt() : 1;
+        if (parentIdVal != null && parentIdVal > 0) {
+            try {
+                var hierarchyResult = segmentValidationService.validateParentChildSegment(parentIdVal, segmentIdVal, "Committee");
+                if (!hierarchyResult.isValid) {
+                    throw new SQLException("Segment hierarchy violation: " + hierarchyResult.message);
+                }
+            } catch (SQLException e) {
+                throw e;
+            } catch (Exception e) {
+                throw new SQLException("Error validating segment hierarchy: " + e.getMessage(), e);
+            }
+        }
+
         String query = """
             INSERT INTO committee 
             (Parent_ID, Is_Public, Classification, Status, Lifecycle, Committee_Type, 
@@ -927,8 +945,7 @@ public class CommitteeServlet extends HttpServlet {
             """;
 
         try (PreparedStatement stmt = conn.prepareStatement(query, Statement.RETURN_GENERATED_KEYS)) {
-            stmt.setObject(1, jsonObject.has("parentId") && !jsonObject.get("parentId").isJsonNull() ?
-                    jsonObject.get("parentId").getAsInt() : null);
+            stmt.setObject(1, parentIdVal);
 
             // Debug logging for isPublic
             Object isPublicValue = jsonObject.has("isPublic") && !jsonObject.get("isPublic").isJsonNull() ?

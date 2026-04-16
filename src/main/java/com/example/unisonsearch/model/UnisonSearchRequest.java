@@ -10,6 +10,11 @@ import java.util.Map;
 public class UnisonSearchRequest {
     private List<SearchItem> searches;
     private SearchOptions options;
+    /**
+     * When set, every non-People facet in the response is intersected with objects
+     * linked to these people (stakeholder, created by, or updated by).
+     */
+    private List<Integer> peopleConstraintIds;
 
     public UnisonSearchRequest() {
     }
@@ -33,6 +38,14 @@ public class UnisonSearchRequest {
 
     public void setOptions(SearchOptions options) {
         this.options = options;
+    }
+
+    public List<Integer> getPeopleConstraintIds() {
+        return peopleConstraintIds;
+    }
+
+    public void setPeopleConstraintIds(List<Integer> peopleConstraintIds) {
+        this.peopleConstraintIds = peopleConstraintIds;
     }
 
     /**

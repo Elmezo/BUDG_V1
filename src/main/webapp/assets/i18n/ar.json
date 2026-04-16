@@ -785,7 +785,9 @@
         "manageSearchesLink": "إدارة عمليات البحث",
         "recentHistoryTitle": "عمليات البحث الأخيرة",
         "noRecentSearches": "لا توجد عمليات بحث حديثة",
-        "bulkNoSelection": "يرجى تحديد صف أو أكثر أولاً."
+        "bulkNoSelection": "يرجى تحديد صف أو أكثر أولاً.",
+        "filterByThesePeople": "تصفية حسب هؤلاء الأشخاص",
+        "clearPeopleFilter": "إلغاء تصفية الأشخاص"
     },
     "tab": {
         "list": "القائمة",
@@ -1610,6 +1612,7 @@
             "errorLoadingImpact": "خطأ في تحميل بيانات التأثير",
             "impactScriptNotLoaded": "لم يتم تحميل نص عرض التأثير. يرجى تحديث الصفحة.",
             "systemNoSegment": "لا يمكن الحفظ: النظام '{systemName}' ليس له قطاع. قم بتعيين قطاع للنظام أولاً، ثم حاول مرة أخرى.",
+            "systemPrivateSegmentRule": "لا يمكن الحفظ: عندما ينتمي النظام إلى قطاع خاص، يجب أن تنتمي مجموعة البيانات إلى نفس القطاع.",
             "editSystem": "تعديل النظام",
             "glossaryNoSegment": "لا يمكن الحفظ: المسرد '{glossaryName}' ليس له قطاع. قم بتعيين قطاع للمسرد أولاً، ثم حاول حفظ مجموعة البيانات مرة أخرى."
         },

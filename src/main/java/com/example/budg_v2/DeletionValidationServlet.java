@@ -151,7 +151,7 @@ public class DeletionValidationServlet extends HttpServlet {
         // Attribute configuration
         FACET_CONFIGS.put("attribute", new FacetConfig(
             "attribute", "DeletedDatetime", null, "Dataset_ID", false,
-            "attribute_x_objectxpeople", null, new String[]{"attribute-relationships", "attribute-dataset-cr", "attribute-values", "attribute-target-relationships"}
+            "attribute_x_objectxpeople", null, new String[]{"attribute-relationships", "attribute-dataset-cr", "attribute-values", "attribute-target-relationships", "attribute-source-relationships"}
         ));
     }
     
@@ -1060,6 +1060,8 @@ public class DeletionValidationServlet extends HttpServlet {
                 return checkAttributeValues(conn, objectId);
             case "attribute-target-relationships":
                 return checkAttributeTargetRelationships(conn, objectId);
+            case "attribute-source-relationships":
+                return checkAttributeSourceRelationships(conn, objectId);
             
             // Capability checks
             case "capability-relationships":
@@ -1841,7 +1843,9 @@ public class DeletionValidationServlet extends HttpServlet {
      * Check attribute relationships with Process, Policy, and Project
      */
     private JsonObject checkAttributeRelationships(Connection conn, int attributeId) throws SQLException {
-        int totalRelationships = 0;
+        int processCount = 0;
+        int policyCount = 0;
+        int projectCount = 0;
         
         // Check process relationships
         try {
@@ -1849,7 +1853,7 @@ public class DeletionValidationServlet extends HttpServlet {
             try (PreparedStatement stmt = conn.prepareStatement(sql)) {
                 stmt.setInt(1, attributeId);
                 try (ResultSet rs = stmt.executeQuery()) {
-                    if (rs.next()) totalRelationships += rs.getInt(1);
+                    if (rs.next()) processCount = rs.getInt(1);
                 }
             }
         } catch (SQLException e) { /* ignore */ }
@@ -1860,7 +1864,7 @@ public class DeletionValidationServlet extends HttpServlet {
             try (PreparedStatement stmt = conn.prepareStatement(sql)) {
                 stmt.setInt(1, attributeId);
                 try (ResultSet rs = stmt.executeQuery()) {
-                    if (rs.next()) totalRelationships += rs.getInt(1);
+                    if (rs.next()) policyCount = rs.getInt(1);
                 }
             }
         } catch (SQLException e) { /* ignore */ }
@@ -1871,15 +1875,28 @@ public class DeletionValidationServlet extends HttpServlet {
             try (PreparedStatement stmt = conn.prepareStatement(sql)) {
                 stmt.setInt(1, attributeId);
                 try (ResultSet rs = stmt.executeQuery()) {
-                    if (rs.next()) totalRelationships += rs.getInt(1);
+                    if (rs.next()) projectCount = rs.getInt(1);
                 }
             }
         } catch (SQLException e) { /* ignore */ }
         
+        int totalRelationships = processCount + policyCount + projectCount;
         if (totalRelationships > 0) {
+            StringBuilder detail = new StringBuilder();
+            if (processCount > 0) {
+                detail.append("\n\u2022 ").append(processCount).append(" Process link").append(processCount > 1 ? "s" : "");
+            }
+            if (policyCount > 0) {
+                detail.append("\n\u2022 ").append(policyCount).append(" Policy link").append(policyCount > 1 ? "s" : "");
+            }
+            if (projectCount > 0) {
+                detail.append("\n\u2022 ").append(projectCount).append(" Project link").append(projectCount > 1 ? "s" : "");
+            }
+            String message = "🔗 This attribute has active links that must be removed before deletion:" + detail
+                + "\nOpen the attribute's Impact tab to remove these links.";
             JsonObject result = new JsonObject();
             result.addProperty("blocking", true);
-            result.addProperty("message", "🔗 Attribute has " + totalRelationships + " relationship" + (totalRelationships > 1 ? "s" : "") + " with Process, Policy, and Project objects. Remove these relationships before deletion.");
+            result.addProperty("message", message);
             return result;
         }
         
@@ -1971,6 +1988,31 @@ public class DeletionValidationServlet extends HttpServlet {
         } catch (SQLException e) {
             // Table might not exist - ignore
             System.err.println("Error checking attribute target relationships: " + e.getMessage());
+        }
+        return null;
+    }
+    
+    /**
+     * Check if attribute is a relationship source for other attributes (relationships tab)
+     */
+    private JsonObject checkAttributeSourceRelationships(Connection conn, int attributeId) throws SQLException {
+        String sql = "SELECT COUNT(*) FROM attribute_x_attribute WHERE Source_AttributeID = ?";
+        
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, attributeId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next() && rs.getInt(1) > 0) {
+                    int count = rs.getInt(1);
+                    JsonObject result = new JsonObject();
+                    result.addProperty("blocking", true);
+                    result.addProperty("message", "🔗 This attribute is the source in " + count + " relationship"
+                        + (count > 1 ? "s" : "") + " with other attributes. Go to the Relationships tab and remove those relationships before deleting it.");
+                    return result;
+                }
+            }
+        } catch (SQLException e) {
+            // Table might not exist - ignore
+            System.err.println("Error checking attribute source relationships: " + e.getMessage());
         }
         return null;
     }

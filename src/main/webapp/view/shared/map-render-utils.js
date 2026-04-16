@@ -181,13 +181,11 @@
     // =========================================================================
     // 6. buildDagreLayoutOptions
     // ─────────────────────────────────────────────────────────────────────────
-    // Build the Cytoscape layout options object for dagre-based maps.
-    // Identical implementation in process-data-map.js and project-data-map.js;
-    // both read spacing-padding from the shared dropdown API.
+    // Cytoscape layout for process/project data maps (createMapAdapter path).
+    // Dagre for TB/LR/RL; Organic uses shared toolbar value "force" or "organic" → cose.
     //
-    // @param {string} stateLayout - Layout string from module state
-    //                               ('left-to-right' | 'top-to-bottom' | 'right-to-left')
-    // @param {string} mapId       - The map's DOM/API identifier (e.g. 'processDataMap')
+    // @param {string} stateLayout - 'left-to-right' | 'top-to-bottom' | 'right-to-left' | 'force' | 'organic'
+    // @param {string} mapId       - Map DOM/API id (e.g. 'processDataMap')
     // @returns {Object} Cytoscape layout config
     // =========================================================================
     function buildDagreLayoutOptions(stateLayout, mapId) {
@@ -196,10 +194,42 @@
         var sp = (ddApi && typeof ddApi.getSpacingPadding === 'function')
             ? ddApi.getSpacingPadding()
             : DEFAULT_PAD;
-        var layout  = stateLayout || 'left-to-right';
+        var layout = stateLayout || 'left-to-right';
+
+        if (layout === 'force' || layout === 'organic') {
+            var spMult = 1.0;
+            if (ddApi && typeof ddApi.getSpacing === 'function') {
+                var spName = ddApi.getSpacing();
+                spMult = spName === 'compact' ? 0.6 : (spName === 'spacey' ? 1.8 : 1.0);
+            }
+            if (window.InterfaceMapStyles && typeof window.InterfaceMapStyles.getLayoutConfig === 'function') {
+                var coseCfg = window.InterfaceMapStyles.getLayoutConfig(layout);
+                if (coseCfg && coseCfg.name === 'cose') {
+                    return Object.assign({}, coseCfg, {
+                        padding: sp,
+                        nodeRepulsion: Math.round((coseCfg.nodeRepulsion != null ? coseCfg.nodeRepulsion : 5000) * spMult),
+                        idealEdgeLength: Math.round((coseCfg.idealEdgeLength != null ? coseCfg.idealEdgeLength : 150) * spMult)
+                    });
+                }
+            }
+            return {
+                name: 'cose',
+                animate: true,
+                animationDuration: 500,
+                nodeRepulsion: Math.round(5000 * spMult),
+                idealEdgeLength: Math.round(150 * spMult),
+                edgeElasticity: 0.45,
+                nestingFactor: 0.1,
+                gravity: 0.25,
+                numIter: 1500,
+                padding: sp,
+                initialEnergyOnIncremental: 0.3
+            };
+        }
+
         var rankDir = layout === 'top-to-bottom' ? 'TB'
-                    : layout === 'right-to-left'  ? 'RL'
-                    : 'LR';
+            : layout === 'right-to-left' ? 'RL'
+                : 'LR';
         try {
             var dagre = window.cytoscapeDagre || window['cytoscape-dagre'];
             if (dagre && typeof cytoscape !== 'undefined') cytoscape.use(dagre);
