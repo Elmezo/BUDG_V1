@@ -188,7 +188,7 @@ public class JwtUtil {
     
     public static boolean isTokenExpired(String token) {
         try {
-            JWTClaimsSet claims = SignedJWT.parse(token).getJWTClaimsSet();
+            JWTClaimsSet claims = parseAndValidate(token);
             Date exp = claims.getExpirationTime();
             return exp == null || exp.before(new Date());
         } catch (Exception e) {

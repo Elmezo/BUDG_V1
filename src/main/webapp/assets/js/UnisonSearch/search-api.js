@@ -788,7 +788,8 @@ async function executeUnisonSearch(searches, options = {}) {
                 at: new Date().toISOString(),
                 maxDepth: maxDepthValue,
                 searches: searches,
-                options: options
+                options: options,
+                peopleConstraintIds: options.peopleConstraintIds || null
             };
         }
 
@@ -812,17 +813,22 @@ async function executeUnisonSearch(searches, options = {}) {
             });
         }
 
+        const requestBody = {
+            searches: searches,
+            options: {
+                maxDepth: maxDepthValue,
+                includeCounts: options.includeCounts !== false
+            }
+        };
+        if (Array.isArray(options.peopleConstraintIds) && options.peopleConstraintIds.length > 0) {
+            requestBody.peopleConstraintIds = options.peopleConstraintIds.map((id) => Number(id)).filter((n) => Number.isFinite(n) && n > 0);
+        }
+
         const response = await fetch('/api/unison/search', {
             method: 'POST',
             headers: fetchHeaders,
             credentials: 'include',
-            body: JSON.stringify({
-                searches: searches,
-                options: {
-                    maxDepth: maxDepthValue,
-                    includeCounts: options.includeCounts !== false
-                }
-            })
+            body: JSON.stringify(requestBody)
         });
 
         if (!response.ok) {

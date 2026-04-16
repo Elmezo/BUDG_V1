@@ -35,7 +35,7 @@ This codebase is a **Java WAR** deployed on **Apache Tomcat 11**, backed by **My
 **1) Database and environment**
 
 - Create a database and configure connectivity (documentation often uses DB name `project`).
-- Copy the template from `src/main/resources/.env` to **`[Tomcat]/bin/.env`** (or set the same variable names in your environment).  
+- Copy the template from `src/main/resources/env.example` to **`[Tomcat]/bin/.env`** or the project root `.env` (or set the same variable names in your environment).  
   **Do not commit real `.env` files to Git.**
 
 > Backup files, SQL migrations, and execution order are described in **[`VM_DEPLOYMENT_GUIDE.md`](VM_DEPLOYMENT_GUIDE.md)**. Files such as `projectbackup.sql` and a `database/` folder may ship with deployment packages and are not always present in the repository.
@@ -128,7 +128,7 @@ If a Postman collection is provided with the project or internal docs, import it
 **1) قاعدة البيانات والبيئة**
 
 - أنشئ قاعدة بيانات واضبط الاتصال (في التوثيق غالباً اسم القاعدة `project`).
-- انسخ القالب من `src/main/resources/.env` إلى ملف `.env` في **`[Tomcat]/bin/.env`** (أو عيّن المتغيرات بنفس الأسماء).  
+- انسخ القالب من `src/main/resources/env.example` إلى ملف `.env` في **`[Tomcat]/bin/.env`** أو جذر المشروع (أو عيّن المتغيرات بنفس الأسماء).  
   **لا ترفع ملف `.env` الحقيقي إلى Git.**
 
 > تفاصيل النسخ الاحتياطي وملفات الـ migrations وترتيب SQL موثّقة في **[`VM_DEPLOYMENT_GUIDE.md`](VM_DEPLOYMENT_GUIDE.md)** (قد تُرفق ملفات مثل `projectbackup.sql` ومجلد `database/` مع النشر وليست دائماً في المستودع).

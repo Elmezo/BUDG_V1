@@ -1094,6 +1094,7 @@ function generateTable(data, columns, currentCategory) {
             <i class="fas fa-database"></i>
             <p>No data available for ${currentCategory}</p>
         `;
+        tableContainer.innerHTML = '';
         tableContainer.appendChild(noData);
         return;
     }

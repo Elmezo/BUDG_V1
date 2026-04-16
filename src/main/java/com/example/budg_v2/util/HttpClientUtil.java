@@ -40,6 +40,11 @@ public class HttpClientUtil {
     public static final int BULK_VALIDATION_SOCKET_TIMEOUT_MS = 90_000;
 
     /**
+     * When {@code BULK_VALIDATION_API_KEY} is unset, Java and Python use this for local dev (matches {@code env.example}).
+     */
+    public static final String BULK_VALIDATION_API_KEY_DEV_DEFAULT = "BUDG_DEV_BULK_VALIDATION_LOCALHOST_ONLY";
+
+    /**
      * Send POST request with JSON body
      * 
      * @param url The target URL
@@ -61,6 +66,24 @@ public class HttpClientUtil {
      * @return Response body as String
      * @throws IOException if request fails (e.g. timeout, connection refused)
      */
+    private static String bulkValidationApiKey() {
+        String k = System.getenv("BULK_VALIDATION_API_KEY");
+        if (k != null && !k.trim().isEmpty()) {
+            return k.trim();
+        }
+        k = System.getProperty("BULK_VALIDATION_API_KEY");
+        if (k != null && !k.trim().isEmpty()) {
+            return k.trim();
+        }
+        return BULK_VALIDATION_API_KEY_DEV_DEFAULT;
+    }
+
+    private static void addBulkValidationApiKeyHeader(HttpPost httpPost, String url) {
+        if (url != null && url.contains("/api/validate")) {
+            httpPost.setHeader("X-API-Key", bulkValidationApiKey());
+        }
+    }
+
     public static String postJson(String url, String jsonBody, int connectTimeoutMs, int socketTimeoutMs) throws IOException {
         RequestConfig requestConfig = RequestConfig.custom()
                 .setConnectTimeout(connectTimeoutMs)
@@ -72,6 +95,7 @@ public class HttpClientUtil {
             HttpPost httpPost = new HttpPost(url);
             httpPost.setHeader("Content-Type", "application/json");
             httpPost.setHeader("Accept", "application/json");
+            addBulkValidationApiKeyHeader(httpPost, url);
             
             StringEntity entity = new StringEntity(jsonBody, StandardCharsets.UTF_8);
             httpPost.setEntity(entity);

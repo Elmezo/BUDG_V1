@@ -10,6 +10,11 @@ import java.util.Map;
 public class UnisonSearchRequest {
     private List<SearchItem> searches;
     private SearchOptions options;
+    /**
+     * When set, every non-People facet in the response is intersected with objects
+     * linked to these people (stakeholder, created by, or updated by).
+     */
+    private List<Integer> peopleConstraintIds;
 
     public UnisonSearchRequest() {
     }
@@ -35,6 +40,14 @@ public class UnisonSearchRequest {
         this.options = options;
     }
 
+    public List<Integer> getPeopleConstraintIds() {
+        return peopleConstraintIds;
+    }
+
+    public void setPeopleConstraintIds(List<Integer> peopleConstraintIds) {
+        this.peopleConstraintIds = peopleConstraintIds;
+    }
+
     /**
      * Represents a single search condition.
      */
@@ -57,6 +70,15 @@ public class UnisonSearchRequest {
          * combined result filters the parent line (e.g. FIND Data Sets with indented AND/OR on System).
          */
         private Integer indentLevel;
+
+        /**
+         * When true this condition is treated as a "display-only filter": its filters are applied to
+         * the row-data retrieval stage (so only matching rows are shown in the UI) but it is completely
+         * excluded from the AND/OR/NOT accumulation phase.  This allows, e.g., filtering the People
+         * panel by Profile Name without reducing the root System count.
+         * The condition is still persisted in saved searches so the filter is restored on reload.
+         */
+        private boolean displayFilter;
 
         public SearchItem() {
         }
@@ -122,6 +144,14 @@ public class UnisonSearchRequest {
 
         public void setIndentLevel(Integer indentLevel) {
             this.indentLevel = indentLevel;
+        }
+
+        public boolean isDisplayFilter() {
+            return displayFilter;
+        }
+
+        public void setDisplayFilter(boolean displayFilter) {
+            this.displayFilter = displayFilter;
         }
     }
 

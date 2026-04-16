@@ -358,7 +358,8 @@ document.addEventListener('DOMContentLoaded', async function() {
                     impactTab.style.display = 'none';
                 }
                 if (viewContainer) {
-                    viewContainer.style.display = 'none';
+                    // Must use !important: committee.css sets #committeeViewContainer { display: flex !important; }
+                    viewContainer.style.setProperty('display', 'none', 'important');
                 }
 
                 // Show the corresponding container
@@ -378,7 +379,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 } else if (tabName === 'view') {
                     // Show view container for summary tab
                     if (viewContainer) {
-                        viewContainer.style.display = 'grid';
+                        viewContainer.style.setProperty('display', 'flex', 'important');
                         // CRITICAL: Ensure segmentFieldContainer is visible when summary tab is shown
                         const segmentContainer = document.getElementById('segmentFieldContainer');
                         if (segmentContainer) {
@@ -426,7 +427,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 impactTab.style.display = 'none';
             }
             if (viewContainer) {
-                viewContainer.style.display = 'none';
+                viewContainer.style.setProperty('display', 'none', 'important');
             }
 
             // Special handling for impact tab
@@ -441,7 +442,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             } else if (activeTabName === 'view') {
                 // Show view container for summary tab
                 if (viewContainer) {
-                    viewContainer.style.display = 'grid';
+                    viewContainer.style.setProperty('display', 'flex', 'important');
                     // CRITICAL: Ensure segmentFieldContainer is visible when summary tab is shown
                     const segmentContainer = document.getElementById('segmentFieldContainer');
                     if (segmentContainer) {

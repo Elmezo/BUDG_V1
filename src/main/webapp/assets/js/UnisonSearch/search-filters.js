@@ -10,16 +10,23 @@ let activeSearchFields = {}; // e.g. { name: true, ref: true, cf_42: true }
 let currentFilterFacetId = null; // the facet currently loaded in the filter panel
 // Custom field metadata per facet: { [facetId]: [{ id, displayName, customFieldName }] }
 let customFieldsMetadata = {};
+// Keyed by uppercase facetId — saved filter rows when switching away from a facet
+let perFacetFilterState = {};
 
 /** Layers that escape .filter-panel-content overflow via fixed positioning */
 const FILTER_DROPDOWN_LAYER_SELECTOR = '.filter-dropdown-values, .filter-dropdown-options, .filter-people-results';
 
-// Make available globally
+// Make available globally (re-assign window.* whenever the local let is replaced — same object ref must stay in sync)
+function syncFilterMetadataGlobals() {
+    if (typeof window !== 'undefined') {
+        window.activeFilters = activeFilters;
+        window.filterFieldsMetadata = filterFieldsMetadata;
+        window.activeSearchFields = activeSearchFields;
+        window.customFieldsMetadata = customFieldsMetadata;
+    }
+}
 if (typeof window !== 'undefined') {
-    window.activeFilters = activeFilters;
-    window.filterFieldsMetadata = filterFieldsMetadata;
-    window.activeSearchFields = activeSearchFields;
-    window.customFieldsMetadata = customFieldsMetadata;
+    syncFilterMetadataGlobals();
 }
 
 /**
@@ -32,9 +39,13 @@ async function loadFilterFields(facetId) {
         return;
     }
 
-    // If the facet changed, clear existing filter rows so stale filters from a
-    // previous facet are not carried over to the new one.
+    // If the facet changed, save the previous facet's filter state, then clear rows so
+    // stale filters from another facet are not carried over.
     if (currentFilterFacetId && currentFilterFacetId !== facetId) {
+        if (activeFilters.length > 0) {
+            perFacetFilterState[String(currentFilterFacetId).toUpperCase()] =
+                JSON.parse(JSON.stringify(activeFilters));
+        }
         const container = document.getElementById('filterRowsContainer');
         if (container) container.innerHTML = '';
         activeFilters = [];
@@ -44,7 +55,11 @@ async function loadFilterFields(facetId) {
     }
 
     currentFilterFacetId = facetId;
-    
+    if (typeof window !== 'undefined') {
+        window.currentFilterFacetId = facetId;
+    }
+    console.log('[FilterApply][DEBUG] loadFilterFields', { facetId, windowCurrentFilterFacetId: typeof window !== 'undefined' ? window.currentFilterFacetId : null });
+
     try {
         // Fetch static filter fields and custom field metadata in parallel
         const [filterResponse, cfResponse] = await Promise.all([
@@ -55,11 +70,23 @@ async function loadFilterFields(facetId) {
         if (!filterResponse.ok) {
             console.error('[Filters] Failed to load filter fields:', filterResponse.status);
             filterFieldsMetadata = {};
+            syncFilterMetadataGlobals();
             return;
         }
 
         const data = await filterResponse.json();
         filterFieldsMetadata = data;
+        syncFilterMetadataGlobals();
+
+        // Backfill facetId on filter rows created before facetId was stored (stable Apply resolution).
+        if (data.facetId && Array.isArray(activeFilters)) {
+            activeFilters.forEach((f) => {
+                if (!f.facetId) {
+                    f.facetId = data.facetId;
+                }
+            });
+            window.activeFilters = activeFilters;
+        }
 
         // Store custom field metadata — endpoint returns { success, data: [...] }
         if (cfResponse.ok) {
@@ -86,10 +113,39 @@ async function loadFilterFields(facetId) {
         if (typeof initQuickFilters === 'function') {
             initQuickFilters(facetId);
         }
-        
+
+        // Restore saved filters for this facet (after facet switch left activeFilters empty).
+        // Skip when rows already exist (e.g. reopening the panel on the same facet).
+        const facetKey = String(facetId).toUpperCase();
+        const saved = perFacetFilterState[facetKey];
+        if (saved && saved.length > 0 && activeFilters.length === 0) {
+            const allFields = [
+                ...((filterFieldsMetadata && filterFieldsMetadata.filterFields) || []),
+                ...getCfDropdownFilterFieldEntries(facetId)
+            ];
+            for (const savedFilter of saved) {
+                if (savedFilter.value === null || savedFilter.value === undefined) continue;
+                const field = allFields.find(f => f.id === savedFilter.fieldId);
+                if (!field) continue;
+                addFilterRow(field);
+                const newEntry = activeFilters[activeFilters.length - 1];
+                if (newEntry) {
+                    newEntry.value = savedFilter.value;
+                    if (savedFilter.dropdownLabels) {
+                        newEntry.dropdownLabels = savedFilter.dropdownLabels;
+                    }
+                    window.activeFilters = activeFilters;
+                }
+            }
+            if (typeof updateFilterBadge === 'function') updateFilterBadge();
+            if (typeof renderActiveFiltersChips === 'function') renderActiveFiltersChips();
+            updateAddFilterDropdown();
+        }
+
     } catch (error) {
         console.error('[Filters] Error loading filter fields:', error);
         filterFieldsMetadata = {};
+        syncFilterMetadataGlobals();
     }
 }
 
@@ -134,13 +190,15 @@ function renderSearchFieldSelector(facetId) {
         }
     });
 
-    // Append custom field entries (keyed as "cf_<id>") after the static ones
+    // Append custom field entries (keyed as "cf_<id>") after the static ones — only dropdown / multiselect
     const cfList = (window.customFieldsMetadata && window.customFieldsMetadata[facetId]) || [];
-    cfList.forEach(cf => {
-        const cfKey = 'cf_' + cf.id;
-        const cfLabel = cf.displayName || cf.customFieldName || ('CF ' + cf.id);
-        fieldEntries.push({ key: cfKey, label: cfLabel, isCf: true });
-    });
+    cfList
+        .filter(cf => cf.type === 'dropdown' || cf.type === 'multiselect')
+        .forEach(cf => {
+            const cfKey = 'cf_' + cf.id;
+            const cfLabel = cf.displayName || cf.technicalName || cf.customFieldName || ('CF ' + cf.id);
+            fieldEntries.push({ key: cfKey, label: cfLabel, isCf: true });
+        });
 
     // If there are no fields to show, don't render the selector
     if (fieldEntries.length === 0) return;
@@ -237,6 +295,25 @@ function getEffectiveSearchFieldsForCategory(category) {
 }
 
 /**
+ * Synthetic filter-field entries for custom dropdown / multiselect CFs (for "Add new filter" and field changer).
+ * @param {string} facetId
+ * @returns {Array<{id:string,name:string,type:string,enumValues:Array,fieldName:null}>}
+ */
+function getCfDropdownFilterFieldEntries(facetId) {
+    const list = (window.customFieldsMetadata && facetId && window.customFieldsMetadata[facetId]) || [];
+    return list
+        .filter(cf => (cf.type === 'dropdown' || cf.type === 'multiselect')
+            && Array.isArray(cf.enumValues) && cf.enumValues.length > 0)
+        .map(cf => ({
+            id: 'cf_' + cf.id,
+            name: cf.displayName || cf.technicalName || cf.customFieldName || ('CF ' + cf.id),
+            type: 'CF_DROPDOWN',
+            enumValues: cf.enumValues,
+            fieldName: null
+        }));
+}
+
+/**
  * Update the "Add new filter" dropdown with available filter fields
  */
 function updateAddFilterDropdown() {
@@ -248,26 +325,26 @@ function updateAddFilterDropdown() {
     // Clear existing options
     addNewOptions.innerHTML = '';
     
-    if (!filterFieldsMetadata.filterFields || filterFieldsMetadata.filterFields.length === 0) {
+    const staticFields = (filterFieldsMetadata && filterFieldsMetadata.filterFields) || [];
+    const facetId = (filterFieldsMetadata && filterFieldsMetadata.facetId) || currentFilterFacetId;
+    const cfFields = getCfDropdownFilterFieldEntries(facetId);
+
+    if (staticFields.length === 0 && cfFields.length === 0) {
         const noFiltersOption = document.createElement('div');
         noFiltersOption.className = 'filter-dropdown-option disabled';
         noFiltersOption.textContent = 'No filters available';
         addNewOptions.appendChild(noFiltersOption);
         return;
     }
-    
-    // Add options for each available filter
-    filterFieldsMetadata.filterFields.forEach(field => {
-        // Check if this filter is already added
+
+    const appendOption = (field) => {
         const isAlreadyAdded = activeFilters.some(f => f.fieldId === field.id);
-        
         const option = document.createElement('div');
         option.className = 'filter-dropdown-option';
         option.setAttribute('data-value', field.id);
         option.setAttribute('data-field-name', field.name);
         option.setAttribute('data-field-type', field.type);
         option.textContent = field.name;
-        
         if (isAlreadyAdded) {
             option.classList.add('disabled');
             option.style.opacity = '0.5';
@@ -275,19 +352,19 @@ function updateAddFilterDropdown() {
         } else {
             option.addEventListener('click', (e) => {
                 e.stopPropagation();
-                // Close the dropdown after selection
-                const addNewOptions = document.getElementById('filterAddNewOptions');
-                if (addNewOptions) {
-                    resetFilterDropdownFloating(addNewOptions);
-                    addNewOptions.style.display = 'none';
+                const opts = document.getElementById('filterAddNewOptions');
+                if (opts) {
+                    resetFilterDropdownFloating(opts);
+                    opts.style.display = 'none';
                 }
                 addFilterRow(field);
             });
         }
-        
         addNewOptions.appendChild(option);
-    });
-    
+    };
+
+    staticFields.forEach(appendOption);
+    cfFields.forEach(appendOption);
 }
 
 /**
@@ -325,6 +402,10 @@ function addFilterRow(filterField) {
     const nameButton = document.createElement('button');
     nameButton.className = 'filter-dropdown-btn filter-name-btn';
     nameButton.innerHTML = `<span>${filterField.name}</span><i class="fas fa-chevron-down"></i>`;
+    nameButton.addEventListener('click', (e) => {
+        e.stopPropagation();
+        showFieldChangerDropdown(nameButton, filterId);
+    });
     leftCol.appendChild(nameButton);
     
     // Create right column - filter value selector
@@ -350,6 +431,12 @@ function addFilterRow(filterField) {
     
     container.appendChild(filterRow);
     
+    // Remember which facet this row belongs to — window.currentFilterFacetId can be
+    // overwritten later when the sidebar switches (e.g. Unison resets to FIND facet).
+    const facetForRow = (filterFieldsMetadata && filterFieldsMetadata.facetId)
+        ? filterFieldsMetadata.facetId
+        : currentFilterFacetId;
+
     // Add to active filters
     activeFilters.push({
         id: filterId,
@@ -357,7 +444,8 @@ function addFilterRow(filterField) {
         fieldName: filterField.name,
         fieldType: filterField.type,
         fieldColumn: filterField.fieldName,
-        value: null
+        value: null,
+        facetId: facetForRow || null
     });
     window.activeFilters = activeFilters;
     
@@ -385,6 +473,8 @@ function createValueSelector(filterField, filterId) {
     
     switch (filterField.type) {
         case 'DROPDOWN':
+            return createDropdownValueSelector(filterField, filterId);
+        case 'CF_DROPDOWN':
             return createDropdownValueSelector(filterField, filterId);
         case 'DATE_RANGE':
             return createDateRangeValueSelector(filterField, filterId);
@@ -459,9 +549,14 @@ function createDropdownValueSelector(filterField, filterId) {
             requestAnimationFrame(() => refreshFloatingFilterDropdowns());
         }
         
-        // Load values if not loaded yet
+        // Load values if not loaded yet (inline enum list for custom fields, else API)
         if (!isVisible && valuesContainer.children.length === 0) {
-            await loadDropdownValues(filterField, filterId, valuesContainer, loadingMsg);
+            if (Array.isArray(filterField.enumValues) && filterField.enumValues.length > 0) {
+                loadingMsg.style.display = 'none';
+                populateInlineCfEnumDropdown(filterField, filterId, valuesContainer);
+            } else {
+                await loadDropdownValues(filterField, filterId, valuesContainer, loadingMsg);
+            }
         }
         
         // Update highlights when opening
@@ -490,6 +585,75 @@ function createDropdownValueSelector(filterField, filterId) {
     });
     
     return container;
+}
+
+/**
+ * Populate dropdown checkboxes from custom-field enumValues (no API call).
+ */
+function populateInlineCfEnumDropdown(filterField, filterId, container) {
+    container.innerHTML = '';
+    const enumValues = filterField.enumValues || [];
+    if (enumValues.length === 0) {
+        container.innerHTML = '<div class="filter-no-values">No values available</div>';
+        return;
+    }
+
+    const actionsDiv = document.createElement('div');
+    actionsDiv.className = 'filter-value-actions';
+    const selectAllBtn = document.createElement('button');
+    selectAllBtn.className = 'filter-action-btn';
+    selectAllBtn.textContent = 'Select All';
+    selectAllBtn.addEventListener('click', () => {
+        container.querySelectorAll(`input[type="checkbox"][data-filter-id="${filterId}"]`).forEach(cb => { cb.checked = true; });
+        updateFilterValue(filterId, filterField);
+    });
+    const deselectAllBtn = document.createElement('button');
+    deselectAllBtn.className = 'filter-action-btn';
+    deselectAllBtn.textContent = 'Deselect All';
+    deselectAllBtn.addEventListener('click', () => {
+        container.querySelectorAll(`input[type="checkbox"][data-filter-id="${filterId}"]`).forEach(cb => { cb.checked = false; });
+        updateFilterValue(filterId, filterField);
+    });
+    actionsDiv.appendChild(selectAllBtn);
+    actionsDiv.appendChild(deselectAllBtn);
+    container.appendChild(actionsDiv);
+
+    enumValues.forEach(ev => {
+        const id = ev.id != null ? Number(ev.id) : NaN;
+        if (Number.isNaN(id)) return;
+        const labelText = ev.enumValue != null ? String(ev.enumValue) : (ev.name != null ? String(ev.name) : String(id));
+
+        const item = document.createElement('div');
+        item.className = 'filter-value-item';
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.id = `${filterId}-value-${id}`;
+        checkbox.value = String(id);
+        checkbox.setAttribute('data-filter-id', filterId);
+        checkbox.addEventListener('change', () => {
+            updateFilterValue(filterId, filterField);
+            updateValueHighlight(filterId, filterField);
+        });
+        const label = document.createElement('label');
+        label.htmlFor = checkbox.id;
+        label.textContent = labelText;
+        item.appendChild(checkbox);
+        item.appendChild(label);
+        container.appendChild(item);
+    });
+
+    const filterAfterLoad = activeFilters.find(f => f.id === filterId);
+    if (filterAfterLoad && (filterAfterLoad.fieldType === 'DROPDOWN' || filterAfterLoad.fieldType === 'CF_DROPDOWN')
+        && Array.isArray(filterAfterLoad.value)) {
+        container.querySelectorAll(`input[type="checkbox"][data-filter-id="${filterId}"]`).forEach(cb => {
+            cb.checked = filterAfterLoad.value.includes(parseInt(cb.value, 10));
+        });
+        updateFilterValue(filterId, filterField);
+    }
+
+    requestAnimationFrame(() => {
+        if (typeof refreshFloatingFilterDropdowns === 'function') refreshFloatingFilterDropdowns();
+    });
 }
 
 /**
@@ -583,7 +747,8 @@ async function loadDropdownValues(filterField, filterId, container, loadingMsg) 
 
         // Restore selection from quick filter / saved value and capture display labels
         const filterAfterLoad = activeFilters.find(f => f.id === filterId);
-        if (filterAfterLoad && filterAfterLoad.fieldType === 'DROPDOWN' && Array.isArray(filterAfterLoad.value)) {
+        if (filterAfterLoad && (filterAfterLoad.fieldType === 'DROPDOWN' || filterAfterLoad.fieldType === 'CF_DROPDOWN')
+            && Array.isArray(filterAfterLoad.value)) {
             container.querySelectorAll(`input[type="checkbox"][data-filter-id="${filterId}"]`).forEach(cb => {
                 cb.checked = filterAfterLoad.value.includes(parseInt(cb.value, 10));
             });
@@ -644,7 +809,7 @@ function updateFilterValue(filterId, filterField) {
 
     filter.value = selectedValues.length > 0 ? selectedValues : null;
     // Human-readable labels for query bar / chips (parallel to filter.value IDs)
-    if (filterField && filterField.type === 'DROPDOWN' && selectedValues.length > 0) {
+    if (filterField && (filterField.type === 'DROPDOWN' || filterField.type === 'CF_DROPDOWN') && selectedValues.length > 0) {
         filter.dropdownLabels = selectedLabels;
     } else {
         delete filter.dropdownLabels;
@@ -1156,6 +1321,10 @@ function clearAllFilters() {
     // Clear active filters array
     activeFilters = [];
     window.activeFilters = activeFilters;
+
+    if (currentFilterFacetId) {
+        delete perFacetFilterState[String(currentFilterFacetId).toUpperCase()];
+    }
     
     // Update add filter dropdown
     updateAddFilterDropdown();
@@ -1282,7 +1451,8 @@ function renderActiveFiltersChips() {
             if (filter.value.length > 0) {
                 if (filter.fieldType === 'PEOPLE' && typeof filter.value[0] === 'object') {
                     valueText = `: ${filter.value.map(p => p.name || p.id).join(', ')}`;
-                } else if (filter.fieldType === 'DROPDOWN' && Array.isArray(filter.dropdownLabels)
+                } else if ((filter.fieldType === 'DROPDOWN' || filter.fieldType === 'CF_DROPDOWN')
+                    && Array.isArray(filter.dropdownLabels)
                         && filter.dropdownLabels.length === filter.value.length) {
                     valueText = `: ${filter.dropdownLabels.join(', ')}`;
                 } else if (filter.value.length === 1) {
@@ -1295,7 +1465,8 @@ function renderActiveFiltersChips() {
                         valueText = `: ${filter.value[0]}`;
                     }
                 } else {
-                    const fromDom = filter.fieldType === 'DROPDOWN' && filter.value.every(id => {
+                    const fromDom = (filter.fieldType === 'DROPDOWN' || filter.fieldType === 'CF_DROPDOWN')
+                        && filter.value.every(id => {
                         const cb = document.querySelector(`input[type="checkbox"][data-filter-id="${filter.id}"][value="${id}"]`);
                         return cb && cb.nextElementSibling;
                     });
@@ -1648,4 +1819,112 @@ if (typeof window !== 'undefined') {
     window.resetFilterDropdownFloating = resetFilterDropdownFloating;
     window.refreshFloatingFilterDropdowns = refreshFloatingFilterDropdowns;
     window.initFilterDropdownFloatingListeners = initFilterDropdownFloatingListeners;
+}
+
+/**
+ * Show a floating dropdown on a filter name button so the user can swap the field.
+ */
+function showFieldChangerDropdown(anchor, filterId) {
+    // Close all other open filter dropdowns first
+    const layerSel = window.FILTER_DROPDOWN_LAYER_SELECTOR ||
+        '.filter-dropdown-values, .filter-dropdown-options, .filter-people-results, .filter-name-changer';
+    document.querySelectorAll(layerSel).forEach((opt) => {
+        if (typeof resetFilterDropdownFloating === 'function') resetFilterDropdownFloating(opt);
+        opt.style.display = 'none';
+    });
+
+    // Reuse or create the shared changer dropdown
+    let changer = document.getElementById('filterNameChangerOptions');
+    if (!changer) {
+        changer = document.createElement('div');
+        changer.id = 'filterNameChangerOptions';
+        changer.className = 'filter-dropdown-options filter-name-changer';
+        changer.style.display = 'none';
+        changer.addEventListener('click', (e) => e.stopPropagation());
+        document.body.appendChild(changer);
+    }
+
+    // Populate options from available fields (static + custom dropdown CFs)
+    changer.innerHTML = '';
+    const staticFields = (filterFieldsMetadata && filterFieldsMetadata.filterFields) || [];
+    const facetId = (filterFieldsMetadata && filterFieldsMetadata.facetId) || currentFilterFacetId;
+    const cfFields = getCfDropdownFilterFieldEntries(facetId);
+    const fields = staticFields.concat(cfFields);
+    const currentEntry = activeFilters.find(f => f.id === filterId);
+    const currentFieldId = currentEntry ? currentEntry.fieldId : null;
+
+    fields.forEach(field => {
+        const option = document.createElement('div');
+        option.className = 'filter-dropdown-option' + (field.id === currentFieldId ? ' selected' : '');
+        option.textContent = field.name;
+
+        // Disable if another row already uses this field (and it's not the current one)
+        const usedByOther = activeFilters.some(f => f.fieldId === field.id && f.id !== filterId);
+        if (usedByOther) {
+            option.classList.add('disabled');
+            option.style.opacity = '0.5';
+            option.style.cursor = 'not-allowed';
+        } else {
+            option.addEventListener('click', (e) => {
+                e.stopPropagation();
+                changer.style.display = 'none';
+                if (typeof resetFilterDropdownFloating === 'function') resetFilterDropdownFloating(changer);
+                if (field.id !== currentFieldId) {
+                    replaceFilterField(filterId, field);
+                }
+            });
+        }
+        changer.appendChild(option);
+    });
+
+    if (fields.length === 0) {
+        const empty = document.createElement('div');
+        empty.className = 'filter-dropdown-option disabled';
+        empty.textContent = 'No fields available';
+        changer.appendChild(empty);
+    }
+
+    changer.style.display = 'block';
+    if (typeof positionFilterDropdownFloating === 'function') {
+        positionFilterDropdownFloating(changer, anchor);
+    }
+    if (typeof initFilterDropdownFloatingListeners === 'function') {
+        initFilterDropdownFloatingListeners();
+    }
+}
+
+/**
+ * Replace the field of an existing filter row with a new one, preserving its position.
+ */
+function replaceFilterField(filterId, newField) {
+    const filterEntry = activeFilters.find(f => f.id === filterId);
+    if (!filterEntry) return;
+
+    // Update the in-memory record
+    filterEntry.fieldId = newField.id;
+    filterEntry.fieldName = newField.name;
+    filterEntry.fieldType = newField.type;
+    filterEntry.fieldColumn = newField.fieldName;
+    filterEntry.value = null;
+
+    // Update the name button label
+    const filterRow = document.querySelector(`.active-filter-row[data-filter-id="${filterId}"]`);
+    if (!filterRow) return;
+    const nameSpan = filterRow.querySelector('.filter-name-btn span');
+    if (nameSpan) nameSpan.textContent = newField.name;
+
+    // Replace the value selector (keep the remove button)
+    const rightCol = filterRow.querySelector('.filter-field-value');
+    if (rightCol) {
+        const removeBtn = rightCol.querySelector('.filter-remove-btn');
+        rightCol.innerHTML = '';
+        const newValueSelector = createValueSelector(newField, filterId);
+        rightCol.appendChild(newValueSelector);
+        if (removeBtn) rightCol.appendChild(removeBtn);
+    }
+
+    // Refresh related UI
+    updateAddFilterDropdown();
+    if (typeof renderActiveFiltersChips === 'function') renderActiveFiltersChips();
+    if (typeof updateFilterBadge === 'function') updateFilterBadge();
 }

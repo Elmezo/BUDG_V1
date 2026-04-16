@@ -454,6 +454,8 @@
         "orgUnitRef": "Org Unit Ref",
         "orgUnit": "Org Unit",
         "profileName": "Profile Name",
+        "systemRole": "System Role",
+        "System_Role": "System Role",
         "lastLogin": "Last Login",
         "employeeType": "Employee Type",
         "lanId": "LAN ID",
@@ -783,7 +785,9 @@
         "manageSearchesLink": "Manage searches",
         "recentHistoryTitle": "Recent searches",
         "noRecentSearches": "No recent searches",
-        "bulkNoSelection": "Please select one or more rows first."
+        "bulkNoSelection": "Please select one or more rows first.",
+        "filterByThesePeople": "Filter by these People",
+        "clearPeopleFilter": "Clear people filter"
     },
     "tab": {
         "list": "List",

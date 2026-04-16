@@ -29,6 +29,21 @@ import java.util.regex.Matcher;
  */
 public class QueryBuilder {
 
+	/** Base module SQL plus leading {@link PreparedStatement} parameters (e.g. stakeholder EXISTS). */
+	private static final class ModuleSql {
+		final String sql;
+		final List<Object> prefixParameters;
+
+		ModuleSql(String sql, List<Object> prefixParameters) {
+			this.sql = sql;
+			if (prefixParameters == null || prefixParameters.isEmpty()) {
+				this.prefixParameters = List.of();
+			} else {
+				this.prefixParameters = List.copyOf(new ArrayList<>(prefixParameters));
+			}
+		}
+	}
+
 	private final ConfigurationService configurationService;
 	@SuppressWarnings("unused")
 	private final RelationshipManager relationshipManager;
@@ -62,14 +77,14 @@ public class QueryBuilder {
 			return new QueryResult(null, List.of());
 		}
 
-		String sql = getSqlForModule(module, params.userId);
-		if (sql == null) {
+		ModuleSql moduleSql = getSqlForModule(module, params.userId);
+		if (moduleSql.sql == null) {
 			return new QueryResult(null, List.of());
 		}
 		// Always include segment columns in Unison results where applicable
-		sql = appendSegmentSelectColumnsIfNeeded(module, sql);
+		String sql = appendSegmentSelectColumnsIfNeeded(module, moduleSql.sql);
 
-		List<Object> parameters = new ArrayList<>();
+		List<Object> parameters = new ArrayList<>(moduleSql.prefixParameters);
 		boolean useFuzzy = configurationService.getFuzzySearchConfig();
 
 		// Check if we should use AST-based parser
@@ -1814,10 +1829,17 @@ public class QueryBuilder {
 		};
 	}
 
-	private String getSqlForModule(String moduleRaw, Integer userId) {
+	private ModuleSql buildModuleSql(String baseSql, String tableAlias, String deletedColumn, String moduleKey,
+			Integer userId, String trailingSql) {
+		List<Object> prefixParams = new ArrayList<>();
+		String finalSql = applyCommonFilters(baseSql, tableAlias, deletedColumn, moduleKey, userId, true, prefixParams);
+		return new ModuleSql(finalSql + trailingSql, prefixParams);
+	}
+
+	private ModuleSql getSqlForModule(String moduleRaw, Integer userId) {
 		String module = moduleRaw == null ? "" : moduleRaw.trim().toLowerCase();
 		return switch (module) {
-			case "role" -> buildOptimizedRoleQuery();
+			case "role" -> new ModuleSql(buildOptimizedRoleQuery(), List.of());
 			case "dataset" -> {
 				String baseSql = "SELECT \n" +
 						"    d.ID AS ID,\n" +
@@ -1847,8 +1869,7 @@ public class QueryBuilder {
 						"LEFT JOIN dataset_lifecycle l ON d.lifecycle = l.ID\n" +
 				"LEFT JOIN dataset_type dt ON d.DatasetType = dt.ID\n" +
 				"LEFT JOIN system sys ON d.MasterSource = sys.ID\n";
-				String finalSql = applyCommonFilters(baseSql, "d", "DeletedDatetime", "dataset", userId, true);
-				yield finalSql + "\nORDER BY d.ID DESC";
+								yield buildModuleSql(baseSql, "d", "DeletedDatetime", "dataset", userId, "\nORDER BY d.ID DESC");
 			}
 			case "attribute" -> {
 				String baseSql = "SELECT \n" +
@@ -1900,8 +1921,7 @@ public class QueryBuilder {
 						"    e.PrimaryName,\n" +
 						"    er.PrimaryName,\n" +
 						"    dt.PrimaryName\n";
-				String finalSql = applyCommonFilters(baseSql, "a", "DeletedDatetime", "attribute", userId, true);
-				yield finalSql + "\nORDER BY a.ID DESC";
+								yield buildModuleSql(baseSql, "a", "DeletedDatetime", "attribute", userId, "\nORDER BY a.ID DESC");
 			}
 			case "system" -> {
 				String baseSql = "SELECT \n" +
@@ -1943,8 +1963,7 @@ public class QueryBuilder {
 						"LEFT JOIN system_lifecycle l ON s.Lifecycle = l.ID\n" +
 						"LEFT JOIN system_type t ON s.Type = t.ID\n" +
 						"LEFT JOIN system pr ON s.parent_id = pr.id\n";
-				String finalSql = applyCommonFilters(baseSql, "s", "Deleted_datetime", "system", userId, true);
-				yield finalSql + "\nORDER BY s.id DESC";
+								yield buildModuleSql(baseSql, "s", "Deleted_datetime", "system", userId, "\nORDER BY s.id DESC");
 			}
 			case "glossary" -> {
 				String baseSql = "SELECT \n" +
@@ -2004,8 +2023,7 @@ public class QueryBuilder {
 						"  s.primaryname, v.name, l.Name, f.Name,\n" +
 						"  k.Name, pr.Name, pr.ID, pt.Name,\n" +
 						"  gt.Name, g.Availability_Rating, g.Integrity_Rating, g.Confidentiality_Rating\n";
-				String finalSql = applyCommonFilters(baseSql, "g", "Deleted_datetime", "glossary", userId, true);
-				yield finalSql + "\nORDER BY g.ID DESC";
+								yield buildModuleSql(baseSql, "g", "Deleted_datetime", "glossary", userId, "\nORDER BY g.ID DESC");
 			}
 			case "people" -> {
 				String baseSql = "SELECT \n" +
@@ -2021,6 +2039,7 @@ public class QueryBuilder {
 						"    ou.ID AS 'Org Unit_ID',\n" +
 						"    s.PrimaryName AS 'BUDG Status',\n" +
 						"    r.primaryname AS 'Profile Name',\n" +
+						"    p.System_Role AS System_Role,\n" +
 						"    p.last_User_LogIn AS 'Last Login',\n" +
 						"    ls.Primary_Name AS Lifecycle,\n" +
 						"    et.primary_Name AS 'Employee Type',\n" +
@@ -2034,8 +2053,7 @@ public class QueryBuilder {
 						"LEFT JOIN role r ON p.System_Role = r.id\n" +
 						"LEFT JOIN org_unit ou ON p.Org_Unit_ID = ou.ID\n" +
 						"LEFT JOIN people_lifecycle_status ls ON pd.lifecycle = ls.ID";
-				String finalSql = applyCommonFilters(baseSql, "p", "Deleted_date", "people", userId, true);
-				yield finalSql + "\nORDER BY p.ID DESC";
+								yield buildModuleSql(baseSql, "p", "Deleted_date", "people", userId, "\nORDER BY p.ID DESC");
 			}
 			case "interface" -> {
 				String baseSql = "SELECT \n" +
@@ -2074,8 +2092,7 @@ public class QueryBuilder {
 						"LEFT JOIN interface_transfer tm ON i.Transfer_Method_ID = tm.id\n" +
 						"LEFT JOIN system sys1 ON i.Source_systemID = sys1.id\n" +
 						"LEFT JOIN system sys2 ON i.Target_systemID = sys2.id\n";
-				String finalSql = applyCommonFilters(baseSql, "i", "deleted_datetime", "interface", userId, true);
-				yield finalSql + "\nORDER BY i.id DESC";
+								yield buildModuleSql(baseSql, "i", "deleted_datetime", "interface", userId, "\nORDER BY i.id DESC");
 			}
 			case "orgunit", "org-unit" -> {
 				String baseSql = "SELECT \n" +
@@ -2093,8 +2110,7 @@ public class QueryBuilder {
 						"LEFT JOIN status s ON ou.status_id = s.ID\n" +
 						"LEFT JOIN org_unit pr ON ou.Parent_ID = pr.ID "
 						+ "AND (pr.deleted_Date IS NULL OR pr.deleted_Date = '')\n";
-				String finalSql = applyCommonFilters(baseSql, "ou", "deleted_Date", "org_unit", userId, true);
-				yield finalSql + "\nORDER BY ou.ID DESC";
+								yield buildModuleSql(baseSql, "ou", "deleted_Date", "org_unit", userId, "\nORDER BY ou.ID DESC");
 			}
 			case "process" -> {
 				String baseSql = "SELECT \n" +
@@ -2126,8 +2142,7 @@ public class QueryBuilder {
 						"LEFT JOIN process_type t ON pr.type = t.id\n" +
 						"LEFT JOIN process_automation pa ON pr.processautomation_id = pa.id\n" +
 						"LEFT JOIN process pr2 ON pr.parentid = pr2.id";
-				String finalSql = applyCommonFilters(baseSql, "pr", "DeletedDatetime", "process", userId, true);
-				yield finalSql + "\nORDER BY pr.ID DESC";
+								yield buildModuleSql(baseSql, "pr", "DeletedDatetime", "process", userId, "\nORDER BY pr.ID DESC");
 			}
 			case "project" -> {
 				String baseSql = "SELECT \n" +
@@ -2157,8 +2172,7 @@ public class QueryBuilder {
 						"LEFT JOIN project_lifecycle l ON prj.lifecycle_status = l.id\n" +
 						"LEFT JOIN project_classification c ON prj.classification = c.id\n" +
 						"LEFT JOIN project pr2 ON prj.parentid = pr2.id";
-				String finalSql = applyCommonFilters(baseSql, "prj", "deletedatetime", "project", userId, true);
-				yield finalSql + "\nORDER BY prj.ID DESC";
+								yield buildModuleSql(baseSql, "prj", "deletedatetime", "project", userId, "\nORDER BY prj.ID DESC");
 			}
 			case "product" -> {
 				String baseSql = "SELECT \n" +
@@ -2181,8 +2195,7 @@ public class QueryBuilder {
 						"LEFT JOIN viewing v ON prd.is_Public = v.ID\n" +
 						"LEFT JOIN product_lifecycle l ON prd.lifecycle_status = l.id\n" +
 						"LEFT JOIN product pr2 ON prd.parent_id = pr2.id";
-				String finalSql = applyCommonFilters(baseSql, "prd", "DeletedDatetime", "product", userId, true);
-				yield finalSql + "\nORDER BY prd.ID DESC";
+								yield buildModuleSql(baseSql, "prd", "DeletedDatetime", "product", userId, "\nORDER BY prd.ID DESC");
 			}
 			case "policy" -> {
 				String baseSql = "SELECT \n" +
@@ -2211,8 +2224,7 @@ public class QueryBuilder {
 						"LEFT JOIN policy_lifecycle_status l ON po.Lifecycle_Status = l.id\n" +
 						"LEFT JOIN policy_type t ON po.Policy_Type = t.id\n" +
 						"LEFT JOIN policy pr ON po.ParentID = pr.ID";
-				String finalSql = applyCommonFilters(baseSql, "po", "DeletedDatetime", "policy", userId, true);
-				yield finalSql + "\nORDER BY po.ID DESC";
+								yield buildModuleSql(baseSql, "po", "DeletedDatetime", "policy", userId, "\nORDER BY po.ID DESC");
 			}
 			case "legal-entity", "legalentity", "legal" -> {
 				String baseSql = "SELECT \n" +
@@ -2234,8 +2246,7 @@ public class QueryBuilder {
 						"LEFT JOIN legal p ON l.Parent_ID = p.ID\n" +
 						"LEFT JOIN status s ON l.Status = s.ID\n" +
 						"LEFT JOIN viewing v ON l.Is_Public = v.ID";
-				String finalSql = applyCommonFilters(baseSql, "l", "DeleteDatetime", "legal_entity", userId, true);
-				yield finalSql + "\nORDER BY l.ID DESC";
+								yield buildModuleSql(baseSql, "l", "DeleteDatetime", "legal_entity", userId, "\nORDER BY l.ID DESC");
 			}
 			case "business-area" -> {
 				String baseSql = "SELECT \n" +
@@ -2255,8 +2266,7 @@ public class QueryBuilder {
 						"LEFT JOIN viewing v ON ba.Is_Public = v.ID\n" +
 						"LEFT JOIN business_area_lifecycle l ON ba.Lifecycle = l.ID\n" +
 						"LEFT JOIN business_area ba2 ON ba.Parent_ID = ba2.ID";
-				String finalSql = applyCommonFilters(baseSql, "ba", "deletedatetime", "business_area", userId, true);
-				yield finalSql + "\nORDER BY ba.ID DESC";
+								yield buildModuleSql(baseSql, "ba", "deletedatetime", "business_area", userId, "\nORDER BY ba.ID DESC");
 			}
 			case "capability" -> {
 				String baseSql = "SELECT \n" +
@@ -2281,8 +2291,7 @@ public class QueryBuilder {
 						"LEFT JOIN capability c2 ON c.Parent_ID = c2.ID\n" +
 						"LEFT JOIN capability_classification cc ON c.Classification = cc.ID\n" +
 						"LEFT JOIN capability_type ct ON c.Capability_Type = ct.ID";
-				String finalSql = applyCommonFilters(baseSql, "c", "DeletedDatetime", "capability", userId, true);
-				yield finalSql + "\nORDER BY c.ID DESC";
+								yield buildModuleSql(baseSql, "c", "DeletedDatetime", "capability", userId, "\nORDER BY c.ID DESC");
 			}
 			case "client" -> {
 				String baseSql = "SELECT \n" +
@@ -2303,8 +2312,7 @@ public class QueryBuilder {
 						"LEFT JOIN viewing v ON c.IsPublic = v.ID\n" +
 						"LEFT JOIN client_lifecycle cl ON c.Lifecycle = cl.ID\n" +
 						"LEFT JOIN client pc ON c.Parent_ID = pc.ID";
-				String finalSql = baseSql;
-				yield finalSql + "\nWHERE c.ID IS NOT NULL\nORDER BY c.ID DESC";
+				yield new ModuleSql(baseSql + "\nWHERE c.ID IS NOT NULL\nORDER BY c.ID DESC", List.of());
 			}
 			case "committee" -> {
 				String baseSql = "SELECT \n" +
@@ -2332,8 +2340,7 @@ public class QueryBuilder {
 						"LEFT JOIN committee_type ct ON c.Committee_Type = ct.ID\n" +
 						"LEFT JOIN committee pc ON c.Parent_ID = pc.ID\n" +
 						"LEFT JOIN people p_created ON c.Created_By = p_created.ID";
-				String finalSql = applyCommonFilters(baseSql, "c", "DeleteDatetime", "client", userId, true);
-				yield finalSql + "\nORDER BY c.ID DESC";
+				yield buildModuleSql(baseSql, "c", "DeleteDatetime", "committee", userId, "\nORDER BY c.ID DESC");
 			}
 			case "geography" -> {
 				String baseSql = "SELECT \n" +
@@ -2347,8 +2354,7 @@ public class QueryBuilder {
 						"    g.LastUpdateDatetime AS 'Last Updated'\n" +
 						"FROM geography g\n" +
 						"LEFT JOIN geography p ON g.ParentID = p.ID";
-				String finalSql = applyCommonFilters(baseSql, "g", "DeletedDatetime", "geography", userId, true);
-				yield finalSql + "\nORDER BY g.ID DESC";
+								yield buildModuleSql(baseSql, "g", "DeletedDatetime", "geography", userId, "\nORDER BY g.ID DESC");
 			}
 			case "regulation" -> {
 				String baseSql = "SELECT \n" +
@@ -2376,8 +2382,7 @@ public class QueryBuilder {
 						"LEFT JOIN regulation_maturity rm ON r.RegulationMaturity_ID = rm.ID\n" +
 						"LEFT JOIN regulation_probability rp ON r.RegulationProbability_ID = rp.ID\n" +
 						"LEFT JOIN regulation_compliance_level rcl ON r.ComplianceLevel_ID = rcl.ID";
-				String finalSql = applyCommonFilters(baseSql, "r", "DeletedDatetime", "regulation", userId, true);
-				yield finalSql + "\nORDER BY r.ID DESC";
+								yield buildModuleSql(baseSql, "r", "DeletedDatetime", "regulation", userId, "\nORDER BY r.ID DESC");
 			}
 			case "regulator" -> {
 				String baseSql = "SELECT \n" +
@@ -2389,8 +2394,7 @@ public class QueryBuilder {
 						"    reg.CreateDatetime AS 'Created Date',\n" +
 						"    reg.LastUpdateDatetime AS 'Last Updated'\n" +
 						"FROM regulator reg";
-				String finalSql = applyCommonFilters(baseSql, "reg", "DeletedDatetime", "regulator", userId, true);
-				yield finalSql + "\nORDER BY reg.ID DESC";
+								yield buildModuleSql(baseSql, "reg", "DeletedDatetime", "regulator", userId, "\nORDER BY reg.ID DESC");
 			}
 			case "regulatory-theme", "regulatorytheme" -> {
 				String baseSql = "SELECT \n" +
@@ -2407,8 +2411,7 @@ public class QueryBuilder {
 						"FROM regulatorytheme rt\n" +
 						"LEFT JOIN status s ON rt.Status_ID = s.ID\n" +
 						"LEFT JOIN regulatorytheme pr ON rt.Parent_ID = pr.ID";
-				String finalSql = applyCommonFilters(baseSql, "rt", "DeletedDatetime", "regulatory_theme", userId, true);
-				yield finalSql + "\nORDER BY rt.ID DESC";
+								yield buildModuleSql(baseSql, "rt", "DeletedDatetime", "regulatory_theme", userId, "\nORDER BY rt.ID DESC");
 			}
 			case "change-request", "changerequest" -> {
 				String baseSql = "SELECT \n" +
@@ -2420,10 +2423,9 @@ public class QueryBuilder {
 						"    cr.CreateDatetime AS 'Created Date',\n" +
 						"    cr.LastUpdateDatetime AS 'Last Updated'\n" +
 						"FROM changerequest cr";
-				String finalSql = applyCommonFilters(baseSql, "cr", "Deleted_At", "change_request", userId, true);
-				yield finalSql + "\nORDER BY cr.ID DESC";
+								yield buildModuleSql(baseSql, "cr", "Deleted_At", "change_request", userId, "\nORDER BY cr.ID DESC");
 			}
-			default -> null;
+			default -> new ModuleSql(null, List.of());
 		};
 	}
 
@@ -2621,7 +2623,7 @@ public class QueryBuilder {
 	 *                                            Status filters (e.g. include Deleted) still work.
 	 */
 	private String applyCommonFilters(String sql, String tableAlias, String deletedColumn, String module, Integer userId,
-			boolean deferWebUserDeletedStatusNameFilter) {
+			boolean deferWebUserDeletedStatusNameFilter, List<Object> prefixSqlParameters) {
 		// V-06: guest/anonymous users must see only Public (Is_Public = 1) objects, regardless of config
 		// Guest includes: userId == null, userId == 0, OR userId < 0 (e.g., -1 for guest token)
 		// Admin/SuperAdmin are exempt from "Hide Non-Public" setting and can always see Non-Public objects.
@@ -2637,7 +2639,7 @@ public class QueryBuilder {
 				if (publicColumn != null) {
 					if (!isGuest && hideNonPublicConfig) {
 						// C-31/E-06: authenticated stakeholders are exempt from Hide Non-Public config
-						String stakeholderExempt = buildStakeholderExemptionCondition(tableAlias, module, userId);
+						String stakeholderExempt = buildStakeholderExemptionCondition(tableAlias, module, userId, prefixSqlParameters);
 						if (stakeholderExempt != null) {
 							return appendFilterCondition(sql, "(" + publicColumn + " = 1 OR " + stakeholderExempt + ")");
 						}
@@ -2653,7 +2655,7 @@ public class QueryBuilder {
 			if (publicColumn != null) {
 				if (!isGuest && hideNonPublicConfig) {
 					// C-31/E-06: authenticated stakeholders are exempt from Hide Non-Public config
-					String stakeholderExempt = buildStakeholderExemptionCondition(tableAlias, module, userId);
+					String stakeholderExempt = buildStakeholderExemptionCondition(tableAlias, module, userId, prefixSqlParameters);
 					if (stakeholderExempt != null) {
 						condition = "(" + condition + " AND (" + publicColumn + " = 1 OR " + stakeholderExempt + "))";
 					} else {
@@ -2754,10 +2756,17 @@ public class QueryBuilder {
 	 * @param userId     the current authenticated user ID (must be > 0)
 	 * @return SQL EXISTS fragment, or {@code null} if this module has no stakeholder table
 	 */
-	private String buildStakeholderExemptionCondition(String tableAlias, String module, Integer userId) {
+	private String buildStakeholderExemptionCondition(String tableAlias, String module, Integer userId,
+			List<Object> prefixSqlParameters) {
 		if (userId == null || userId <= 0) return null;
 		String[] info = stakeholderTableForModule(module);
 		if (info == null) return null;
+		if (prefixSqlParameters != null) {
+			prefixSqlParameters.add(userId);
+			return "EXISTS (SELECT 1 FROM " + info[0] + " _sth "
+					+ "JOIN object_x_people _oxp ON _sth." + info[2] + " = _oxp.id "
+					+ "WHERE _sth." + info[1] + " = " + tableAlias + ".ID AND _oxp.ipid = ?)";
+		}
 		return "EXISTS (SELECT 1 FROM " + info[0] + " _sth "
 				+ "JOIN object_x_people _oxp ON _sth." + info[2] + " = _oxp.id "
 				+ "WHERE _sth." + info[1] + " = " + tableAlias + ".ID AND _oxp.ipid = " + userId + ")";
@@ -3003,14 +3012,14 @@ public class QueryBuilder {
 			return new QueryResult(null, List.of());
 		}
 
-		String sql = getSqlForModule(module, userId);
-		if (sql == null) {
+		ModuleSql moduleSql = getSqlForModule(module, userId);
+		if (moduleSql.sql == null) {
 			return new QueryResult(null, List.of());
 		}
 		// Always include segment columns in Unison results where applicable
-		sql = appendSegmentSelectColumnsIfNeeded(module, sql);
+		String sql = appendSegmentSelectColumnsIfNeeded(module, moduleSql.sql);
 
-		List<Object> parameters = new ArrayList<>();
+		List<Object> parameters = new ArrayList<>(moduleSql.prefixParameters);
 		boolean useFuzzy = configurationService.getFuzzySearchConfig();
 
 		if (!searchGroupsJson.has("searchGroups")) {
@@ -3289,6 +3298,56 @@ public class QueryBuilder {
 	}
 
 	/**
+	 * EXISTS on {@code Custom_Field_Data} for dropdown / multiselect custom fields
+	 * ({@code Custom_Field_Enum_ID IN (...)}).
+	 */
+	private String buildCustomFieldEnumInCondition(String module, JsonObject filterGroup, List<Object> parameters) {
+		if (!filterGroup.has("customFieldId") || !filterGroup.has("value")) {
+			return null;
+		}
+		int cfMetaId = filterGroup.get("customFieldId").getAsInt();
+		JsonElement valEl = filterGroup.get("value");
+		if (valEl == null || !valEl.isJsonArray()) {
+			return null;
+		}
+		JsonArray arr = valEl.getAsJsonArray();
+		if (arr.size() == 0) {
+			return null;
+		}
+		String objectIdColumn = getFacetObjectIdColumn(module);
+		if (objectIdColumn == null) {
+			return null;
+		}
+		List<Integer> enumRowIds = new ArrayList<>();
+		for (JsonElement el : arr) {
+			if (el == null || el.isJsonNull()) {
+				continue;
+			}
+			try {
+				if (el.isJsonPrimitive() && el.getAsJsonPrimitive().isNumber()) {
+					enumRowIds.add(el.getAsInt());
+				} else {
+					enumRowIds.add(Integer.parseInt(el.getAsString().trim()));
+				}
+			} catch (NumberFormatException e) {
+				// skip invalid token
+			}
+		}
+		if (enumRowIds.isEmpty()) {
+			return null;
+		}
+		parameters.add(cfMetaId);
+		List<String> placeholders = new ArrayList<>();
+		for (Integer id : enumRowIds) {
+			parameters.add(id);
+			placeholders.add("?");
+		}
+		return "EXISTS (SELECT 1 FROM Custom_Field_Data cfd_cf WHERE cfd_cf.Facet_Object_ID = " + objectIdColumn
+				+ " AND cfd_cf.Custom_Field_Metadata_ID = ? AND cfd_cf.Custom_Field_Enum_ID IN ("
+				+ String.join(",", placeholders) + "))";
+	}
+
+	/**
 	 * Build SQL condition from filterGroups in a search object.
 	 * 
 	 * @param module     The module to search in
@@ -3316,10 +3375,13 @@ public class QueryBuilder {
 			// Support different filterGroup formats
 			// Format 1: { "field": "name", "condition": "contains", "value": "test" }
 			// Format 2: { "query": "test" } - simple query
+			// Format 3: { "customFieldId": N, "condition": "in", "value": [enumRowIds...] } - custom dropdown CF
 
 			String condition = null;
 
-			if (filterGroup.has("field")) {
+			if (filterGroup.has("customFieldId")) {
+				condition = buildCustomFieldEnumInCondition(module, filterGroup, parameters);
+			} else if (filterGroup.has("field")) {
 				// Format 1: field-based filter
 				String field = filterGroup.get("field").getAsString();
 				String filterCondition = filterGroup.has("condition") ? filterGroup.get("condition").getAsString()
@@ -3654,7 +3716,8 @@ public class QueryBuilder {
 						return col;
 					}
 				}
-				return null;
+				// Raw DB column from FilterMetadataConfig; qualifyFilterColumnExpression adds table alias
+				return field;
 		}
 	}
 

@@ -110,6 +110,16 @@ public class UnisonSearchService {
      */
     public UnisonSearchResponse executeUnisonSearch(List<UnisonSearchRequest.SearchItem> searches, int maxDepth,
             Integer userId) throws SQLException {
+        return executeUnisonSearch(searches, maxDepth, userId, null);
+    }
+
+    /**
+     * Same as {@link #executeUnisonSearch(List, int, Integer)} with optional cross-facet filter:
+     * when {@code peopleConstraintIds} is non-empty, non-People facets are intersected with objects
+     * linked to those people (stakeholder, created by, updated by).
+     */
+    public UnisonSearchResponse executeUnisonSearch(List<UnisonSearchRequest.SearchItem> searches, int maxDepth,
+            Integer userId, Set<Integer> peopleConstraintIds) throws SQLException {
         long startTime = System.currentTimeMillis();
 
         if (searches == null || searches.isEmpty()) {
@@ -222,6 +232,13 @@ public class UnisonSearchService {
             } else if (search.getSearchFields() != null && !search.getSearchFields().isEmpty()) {
                 // No filters but user has restricted which fields to search in — still need a definition
                 searchDefinition = buildSearchDefinition(search.getFacet(), search.getKeyword(), null, search.getSearchFields());
+            }
+
+            // Display-only filter: register for row-data filtering but skip the full intersection phase.
+            // This allows e.g. filtering the People panel by Profile Name without shrinking the root SYSTEM count.
+            if (search.isDisplayFilter()) {
+                // facetFilters already populated above — that is all we need.
+                continue;
             }
 
             // Variables for cross-facet AND with keyword (e.g. FIND DataSets AND "foo" in People)
@@ -380,6 +397,47 @@ public class UnisonSearchService {
                                 search.getSearchFields());
                     }
                 }
+            } else if (("AND".equals(operator) || "NOT".equals(operator))
+                    && accumulatedResults != null && !accumulatedResults.isEmpty()
+                    && rootFacetId != null
+                    && isOrgUnitFacet(search.getFacet())
+                    && getStakeholderTableConfig(rootFacetId) != null) {
+
+                FacetResult rootFacetResult = accumulatedResults.get(rootFacetId);
+                if (rootFacetResult == null) {
+                    String rootCanon = com.example.unisonsearch.util.FacetNormalizationUtil.normalizeToCanonical(rootFacetId);
+                    rootFacetResult = accumulatedResults.get(rootCanon);
+                }
+                Set<Integer> rootIds = (rootFacetResult != null && rootFacetResult.getIds() != null)
+                        ? rootFacetResult.getIds() : new HashSet<>();
+
+                if (isKeywordEmpty(search.getKeyword())) {
+                    // AND/NOT ORG_UNIT * — same as AND/NOT PEOPLE * (any stakeholder = any org unit)
+                    if ("AND".equals(operator)) {
+                        seedIds = getObjectIdsWithRelationToFacet(rootIds, rootFacetId, "PEOPLE");
+                    } else {
+                        seedIds = getObjectIdsWithNoRelationToFacet(rootIds, rootFacetId, "PEOPLE");
+                    }
+                } else {
+                    // AND/NOT ORG_UNIT "name" — match org units, then root rows whose stakeholders belong to those org units
+                    Set<Integer> matchingOrgUnitIds = searchDefinition != null
+                            ? executeSingleSearchWithDefinition(search.getFacet(), searchDefinition)
+                            : executeSingleSearch(search.getFacet(), search.getKeyword(), search.getFilters(),
+                                    search.getSearchFields());
+                    if (matchingOrgUnitIds.isEmpty()) {
+                        seedIds = "AND".equals(operator) ? new HashSet<>() : new HashSet<>(rootIds);
+                    } else {
+                        Set<Integer> withStakeholderInOu =
+                                getObjectIdsWithStakeholdersInOrgUnits(rootIds, rootFacetId, matchingOrgUnitIds);
+                        if ("AND".equals(operator)) {
+                            seedIds = withStakeholderInOu;
+                        } else {
+                            seedIds = new HashSet<>(rootIds);
+                            seedIds.removeAll(withStakeholderInOu);
+                        }
+                    }
+                }
+                usedRelationFilterForRoot = true;
             } else {
                 if (isKeywordEmpty(search.getKeyword()) && ("FIND".equals(operator) || "OR".equals(operator))) {
                     // FIND/OR with "*" or blank means "all rows" only when there is no SQL definition.
@@ -850,7 +908,33 @@ public class UnisonSearchService {
                 }
             }
         }
-        
+
+        // Auto-detect: if no explicit people constraint was passed by the client but the
+        // search has a non-FIND, non-display People condition, treat the returned People IDs as the
+        // implicit constraint so that other facets are re-filtered automatically.
+        if ((peopleConstraintIds == null || peopleConstraintIds.isEmpty()) && accumulatedResults != null) {
+            boolean hasPeopleSecondary = searches != null && searches.stream().anyMatch(s ->
+                    s != null
+                            && !s.isDisplayFilter()
+                            && !"FIND".equalsIgnoreCase(s.getOperator())
+                            && s.getFacet() != null
+                            && ("PEOPLE".equalsIgnoreCase(s.getFacet()) || "PERSON".equalsIgnoreCase(s.getFacet())));
+            if (hasPeopleSecondary) {
+                FacetResult pf = accumulatedResults.get("PEOPLE");
+                if (pf == null) {
+                    pf = accumulatedResults.get("PERSON");
+                }
+                if (pf != null && pf.getIds() != null && !pf.getIds().isEmpty()) {
+                    peopleConstraintIds = new HashSet<>(pf.getIds());
+                }
+            }
+        }
+
+        if (peopleConstraintIds != null && !peopleConstraintIds.isEmpty() && accumulatedResults != null) {
+            accumulatedResults = applyPeopleConstraintToResults(accumulatedResults, peopleConstraintIds);
+            accumulatedResults = applyAccessibleTotals(accumulatedResults);
+        }
+
         UnisonSearchResponse response = new UnisonSearchResponse();
         response.setSuccess(true);
         response.setResults(accumulatedResults != null ? accumulatedResults : new HashMap<>());
@@ -891,13 +975,17 @@ public class UnisonSearchService {
             return new HashSet<>();
         }
 
-        // Check if keyword is a numeric ID (for selected items from suggestions)
-        try {
-            int id = Integer.parseInt(keyword.trim());
+        // Numeric-ID shortcut (suggestion pick) must not run when panel filters are present — otherwise
+        // a role id like "2" is mistaken for Person.ID and filters are ignored.
+        if (filters == null || filters.isEmpty()) {
+            // Check if keyword is a numeric ID (for selected items from suggestions)
+            try {
+                int id = Integer.parseInt(keyword.trim());
 
-            return executeSingleSearchById(facet, id);
-        } catch (NumberFormatException e) {
-            // Not a number, proceed with text search
+                return executeSingleSearchById(facet, id);
+            } catch (NumberFormatException e) {
+                // Not a number, proceed with text search
+            }
         }
 
         // Convert facet ID to module name
@@ -1437,14 +1525,25 @@ public class UnisonSearchService {
             }
         }
 
+        // With structured filters, a purely numeric keyword is almost always a leaked role/field id from the
+        // client (same as dropdown value), not a literal text search — treat as broad so QueryBuilder only
+        // applies filterGroups (e.g. System_Role IN (...)).
+        String effectiveKeyword = keyword;
+        if (filters != null && !filters.isEmpty() && effectiveKeyword != null) {
+            String t = effectiveKeyword.trim();
+            if (!t.isEmpty() && !"*".equals(t) && t.matches("\\d+")) {
+                effectiveKeyword = "*";
+            }
+        }
+
         JsonArray filterGroups = new JsonArray();
 
         // Add keyword as a query filter (BUDG FIND across searchable fields).
         // Must match isKeywordEmpty(): "*" and blank mean "no text constraint" — do NOT pass "*" into
         // QueryBuilder or LIKE runs on literal asterisk and AND with real filters returns zero rows.
-        if (keyword != null && !isKeywordEmpty(keyword)) {
+        if (effectiveKeyword != null && !isKeywordEmpty(effectiveKeyword)) {
             JsonObject qFilter = new JsonObject();
-            qFilter.addProperty("query", keyword.trim());
+            qFilter.addProperty("query", effectiveKeyword.trim());
             // Embed the user's "Search in" selection so QueryBuilder can restrict columns
             if (searchFields != null && !searchFields.isEmpty()) {
                 JsonObject sfJson = new JsonObject();
@@ -1510,7 +1609,9 @@ public class UnisonSearchService {
                         
                         // Build filter object with facetId and filterId
                         JsonObject filterObj = buildFilterObject(facetId, entry.getKey(), value);
-                        filterGroups.add(filterObj);
+                        if (filterObj != null) {
+                            filterGroups.add(filterObj);
+                        }
                     }
                 }
             }
@@ -1573,6 +1674,39 @@ public class UnisonSearchService {
      * @return JsonObject representing the filter
      */
     private JsonObject buildFilterObject(String facetId, String filterId, Object value) {
+        // Custom-field dropdown / multiselect: filter id is "cf_<metadataId>" — emit a filterGroup for QueryBuilder
+        if (filterId != null && filterId.startsWith("cf_")) {
+            try {
+                int cfMetaId = Integer.parseInt(filterId.substring(3));
+                JsonObject cf = new JsonObject();
+                cf.addProperty("customFieldId", cfMetaId);
+                cf.addProperty("condition", "in");
+                JsonArray values = new JsonArray();
+                if (value instanceof List<?>) {
+                    List<?> valueList = (List<?>) value;
+                    for (Object v : valueList) {
+                        if (v instanceof Number) {
+                            values.add((Number) v);
+                        } else {
+                            values.add(Integer.parseInt(v.toString().trim()));
+                        }
+                    }
+                } else if (value instanceof Number) {
+                    values.add((Number) value);
+                } else if (value != null) {
+                    values.add(Integer.parseInt(value.toString().trim()));
+                }
+                if (values.size() == 0) {
+                    return null;
+                }
+                cf.add("value", values);
+                return cf;
+            } catch (NumberFormatException e) {
+                System.err.println("[UnisonSearchService] buildFilterObject: invalid cf_ filter id: " + filterId);
+                return null;
+            }
+        }
+
         // Get filter configuration to determine type
         FilterField filterField = null;
         List<FilterField> filters = FilterMetadataConfig.getFiltersForFacet(facetId);
@@ -2710,6 +2844,15 @@ public class UnisonSearchService {
         return t.isEmpty() || "*".equals(t);
     }
 
+    /** True if facet is Org Unit (cross-facet AND/NOT with stakeholders). */
+    private boolean isOrgUnitFacet(String facetId) {
+        if (facetId == null) {
+            return false;
+        }
+        String n = facetId.trim().toUpperCase(Locale.ROOT).replace("-", "_").replace(" ", "_");
+        return "ORG_UNIT".equals(n) || "ORGUNIT".equals(n) || "ORG_UNITS".equals(n);
+    }
+
     /**
      * Get all IDs for a facet (select all). Used when FIND/OR has empty keyword.
      * Respects the user's cube-selected segments for ALL roles including Super Admin.
@@ -3069,6 +3212,41 @@ public class UnisonSearchService {
     }
 
     /**
+     * Among root facet rows in {@code rootIds}, those that have at least one stakeholder whose
+     * {@code people.Org_Unit_ID} is in {@code orgUnitIds}.
+     */
+    private Set<Integer> getObjectIdsWithStakeholdersInOrgUnits(Set<Integer> rootIds, String rootFacetId,
+            Set<Integer> orgUnitIds) {
+        if (rootIds == null || rootIds.isEmpty() || orgUnitIds == null || orgUnitIds.isEmpty()) {
+            return new HashSet<>();
+        }
+        StakeholderTableConfig config = getStakeholderTableConfig(rootFacetId);
+        if (config == null) {
+            return new HashSet<>();
+        }
+        try {
+            com.example.unisonsearch.repository.DatabaseHelper dbHelper =
+                    new com.example.unisonsearch.repository.DatabaseHelper();
+            String rootPh = String.join(",", Collections.nCopies(rootIds.size(), "?"));
+            String ouPh = String.join(",", Collections.nCopies(orgUnitIds.size(), "?"));
+            String sql = "SELECT DISTINCT lx." + config.objectIdColumn
+                    + " FROM " + config.linkingTable + " lx"
+                    + " JOIN object_x_people oxp ON lx." + config.linkingColumn + " = oxp.id"
+                    + " JOIN people p ON oxp.ipid = p.ID"
+                    + " WHERE lx." + config.objectIdColumn + " IN (" + rootPh + ")"
+                    + " AND p.Org_Unit_ID IN (" + ouPh + ")"
+                    + " AND p.Deleted_date IS NULL";
+            List<Object> params = new ArrayList<>(rootIds);
+            params.addAll(orgUnitIds);
+            List<Map<String, Object>> rows = dbHelper.executeQuery(sql, params);
+            return extractIntColumnFromRows(rows, config.objectIdColumn);
+        } catch (SQLException e) {
+            System.err.println("[UnisonSearchService] getObjectIdsWithStakeholdersInOrgUnits error: " + e.getMessage());
+            return new HashSet<>();
+        }
+    }
+
+    /**
      * DB column for "Created By" for this facet, from {@link FilterMetadataConfig}, or null if none.
      */
     private String getCreatedByDatabaseColumn(String canonicalFacetId) {
@@ -3091,6 +3269,192 @@ public class UnisonSearchService {
             }
         }
         return null;
+    }
+
+    /**
+     * Database column for "Updated By" / last editor on a facet row (from filter metadata).
+     */
+    private String getUpdatedByDatabaseColumn(String canonicalFacetId) {
+        if (canonicalFacetId == null || canonicalFacetId.isBlank()) {
+            return null;
+        }
+        String key = canonicalFacetId.trim().toUpperCase(Locale.ROOT).replace("-", "_");
+        List<String> keysToTry = new ArrayList<>();
+        keysToTry.add(key);
+        if ("CHANGEREQUEST".equals(key) || "CHANGE_REQUEST".equals(key)) {
+            keysToTry.add("CHANGE_REQUEST");
+            keysToTry.add("CHANGE_REQUESTS");
+        }
+        for (String k : keysToTry) {
+            for (FilterField f : FilterMetadataConfig.getFiltersForFacet(k)) {
+                if ("updatedBy".equals(f.getId())) {
+                    String col = f.getFieldName();
+                    return (col != null && !col.isBlank()) ? col : null;
+                }
+            }
+        }
+        return null;
+    }
+
+    /** Facets whose counts/rows are narrowed by {@link #applyPeopleConstraintToResults}. */
+    private static final Set<String> PEOPLE_CONSTRAINT_CANONICAL_FACETS = Set.of(
+            "DATASET", "SYSTEM", "GLOSSARY", "INTERFACE", "PROCESS", "PROJECT", "PRODUCT", "POLICY",
+            "ATTRIBUTE", "BUSINESS_AREA", "LEGAL_ENTITY", "CLIENT", "COMMITTEE", "ORG_UNIT",
+            "REGULATION", "CAPABILITY", "GEOGRAPHY", "REGULATOR", "REGULATORY_THEME", "CHANGE_REQUESTS", "ROLE");
+
+    private static final String[] AUDIT_QUERY_FACETS = {
+            "DATASET", "SYSTEM", "GLOSSARY", "PROCESS", "POLICY", "CAPABILITY", "ATTRIBUTE", "INTERFACE",
+            "BUSINESS_AREA", "LEGAL_ENTITY", "CLIENT", "COMMITTEE", "PRODUCT", "ORG_UNIT", "GEOGRAPHY",
+            "REGULATION", "REGULATOR", "REGULATORY_THEME", "PROJECT", "CHANGE_REQUEST", "CHANGE_REQUESTS"
+    };
+
+    private void mergeFacetObjectMaps(Map<String, Set<Integer>> dest, Map<String, Set<Integer>> src) {
+        if (dest == null || src == null) {
+            return;
+        }
+        for (Map.Entry<String, Set<Integer>> e : src.entrySet()) {
+            if (e.getKey() == null || e.getValue() == null || e.getValue().isEmpty()) {
+                continue;
+            }
+            String canon = canonicalFacetId(e.getKey());
+            if (canon == null) {
+                continue;
+            }
+            dest.computeIfAbsent(canon, k -> new HashSet<>()).addAll(e.getValue());
+        }
+    }
+
+    /**
+     * Objects in each facet where {@code peopleId} matches created-by or updated-by column.
+     */
+    private Map<String, Set<Integer>> queryObjectsByPersonAuditField(int peopleId, String filterFieldId)
+            throws SQLException {
+        Map<String, Set<Integer>> out = new HashMap<>();
+        if (peopleId <= 0 || filterFieldId == null) {
+            return out;
+        }
+        com.example.unisonsearch.repository.DatabaseHelper dbHelper =
+                new com.example.unisonsearch.repository.DatabaseHelper();
+        Set<String> seenCanonical = new HashSet<>();
+        for (String facetProbe : AUDIT_QUERY_FACETS) {
+            String canonical = canonicalFacetId(facetProbe);
+            if (canonical == null || !seenCanonical.add(canonical)) {
+                continue;
+            }
+            String col = "createdBy".equals(filterFieldId)
+                    ? getCreatedByDatabaseColumn(canonical)
+                    : getUpdatedByDatabaseColumn(canonical);
+            if (col == null || col.isBlank()) {
+                continue;
+            }
+            String moduleName = facetIdToModuleName(canonical);
+            if (moduleName == null) {
+                continue;
+            }
+            String table = getTableNameForModule(moduleName);
+            if (table == null || table.isBlank()) {
+                continue;
+            }
+            String pkCol = getEntityPrimaryKeyColumn(canonical);
+            try {
+                String sql = "SELECT DISTINCT `" + pkCol + "` AS _pk FROM `" + table + "` WHERE `" + col + "` = ?";
+                List<Map<String, Object>> rows = dbHelper.executeQuery(sql, List.of(peopleId));
+                Set<Integer> ids = new HashSet<>();
+                for (Map<String, Object> row : rows) {
+                    Object id = row.get("_pk");
+                    if (id == null) {
+                        id = row.get(pkCol);
+                    }
+                    if (id instanceof Integer) {
+                        ids.add((Integer) id);
+                    } else if (id instanceof Number) {
+                        ids.add(((Number) id).intValue());
+                    }
+                }
+                if (!ids.isEmpty()) {
+                    out.put(canonical, ids);
+                }
+            } catch (SQLException e) {
+                System.err.println("[UnisonSearchService] queryObjectsByPersonAuditField facet=" + canonical + ": "
+                        + e.getMessage());
+            }
+        }
+        return out;
+    }
+
+    /**
+     * All business-object IDs linked to any of {@code peopleIds} (stakeholder rows, created by, updated by).
+     */
+    private Map<String, Set<Integer>> computeObjectsConnectedToPeople(Set<Integer> peopleIds) throws SQLException {
+        Map<String, Set<Integer>> connected = new HashMap<>();
+        for (String f : PEOPLE_CONSTRAINT_CANONICAL_FACETS) {
+            connected.put(f, new HashSet<>());
+        }
+        if (peopleIds == null || peopleIds.isEmpty()) {
+            return connected;
+        }
+        for (Integer pid : peopleIds) {
+            if (pid == null || pid <= 0) {
+                continue;
+            }
+            mergeFacetObjectMaps(connected, queryPeopleStakeholderObjects(pid));
+            mergeFacetObjectMaps(connected, queryObjectsByPersonAuditField(pid, "createdBy"));
+            mergeFacetObjectMaps(connected, queryObjectsByPersonAuditField(pid, "updatedBy"));
+            Set<Integer> oxp = queryObjectXPeopleIdsForPerson(pid);
+            if (oxp != null && !oxp.isEmpty()) {
+                connected.get("ROLE").addAll(oxp);
+            }
+        }
+        return connected;
+    }
+
+    /**
+     * Intersects non-People facet results with objects linked to the given people.
+     */
+    private Map<String, FacetResult> applyPeopleConstraintToResults(Map<String, FacetResult> results,
+            Set<Integer> peopleConstraintIds) throws SQLException {
+        if (results == null || results.isEmpty() || peopleConstraintIds == null || peopleConstraintIds.isEmpty()) {
+            return results;
+        }
+        Map<String, Set<Integer>> connected = computeObjectsConnectedToPeople(peopleConstraintIds);
+        Map<String, FacetResult> out = new LinkedHashMap<>(results);
+        for (Map.Entry<String, FacetResult> e : results.entrySet()) {
+            String facetKey = e.getKey();
+            if (facetKey == null) {
+                continue;
+            }
+            String upper = facetKey.toUpperCase(Locale.ROOT);
+            if ("PEOPLE".equals(upper) || "PERSON".equals(upper)) {
+                continue;
+            }
+            String canonical = canonicalFacetId(facetKey);
+            if (canonical == null || !PEOPLE_CONSTRAINT_CANONICAL_FACETS.contains(canonical)) {
+                continue;
+            }
+            Set<Integer> allowed = connected.getOrDefault(canonical, Collections.emptySet());
+            FacetResult fr = e.getValue();
+            if (fr == null || fr.getIds() == null) {
+                continue;
+            }
+            Set<Integer> filtered = new LinkedHashSet<>();
+            for (Integer id : fr.getIds()) {
+                if (id != null && allowed.contains(id)) {
+                    filtered.add(id);
+                }
+            }
+            Map<Integer, Integer> newDepth = new HashMap<>();
+            if (fr.getDepthById() != null) {
+                for (Integer id : filtered) {
+                    if (fr.getDepthById().containsKey(id)) {
+                        newDepth.put(id, fr.getDepthById().get(id));
+                    }
+                }
+            }
+            List<Map<String, Object>> rows = loadFacetRows(facetKey, filtered);
+            out.put(facetKey, facetResultFromLoadedRows(facetKey, newDepth, rows,
+                    fr.isHasActiveFilter() || !peopleConstraintIds.isEmpty()));
+        }
+        return out;
     }
 
     private String getEntityPrimaryKeyColumn(String canonicalFacetId) {
@@ -3238,15 +3602,16 @@ public class UnisonSearchService {
         if (module == null)
             return null;
 
-        // Most modules use the same name as the table
-        // Handle special cases
-        return switch (module.toLowerCase()) {
+        // Align with real table names (see QueryBuilder#getTableNameForModule / schema).
+        // Wrong names (e.g. businessarea, orgunit) caused audit queries to fail and no cross-facet rows.
+        return switch (module.toLowerCase(Locale.ROOT)) {
             case "data-sets", "dataset" -> "dataset";
-            case "business-area" -> "businessarea";
-            case "legal-entity" -> "legal";
-            case "org-unit", "orgunit" -> "orgunit";
+            case "business-area", "businessarea", "business_area" -> "business_area";
+            case "legal-entity", "legalentity", "legal_entity" -> "legal";
+            case "org-unit", "orgunit", "org_unit" -> "org_unit";
+            case "regulatory-theme", "regulatorytheme", "regulatory_theme" -> "regulatorytheme";
             case "change-request", "changerequest", "change_request" -> "changerequest";
-            default -> module.toLowerCase();
+            default -> module.toLowerCase(Locale.ROOT).replace('-', '_');
         };
     }
 
@@ -3607,6 +3972,12 @@ public class UnisonSearchService {
         // Apply final deduplication and deterministic sorting
         results = applyFinalDeduplicationAndSorting(results, context);
 
+        System.out.println("[UNISON-DEBUG][FINAL] Facets returned:");
+        for (Map.Entry<String, FacetResult> e : results.entrySet()) {
+            FacetResult fr = e.getValue();
+            System.out.println("[UNISON-DEBUG]   " + e.getKey() + " count=" + (fr != null ? fr.getCount() : "null") + " ids=" + (fr != null ? fr.getIds() : "null"));
+        }
+
         return results;
     }
 
@@ -3651,6 +4022,7 @@ public class UnisonSearchService {
 
         // Collect all object IDs and their facet types - only from seed facets (direct relations only)
         Map<String, Set<Integer>> facetToObjectIds = new HashMap<>();
+        System.out.println("[UNISON-DEBUG][enrichWithStakeholders] Seed facets: " + seedFacets);
         for (Map.Entry<String, FacetResult> entry : results.entrySet()) {
             String facetId = entry.getKey();
             FacetResult fr = entry.getValue();
@@ -3711,10 +4083,12 @@ public class UnisonSearchService {
         for (Map.Entry<String, Set<Integer>> entry : facetToObjectIds.entrySet()) {
             String facetId = entry.getKey();
             Set<Integer> objectIds = entry.getValue();
+            System.out.println("[UNISON-DEBUG][enrichWithStakeholders] Querying facet=" + facetId + " ids=" + objectIds);
 
             for (Integer objectId : objectIds) {
                 try {
                     List<Map<String, Object>> stakeholders = queryDirectStakeholders(facetId, objectId);
+                    System.out.println("[UNISON-DEBUG][enrichWithStakeholders]   " + facetId + " ID=" + objectId + " -> " + stakeholders.size() + " stakeholders: " + stakeholders);
                     for (Map<String, Object> stakeholder : stakeholders) {
                         // Extract people ID
                         Object peopleIdObj = stakeholder.get("people_id");
@@ -3757,7 +4131,23 @@ public class UnisonSearchService {
             }
         }
 
+        // Also collect "Created By" people for each seed facet (e.g. system.CreatedBy_ID)
+        for (Map.Entry<String, Set<Integer>> entry : facetToObjectIds.entrySet()) {
+            String facetId = entry.getKey();
+            Set<Integer> objectIds = entry.getValue();
+            try {
+                Set<Integer> creatorIds = queryCreatedByPeopleIdsForObjects(facetId, objectIds);
+                if (!creatorIds.isEmpty()) {
+                    System.out.println("[UNISON-DEBUG][enrichWithStakeholders] CreatedBy people for " + facetId + ": " + creatorIds);
+                    allPeopleIds.addAll(creatorIds);
+                }
+            } catch (Exception e) {
+                System.err.println("[UnisonSearchService] Error querying CreatedBy people for " + facetId + ": " + e.getMessage());
+            }
+        }
+
         // Add People results to accumulated results
+        System.out.println("[UNISON-DEBUG][enrichWithStakeholders] Total people from stakeholders: " + allPeopleIds + " | org units: " + allOrgUnitIds);
         if (!allPeopleIds.isEmpty()) {
             String peopleFacetId = "PEOPLE";
             FacetResult existingPeopleResult = results.get(peopleFacetId);
@@ -3944,6 +4334,51 @@ public class UnisonSearchService {
         }
 
         return stakeholders;
+    }
+
+    /**
+     * Returns the set of people IDs found in the "Created By" column of the given facet's table
+     * for the provided object IDs. Only returns non-null, non-deleted people.
+     */
+    private Set<Integer> queryCreatedByPeopleIdsForObjects(String facetId, Set<Integer> objectIds) {
+        if (facetId == null || objectIds == null || objectIds.isEmpty()) {
+            return new HashSet<>();
+        }
+        String canonical = canonFacet(facetId);
+        if (canonical == null) {
+            canonical = normalizedFacetToFacetId(normalizeFacetName(facetId));
+        }
+        String createdByCol = getCreatedByDatabaseColumn(canonical);
+        if (createdByCol == null) {
+            return new HashSet<>();
+        }
+        String moduleName = facetIdToModuleName(canonical);
+        if (moduleName == null) {
+            return new HashSet<>();
+        }
+        String table = getTableNameForModule(moduleName);
+        if (table == null || table.isBlank()) {
+            return new HashSet<>();
+        }
+        String pkCol = getEntityPrimaryKeyColumn(canonical);
+        try {
+            com.example.unisonsearch.repository.DatabaseHelper dbHelper =
+                    new com.example.unisonsearch.repository.DatabaseHelper();
+            String placeholders = String.join(",", Collections.nCopies(objectIds.size(), "?"));
+            // JOIN people to exclude deleted creators
+            String sql = "SELECT DISTINCT t.`" + createdByCol + "` AS creator_id" +
+                    " FROM `" + table + "` t" +
+                    " INNER JOIN people p ON t.`" + createdByCol + "` = p.ID" +
+                    " WHERE t.`" + pkCol + "` IN (" + placeholders + ")" +
+                    " AND t.`" + createdByCol + "` IS NOT NULL" +
+                    " AND p.Deleted_date IS NULL";
+            List<Object> params = new ArrayList<>(objectIds);
+            List<Map<String, Object>> rows = dbHelper.executeQuery(sql, params);
+            return extractIntColumnFromRows(rows, "creator_id");
+        } catch (Exception e) {
+            System.err.println("[UnisonSearchService] queryCreatedByPeopleIdsForObjects " + facetId + ": " + e.getMessage());
+            return new HashSet<>();
+        }
     }
 
     /**
@@ -10249,6 +10684,29 @@ public class UnisonSearchService {
                     }
                 }
 
+                // Objects created or last-updated by this person (same depth / seed rules as stakeholders)
+                Map<String, Set<Integer>> createdByMap = queryObjectsByPersonAuditField(peopleId, "createdBy");
+                Map<String, Set<Integer>> updatedByMap = queryObjectsByPersonAuditField(peopleId, "updatedBy");
+                for (Map<String, Set<Integer>> extra : Arrays.asList(createdByMap, updatedByMap)) {
+                    for (Map.Entry<String, Set<Integer>> entry : extra.entrySet()) {
+                        String objectFacet = entry.getKey();
+                        Set<Integer> objectIds = entry.getValue();
+                        Set<Integer> seedObjectIdsForFacet = getSeedObjectIds(results, objectFacet);
+                        Set<Integer> filteredObjectIds = new HashSet<>();
+                        int newDepth = peopleDepth + 1;
+                        if (newDepth <= 1) {
+                            for (Integer objectId : objectIds) {
+                                if (!seedObjectIdsForFacet.contains(objectId)) {
+                                    filteredObjectIds.add(objectId);
+                                }
+                            }
+                            if (!filteredObjectIds.isEmpty()) {
+                                stakeholderObjects.computeIfAbsent(objectFacet, k -> new HashSet<>()).addAll(filteredObjectIds);
+                            }
+                        }
+                    }
+                }
+
                 // Role assignments for this person only (object_x_people rows), not all rows sharing their RoleIDs
                 Set<Integer> personOxpIds = queryObjectXPeopleIdsForPerson(peopleId);
                 int roleRelDepth = peopleDepth + 1;
@@ -11701,6 +12159,7 @@ public class UnisonSearchService {
             try {
                 // Get people belonging to this org unit
                 Set<Integer> peopleIds = queryOrgUnitPeople(orgUnitId);
+                System.out.println("[UNISON-DEBUG][enrichOrgUnit] OrgUnit ID=" + orgUnitId + " -> people=" + peopleIds);
                 for (Integer peopleId : peopleIds) {
                     allPeopleIds.add(peopleId);
                     peopleDepth.put(peopleId, 1);
@@ -14418,7 +14877,7 @@ public class UnisonSearchService {
         try {
             com.example.unisonsearch.repository.DatabaseHelper dbHelper = new com.example.unisonsearch.repository.DatabaseHelper();
             String placeholders = String.join(",", Collections.nCopies(geographyIds.size(), "?"));
-            String sql = "SELECT ID, PrimaryName, Description, Ref_Number, DeletedDatetime "
+            String sql = "SELECT ID, PrimaryName, Description, DeletedDatetime "
                     + "FROM geography WHERE ID IN (" + placeholders + ") AND DeletedDatetime IS NULL";
 
             List<Object> params = new ArrayList<>(geographyIds);
@@ -14435,8 +14894,6 @@ public class UnisonSearchService {
                 geographyRow.put("primaryName", row.get("PrimaryName"));
                 geographyRow.put("Description", row.get("Description"));
                 geographyRow.put("description", row.get("Description"));
-                geographyRow.put("Ref_Number", row.get("Ref_Number"));
-                geographyRow.put("refNumber", row.get("Ref_Number"));
                 rows.add(geographyRow);
             }
         } catch (Exception e) {
@@ -14554,8 +15011,8 @@ public class UnisonSearchService {
         try {
             com.example.unisonsearch.repository.DatabaseHelper dbHelper = new com.example.unisonsearch.repository.DatabaseHelper();
             String placeholders = String.join(",", Collections.nCopies(regulatoryThemeIds.size(), "?"));
-            String sql = "SELECT RegulatoryThemeID, PrimaryName, Description, Ref_Number, DeletedDatetime "
-                    + "FROM regulatorytheme WHERE RegulatoryThemeID IN (" + placeholders
+            String sql = "SELECT ID, PrimaryName, Description, RefNumber, DeletedDatetime "
+                    + "FROM regulatorytheme WHERE ID IN (" + placeholders
                     + ") AND DeletedDatetime IS NULL";
 
             List<Object> params = new ArrayList<>(regulatoryThemeIds);
@@ -14563,7 +15020,7 @@ public class UnisonSearchService {
 
             for (Map<String, Object> row : results) {
                 Map<String, Object> regulatoryThemeRow = new HashMap<>();
-                Object id = row.get("RegulatoryThemeID");
+                Object id = row.get("ID");
                 if (id != null) {
                     regulatoryThemeRow.put("ID", id);
                     regulatoryThemeRow.put("id", id);
@@ -14573,8 +15030,8 @@ public class UnisonSearchService {
                 regulatoryThemeRow.put("primaryName", row.get("PrimaryName"));
                 regulatoryThemeRow.put("Description", row.get("Description"));
                 regulatoryThemeRow.put("description", row.get("Description"));
-                regulatoryThemeRow.put("Ref_Number", row.get("Ref_Number"));
-                regulatoryThemeRow.put("refNumber", row.get("Ref_Number"));
+                regulatoryThemeRow.put("Ref_Number", row.get("RefNumber"));
+                regulatoryThemeRow.put("refNumber", row.get("RefNumber"));
                 rows.add(regulatoryThemeRow);
             }
         } catch (Exception e) {

@@ -131,11 +131,23 @@ def get_pymysql_config() -> Dict[str, Any]:
         port = int(os.getenv("DB_PORT", "3306"))
         database = os.getenv("DB_NAME", "project")
 
+    user = (os.getenv("DB_USERNAME") or "").strip()
+    password = os.getenv("DB_PASSWORD")
+    if password is not None:
+        password = str(password)
+    else:
+        password = ""
+    if not user:
+        raise ValueError(
+            "DB_USERNAME must be set in the environment (no default). Align with Java DatabaseConnection."
+        )
+    # Empty password is allowed (local MySQL root); use a strong password in production.
+
     return {
         "host": host,
         "port": port,
-        "user": os.getenv("DB_USERNAME", "root"),
-        "password": os.getenv("DB_PASSWORD", ""),
+        "user": user,
+        "password": password,
         "database": database,
         "charset": "utf8mb4",
     }

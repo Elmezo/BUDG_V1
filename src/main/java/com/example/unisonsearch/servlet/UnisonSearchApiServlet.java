@@ -122,6 +122,9 @@ public class UnisonSearchApiServlet extends HttpServlet {
                         if (jsonObject.has("indentLevel") && !jsonObject.get("indentLevel").isJsonNull()) {
                             item.setIndentLevel(jsonObject.get("indentLevel").getAsInt());
                         }
+                        if (jsonObject.has("displayFilter") && !jsonObject.get("displayFilter").isJsonNull()) {
+                            item.setDisplayFilter(jsonObject.get("displayFilter").getAsBoolean());
+                        }
 
                         return item;
                     }
@@ -304,9 +307,21 @@ public class UnisonSearchApiServlet extends HttpServlet {
                 // Convert to UnisonSearchResponse format
                 searchResponse = convertToUnisonResponse(unifiedResponse);
             } else {
+                java.util.LinkedHashSet<Integer> peopleConstraintSet = null;
+                if (searchRequest.getPeopleConstraintIds() != null) {
+                    peopleConstraintSet = new java.util.LinkedHashSet<>();
+                    for (Integer id : searchRequest.getPeopleConstraintIds()) {
+                        if (id != null && id > 0) {
+                            peopleConstraintSet.add(id);
+                        }
+                    }
+                    if (peopleConstraintSet.isEmpty()) {
+                        peopleConstraintSet = null;
+                    }
+                }
                 // Use UnisonSearchService for all facets (supports all facets including people, change request, org unit, geography, etc.)
                 searchResponse = unisonSearchService.executeUnisonSearch(
-                        searchRequest.getSearches(), maxDepth, userId);
+                        searchRequest.getSearches(), maxDepth, userId, peopleConstraintSet);
             }
 
             // Apply facet visibility/fields per user if available

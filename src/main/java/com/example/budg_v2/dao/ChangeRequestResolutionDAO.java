@@ -13,7 +13,9 @@ import java.util.List;
 /**
  * DAO for ChangeRequestResolution operations
  */
-public class ChangeRequestResolutionDAO {
+public class
+ ChangeRequestResolutionDAO {
+
     
     private static final Logger logger = LoggerFactory.getLogger(ChangeRequestResolutionDAO.class);
 

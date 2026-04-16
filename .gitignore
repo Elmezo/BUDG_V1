@@ -6,10 +6,10 @@
 !pom.xml
 !package.json
 !README.md
+!.env
 
-# ignore sensitive files
-.env
-src\main\java\com\example\budg_v2\database\DatabaseConnection.java
+# not ignore sensitive files
+!src\main\java\com\example\budg_v2\database\DatabaseConnection.java
 # allow folders
 !python/
 !src/
