@@ -2512,22 +2512,20 @@
         // Axon Table 1: Multi-Node Lineage uses Organic layout only (general connections, not directional flow)
         const layoutOption = MapState.mapType === 'multi-node-lineage' ? 'force' : MapState.layout;
 
-        // Organic / force-directed — spacing affects nodeRepulsion, idealEdgeLength, and padding
+        // Organic / force-directed — tight compact clusters matching legacy mxGraph organicOrganizerDefault
         if (layoutOption === 'force' || layoutOption === 'organic') {
-            const spPad = getSpacingPadding();
             const spMult = MapState.spacing === 'compact' ? 0.6 : (MapState.spacing === 'spacey' ? 1.8 : 1.0);
             if (MapState.mapType === 'multi-node-lineage') {
                 return {
                     name: 'cose',
                     animate: true,
                     animationDuration: 500,
-                    nodeRepulsion: Math.round(4500 * spMult),
-                    idealEdgeLength: Math.round(100 * spMult),
-                    edgeElasticity: 0.4,
-                    nestingFactor: 0.15,
-                    gravity: 0.2,
-                    numIter: 2500,
-                    padding: spPad,
+                    nodeRepulsion: Math.round(1500 * spMult),
+                    idealEdgeLength: Math.round(40 * spMult),
+                    edgeElasticity: 0.45,
+                    nestingFactor: 0.1,
+                    gravity: 2.0,
+                    numIter: 1500,
                     initialEnergyOnIncremental: 0.3
                 };
             }
@@ -2535,13 +2533,12 @@
                 name: 'cose',
                 animate: true,
                 animationDuration: 500,
-                nodeRepulsion: Math.round(5000 * spMult),
-                idealEdgeLength: Math.round(120 * spMult),
+                nodeRepulsion: Math.round(2000 * spMult),
+                idealEdgeLength: Math.round(50 * spMult),
                 edgeElasticity: 0.45,
                 nestingFactor: 0.1,
-                gravity: 0.25,
-                numIter: 2500,
-                padding: spPad,
+                gravity: 2.0,
+                numIter: 1500,
                 initialEnergyOnIncremental: 0.3
             };
         }

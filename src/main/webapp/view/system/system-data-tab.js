@@ -157,37 +157,7 @@
                                     <div class="map-control-group">
                                         <label>Layout:</label>
                                         <div class="map-layout-controls">
-                                            <select id="dataMapLayoutSelect" class="map-select">
-                                                <option value="top-to-bottom" selected>Top-To-Bottom</option>
-                                                <option value="left-to-right">Left-To-Right</option>
-                                                <option value="right-to-left">Right-To-Left</option>
-                                                <option value="force">Force Directed</option>
-                                            </select>
-                                            <div class="map-btn-dropdown-wrapper">
-                                                <button type="button" class="map-toolbar-btn-sm" id="dataMapSpacing" title="Node spacing">
-                                                    <i class="fas fa-expand-arrows-alt" id="dataMapSpacingIcon"></i>
-                                                    <i class="fas fa-chevron-down" style="font-size: 8px; margin-left: 2px;"></i>
-                                                </button>
-                                                <div class="map-btn-dropdown-menu" id="dataMapSpacingMenu">
-                                                    <div class="map-btn-dropdown-item" data-spacing="compact">Compact</div>
-                                                    <div class="map-btn-dropdown-item active" data-spacing="normal">Normal</div>
-                                                    <div class="map-btn-dropdown-item" data-spacing="spacey">Spacey</div>
-                                                </div>
-                                            </div>
-                                            <div class="map-btn-dropdown-wrapper">
-                                                <button type="button" class="map-toolbar-btn-sm" id="dataMapEdgeStyle" title="Edge routing style">
-                                                    <i class="fas fa-arrow-right" id="dataMapEdgeStyleIcon"></i>
-                                                    <i class="fas fa-chevron-down" style="font-size: 8px; margin-left: 2px;"></i>
-                                                </button>
-                                                <div class="map-btn-dropdown-menu" id="dataMapEdgeStyleMenu">
-                                                    <div class="map-btn-dropdown-item" data-edge-style="angle">Angle</div>
-                                                    <div class="map-btn-dropdown-item" data-edge-style="square">Square</div>
-                                                    <div class="map-btn-dropdown-item active" data-edge-style="direct">Direct</div>
-                                                    <div class="map-btn-dropdown-item" data-edge-style="loop">Loop</div>
-                                                    <div class="map-btn-dropdown-item" data-edge-style="top-down">Top-Down</div>
-                                                    <div class="map-btn-dropdown-item" data-edge-style="left-right">Left-Right</div>
-                                                </div>
-                                            </div>
+                                            ${typeof window.SharedMapLayoutRichControlsHtml === 'function' ? window.SharedMapLayoutRichControlsHtml('dataMap') : ''}
                                         </div>
                                     </div>
                                     
@@ -654,16 +624,7 @@
         const mapRoot = document.getElementById('dataMapSection') || document;
         const byId = (id) => mapRoot.querySelector(`#${id}`) || document.getElementById(id);
 
-        // Layout select
         const layoutSelect = byId('dataMapLayoutSelect');
-        if (layoutSelect) {
-            layoutSelect.addEventListener('change', (e) => {
-                if (window.SystemInterfacesMap) {
-                    window.SystemInterfacesMap.setLayout(e.target.value);
-                }
-            });
-        }
-        
         // Initialize shared dropdown menus for expand/collapse & direction buttons
         if (typeof window.SharedMapDropdowns === 'function') {
             window.SharedMapDropdowns({

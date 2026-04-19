@@ -2141,40 +2141,11 @@
                         </select>
                     </div>
                     
-                    <!-- Layout (BUDG-style: Left to Right, Top to Bottom, Organic) -->
+                    <!-- Layout -->
                     <div class="map-control-group">
                         <label>Layout:</label>
                         <div class="map-layout-controls">
-                            <select id="${mapId}LayoutSelect" class="map-select" title="Change lineage flow direction">
-                                <option value="top-to-bottom" selected>Top to Bottom</option>
-                                <option value="left-to-right">Left to Right</option>
-                                <option value="organic">Organic</option>
-                            </select>
-                            <div class="map-btn-dropdown-wrapper">
-                                <button type="button" class="map-toolbar-btn-sm" id="${mapId}Spacing" title="Node spacing">
-                                    <i class="fas fa-expand-arrows-alt" id="${mapId}SpacingIcon"></i>
-                                    <i class="fas fa-chevron-down" style="font-size: 8px; margin-left: 2px;"></i>
-                                </button>
-                                <div class="map-btn-dropdown-menu" id="${mapId}SpacingMenu">
-                                    <div class="map-btn-dropdown-item" data-spacing="compact">Compact</div>
-                                    <div class="map-btn-dropdown-item active" data-spacing="normal">Normal</div>
-                                    <div class="map-btn-dropdown-item" data-spacing="spacey">Spacey</div>
-                                </div>
-                            </div>
-                            <div class="map-btn-dropdown-wrapper">
-                                <button type="button" class="map-toolbar-btn-sm" id="${mapId}EdgeStyle" title="Edge routing style">
-                                    <i class="fas fa-arrow-right" id="${mapId}EdgeStyleIcon"></i>
-                                    <i class="fas fa-chevron-down" style="font-size: 8px; margin-left: 2px;"></i>
-                                </button>
-                                <div class="map-btn-dropdown-menu" id="${mapId}EdgeStyleMenu">
-                                    <div class="map-btn-dropdown-item" data-edge-style="angle">Angle</div>
-                                    <div class="map-btn-dropdown-item" data-edge-style="square">Square</div>
-                                    <div class="map-btn-dropdown-item active" data-edge-style="direct">Direct</div>
-                                    <div class="map-btn-dropdown-item" data-edge-style="loop">Loop</div>
-                                    <div class="map-btn-dropdown-item" data-edge-style="top-down">Top-Down</div>
-                                    <div class="map-btn-dropdown-item" data-edge-style="left-right">Left-Right</div>
-                                </div>
-                            </div>
+                            ${typeof window.SharedMapLayoutRichControlsHtml === 'function' ? window.SharedMapLayoutRichControlsHtml(mapId) : ''}
                         </div>
                     </div>
                     
@@ -2559,16 +2530,7 @@
             }
         }
         
-        // Layout selector
         const layoutSelect = byId(`${mapId}LayoutSelect`);
-        if (layoutSelect) {
-            layoutSelect.addEventListener('change', (e) => {
-                if (window.GlossaryRelationshipsMap) {
-                    window.GlossaryRelationshipsMap.setLayout(e.target.value);
-                }
-            });
-        }
-        
         // Hops Count (1-99, default 15) - System/Data lineage
         const hopsInput = byId(`${mapId}HopsCount`);
         if (hopsInput) {
