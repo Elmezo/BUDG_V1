@@ -16,7 +16,7 @@ import java.util.Objects;
 public class PolicyDAO {
     private static final Logger logger = LoggerFactory.getLogger(PolicyDAO.class);
     private static final String SELECT_ALL = "SELECT * FROM policy WHERE DeletedDatetime IS NULL ORDER BY ID DESC";
-    private static final String SELECT_FOR_DROPDOWN = "SELECT ID, PrimaryName, Description, refNumber FROM policy WHERE DeletedDatetime IS NULL ORDER BY PrimaryName";
+    private static final String SELECT_FOR_DROPDOWN = "SELECT ID, PrimaryName, Description, refNumber, Policy_Type FROM policy WHERE DeletedDatetime IS NULL ORDER BY PrimaryName";
     private static final String SELECT_BY_ID = "SELECT p.*, " +
             "CONCAT(cb.First_Name, ' ', cb.Last_Name) AS createdByName, " +
             "CONCAT(ub.First_Name, ' ', ub.Last_Name) AS lastUpdatedByName, " +
@@ -86,7 +86,7 @@ public class PolicyDAO {
         if (guestFilter == null) {
             return getPoliciesForDropdownUnfiltered();
         }
-        String sql = "SELECT p.ID, p.PrimaryName, p.Description, p.refNumber FROM policy p WHERE " + guestFilter + " ORDER BY p.PrimaryName";
+        String sql = "SELECT p.ID, p.PrimaryName, p.Description, p.refNumber, p.Policy_Type FROM policy p WHERE " + guestFilter + " ORDER BY p.PrimaryName";
         List<Policy> policies = new ArrayList<>();
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql);
@@ -97,6 +97,7 @@ public class PolicyDAO {
                 policy.setPrimaryName(rs.getString("PrimaryName"));
                 policy.setDescription(rs.getString("Description"));
                 policy.setRefNumber(rs.getString("refNumber"));
+                policy.setPolicyType(rs.getObject("Policy_Type") != null ? rs.getInt("Policy_Type") : null);
                 policies.add(policy);
             }
         }
@@ -114,6 +115,7 @@ public class PolicyDAO {
                 policy.setPrimaryName(rs.getString("PrimaryName"));
                 policy.setDescription(rs.getString("Description"));
                 policy.setRefNumber(rs.getString("refNumber"));
+                policy.setPolicyType(rs.getObject("Policy_Type") != null ? rs.getInt("Policy_Type") : null);
                 policies.add(policy);
             }
         }
@@ -167,7 +169,7 @@ public class PolicyDAO {
         String segmentFilter = com.example.budg_v2.service.SegmentAccessService
                 .buildSelectedSegmentFilterClause(userId, "Policy", "p.ID");
         
-        String sql = "SELECT p.ID, p.PrimaryName, p.Description, p.refNumber, p.ParentID " +
+        String sql = "SELECT p.ID, p.PrimaryName, p.Description, p.refNumber, p.ParentID, p.Policy_Type " +
                      "FROM policy p WHERE p.DeletedDatetime IS NULL AND " + 
                      segmentFilter + " ORDER BY p.PrimaryName";
         
@@ -183,6 +185,7 @@ public class PolicyDAO {
                 policy.setDescription(rs.getString("Description"));
                 policy.setRefNumber(rs.getString("refNumber"));
                 policy.setParentId(rs.getObject("ParentID") != null ? rs.getInt("ParentID") : null);
+                policy.setPolicyType(rs.getObject("Policy_Type") != null ? rs.getInt("Policy_Type") : null);
                 policies.add(policy);
             }
         }

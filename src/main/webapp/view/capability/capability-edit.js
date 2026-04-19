@@ -1399,8 +1399,7 @@
                     }
                 }
             }
-            const capabilities = await response.json();
-            
+
             console.log('[Capability Hierarchy] Processed items:', items);
             console.log('[Capability Hierarchy] Items count:', items.length);
             

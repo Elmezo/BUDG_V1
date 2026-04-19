@@ -27,6 +27,8 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Initialize parent picker
     initParentPicker();
+
+    initSecurityClassificationRefPicker();
     
     // Initialize custom fields
     initializeCustomFields();
@@ -184,6 +186,8 @@ async function savePage(closeAfterSave) {
                     }
                 }
 
+                await trySaveSecurityClassificationReferenceAfterCreate(policyId);
+
                 if (closeAfterSave) {
                     // Show message for 2 seconds then go to view page with ID
                     setTimeout(() => {
@@ -196,6 +200,7 @@ async function savePage(closeAfterSave) {
                         document.getElementById('name').value = '';
                         document.getElementById('description').value = '';
                         document.getElementById('ref').value = '';
+                        clearSecurityClassificationRef();
                         // Reset other fields as needed
                         // Re-initialize custom fields for new entry
                         if (window.CustomFields) {
@@ -699,6 +704,257 @@ function showError(message) {
     setTimeout(() => {
         errorDiv.remove();
     }, 5000);
+}
+
+function escapeHtmlPolicyText(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+function findPolicyTypeIdFromList(types, nameCandidates) {
+    const list = Array.isArray(types) ? types : (types && types.data ? types.data : []);
+    if (!list.length) return null;
+    const norm = (s) => String(s || '').toLowerCase().trim();
+    for (const name of nameCandidates) {
+        const n = norm(name);
+        if (!n) continue;
+        const hit = list.find((t) => {
+            const label = norm(t.primaryname || t.PrimaryName || t.name || t.primaryName);
+            return label === n || (n.length >= 4 && label.includes(n));
+        });
+        if (hit) {
+            const id = parseInt(hit.id ?? hit.ID, 10);
+            return Number.isInteger(id) ? id : null;
+        }
+    }
+    return null;
+}
+
+function getPolicyListRowId(p) {
+    return parseInt(p.id ?? p.ID, 10);
+}
+
+function getPolicyListRowTypeId(p) {
+    const v = p.policyType ?? p.Policy_Type ?? p.policy_type;
+    if (v == null || v === '') return null;
+    const n = parseInt(v, 10);
+    return Number.isInteger(n) ? n : null;
+}
+
+function getPolicyListRowName(p) {
+    return p.primaryname || p.PrimaryName || p.primaryName || p.name || '';
+}
+
+async function loadPolicyRowsForRefModal(policyTypeId) {
+    const svc = window.BUDG_API_SERVICE;
+    if (!svc || typeof svc.getPolicyList !== 'function') {
+        return [];
+    }
+    let raw;
+    try {
+        raw = await svc.getPolicyList({});
+    } catch (e) {
+        console.warn('Failed to load policies for reference picker', e);
+        return [];
+    }
+    const rows = Array.isArray(raw) ? raw : (raw && Array.isArray(raw.data) ? raw.data : []);
+    if (policyTypeId == null) return rows;
+    return rows.filter((p) => getPolicyListRowTypeId(p) === policyTypeId);
+}
+
+async function openSecurityClassificationRefModal() {
+    const svc = window.BUDG_API_SERVICE;
+    const api = svc || new ApiService();
+    let policyTypes = [];
+    try {
+        policyTypes = await api.getPolicyTypeList();
+    } catch (e) {
+        console.warn('Policy types not loaded for reference picker', e);
+    }
+    const securityTypeId = findPolicyTypeIdFromList(policyTypes, ['Security Policy', 'security policy']);
+    const classificationTypeId = findPolicyTypeIdFromList(policyTypes, [
+        'Classification Policy',
+        'classification policy',
+        'Data Classification',
+        'Classification'
+    ]);
+
+    const overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:10050;display:flex;align-items:center;justify-content:center;padding:1rem;';
+    const defaultKind = securityTypeId != null ? 'security' : 'classification';
+    overlay.innerHTML = `
+        <div style="background:#fff;border-radius:10px;max-width:720px;width:100%;max-height:85vh;display:flex;flex-direction:column;box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);">
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:1rem 1.25rem;border-bottom:1px solid var(--border-color,#e5e7eb);">
+                <h3 style="margin:0;font-size:1.05rem;">Select Security or Classification Policy</h3>
+                <button type="button" class="btn btn-sm btn-outline-secondary" id="secClassRefModalClose" aria-label="Close"><i class="fas fa-times"></i></button>
+            </div>
+            <div style="padding:1rem 1.25rem;border-bottom:1px solid var(--border-color,#e5e7eb);display:flex;flex-wrap:wrap;gap:1.25rem;align-items:center;">
+                <label style="display:flex;align-items:center;gap:0.4rem;cursor:pointer;">
+                    <input type="radio" name="secClassRefKind" value="security" ${defaultKind === 'security' ? 'checked' : ''}>
+                    <span>Security Policy</span>
+                </label>
+                <label style="display:flex;align-items:center;gap:0.4rem;cursor:pointer;">
+                    <input type="radio" name="secClassRefKind" value="classification" ${defaultKind === 'classification' ? 'checked' : ''}>
+                    <span>Classification Policy</span>
+                </label>
+            </div>
+            <div style="padding:0 1.25rem 1rem;overflow:auto;flex:1;">
+                <table style="width:100%;border-collapse:collapse;font-size:0.875rem;">
+                    <thead>
+                        <tr style="text-align:left;border-bottom:1px solid var(--border-color,#e5e7eb);">
+                            <th style="padding:0.5rem 0.35rem;">Policy</th>
+                            <th style="padding:0.5rem 0.35rem;">Description</th>
+                        </tr>
+                    </thead>
+                    <tbody id="secClassRefModalBody">
+                        <tr><td colspan="2" style="padding:1rem;color:var(--text-muted,#6b7280);">Loading…</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div style="padding:0.75rem 1.25rem;border-top:1px solid var(--border-color,#e5e7eb);text-align:right;">
+                <button type="button" class="btn btn-secondary" id="secClassRefModalCancel">Cancel</button>
+            </div>
+        </div>
+    `;
+
+    const remove = () => {
+        if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
+    };
+
+    overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) remove();
+    });
+
+    const renderRows = async () => {
+        const kind = overlay.querySelector('input[name="secClassRefKind"]:checked')?.value || defaultKind;
+        const typeId = kind === 'security' ? securityTypeId : classificationTypeId;
+        const tbody = overlay.querySelector('#secClassRefModalBody');
+        if (!tbody) return;
+        tbody.innerHTML = '<tr><td colspan="2" style="padding:1rem;color:var(--text-muted,#6b7280);">Loading…</td></tr>';
+        if (typeId == null) {
+            const hint = kind === 'security' ? 'Security Policy' : 'Classification Policy';
+            tbody.innerHTML = `<tr><td colspan="2" style="padding:1rem;color:var(--text-muted,#6b7280);">No policy type matched "<strong>${escapeHtmlPolicyText(hint)}</strong>" in policy types. Configure the type or use the other category.</td></tr>`;
+            return;
+        }
+        const policies = await loadPolicyRowsForRefModal(typeId);
+        if (!policies.length) {
+            tbody.innerHTML = '<tr><td colspan="2" style="padding:1rem;color:var(--text-muted,#6b7280);">No policies found for the selected type in your segment.</td></tr>';
+            return;
+        }
+        tbody.innerHTML = policies.map((p) => {
+            const id = getPolicyListRowId(p);
+            const name = getPolicyListRowName(p);
+            const desc = p.description || p.Description || '';
+            return `<tr class="sec-class-ref-row" data-id="${id}" style="cursor:pointer;border-bottom:1px solid var(--border-color,#f3f4f6);">
+                <td style="padding:0.55rem 0.35rem;">${escapeHtmlPolicyText(name)}</td>
+                <td style="padding:0.55rem 0.35rem;color:var(--text-muted,#6b7280);">${escapeHtmlPolicyText(desc || '—')}</td>
+            </tr>`;
+        }).join('');
+
+        tbody.querySelectorAll('tr.sec-class-ref-row').forEach((row) => {
+            row.addEventListener('click', () => {
+                const id = parseInt(row.getAttribute('data-id'), 10);
+                const disp = document.getElementById('securityClassificationRefDisplay');
+                const hid = document.getElementById('securityClassificationRefPolicyId');
+                if (disp && hid && Number.isInteger(id)) {
+                    hid.value = String(id);
+                    disp.value = row.cells[0].textContent;
+                }
+                remove();
+            });
+        });
+    };
+
+    document.body.appendChild(overlay);
+
+    overlay.querySelector('#secClassRefModalClose').addEventListener('click', remove);
+    overlay.querySelector('#secClassRefModalCancel').addEventListener('click', remove);
+    overlay.querySelectorAll('input[name="secClassRefKind"]').forEach((r) => {
+        r.addEventListener('change', () => { renderRows(); });
+    });
+
+    await renderRows();
+}
+
+function clearSecurityClassificationRef() {
+    const disp = document.getElementById('securityClassificationRefDisplay');
+    const hid = document.getElementById('securityClassificationRefPolicyId');
+    if (disp) disp.value = '';
+    if (hid) hid.value = '';
+}
+
+function initSecurityClassificationRefPicker() {
+    const openBtn = document.getElementById('securityClassificationRefOpen');
+    const clearBtn = document.getElementById('securityClassificationRefClear');
+    if (openBtn) {
+        openBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            openSecurityClassificationRefModal();
+        });
+    }
+    if (clearBtn) {
+        clearBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            clearSecurityClassificationRef();
+        });
+    }
+}
+
+function pickDefaultPolicyRelationTypeId(relationTypes) {
+    const list = Array.isArray(relationTypes) ? relationTypes : [];
+    if (!list.length) return null;
+    const label = (rt) => String(rt.primaryName || rt.PrimaryName || rt.name || '').toLowerCase();
+    const prefers = ['reference', 'implements', 'related', 'association', 'depends'];
+    for (const p of prefers) {
+        const f = list.find((rt) => label(rt).includes(p));
+        if (f) {
+            const id = parseInt(f.id ?? f.ID, 10);
+            if (Number.isInteger(id)) return id;
+        }
+    }
+    const first = list[0];
+    const id = parseInt(first?.id ?? first?.ID, 10);
+    return Number.isInteger(id) ? id : null;
+}
+
+async function trySaveSecurityClassificationReferenceAfterCreate(policyId) {
+    const hid = document.getElementById('securityClassificationRefPolicyId');
+    if (!hid) return;
+    const refTargetId = parseInt(hid.value, 10);
+    if (!Number.isInteger(refTargetId) || refTargetId <= 0 || refTargetId === policyId) return;
+
+    const svc = window.BUDG_API_SERVICE || new ApiService();
+    try {
+        let relationTypes = [];
+        try {
+            relationTypes = await svc.getPolicyRelationTypes();
+        } catch (e1) {
+            console.warn('Could not load policy relation types', e1);
+        }
+        const relationType = pickDefaultPolicyRelationTypeId(relationTypes);
+        if (relationType == null) {
+            console.warn('No policy_x_policy relation types available; skipped optional reference link.');
+            return;
+        }
+        const uid = getCurrentUserId();
+        const body = {
+            sourceId: policyId,
+            targetId: refTargetId,
+            relationType,
+            description: 'Security or Classification Policy Reference'
+        };
+        if (uid && parseInt(uid, 10) > 0) {
+            body.userId = parseInt(uid, 10);
+        }
+        const resp = await svc.createPolicyRelationship(body);
+        if (resp && resp.success === false) {
+            console.warn('Policy reference relationship was not saved:', resp);
+        }
+    } catch (e) {
+        console.warn('Optional Security/Classification reference not persisted:', e);
+    }
 }
 
 // Get current user ID from session/API
