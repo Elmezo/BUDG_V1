@@ -270,8 +270,15 @@
         "showAll": "Show All",
         "resetToDefault": "Reset to Default",
         "saveLayout": "Save Layout",
+        "resetLayout": "Reset Layout",
+        "saveDefaultLayout": "Save Default Layout",
         "history": "History",
         "showEditor": "Show Editor"
+    },
+    "hint": {
+        "saveDefaultLayout": "Sets the default Unison results table layout and column widths for all users (Super Admin only).",
+        "saveLayout": "Saves visible columns and column widths for this facet for your account, or in this browser when not logged in. Use after changing columns or resizing.",
+        "resetLayout": "Removes your personal layout and restores the organization default (or clears browser-stored layout when not logged in)."
     },
     "dropdown": {
         "createObject": "CREATE OBJECT",
@@ -617,6 +624,15 @@
         "loadingColumns": "Loading columns...",
         "noCategorySelected": "No category selected",
         "noColumnsAvailable": "No columns available. Please load data first.",
+        "layoutSaved": "Layout saved",
+        "defaultLayoutSaved": "Default layout saved for all users",
+        "layoutReset": "Layout reset",
+        "resetLayoutFailed": "Could not reset layout",
+        "loadDefaultsFailed": "Could not load defaults",
+        "invalidDefaults": "Invalid defaults configuration",
+        "facetNotInDefaults": "Facet not found in defaults",
+        "saveDefaultsFailed": "Could not save defaults",
+        "forbidden": "You do not have permission for this action",
         "noDocuments": "No documents",
         "loadingImpact": "Loading impact data...",
         "loadingRelationships": "Loading relationships data...",

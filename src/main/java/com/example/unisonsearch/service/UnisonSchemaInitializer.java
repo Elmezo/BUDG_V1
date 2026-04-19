@@ -31,6 +31,7 @@ public class UnisonSchemaInitializer {
             ensureUnisonTableAndSeed(conn);
             ensureUnisonDefaultsInAppConfig(conn);
             ensureUnisonFacetsTableAndSeed(conn);
+            ensureUnisonFacetsColumnWidthsColumn(conn);
             logger.info("Unison schema and defaults initialization completed");
         } catch (SQLException e) {
             String msg = e.getMessage() != null ? e.getMessage().toLowerCase() : "";
@@ -128,6 +129,7 @@ public class UnisonSchemaInitializer {
                 "facetId VARCHAR(256) NOT NULL," +
                 "active TINYINT(1) DEFAULT NULL," +
                 "active_fields TEXT DEFAULT NULL," +
+                "column_widths TEXT DEFAULT NULL," +
                 "ordering INT(11) DEFAULT NULL," +
                 "unison_id INT(11) NOT NULL," +
                 "PRIMARY KEY (unison_id, facetId)," +
@@ -151,6 +153,32 @@ public class UnisonSchemaInitializer {
         String sql = "SELECT 1 FROM " + tableName + " LIMIT 1";
         try (Statement stmt = conn.createStatement(); ResultSet rs = stmt.executeQuery(sql)) {
             return !rs.next();
+        }
+    }
+
+    /**
+     * Adds {@code column_widths} to {@code unison_facets} when upgrading an older database.
+     */
+    private static void ensureUnisonFacetsColumnWidthsColumn(Connection conn) throws SQLException {
+        if (columnExists(conn, "unison_facets", "column_widths")) {
+            return;
+        }
+        try (Statement stmt = conn.createStatement()) {
+            stmt.executeUpdate(
+                    "ALTER TABLE unison_facets ADD COLUMN column_widths TEXT DEFAULT NULL AFTER active_fields");
+        }
+        logger.info("Unison: added column_widths to unison_facets");
+    }
+
+    private static boolean columnExists(Connection conn, String tableName, String columnName) throws SQLException {
+        String sql = "SELECT COUNT(*) AS c FROM INFORMATION_SCHEMA.COLUMNS " +
+                "WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, tableName);
+            ps.setString(2, columnName);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() && rs.getInt("c") > 0;
+            }
         }
     }
 

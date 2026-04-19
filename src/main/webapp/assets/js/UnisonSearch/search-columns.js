@@ -3,6 +3,11 @@
 // Global cache for UNISON_DEFAULTS
 let unisonDefaultsCache = null;
 
+function invalidateUnisonDefaultsCache() {
+    unisonDefaultsCache = null;
+    defaultColumnsCache.clear();
+}
+
 // Load UNISON_DEFAULTS from API
 async function loadUnisonDefaultsForColumns() {
     if (unisonDefaultsCache !== null) {
@@ -26,6 +31,30 @@ async function loadUnisonDefaultsForColumns() {
     unisonDefaultsCache = {};
     defaultColumnsCache.clear();
     return unisonDefaultsCache;
+}
+
+/**
+ * Default column widths for a category from UNISON_DEFAULTS (facet.columnWidths), if any.
+ */
+function getDefaultColumnWidthsFromUnisonDefaults(category) {
+    if (!unisonDefaultsCache || !unisonDefaultsCache.facets) {
+        return null;
+    }
+    let normalizedCategory = category;
+    if (typeof categoryToModule === 'function') {
+        normalizedCategory = categoryToModule(category);
+    }
+    const facetId = window.moduleNameToFacetId ?
+        window.moduleNameToFacetId(normalizedCategory) :
+        normalizedCategory.toUpperCase();
+    const facet = unisonDefaultsCache.facets.find(function (f) { return f.id === facetId; });
+    if (!facet || facet.columnWidths == null) {
+        return null;
+    }
+    if (typeof facet.columnWidths === 'object' && !Array.isArray(facet.columnWidths)) {
+        return Object.assign({}, facet.columnWidths);
+    }
+    return null;
 }
 
 // Cache for default columns per category to avoid repeated lookups
@@ -1002,7 +1031,9 @@ function getAvailableColumns(category, data) {
 window.searchColumnControl = {
     getAvailableColumns,
     loadUnisonDefaultsForColumns,
-    getDefaultColumnsFromUnisonDefaults
+    getDefaultColumnsFromUnisonDefaults,
+    getDefaultColumnWidthsFromUnisonDefaults,
+    invalidateUnisonDefaultsCache
 };
 
 

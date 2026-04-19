@@ -202,15 +202,21 @@ public class UnisonService {
     private void createFacetRow(Connection conn, int unisonId, String facetId, FacetDefault defaultConfig) throws SQLException {
         boolean active = defaultConfig != null ? defaultConfig.visibility : false;
         String activeFields = defaultConfig != null ? defaultConfig.activeFields : "";
+        String columnWidthsJson = defaultConfig != null ? defaultConfig.columnWidthsJson : "";
         int ordering = active ? getNextOrdering(conn, unisonId) : 0;
         
-        String sql = "INSERT INTO unison_facets (unison_id, facetId, active, active_fields, ordering) VALUES (?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO unison_facets (unison_id, facetId, active, active_fields, column_widths, ordering) VALUES (?, ?, ?, ?, ?, ?)";
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, unisonId);
             ps.setString(2, facetId);
             ps.setBoolean(3, active);
             ps.setString(4, activeFields);
-            ps.setInt(5, ordering);
+            if (columnWidthsJson != null && !columnWidthsJson.isEmpty()) {
+                ps.setString(5, columnWidthsJson);
+            } else {
+                ps.setNull(5, java.sql.Types.LONGVARCHAR);
+            }
+            ps.setInt(6, ordering);
             ps.executeUpdate();
         }
     }
@@ -256,7 +262,11 @@ public class UnisonService {
             if (facetId != null) {
                 boolean visibility = facet.has("visibility") && facet.get("visibility").getAsBoolean();
                 String activeFields = facet.has("activeFields") ? facet.get("activeFields").getAsString() : "";
-                facetDefaults.put(facetId, new FacetDefault(visibility, activeFields));
+                String columnWidthsJson = "";
+                if (facet.has("columnWidths") && facet.get("columnWidths").isJsonObject()) {
+                    columnWidthsJson = facet.getAsJsonObject("columnWidths").toString();
+                }
+                facetDefaults.put(facetId, new FacetDefault(visibility, activeFields, columnWidthsJson));
             }
         }
         
@@ -269,10 +279,12 @@ public class UnisonService {
     private static class FacetDefault {
         final boolean visibility;
         final String activeFields;
+        final String columnWidthsJson;
         
-        FacetDefault(boolean visibility, String activeFields) {
+        FacetDefault(boolean visibility, String activeFields, String columnWidthsJson) {
             this.visibility = visibility;
             this.activeFields = activeFields;
+            this.columnWidthsJson = columnWidthsJson != null ? columnWidthsJson : "";
         }
     }
 
