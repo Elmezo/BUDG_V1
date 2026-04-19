@@ -1760,8 +1760,7 @@ public class SegmentValidationService {
     /**
      * Validate stakeholder assignment.
      *
-     * Current rule: any valid user can be added as a stakeholder regardless of
-     * segment access. View/edit access is enforced separately at request time.
+     * The proposed stakeholder must belong to the same segment as the object (except Enterprise / unassigned).
      *
      * @param userId The user ID to be added as stakeholder
      * @param objectId The object ID
@@ -1788,8 +1787,9 @@ public class SegmentValidationService {
             String personName = getPersonName(userId);
             String segmentName = getSegmentName(objectSegmentId);
             return ValidationResult.error(
-                    "Cannot add \"" + personName + "\" as a stakeholder: they do not have access to the \"" +
-                            segmentName + "\" segment. Please grant them access to this segment first, or choose a different person."
+                    "Segment mismatch: \"" + personName + "\" is not assigned to the same segment as this "
+                            + objectType + " (required segment: \"" + segmentName + "\"). "
+                            + "Grant them access to that segment first, or choose someone who already has access."
             );
         }
 
