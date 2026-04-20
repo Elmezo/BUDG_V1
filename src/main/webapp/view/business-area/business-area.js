@@ -1202,20 +1202,27 @@ function buildHierarchyTree(businessAreas, rootId) {
 
 // Render business area hierarchy table following Regulatory Theme pattern
 function renderBusinessAreaTable(hierarchyRows, currentId) {
+    const Mask = window.HierarchyMask;
     const rowsHtml = hierarchyRows.rows.map(({ node, depth, childCount, hasChildren }) => {
-        const name = node.primaryName ?? node.PrimaryName ?? node.Name ?? node.name ?? 'Unnamed Business Area';
-        const desc = node.description ?? node.Description ?? '';
+        const isMaskedNode = Mask ? Mask.isMasked(node) : false;
+        const fallbackName = node.primaryName ?? node.PrimaryName ?? node.Name ?? node.name ?? 'Unnamed Business Area';
+        const fallbackDesc = node.description ?? node.Description ?? '';
+        const name = isMaskedNode ? Mask.PLACEHOLDER : fallbackName;
+        const desc = isMaskedNode ? Mask.PLACEHOLDER : fallbackDesc;
         const isCurrent = String(node.id ?? node.ID) === String(currentId);
         const id = node.id ?? node.ID;
         const parentId = node.parentId ?? node.Parent_ID ?? node.parent_id ?? '';
-        
+
         const indent = Array(depth).fill('<span class="tree-indent"></span>').join('');
         const expander = hasChildren ? `<button type="button" class="tree-expander" aria-label="Toggle"><i class="fas fa-caret-down"></i></button>` : '<span class="tree-placeholder"></span>';
         const countBadge = hasChildren ? `<span class="child-count" title="Children">${childCount}</span>` : '';
         const linkClass = isCurrent ? 'ba-link current-ba-link' : 'ba-link';
-        const link = `<a class="${linkClass}" href="/view/business-area/business-area.html?id=${encodeURIComponent(id)}" title="View ${escapeHtml(name)}">${escapeHtml(name)}</a>`;
-        
-        return `<tr class="${isCurrent ? 'current-row' : ''}" data-id="${id}" data-parent-id="${parentId}" data-depth="${depth}">
+        const link = isMaskedNode
+            ? `<span class="${linkClass} masked-node" title="Restricted item"><i class="fas fa-lock masked-lock-icon" aria-hidden="true"></i>${escapeHtml(name)}</span>`
+            : `<a class="${linkClass}" href="/view/business-area/business-area.html?id=${encodeURIComponent(id)}" title="View ${escapeHtml(name)}">${escapeHtml(name)}</a>`;
+        const rowClasses = `${isCurrent ? 'current-row' : ''}${isMaskedNode ? ' masked-row' : ''}`.trim();
+
+        return `<tr class="${rowClasses}" data-id="${id}" data-parent-id="${parentId}" data-depth="${depth}"${isMaskedNode ? ' data-masked="true"' : ''}>
             <td><div class="tree-cell">${indent}${expander}${depth>0?'<span class="tree-branch"></span>':''}<i class="fas fa-building item-icon"></i><span class="ba-name">${link}</span>${countBadge}</div></td>
             <td><span title="${escapeHtml(desc)}">${escapeHtml(desc)}</span></td>
         </tr>`;

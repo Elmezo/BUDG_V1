@@ -22,6 +22,15 @@ public class CapabilityService {
     public List<Capability> getAllCapabilities(int userId) throws SQLException {
         return capabilityDAO.getAllCapabilities(userId);
     }
+
+    /**
+     * Return every capability (unfiltered) for the Relationship → Hierarchy
+     * view. Sensitive fields for inaccessible nodes must be masked downstream
+     * via {@link com.example.budg_v2.util.HierarchyAccessMasker}.
+     */
+    public List<Capability> getAllCapabilitiesForHierarchy() throws SQLException {
+        return capabilityDAO.getAllCapabilitiesUnfiltered();
+    }
     
     public List<Capability> getAllCapabilitiesForDropdown() throws SQLException {
         return capabilityDAO.getAllCapabilitiesForDropdown();

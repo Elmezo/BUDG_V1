@@ -774,21 +774,29 @@ function buildHierarchyTree(products, rootId) {
 
 // Render product hierarchy table following Regulatory Theme pattern
 function renderProductTable(hierarchyRows, currentId) {
+    const Mask = window.HierarchyMask;
     const rowsHtml = hierarchyRows.rows.map(({ node, depth, childCount, hasChildren }) => {
-        const name = node.primaryname ?? node.PrimaryName ?? node.primaryName ?? node.Name ?? node.name ?? 'Unnamed Product';
-        const desc = node.description ?? node.Description ?? '';
+        const isMaskedNode = Mask ? Mask.isMasked(node) : false;
+        const fallbackName = node.primaryname ?? node.PrimaryName ?? node.primaryName ?? node.Name ?? node.name ?? 'Unnamed Product';
+        const fallbackDesc = node.description ?? node.Description ?? '';
+        const name = isMaskedNode ? Mask.PLACEHOLDER : fallbackName;
+        const desc = isMaskedNode ? Mask.PLACEHOLDER : fallbackDesc;
         const isCurrent = String(node.id ?? node.ID) === String(currentId);
         const id = node.id ?? node.ID;
         const parentId = node.parentid ?? node.Parent_ID ?? node.parent_id ?? node.parentId ?? '';
-        
+
         const indent = Array(depth).fill('<span class="tree-indent"></span>').join('');
         const expander = hasChildren ? `<button type="button" class="tree-expander" aria-label="Toggle"><i class="fas fa-caret-down"></i></button>` : '<span class="tree-placeholder"></span>';
         const countBadge = hasChildren ? `<span class="child-count" title="Children">${childCount}</span>` : '';
         const linkClass = isCurrent ? 'product-link current-product-link' : 'product-link';
-        const link = `<a class="${linkClass}" href="/view/product/${encodeURIComponent(id)}" title="View ${escapeHtml(name)}">${escapeHtml(name)}</a>`;
-        const refNumber = node.refnumber ? `<span class="product-ref">(${escapeHtml(node.refnumber)})</span>` : '';
-        
-        return `<tr class="${isCurrent ? 'current-row' : ''}" data-id="${id}" data-parent-id="${parentId}" data-depth="${depth}">
+        const link = isMaskedNode
+            ? `<span class="${linkClass} masked-node" title="Restricted item"><i class="fas fa-lock masked-lock-icon" aria-hidden="true"></i>${escapeHtml(name)}</span>`
+            : `<a class="${linkClass}" href="/view/product/${encodeURIComponent(id)}" title="View ${escapeHtml(name)}">${escapeHtml(name)}</a>`;
+        const refNumber = (!isMaskedNode && node.refnumber)
+            ? `<span class="product-ref">(${escapeHtml(node.refnumber)})</span>` : '';
+        const rowClasses = `${isCurrent ? 'current-row' : ''}${isMaskedNode ? ' masked-row' : ''}`.trim();
+
+        return `<tr class="${rowClasses}" data-id="${id}" data-parent-id="${parentId}" data-depth="${depth}"${isMaskedNode ? ' data-masked="true"' : ''}>
             <td><div class="tree-cell">${indent}${expander}${depth>0?'<span class="tree-branch"></span>':''}<i class="fas fa-box item-icon"></i><span class="product-name">${link}</span>${refNumber}${countBadge}</div></td>
             <td><span title="${escapeHtml(desc)}">${escapeHtml(desc)}</span></td>
         </tr>`;

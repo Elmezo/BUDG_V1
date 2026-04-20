@@ -49,7 +49,7 @@ public class ProjectDAO {
         return projects;
     }
 
-    private List<Project> getAllProjectsUnfiltered() throws SQLException {
+    public List<Project> getAllProjectsUnfiltered() throws SQLException {
         List<Project> projects = new ArrayList<>();
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(SELECT_ALL);

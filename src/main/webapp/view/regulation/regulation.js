@@ -1031,14 +1031,17 @@
             }
         };
 
+        const Mask = window.HierarchyMask;
         const rowsHtml = hierarchyRows.rows.map(({ node, depth, childCount, hasChildren }) => {
-            const name = node.primaryName || 'Unnamed Regulation';
-            const shortName = node.shortName || '';
-            const desc = node.description || '';
-            const refNumber = node.refNumber || '';
-            const regulationStatus = node.regulationStatus || '';
-            const regulationStage = node.regulationStage || '';
-            const complianceLevel = node.complianceLevel || '';
+            const isMaskedNode = Mask ? Mask.isMasked(node) : false;
+            const ph = isMaskedNode ? Mask.PLACEHOLDER : null;
+            const name = isMaskedNode ? ph : (node.primaryName || 'Unnamed Regulation');
+            const shortName = isMaskedNode ? ph : (node.shortName || '');
+            const desc = isMaskedNode ? ph : (node.description || '');
+            const refNumber = isMaskedNode ? ph : (node.refNumber || '');
+            const regulationStatus = isMaskedNode ? ph : (node.regulationStatus || '');
+            const regulationStage = isMaskedNode ? ph : (node.regulationStage || '');
+            const complianceLevel = isMaskedNode ? ph : (node.complianceLevel || '');
             const isCurrent = String(node.id) === String(currentId);
             const id = node.id;
             const parentId = node.parentId || '';
@@ -1047,12 +1050,14 @@
             const expander = hasChildren ? `<button type="button" class="tree-expander" aria-label="Toggle"><i class="fas fa-caret-down"></i></button>` : '<span class="tree-placeholder"></span>';
             const countBadge = hasChildren ? `<span class="child-count" title="Children">${childCount}</span>` : '';
             const linkClass = isCurrent ? 'regulation-link current-regulation-link' : 'regulation-link';
-            const componentLink = `<a class="${linkClass}" href="/view/regulation/${encodeURIComponent(id)}" title="View ${escapeHtml(name)}">${escapeHtml(name)}</a>`;
+            const componentLink = isMaskedNode
+                ? `<span class="${linkClass} masked-node" title="Restricted item"><i class="fas fa-lock masked-lock-icon" aria-hidden="true"></i>${escapeHtml(name)}</span>`
+                : `<a class="${linkClass}" href="/view/regulation/${encodeURIComponent(id)}" title="View ${escapeHtml(name)}">${escapeHtml(name)}</a>`;
             
-            // Get regulatory themes from backend data
-            const regulatoryTheme = node.regulatoryThemes || '';
+            const regulatoryTheme = isMaskedNode ? ph : (node.regulatoryThemes || '');
+            const rowClasses = `${isCurrent ? 'current-row' : ''}${isMaskedNode ? ' masked-row' : ''}`.trim();
             
-            return `<tr class="${isCurrent ? 'current-row' : ''}" data-id="${id}" data-parent-id="${parentId}" data-depth="${depth}">
+            return `<tr class="${rowClasses}" data-id="${id}" data-parent-id="${parentId}" data-depth="${depth}"${isMaskedNode ? ' data-masked="true"' : ''}>
                 <td><span class="ref-number">${escapeHtml(refNumber)}</span></td>
                 <td><div class="tree-cell">${indent}${expander}${depth>0?'<span class="tree-branch"></span>':''}<i class="fas fa-balance-scale item-icon"></i><span class="regulation-name">${componentLink}</span>${countBadge}</div></td>
                 <td>${escapeHtml(shortName)}</td>

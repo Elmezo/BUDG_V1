@@ -1552,10 +1552,12 @@
             console.log('Processed hierarchy rows:', hierarchyRows);
             
             // Render the hierarchy
+            const Mask = window.HierarchyMask;
             const rowsHtml = hierarchyRows.map(({ node, depth, hasChildren, relation }) => {
-                const name = node.name || '';
-                const desc = node.description || '';
-                const type = node.typeName || '';
+                const isMaskedNode = Mask ? Mask.isMasked(node) : false;
+                const name = isMaskedNode ? Mask.PLACEHOLDER : (node.name || '');
+                const desc = isMaskedNode ? Mask.PLACEHOLDER : (node.description || '');
+                const type = isMaskedNode ? Mask.PLACEHOLDER : (node.typeName || '');
                 const isCurrent = relation === 'current';
                 const id = node.id;
                 const parentId = node.parentId || null;
@@ -1581,11 +1583,15 @@
                 const childCount = childrenMap.get(id)?.length || 0;
                 const countBadge = hasChildren ? `<span class="child-count" title="Children">${childCount}</span>` : '';
                 const linkClass = isCurrent ? 'glossary-link current-glossary-link' : 'glossary-link';
-                const link = `<a class="${linkClass}" href="/view/glossary/${encodeURIComponent(id)}">${escapeHtml(name)}</a>`;
+                const link = isMaskedNode
+                    ? `<span class="${linkClass} masked-node" title="Restricted item"><i class="fas fa-lock masked-lock-icon" aria-hidden="true"></i>${escapeHtml(name)}</span>`
+                    : `<a class="${linkClass}" href="/view/glossary/${encodeURIComponent(id)}">${escapeHtml(name)}</a>`;
                 
                 // Strategic source system display with hyperlinks (matching image style)
                 let strategicSourceDisplay = '<span class="empty">-</span>';
-                if (node.strategicSourceIds && node.strategicSourceIds.trim()) {
+                if (isMaskedNode) {
+                    strategicSourceDisplay = `<span class="empty">${escapeHtml(Mask.PLACEHOLDER)}</span>`;
+                } else if (node.strategicSourceIds && node.strategicSourceIds.trim()) {
                     // Parse strategic source IDs and names: "id1:name1|id2:name2"
                     const sources = node.strategicSourceIds.split('|').filter(s => s.trim());
                     if (sources.length > 0) {
@@ -1609,15 +1615,19 @@
                     }).join(', ');
                 }
                 
-                return `<tr class="${isCurrent ? 'current-row' : ''}" data-id="${id}" data-parent-id="${parentId || ''}" data-depth="${visualDepth}" data-relation="${relation}">
+                const rowClasses = `${isCurrent ? 'current-row' : ''}${isMaskedNode ? ' masked-row' : ''}`.trim();
+                const dataItemsCell = isMaskedNode ? escapeHtml(Mask.PLACEHOLDER) : (node.dataItems || 0);
+                const dataAttrsCell = isMaskedNode ? escapeHtml(Mask.PLACEHOLDER) : (node.dataAttributes || 0);
+                const lastUpdatedCell = isMaskedNode ? escapeHtml(Mask.PLACEHOLDER) : (formatDate(node.lastUpdated) || 'N/A');
+                return `<tr class="${rowClasses}" data-id="${id}" data-parent-id="${parentId || ''}" data-depth="${visualDepth}" data-relation="${relation}"${isMaskedNode ? ' data-masked="true"' : ''}>
                     <td><div class="tree-cell">${indent}${expander}${visualDepth>0?'<span class="tree-branch"></span>':''}<i class="fas fa-bookmark item-icon"></i><span class="glossary-name">${link}</span>${countBadge}</div></td>
                     <td><span class="type-badge">${escapeHtml(type)}</span></td>
                     <td>${escapeHtml(relationshipDisplay)}</td>
                     <td><span title="${escapeHtml(desc)}">${escapeHtml(desc || '-')}</span></td>
                     <td>${strategicSourceDisplay}</td>
-                    <td>${node.dataItems || 0}</td>
-                    <td>${node.dataAttributes || 0}</td>
-                    <td>${formatDate(node.lastUpdated) || 'N/A'}</td>
+                    <td>${dataItemsCell}</td>
+                    <td>${dataAttrsCell}</td>
+                    <td>${lastUpdatedCell}</td>
                 </tr>`;
             }).join('');
 

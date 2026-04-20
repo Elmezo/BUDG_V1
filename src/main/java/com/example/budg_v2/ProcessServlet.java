@@ -125,7 +125,7 @@ public class ProcessServlet extends HttpServlet {
                 // Get process hierarchy
                 String idParam = pathInfo.substring("/hierarchy/".length());
                 if (idParam.matches("\\d+")) {
-                    getProcessHierarchy(response, Integer.parseInt(idParam));
+                    getProcessHierarchy(request, response, Integer.parseInt(idParam));
                 } else {
                     JsonUtil.sendErrorResponse(response.getWriter(), "Invalid ID format", 400);
                 }
@@ -715,12 +715,15 @@ public class ProcessServlet extends HttpServlet {
         }
     }
 
-    private void getProcessHierarchy(HttpServletResponse response, int processId) throws IOException, SQLException {
+    private void getProcessHierarchy(HttpServletRequest request, HttpServletResponse response, int processId) throws IOException, SQLException {
         List<Process> hierarchy = processService.getProcessHierarchy(processId);
+        com.google.gson.JsonArray dataArr = JsonParser.parseString(JsonUtil.toJson(hierarchy)).getAsJsonArray();
+        int userId = UserContextUtil.getCurrentUserId(request);
+        com.example.budg_v2.util.HierarchyAccessMasker.mask(dataArr, "Process", userId);
         JsonObject jsonResponse = new JsonObject();
         jsonResponse.addProperty("success", true);
         jsonResponse.addProperty("count", hierarchy.size());
-        jsonResponse.add("data", JsonParser.parseString(JsonUtil.toJson(hierarchy)));
+        jsonResponse.add("data", dataArr);
         response.getWriter().write(jsonResponse.toString());
     }
 

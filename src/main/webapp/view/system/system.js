@@ -2918,23 +2918,28 @@
         console.log('Rendering hierarchy rows:', hierarchyRows);
         console.log('Current ID:', currentId);
 
+        const Mask = window.HierarchyMask;
         const rowsHtml = hierarchyRows.rows.map(({ node, depth, childCount, hasChildren }) => {
-            const name = node.name || node.Name || '';
-            const desc = node.description || node.Description || '';
-            const type = node.typeName || node.Type_Name || node.type || node.Type || node.systemType || node.System_Type || node.type_name || '';
+            const isMaskedNode = Mask ? Mask.isMasked(node) : false;
+            const fallbackName = node.name || node.Name || '';
+            const fallbackDesc = node.description || node.Description || '';
+            const fallbackType = node.typeName || node.Type_Name || node.type || node.Type || node.systemType || node.System_Type || node.type_name || '';
+            const name = isMaskedNode ? Mask.PLACEHOLDER : fallbackName;
+            const desc = isMaskedNode ? Mask.PLACEHOLDER : fallbackDesc;
+            const type = isMaskedNode ? Mask.PLACEHOLDER : fallbackType;
             const isCurrent = String(node.ID ?? node.id) === String(currentId);
             const id = node.ID ?? node.id;
             const parentId = node.parent_id ?? node.Parent_ID ?? node.parentId ?? '';
-
-            // Debug: Log each node's data
-            console.log('Rendering node:', { name, desc, type, id, isCurrent, depth, hasChildren });
 
             const indent = Array(depth).fill('<span class="tree-indent"></span>').join('');
             const expander = hasChildren ? `<button type="button" class="tree-expander" aria-label="Toggle"><i class="fas fa-caret-down"></i></button>` : '<span class="tree-placeholder"></span>';
             const countBadge = '';
             const linkClass = isCurrent ? 'system-link current-system-link' : 'system-link';
-            const link = `<a class="${linkClass}" href="/view/system/${encodeURIComponent(id)}" title="View ${escapeHtml(name)}">${escapeHtml(name)}</a>`;
-            return `<tr class="${isCurrent ? 'current-row' : ''}" data-id="${id}" data-parent-id="${parentId}" data-depth="${depth}">
+            const link = isMaskedNode
+                ? `<span class="${linkClass} masked-node" title="Restricted item"><i class="fas fa-lock masked-lock-icon" aria-hidden="true"></i>${escapeHtml(name)}</span>`
+                : `<a class="${linkClass}" href="/view/system/${encodeURIComponent(id)}" title="View ${escapeHtml(name)}">${escapeHtml(name)}</a>`;
+            const rowClasses = `${isCurrent ? 'current-row' : ''}${isMaskedNode ? ' masked-row' : ''}`.trim();
+            return `<tr class="${rowClasses}" data-id="${id}" data-parent-id="${parentId}" data-depth="${depth}"${isMaskedNode ? ' data-masked="true"' : ''}>
                 <td><div class="tree-cell">${indent}${expander}<i class="fas fa-desktop item-icon"></i><span class="system-name">${link}</span>${countBadge}</div></td>
                 <td><span title="${escapeHtml(desc)}">${escapeHtml(desc)}</span></td>
                 <td><span title="${escapeHtml(type)}">${escapeHtml(type)}</span></td>

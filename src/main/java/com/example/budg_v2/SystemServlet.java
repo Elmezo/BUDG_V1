@@ -109,6 +109,8 @@ public class SystemServlet extends HttpServlet {
                 resp.getWriter().write(gson.toJson(list));
             } else if (parts.length > 1 && "hierarchy".equalsIgnoreCase(parts[1])) {
                 var list = systemDAO.getSystemHierarchy(systemIdToLoad);
+                int hierarchyUserId = UserContextUtil.getCurrentUserId(req);
+                com.example.budg_v2.util.HierarchyAccessMasker.mask(list, "System", hierarchyUserId);
                 resp.getWriter().write(gson.toJson(list));
             } else if (parts.length > 1 && "interfaces".equalsIgnoreCase(parts[1])) {
                 var list = systemDAO.getInterfacesForSystem(systemIdToLoad);

@@ -2356,3 +2356,33 @@ html[dir="rtl"] .menu-help-list {
 html[dir="rtl"] .menu-help-relationship-groups-two-columns {
     direction: rtl;
 }
+
+/* Hierarchy node masking (private segments without access). The row stays
+   visible to preserve the tree shape, but identifying details collapse to
+   a single placeholder and the link is disabled. */
+.masked-row td {
+    color: var(--text-muted, #9ca3af);
+    font-style: italic;
+}
+
+.masked-node {
+    color: var(--text-muted, #9ca3af);
+    text-decoration: none;
+    cursor: not-allowed;
+    pointer-events: none;
+    user-select: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    letter-spacing: 0.08em;
+}
+
+.masked-node:hover {
+    text-decoration: none;
+    color: var(--text-muted, #9ca3af);
+}
+
+.masked-lock-icon {
+    font-size: 0.7em;
+    color: var(--text-muted, #9ca3af);
+}

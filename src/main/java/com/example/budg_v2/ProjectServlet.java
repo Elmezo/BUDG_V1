@@ -109,30 +109,24 @@ public class ProjectServlet extends HttpServlet {
                     getAllProjects(response);
                 }
             } else if ("/hierarchy".equals(pathInfo)) {
-                // Get all projects for hierarchy display - filtered by segment access
-                //system.out.println("ProjectServlet /hierarchy - Starting hierarchy request for user " + userId);
-                List<Project> projects = userId > 0 
-                    ? projectService.getAllProjectsBySegmentAccess(userId)
+                // Return the full project set so the relationship hierarchy tree can
+                // include children that live in private segments. Inaccessible nodes
+                // are masked downstream so their identifying fields are hidden.
+                List<Project> projects = userId > 0
+                    ? projectService.getAllProjectsForHierarchy()
                     : projectService.getAllProjects();
-                projects = RequestedSegmentFilterUtil.filterByRequestedSegment(
-                        projects,
-                        RequestedSegmentFilterUtil.resolveEffectiveSegmentId(request, segmentDAO),
-                        "Project",
-                        Project::getId);
-                //system.out.println("ProjectServlet /hierarchy - projects count: " + projects.size());
-                
+
                 com.google.gson.JsonArray arr = new com.google.gson.JsonArray();
                 for (Project p : projects) {
-                com.google.gson.JsonObject o = new com.google.gson.JsonObject();
-                o.addProperty("id", p.getId());
-                o.addProperty("primaryName", p.getPrimaryName());
-                o.addProperty("description", p.getDescription());
-                o.addProperty("refNumber", p.getRefNumber());
-                o.addProperty("parentId", p.getParentId());
-                arr.add(o);
-                    //system.out.println("ProjectServlet: Added project to hierarchy: " + p.getPrimaryName() + " (ID: " + p.getId() + ", Parent: " + p.getParentId() + ")");
+                    com.google.gson.JsonObject o = new com.google.gson.JsonObject();
+                    o.addProperty("id", p.getId());
+                    o.addProperty("primaryName", p.getPrimaryName());
+                    o.addProperty("description", p.getDescription());
+                    o.addProperty("refNumber", p.getRefNumber());
+                    o.addProperty("parentId", p.getParentId());
+                    arr.add(o);
                 }
-                //system.out.println("ProjectServlet /hierarchy - JSON response size: " + arr.size());
+                com.example.budg_v2.util.HierarchyAccessMasker.mask(arr, "Project", userId);
                 response.getWriter().write(arr.toString());
             } else if (pathInfo.startsWith("/hierarchy/")) {
                 // Get project hierarchy
@@ -143,6 +137,7 @@ public class ProjectServlet extends HttpServlet {
                     int id = Integer.parseInt(idStr);
                     System.out.println("🔍 ProjectServlet /hierarchy/ - parsed ID: " + id);
                     List<java.util.Map<String, Object>> hierarchy = projectService.getProjectHierarchy(id);
+                    com.example.budg_v2.util.HierarchyAccessMasker.mask(hierarchy, "Project", userId);
                     response.getWriter().write(JsonUtil.toJson(hierarchy));
                 } catch (NumberFormatException e) {
                     response.setStatus(HttpServletResponse.SC_BAD_REQUEST);

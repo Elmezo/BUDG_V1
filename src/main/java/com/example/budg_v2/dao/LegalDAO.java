@@ -163,7 +163,7 @@ public class LegalDAO {
         return legals;
     }
 
-    private List<Legal> getAllLegalsUnfiltered() throws SQLException {
+    public List<Legal> getAllLegalsUnfiltered() throws SQLException {
         List<Legal> legals = new ArrayList<>();
         try (Connection conn = DatabaseConnection.getConnection();
              Statement stmt = conn.createStatement();

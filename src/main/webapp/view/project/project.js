@@ -1295,28 +1295,35 @@
 
     // Render project hierarchy table following Regulatory Theme pattern - with all columns
     function renderProjectTable(hierarchyRows, currentId) {
+        const Mask = window.HierarchyMask;
         const rowsHtml = hierarchyRows.rows.map(({ node, depth, childCount, hasChildren }) => {
-            const name = node.primaryname ?? node.primaryName ?? node.name ?? vT('project.view.unnamedProject', 'Unnamed Project');
-            const desc = node.description ?? node.Description ?? '';
-            const refNumber = node.refnumber ?? node.refNumber ?? '';
-            const ragName = node.ragName ?? '';
-            const lifecycleName = node.lifecycleName ?? '';
-            const startDate = node.startdate ? formatDate(node.startdate) : '';
-            const endDate = node.enddate ? formatDate(node.enddate) : '';
+            const isMaskedNode = Mask ? Mask.isMasked(node) : false;
+            const fallbackName = node.primaryname ?? node.primaryName ?? node.name ?? vT('project.view.unnamedProject', 'Unnamed Project');
+            const fallbackDesc = node.description ?? node.Description ?? '';
+            const name = isMaskedNode ? Mask.PLACEHOLDER : fallbackName;
+            const desc = isMaskedNode ? Mask.PLACEHOLDER : fallbackDesc;
+            const refNumber = isMaskedNode ? Mask.PLACEHOLDER : (node.refnumber ?? node.refNumber ?? '');
+            const ragName = isMaskedNode ? '' : (node.ragName ?? '');
+            const lifecycleName = isMaskedNode ? '' : (node.lifecycleName ?? '');
+            const startDate = (!isMaskedNode && node.startdate) ? formatDate(node.startdate) : '';
+            const endDate = (!isMaskedNode && node.enddate) ? formatDate(node.enddate) : '';
             const isCurrent = String(node.id ?? node.ID) === String(currentId);
             const id = node.id ?? node.ID;
             const parentId = node.parentId ?? node.parentid ?? '';
-            
+
             // Ensure depth is non-negative for Array() constructor
             const safeDepth = Math.max(0, depth || 0);
             const indent = Array(safeDepth).fill('<span class="tree-indent"></span>').join('');
             const expander = hasChildren ? `<button type="button" class="tree-expander" aria-label="Toggle" data-id="${id}"><i class="fas fa-caret-down"></i></button>` : '<span class="tree-placeholder"></span>';
             const countBadge = hasChildren ? `<span class="child-count" title="Children">${childCount}</span>` : '';
             const linkClass = isCurrent ? 'project-link current-project-link' : 'project-link';
-            const link = `<a class="${linkClass}" href="/view/project/${encodeURIComponent(id)}" title="${escapeHtml(vT('project.view.viewProjectTitle', 'View {name}', { name: name }))}">${escapeHtml(name)}</a>`;
+            const link = isMaskedNode
+                ? `<span class="${linkClass} masked-node" title="Restricted item"><i class="fas fa-lock masked-lock-icon" aria-hidden="true"></i>${escapeHtml(name)}</span>`
+                : `<a class="${linkClass}" href="/view/project/${encodeURIComponent(id)}" title="${escapeHtml(vT('project.view.viewProjectTitle', 'View {name}', { name: name }))}">${escapeHtml(name)}</a>`;
             const branchLine = safeDepth > 0 ? '<span class="tree-branch"></span>' : '';
-            
-            return `<tr class="hierarchy-row level-${safeDepth} ${isCurrent ? 'current-row' : ''}" data-id="${id}" data-parent-id="${parentId}" data-depth="${safeDepth}" data-level="${depth}">
+            const rowClasses = `hierarchy-row level-${safeDepth} ${isCurrent ? 'current-row' : ''}${isMaskedNode ? ' masked-row' : ''}`.trim();
+
+            return `<tr class="${rowClasses}" data-id="${id}" data-parent-id="${parentId}" data-depth="${safeDepth}" data-level="${depth}"${isMaskedNode ? ' data-masked="true"' : ''}>
                 <td class="ref-cell">
                     <div class="tree-cell">
                         ${indent}${expander}${branchLine}

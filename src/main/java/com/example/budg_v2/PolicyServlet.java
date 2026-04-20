@@ -8,6 +8,7 @@ import com.example.budg_v2.service.PolicyService;
 import com.example.budg_v2.service.SegmentAccessService;
 import com.example.budg_v2.service.SegmentValidationService;
 import com.example.budg_v2.database.DatabaseConnection;
+import com.example.budg_v2.util.HierarchyAccessMasker;
 import com.example.budg_v2.util.RequestedSegmentFilterUtil;
 import com.example.budg_v2.util.SegmentResponseUtil;
 import com.example.budg_v2.util.SegmentScopedPrimaryNameCheck;
@@ -187,6 +188,7 @@ public class PolicyServlet extends HttpServlet {
                 try {
                     int id = Integer.parseInt(pathInfo.substring(11)); // Remove "/hierarchy/" prefix
                     List<java.util.Map<String, Object>> hierarchy = policyService.getPolicyHierarchy(id);
+                    HierarchyAccessMasker.mask(hierarchy, "Policy", userId);
                     response.getWriter().write(gson.toJson(hierarchy));
                 } catch (NumberFormatException e) {
                     response.setStatus(HttpServletResponse.SC_BAD_REQUEST);

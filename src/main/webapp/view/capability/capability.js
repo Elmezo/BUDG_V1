@@ -1356,21 +1356,29 @@ function showError(message) {
     }
 
     function renderCapabilityTable(hierarchyRows, currentId) {
+        const Mask = window.HierarchyMask;
         const rowsHtml = hierarchyRows.rows.map(({ node, depth, childCount, hasChildren }) => {
-            const name = node.primaryName || 'Unnamed Capability';
-            const desc = node.description || '';
+            const isMaskedNode = Mask ? Mask.isMasked(node) : false;
+            const fallbackName = node.primaryName || 'Unnamed Capability';
+            const fallbackDesc = node.description || '';
+            const name = isMaskedNode ? Mask.PLACEHOLDER : fallbackName;
+            const desc = isMaskedNode ? Mask.PLACEHOLDER : fallbackDesc;
             const isCurrent = String(node.id) === String(currentId);
             const id = node.id;
             const parentId = node.parentId || '';
-            
+
             const indent = Array(depth).fill('<span class="tree-indent"></span>').join('');
             const expander = hasChildren ? `<button type="button" class="tree-expander" aria-label="Toggle"><i class="fas fa-caret-down"></i></button>` : '<span class="tree-placeholder"></span>';
             const countBadge = hasChildren ? `<span class="child-count" title="Children">${childCount}</span>` : '';
             const linkClass = isCurrent ? 'capability-link current-capability-link' : 'capability-link';
-            const link = `<a class="${linkClass}" href="/view/capability/${encodeURIComponent(id)}" title="View ${escapeHtml(name)}">${escapeHtml(name)}</a>`;
-            const refNumber = node.refNumber ? `<span class="capability-ref">(${escapeHtml(node.refNumber)})</span>` : '';
-            
-            return `<tr class="${isCurrent ? 'current-row' : ''}" data-id="${id}" data-parent-id="${parentId}" data-depth="${depth}">
+            const link = isMaskedNode
+                ? `<span class="${linkClass} masked-node" title="Restricted item"><i class="fas fa-lock masked-lock-icon" aria-hidden="true"></i>${escapeHtml(name)}</span>`
+                : `<a class="${linkClass}" href="/view/capability/${encodeURIComponent(id)}" title="View ${escapeHtml(name)}">${escapeHtml(name)}</a>`;
+            const refNumber = (!isMaskedNode && node.refNumber)
+                ? `<span class="capability-ref">(${escapeHtml(node.refNumber)})</span>` : '';
+            const rowClasses = `${isCurrent ? 'current-row' : ''}${isMaskedNode ? ' masked-row' : ''}`.trim();
+
+            return `<tr class="${rowClasses}" data-id="${id}" data-parent-id="${parentId}" data-depth="${depth}"${isMaskedNode ? ' data-masked="true"' : ''}>
                 <td><div class="tree-cell">${indent}${expander}${depth>0?'<span class="tree-branch"></span>':''}<i class="fas fa-cogs item-icon"></i><span class="capability-name">${link}</span>${refNumber}${countBadge}</div></td>
                 <td><span title="${escapeHtml(desc)}">${escapeHtml(desc)}</span></td>
             </tr>`;

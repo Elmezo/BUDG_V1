@@ -37,6 +37,15 @@ public class ProjectService {
         return projectDAO.getAllProjectsBySegmentAccess(userId);
     }
 
+    /**
+     * Return every project (unfiltered) for the Relationship → Hierarchy view.
+     * Sensitive fields for inaccessible nodes must be masked downstream via
+     * {@link com.example.budg_v2.util.HierarchyAccessMasker}.
+     */
+    public List<Project> getAllProjectsForHierarchy() throws SQLException {
+        return projectDAO.getAllProjectsUnfiltered();
+    }
+
     public Project getProjectById(int id) throws SQLException {
         return projectDAO.getProjectById(id);
     }

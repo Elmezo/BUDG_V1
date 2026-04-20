@@ -23,6 +23,15 @@ public class LegalService {
         return legalDAO.getAllLegals(userId);
     }
 
+    /**
+     * Returns the unfiltered list used by the relationship-hierarchy view.
+     * Access-restricted nodes are not omitted here so the structural tree is
+     * preserved; HierarchyAccessMasker masks them downstream.
+     */
+    public List<Legal> getAllLegalsForHierarchy() throws SQLException {
+        return legalDAO.getAllLegalsUnfiltered();
+    }
+
     public Legal getLegalById(int id) throws SQLException {
         return legalDAO.getLegalById(id);
     }

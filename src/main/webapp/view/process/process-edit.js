@@ -1725,58 +1725,85 @@ async function renderProcessHierarchyTable(hierarchy) {
         const countBadge = hasChildren ? `<span class="child-count" title="Children">${childCount}</span>` : '';
         const branchLine = level > 0 ? '<span class="tree-branch"></span>' : '';
 
+        const Mask = window.HierarchyMask;
+        const isMaskedNode = Mask ? Mask.isMasked(process) : false;
+        const ph = isMaskedNode ? Mask.PLACEHOLDER : null;
+        const refText = isMaskedNode ? ph : (process.refnumber || 'N/A');
+        const nameText = isMaskedNode ? ph : (process.primaryname || process.primaryName || 'Unnamed Process');
+        const nameCell = isMaskedNode
+            ? `<span class="process-link masked-node" title="Restricted item"><i class="fas fa-lock masked-lock-icon" aria-hidden="true"></i>${escapeHtml(nameText)}</span>`
+            : `<a class="process-link" href="/view/process/${process.id}">${escapeHtml(nameText)}</a>`;
+        const descText = isMaskedNode ? ph : (process.description || 'No description');
+        const parentCell = isMaskedNode
+            ? `<span class="parent-name">${escapeHtml(ph)}</span>`
+            : (process.parentid
+                ? `<span class="parent-name">${escapeHtml(process.parentName || `Process ID: ${process.parentid}`)}</span>`
+                : '<span class="empty">-</span>');
+        const statusText = isMaskedNode ? ph : resolvedStatusName;
+        const predecessorsCell = isMaskedNode
+            ? `<span class="predecessors-list">${escapeHtml(ph)}</span>`
+            : (process.predecessors
+                ? `<span class="predecessors-list">${escapeHtml(process.predecessors)}</span>`
+                : '<span class="empty">-</span>');
+        const typeText = isMaskedNode ? ph : (process.typeName || process.type || 'Process');
+        const classCell = isMaskedNode
+            ? `<span class="classification-name">${escapeHtml(ph)}</span>`
+            : (process.classificationName
+                ? `<span class="classification-name">${escapeHtml(process.classificationName)}</span>`
+                : '<span class="empty">-</span>');
+        const inputCell = isMaskedNode
+            ? `<span class="input-description">${escapeHtml(ph)}</span>`
+            : (process.input_description
+                ? `<span class="input-description">${escapeHtml(process.input_description)}</span>`
+                : '<span class="empty">-</span>');
+        const outputCell = isMaskedNode
+            ? `<span class="output-description">${escapeHtml(ph)}</span>`
+            : (process.output_description
+                ? `<span class="output-description">${escapeHtml(process.output_description)}</span>`
+                : '<span class="empty">-</span>');
+
         tableHtml += `
-            <tr class="hierarchy-row level-${level}" data-level="${level}" data-id="${process.id}" data-parent-id="${process.parentid || ''}">
+            <tr class="hierarchy-row level-${level}${isMaskedNode ? ' masked-row' : ''}" data-level="${level}" data-id="${process.id}" data-parent-id="${process.parentid || ''}"${isMaskedNode ? ' data-masked="true"' : ''}>
                 <td class="ref-cell">
                     <div class="tree-cell">
                         ${indent}${expander}${branchLine}
                         <i class="fas fa-cogs item-icon"></i>
-                        <span class="ref-number">${escapeHtml(process.refnumber || 'N/A')}</span>
+                        <span class="ref-number">${escapeHtml(refText)}</span>
                         ${countBadge}
                     </div>
                 </td>
                 <td class="process-cell">
                     <div class="process-name">
-                        <a class="process-link" href="/view/process/${process.id}">${escapeHtml(process.primaryname || process.primaryName || 'Unnamed Process')}</a>
+                        ${nameCell}
                     </div>
                 </td>
                 <td class="description-cell">
-                    ${escapeHtml(process.description || 'No description')}
+                    ${escapeHtml(descText)}
                 </td>
                 <td class="parent-cell">
-                    ${process.parentid ? 
-                        `<span class="parent-name">${escapeHtml(process.parentName || `Process ID: ${process.parentid}`)}</span>` : 
-                        '<span class="empty">-</span>'}
+                    ${parentCell}
                 </td>
                 <td class="status-cell">
-                    <span class="status-badge ${resolvedStatusName === 'Active' ? 'status-active' : 'status-inactive'}">
-                        ${escapeHtml(resolvedStatusName)}
+                    <span class="status-badge ${statusText === 'Active' ? 'status-active' : 'status-inactive'}">
+                        ${escapeHtml(statusText)}
                     </span>
                 </td>
                 <td class="predecessors-cell">
-                    ${process.predecessors ? 
-                        `<span class="predecessors-list">${escapeHtml(process.predecessors)}</span>` : 
-                        '<span class="empty">-</span>'}
+                    ${predecessorsCell}
                 </td>
                 <td class="type-cell">
                     <span class="type-badge">
-                        ${escapeHtml(process.typeName || process.type || 'Process')}
+                        ${escapeHtml(typeText)}
                     </span>
                 </td>
                 <td class="class-cell">
-                    ${process.classificationName ? 
-                        `<span class="classification-name">${escapeHtml(process.classificationName)}</span>` : 
-                        '<span class="empty">-</span>'}
+                    ${classCell}
                 </td>
                 <td class="input-cell">
-                    ${process.input_description ? 
-                        `<span class="input-description">${escapeHtml(process.input_description)}</span>` : 
-                        '<span class="empty">-</span>'}
+                    ${inputCell}
                 </td>
                 <td class="output-cell">
-                    ${process.output_description ? 
-                        `<span class="output-description">${escapeHtml(process.output_description)}</span>` : 
-                        '<span class="empty">-</span>'}
+                    ${outputCell}
                 </td>
             </tr>
         `;

@@ -297,13 +297,92 @@
         return rootId;
     }
 
-    // Export to global scope
+    /**
+     * Masking helpers for hierarchy nodes that belong to private segments
+     * the current user cannot access. The server flags such nodes with
+     * `masked: true` and replaces identifying fields with a placeholder.
+     * These helpers ensure the placeholder renders consistently and the
+     * row is non-interactive so no information leaks via the link target.
+     */
+    const MASKED_PLACEHOLDER = 'xxxx';
+
+    function isMasked(node) {
+        return !!(node && (node.masked === true || node.masked === 'true'));
+    }
+
+    function escapeHtml(text) {
+        if (text == null) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    /**
+     * Build the HTML for the node's name cell. When the node is masked the
+     * link is replaced by a non-clickable span carrying a lock icon so the
+     * tree still shows the structure without exposing the underlying entity.
+     *
+     * @param {Object} node - the hierarchy node
+     * @param {Object} options
+     * @param {String} options.name - the resolved name (already a placeholder when masked)
+     * @param {String} options.href - the target URL when not masked
+     * @param {String} options.linkClass - class applied to the anchor
+     * @param {String} [options.titlePrefix='View'] - prefix for the link title attribute
+     * @returns {String} HTML snippet for the name cell
+     */
+    function renderNodeNameHtml(node, { name, href, linkClass, titlePrefix = 'View' }) {
+        if (isMasked(node)) {
+            return `<span class="${linkClass} masked-node" title="Restricted item">`
+                + `<i class="fas fa-lock masked-lock-icon" aria-hidden="true"></i>`
+                + `${escapeHtml(MASKED_PLACEHOLDER)}</span>`;
+        }
+        return `<a class="${linkClass}" href="${href}" title="${titlePrefix} ${escapeHtml(name)}">`
+            + `${escapeHtml(name)}</a>`;
+    }
+
+    /**
+     * Resolve the name to display for a node, returning the masking
+     * placeholder when the node is locked even if the server somehow
+     * left a label on the payload.
+     */
+    function maskedName(node, fallback) {
+        if (isMasked(node)) return MASKED_PLACEHOLDER;
+        return fallback;
+    }
+
+    /**
+     * Resolve the description to display, hiding the original value
+     * for masked nodes.
+     */
+    function maskedDescription(node, fallback) {
+        if (isMasked(node)) return MASKED_PLACEHOLDER;
+        return fallback;
+    }
+
+    /**
+     * Resolve a generic secondary field (e.g. refNumber, type) so it
+     * also collapses to the placeholder when masked.
+     */
+    function maskedField(node, fallback) {
+        if (isMasked(node)) return MASKED_PLACEHOLDER;
+        return fallback;
+    }
+
     window.HierarchyHelper = {
         buildFamilyLineage,
         buildHierarchyTree,
         renderHierarchyTable,
         initHierarchyInteractions,
         findRootId
+    };
+
+    window.HierarchyMask = {
+        PLACEHOLDER: MASKED_PLACEHOLDER,
+        isMasked,
+        renderNodeNameHtml,
+        maskedName,
+        maskedDescription,
+        maskedField
     };
 
 })();

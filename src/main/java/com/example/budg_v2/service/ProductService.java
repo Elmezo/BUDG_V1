@@ -26,6 +26,15 @@ public class ProductService {
     public List<Product> getAllProducts(int userId) throws SQLException {
         return productDAO.getAllProducts(userId);
     }
+
+    /**
+     * Return every product (unfiltered) so the Relationship → Hierarchy tree can
+     * still represent nodes the caller cannot access. The caller is responsible
+     * for masking sensitive fields via {@link com.example.budg_v2.util.HierarchyAccessMasker}.
+     */
+    public List<Product> getAllProductsForHierarchy() throws SQLException {
+        return productDAO.getAllProductsUnfiltered();
+    }
     
     public List<Product> getProductsForDropdown() throws SQLException {
         return productDAO.getProductsForDropdown();

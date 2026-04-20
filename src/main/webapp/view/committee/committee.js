@@ -1015,10 +1015,14 @@
 
     // Render committee hierarchy table following Regulatory Theme pattern
     function renderCommitteeTable(hierarchyRows, currentId) {
+        const Mask = window.HierarchyMask;
         const rowsHtml = hierarchyRows.rows.map(({ node, depth, childCount, hasChildren }) => {
             const treeI = window.I18n?.t.bind(window.I18n) || (k => k);
-            const name = node.primaryName ?? node.PrimaryName ?? node.Name ?? node.name ?? treeI('committee.unnamedCommittee');
-            const desc = node.description ?? node.Description ?? '';
+            const isMaskedNode = Mask ? Mask.isMasked(node) : false;
+            const fallbackName = node.primaryName ?? node.PrimaryName ?? node.Name ?? node.name ?? treeI('committee.unnamedCommittee');
+            const fallbackDesc = node.description ?? node.Description ?? '';
+            const name = isMaskedNode ? Mask.PLACEHOLDER : fallbackName;
+            const desc = isMaskedNode ? Mask.PLACEHOLDER : fallbackDesc;
             const isCurrent = String(node.id ?? node.ID) === String(currentId);
             const id = node.id ?? node.ID;
             const parentId = node.parentId ?? node.Parent_ID ?? node.parent_id ?? '';
@@ -1028,9 +1032,12 @@
             const countBadge = hasChildren ? `<span class="child-count" title="${escapeHtml(treeI('committee.children'))}">${childCount}</span>` : '';
             const linkClass = isCurrent ? 'committee-link current-committee-link' : 'committee-link';
             const viewTitle = (treeI('committee.viewCommittee') || 'View {name}').replace('{name}', escapeHtml(name));
-            const link = `<a class="${linkClass}" href="/view/committee/${encodeURIComponent(id)}" title="${viewTitle}">${escapeHtml(name)}</a>`;
+            const link = isMaskedNode
+                ? `<span class="${linkClass} masked-node" title="Restricted item"><i class="fas fa-lock masked-lock-icon" aria-hidden="true"></i>${escapeHtml(name)}</span>`
+                : `<a class="${linkClass}" href="/view/committee/${encodeURIComponent(id)}" title="${viewTitle}">${escapeHtml(name)}</a>`;
+            const rowClasses = `${isCurrent ? 'current-row' : ''}${isMaskedNode ? ' masked-row' : ''}`.trim();
             
-            return `<tr class="${isCurrent ? 'current-row' : ''}" data-id="${id}" data-parent-id="${parentId}" data-depth="${depth}">
+            return `<tr class="${rowClasses}" data-id="${id}" data-parent-id="${parentId}" data-depth="${depth}"${isMaskedNode ? ' data-masked="true"' : ''}>
                 <td><div class="tree-cell">${indent}${expander}${depth>0?'<span class="tree-branch"></span>':''}<i class="fas fa-users item-icon"></i><span class="committee-name">${link}</span>${countBadge}</div></td>
                 <td><span title="${escapeHtml(desc)}">${escapeHtml(desc)}</span></td>
             </tr>`;

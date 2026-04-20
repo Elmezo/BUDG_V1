@@ -21,8 +21,9 @@ import java.util.Set;
  * {@link #validateCrossSegmentRelationshipBySegmentIds}: same segment allowed; Enterprise involved allowed;
  * two different private segments not allowed (Enterprise bridges private silos).</p>
  *
- * <p><b>B) Strict parent/child hierarchies</b> — {@link #validateParentChildSegment}, {@link #validateSegmentChangeWithChildren}:
- * parent and child must resolve to the same segment ID after normalizing unassigned ({@code -1}) to Enterprise.
+ * <p><b>B) Parent/child hierarchies</b> — {@link #validateParentChildSegment}, {@link #validateSegmentChangeWithChildren}:
+ * an Enterprise parent may have children in any segment (Enterprise acts as a shared root for private silos);
+ * otherwise parent and child must resolve to the same segment ID after normalizing unassigned ({@code -1}) to Enterprise.
  * Applies to glossary, policy, system tree, regulation, project, process, org unit, client, product, business area, etc.</p>
  *
  * <p><b>C) System → Dataset → Attribute and glossary links on attributes</b> — dedicated methods (not parent/child of one table):
@@ -161,7 +162,10 @@ public class SegmentValidationService {
     }
 
     /**
-     * HIERARCHY RULE: parent and child must be in the same segment after normalizing {@code -1} (unassigned) to Enterprise.
+     * HIERARCHY RULE: an Enterprise parent may have a child in any segment (the
+     * Enterprise root is shared across private silos). Otherwise parent and
+     * child must resolve to the same segment ID after normalizing {@code -1}
+     * (unassigned) to Enterprise.
      *
      * @param parentId The parent object's ID (null if no parent)
      * @param childSegmentId The segment ID the child object will be assigned to
@@ -177,6 +181,11 @@ public class SegmentValidationService {
 
         int parentSegmentId = normalizeSegmentId(segmentDAO.getObjectSegmentId(parentId, objectType));
         int childNorm = normalizeSegmentId(childSegmentId);
+
+        // Enterprise parents are shared across all silos: any private child is allowed.
+        if (isEnterpriseSegment(parentSegmentId)) {
+            return ValidationResult.success();
+        }
 
         if (parentSegmentId == childNorm) {
             return ValidationResult.success();
@@ -211,7 +220,9 @@ public class SegmentValidationService {
 
     /**
      * Validate that changing this object's segment would leave any direct child in a different segment
-     * (after normalizing unassigned to Enterprise). Same rule as {@link #validateParentChildSegment} for hierarchy.
+     * (after normalizing unassigned to Enterprise). Mirrors {@link #validateParentChildSegment}: an
+     * Enterprise parent may have children in any segment, so a move <i>to</i> Enterprise is always
+     * allowed regardless of the children's segments.
      *
      * @param objectId The object whose segment is being changed
      * @param newSegmentId The new segment ID
@@ -228,6 +239,11 @@ public class SegmentValidationService {
         }
 
         int targetNorm = normalizeSegmentId(newSegmentId);
+
+        // Enterprise parent is allowed to keep children that live in any private segment.
+        if (isEnterpriseSegment(targetNorm)) {
+            return ValidationResult.success();
+        }
 
         // First direct child whose normalized segment differs from the parent's new segment (including Enterprise targets).
         String sql = String.format(
