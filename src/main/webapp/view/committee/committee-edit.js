@@ -2486,9 +2486,13 @@ document.addEventListener('DOMContentLoaded', async function() {
 
     // Render committee hierarchy table following Regulatory Theme pattern
     function renderCommitteeTable(hierarchyRows, currentId) {
+        const Mask = window.HierarchyMask;
         const rowsHtml = hierarchyRows.rows.map(({ node, depth, childCount, hasChildren }) => {
-            const name = node.primaryName ?? node.PrimaryName ?? node.Name ?? node.name ?? 'Unnamed Committee';
-            const desc = node.description ?? node.Description ?? '';
+            const isMaskedNode = Mask ? Mask.isMasked(node) : false;
+            const fallbackName = node.primaryName ?? node.PrimaryName ?? node.Name ?? node.name ?? 'Unnamed Committee';
+            const fallbackDesc = node.description ?? node.Description ?? '';
+            const name = isMaskedNode ? Mask.PLACEHOLDER : fallbackName;
+            const desc = isMaskedNode ? Mask.PLACEHOLDER : fallbackDesc;
             const isCurrent = String(node.id ?? node.ID) === String(currentId);
             const id = node.id ?? node.ID;
             const parentId = node.parentId ?? node.Parent_ID ?? node.parent_id ?? '';
@@ -2497,9 +2501,12 @@ document.addEventListener('DOMContentLoaded', async function() {
             const expander = hasChildren ? `<button type="button" class="tree-expander" aria-label="Toggle"><i class="fas fa-caret-down"></i></button>` : '<span class="tree-placeholder"></span>';
             const countBadge = hasChildren ? `<span class="child-count" title="Children">${childCount}</span>` : '';
             const linkClass = isCurrent ? 'committee-link current-committee-link' : 'committee-link';
-            const link = `<a class="${linkClass}" href="/view/committee/${encodeURIComponent(id)}" title="View ${escapeHtml(name)}">${escapeHtml(name)}</a>`;
+            const link = isMaskedNode
+                ? `<span class="${linkClass} masked-node" title="Restricted item"><i class="fas fa-lock masked-lock-icon" aria-hidden="true"></i>${escapeHtml(name)}</span>`
+                : `<a class="${linkClass}" href="/view/committee/${encodeURIComponent(id)}" title="View ${escapeHtml(name)}">${escapeHtml(name)}</a>`;
+            const rowClasses = `${isCurrent ? 'current-row' : ''}${isMaskedNode ? ' masked-row' : ''}`.trim();
             
-            return `<tr class="${isCurrent ? 'current-row' : ''}" data-id="${id}" data-parent-id="${parentId}" data-depth="${depth}">
+            return `<tr class="${rowClasses}" data-id="${id}" data-parent-id="${parentId}" data-depth="${depth}"${isMaskedNode ? ' data-masked="true"' : ''}>
                 <td><div class="tree-cell">${indent}${expander}${depth>0?'<span class="tree-branch"></span>':''}<i class="fas fa-users item-icon"></i><span class="committee-name">${link}</span>${countBadge}</div></td>
                 <td><span title="${escapeHtml(desc)}">${escapeHtml(desc)}</span></td>
             </tr>`;

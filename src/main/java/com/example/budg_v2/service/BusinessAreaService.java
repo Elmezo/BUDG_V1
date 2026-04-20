@@ -37,7 +37,7 @@ public class BusinessAreaService {
         return executeBusinessAreaQuery(sql);
     }
 
-    private List<BusinessArea> getAllBusinessAreasUnfiltered() throws SQLException {
+    public List<BusinessArea> getAllBusinessAreasUnfiltered() throws SQLException {
         String sql = "SELECT ID, Parent_ID, Is_Public, Status, Lifecycle, PrimaryName, Description, " +
                     "CreateDatetime, LastUpdateDatetime, DeleteDatetime, createdby_id, LastUpdate_UserID " +
                     "FROM business_area WHERE deletedatetime IS NULL ORDER BY PrimaryName";
@@ -67,6 +67,15 @@ public class BusinessAreaService {
             }
         }
         return businessAreas;
+    }
+
+    /**
+     * Return every business area (unfiltered) for the Relationship → Hierarchy
+     * view. The caller is responsible for masking sensitive fields via
+     * {@link com.example.budg_v2.util.HierarchyAccessMasker}.
+     */
+    public List<BusinessArea> getAllBusinessAreasForHierarchy() throws SQLException {
+        return getAllBusinessAreasUnfiltered();
     }
 
     /**

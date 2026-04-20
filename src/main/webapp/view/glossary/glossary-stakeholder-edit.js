@@ -1482,68 +1482,36 @@
             console.log('Updates:', operations.updates);
             console.log('Insertions:', operations.insertions);
 
-            // Perform operations
-            let allSuccess = true;
-
+            // Perform operations (API helpers throw with server error message, e.g. segment mismatch)
             try {
-                // Handle deletions first
                 for (const deletion of operations.deletions) {
                     console.log('Processing deletion:', deletion);
-                    const success = await deleteStakeholderAPI(deletion.objectXPeopleId);
-                    if (!success) {
-                        console.error('Failed to delete stakeholder:', deletion);
-                        allSuccess = false;
-                        break;
-                    }
+                    await deleteStakeholderAPI(deletion.objectXPeopleId);
                 }
-
-                // Only proceed with updates and insertions if deletions were successful
-                if (allSuccess) {
-                    // Handle updates
-                    for (const update of operations.updates) {
-                        console.log('Processing update:', update);
-                        const success = await updateStakeholderAPI(update);
-                        if (!success) {
-                            console.error('Failed to update stakeholder:', update);
-                            allSuccess = false;
-                            break;
-                        }
-                    }
-
-                    // Only proceed with insertions if updates were successful
-                    if (allSuccess) {
-                        // Handle insertions
-                        for (const insertion of operations.insertions) {
-                            console.log('Processing insertion:', insertion);
-                            const success = await addStakeholderAPI(insertion);
-                            if (!success) {
-                                console.error('Failed to add stakeholder:', insertion);
-                                allSuccess = false;
-                                break;
-                            }
-                        }
-                    }
+                for (const update of operations.updates) {
+                    console.log('Processing update:', update);
+                    await updateStakeholderAPI(update);
+                }
+                for (const insertion of operations.insertions) {
+                    console.log('Processing insertion:', insertion);
+                    await addStakeholderAPI(insertion);
                 }
             } catch (operationError) {
                 console.error('Error during operations:', operationError);
-                allSuccess = false;
+                throw operationError;
             }
 
-            if (allSuccess) {
-                // Update original data after successful save
-                originalData = JSON.parse(JSON.stringify(stakeholdersData));
-                alert('Stakeholders data saved successfully!');
+            // Update original data after successful save
+            originalData = JSON.parse(JSON.stringify(stakeholdersData));
+            alert('Stakeholders data saved successfully!');
 
-                // Reload data to get updated IDs
-                await loadStakeholdersData();
-                await loadPeopleForExistingRoles();
-                renderEditableStakeholdersTable();
-                refreshAllDelegateDropdowns();
+            // Reload data to get updated IDs
+            await loadStakeholdersData();
+            await loadPeopleForExistingRoles();
+            renderEditableStakeholdersTable();
+            refreshAllDelegateDropdowns();
 
-                return true;
-            } else {
-                throw new Error('Some operations failed. Please check the console for more details.');
-            }
+            return true;
 
         } catch (error) {
             console.error('Error saving stakeholders:', error);
@@ -1656,107 +1624,90 @@
 
     // API call to add stakeholder
     async function addStakeholderAPI(stakeholder) {
-        try {
-            const viewParam = currentViewMode === 'changes' ? '?view=changes' : '';
-            const response = await fetch(`/api/glossary-stakeholder/${currentGlossaryId}/stakeholders/edit${viewParam}`, {
-                method: 'POST',
-                credentials: 'include',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    ipid: stakeholder.peopleId,
-                    roleID: stakeholder.roleId,
-                    statusID: stakeholder.statusId,
-                    delegateIpId: stakeholder.delegateIpId
-                })
-            });
+        const viewParam = currentViewMode === 'changes' ? '?view=changes' : '';
+        const response = await fetch(`/api/glossary-stakeholder/${currentGlossaryId}/stakeholders/edit${viewParam}`, {
+            method: 'POST',
+            credentials: 'include',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                ipid: stakeholder.peopleId,
+                roleID: stakeholder.roleId,
+                statusID: stakeholder.statusId,
+                delegateIpId: stakeholder.delegateIpId
+            })
+        });
 
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
-            }
-
-            return true;
-        } catch (error) {
-            console.error('Error adding stakeholder:', error);
-            return false;
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            const msg = errorData.error || `HTTP error! status: ${response.status}`;
+            console.error('Error adding stakeholder:', msg);
+            throw new Error(msg);
         }
     }
 
     // API call to update stakeholder
     async function updateStakeholderAPI(stakeholder) {
-        try {
-            const viewParam = currentViewMode === 'changes' ? '?view=changes' : '';
-            const response = await fetch(`/api/glossary-stakeholder/${currentGlossaryId}/stakeholders/edit${viewParam}`, {
-                method: 'PUT',
-                credentials: 'include',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    objectXPeopleId: stakeholder.objectXPeopleId,
-                    ipid: stakeholder.peopleId,
-                    roleID: stakeholder.roleId,
-                    statusID: stakeholder.statusId,
-                    delegateIpId: stakeholder.delegateIpId
-                })
-            });
+        const viewParam = currentViewMode === 'changes' ? '?view=changes' : '';
+        const response = await fetch(`/api/glossary-stakeholder/${currentGlossaryId}/stakeholders/edit${viewParam}`, {
+            method: 'PUT',
+            credentials: 'include',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                objectXPeopleId: stakeholder.objectXPeopleId,
+                ipid: stakeholder.peopleId,
+                roleID: stakeholder.roleId,
+                statusID: stakeholder.statusId,
+                delegateIpId: stakeholder.delegateIpId
+            })
+        });
 
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
-            }
-
-            return true;
-        } catch (error) {
-            console.error('Error updating stakeholder:', error);
-            return false;
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            const msg = errorData.error || `HTTP error! status: ${response.status}`;
+            console.error('Error updating stakeholder:', msg);
+            throw new Error(msg);
         }
     }
 
     // API call to delete stakeholder
     async function deleteStakeholderAPI(objectXPeopleId) {
-        try {
-            console.log(`Deleting stakeholder with objectXPeopleId: ${objectXPeopleId}`);
+        console.log(`Deleting stakeholder with objectXPeopleId: ${objectXPeopleId}`);
 
-            // Make sure we have a valid objectXPeopleId
-            if (!objectXPeopleId) {
-                console.error('Cannot delete stakeholder: Missing objectXPeopleId');
-                return false;
-            }
-
-            const url = `/api/glossary-stakeholder/${currentGlossaryId}/stakeholders/edit?objectXPeopleId=${objectXPeopleId}`;
-            console.log('DELETE request URL:', url);
-
-            const response = await fetch(url, {
-                method: 'DELETE',
-                credentials: 'include',
-                headers: {
-                    'Content-Type': 'application/json'
-                }
-            });
-
-            console.log('DELETE response status:', response.status);
-
-            if (!response.ok) {
-                let errorMessage = `HTTP error! status: ${response.status}`;
-                try {
-                    const errorData = await response.json();
-                    errorMessage = errorData.error || errorMessage;
-                } catch (e) {
-                    console.warn('Could not parse error response as JSON:', e);
-                }
-                throw new Error(errorMessage);
-            }
-
-            console.log('Successfully deleted stakeholder with objectXPeopleId:', objectXPeopleId);
-            return true;
-        } catch (error) {
-            console.error('Error deleting stakeholder:', error);
-            alert(`Failed to delete stakeholder: ${error.message}`);
-            return false;
+        if (!objectXPeopleId) {
+            console.error('Cannot delete stakeholder: Missing objectXPeopleId');
+            throw new Error('Cannot delete stakeholder: Missing objectXPeopleId');
         }
+
+        const url = `/api/glossary-stakeholder/${currentGlossaryId}/stakeholders/edit?objectXPeopleId=${objectXPeopleId}`;
+        console.log('DELETE request URL:', url);
+
+        const response = await fetch(url, {
+            method: 'DELETE',
+            credentials: 'include',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+
+        console.log('DELETE response status:', response.status);
+
+        if (!response.ok) {
+            let errorMessage = `HTTP error! status: ${response.status}`;
+            try {
+                const errorData = await response.json();
+                errorMessage = errorData.error || errorMessage;
+            } catch (e) {
+                console.warn('Could not parse error response as JSON:', e);
+            }
+            console.error('Error deleting stakeholder:', errorMessage);
+            throw new Error(errorMessage);
+        }
+
+        console.log('Successfully deleted stakeholder with objectXPeopleId:', objectXPeopleId);
     }
 
     // Escape HTML to prevent XSS

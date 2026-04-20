@@ -1101,28 +1101,17 @@
             console.log('[Policy Hierarchy] Processed hierarchy rows:', hierarchyRows);
             
             // Render the hierarchy
+            const Mask = window.HierarchyMask;
             const rowsHtml = hierarchyRows.map(({ node, depth, hasChildren, relation }) => {
-                const name = node.name || node.displayName || '';
-                const desc = node.description || '';
-                const type = node.typeName || '';
+                const isMaskedNode = Mask ? Mask.isMasked(node) : false;
+                const fallbackName = node.name || node.displayName || '';
+                const fallbackDesc = node.description || '';
+                const name = isMaskedNode ? Mask.PLACEHOLDER : fallbackName;
+                const desc = isMaskedNode ? Mask.PLACEHOLDER : fallbackDesc;
                 const isCurrent = relation === 'current';
                 const id = node.id;
                 const parentId = node.parentId || null;
-                
-                // Determine relationship type display (empty for current, show relationship for others)
-                let relationshipDisplay = '';
-                if (!isCurrent) {
-                    if (relation === 'ancestor') {
-                        relationshipDisplay = 'Is Parent Of';
-                    } else if (relation === 'sibling') {
-                        relationshipDisplay = 'Is Related to';
-                    } else if (relation === 'descendant') {
-                        relationshipDisplay = 'Is Child Of';
-                    } else if (relation === 'sibling_child') {
-                        relationshipDisplay = 'Is Related to';
-                    }
-                }
-                
+
                 // Calculate visual depth (indentation)
                 const visualDepth = depth;
                 const indent = Array(visualDepth).fill('<span class="tree-indent"></span>').join('');
@@ -1130,9 +1119,12 @@
                 const childCount = childrenMap.get(id)?.length || 0;
                 const countBadge = hasChildren ? `<span class="child-count" title="Children">${childCount}</span>` : '';
                 const linkClass = isCurrent ? 'policy-link current-policy-link' : 'policy-link';
-                const link = `<a class="${linkClass}" href="/view/policy/${encodeURIComponent(id)}">${escapeHtml(name)}</a>`;
-                
-                return `<tr class="${isCurrent ? 'current-row' : ''}" data-id="${id}" data-parent-id="${parentId || ''}" data-depth="${visualDepth}" data-relation="${relation}">
+                const link = isMaskedNode
+                    ? `<span class="${linkClass} masked-node" title="Restricted item"><i class="fas fa-lock masked-lock-icon" aria-hidden="true"></i>${escapeHtml(name)}</span>`
+                    : `<a class="${linkClass}" href="/view/policy/${encodeURIComponent(id)}">${escapeHtml(name)}</a>`;
+                const rowClasses = `${isCurrent ? 'current-row' : ''}${isMaskedNode ? ' masked-row' : ''}`.trim();
+
+                return `<tr class="${rowClasses}" data-id="${id}" data-parent-id="${parentId || ''}" data-depth="${visualDepth}" data-relation="${relation}"${isMaskedNode ? ' data-masked="true"' : ''}>
                     <td><div class="tree-cell">${indent}${expander}${visualDepth>0?'<span class="tree-branch"></span>':''}<i class="fas fa-file-alt item-icon"></i><span class="policy-name">${link}</span>${countBadge}</div></td>
                     <td><span title="${escapeHtml(desc)}">${escapeHtml(desc || '-')}</span></td>
                 </tr>`;

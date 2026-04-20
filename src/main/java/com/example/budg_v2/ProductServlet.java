@@ -81,25 +81,24 @@ public class ProductServlet extends HttpServlet {
                 }
                 response.getWriter().write(arr.toString());
             } else if ("/hierarchy".equals(pathInfo)) {
-                // Get all products for hierarchy display
-                //system.out.println("ProductServlet /hierarchy - Starting hierarchy request (userId: " + userId + ")");
-                List<Product> products = userId > 0 ? 
-                    productService.getAllProducts(userId) : 
-                    productService.getAllProducts();
-                //system.out.println("ProductServlet /hierarchy - products count: " + products.size());
-                
+                // Return the full product set so the relationship hierarchy tree can
+                // include children that live in private segments. Inaccessible nodes
+                // are masked downstream so their identifying fields are hidden.
+                List<Product> products = userId > 0
+                    ? productService.getAllProductsForHierarchy()
+                    : productService.getAllProducts();
+
                 com.google.gson.JsonArray arr = new com.google.gson.JsonArray();
                 for (Product p : products) {
-                com.google.gson.JsonObject o = new com.google.gson.JsonObject();
-                o.addProperty("id", p.getId());
-                o.addProperty("primaryname", p.getPrimaryName());
-                o.addProperty("description", p.getDescription());
-                o.addProperty("refnumber", p.getRefNumber());
-                o.addProperty("parentid", p.getParentId());
-                arr.add(o);
-                    //system.out.println("ProductServlet: Added product to hierarchy: " + p.getPrimaryName() + " (ID: " + p.getId() + ", Parent: " + p.getParentId() + ")");
+                    com.google.gson.JsonObject o = new com.google.gson.JsonObject();
+                    o.addProperty("id", p.getId());
+                    o.addProperty("primaryname", p.getPrimaryName());
+                    o.addProperty("description", p.getDescription());
+                    o.addProperty("refnumber", p.getRefNumber());
+                    o.addProperty("parentid", p.getParentId());
+                    arr.add(o);
                 }
-                //system.out.println("ProductServlet /hierarchy - JSON response size: " + arr.size());
+                com.example.budg_v2.util.HierarchyAccessMasker.mask(arr, "Product", userId);
                 response.getWriter().write(arr.toString());
             } else if ("/parent-picker".equals(pathInfo)) {
                 List<Product> products = userId > 0 ? 

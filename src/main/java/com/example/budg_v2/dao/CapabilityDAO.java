@@ -51,7 +51,7 @@ public class CapabilityDAO {
         return capabilities;
     }
 
-    private List<Capability> getAllCapabilitiesUnfiltered() throws SQLException {
+    public List<Capability> getAllCapabilitiesUnfiltered() throws SQLException {
         List<Capability> capabilities = new ArrayList<>();
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(SELECT_ALL);

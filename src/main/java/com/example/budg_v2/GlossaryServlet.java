@@ -394,6 +394,8 @@ public class GlossaryServlet extends HttpServlet {
                     case "hierarchy":
                         try {
                             List<Map<String, Object>> hierarchy = glossaryDAO.getGlossaryHierarchy(id);
+                            int hierarchyUserId = UserContextUtil.getCurrentUserId(req);
+                            com.example.budg_v2.util.HierarchyAccessMasker.mask(hierarchy, "Glossary", hierarchyUserId);
                             resp.getWriter().write(gson.toJson(hierarchy));
                         } catch (SQLException e) {
                             System.err.println("[GlossaryServlet] Error getting hierarchy for glossary " + id + ": " + e.getMessage());

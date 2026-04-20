@@ -96,18 +96,13 @@ public class CapabilityServlet extends HttpServlet {
                 response.getWriter().write(responseJson.toString());
                 
             } else if ("/hierarchy".equals(pathInfo)) {
-                // Get all capabilities for hierarchy display
-                //system.out.println("CapabilityServlet /hierarchy - Starting hierarchy request (userId: " + userId + ")");
-                List<Capability> capabilities = userId > 0 ? 
-                    capabilityService.getAllCapabilities(userId) : 
-                    capabilityService.getAllCapabilities();
-                capabilities = RequestedSegmentFilterUtil.filterByRequestedSegment(
-                        capabilities,
-                        RequestedSegmentFilterUtil.resolveEffectiveSegmentId(request, segmentDAO),
-                        "Capability",
-                        Capability::getId);
-                //system.out.println("CapabilityServlet /hierarchy - capabilities count: " + capabilities.size());
-                
+                // Return the full set so the relationship hierarchy tree can include
+                // children that live in private segments. Inaccessible nodes are
+                // masked downstream so their identifying fields are hidden.
+                List<Capability> capabilities = userId > 0
+                    ? capabilityService.getAllCapabilitiesForHierarchy()
+                    : capabilityService.getAllCapabilities();
+
                 com.google.gson.JsonArray arr = new com.google.gson.JsonArray();
                 for (Capability cap : capabilities) {
                     com.google.gson.JsonObject o = new com.google.gson.JsonObject();
@@ -117,9 +112,8 @@ public class CapabilityServlet extends HttpServlet {
                     o.addProperty("refNumber", cap.getRefNumber());
                     o.addProperty("parentId", cap.getParentId());
                     arr.add(o);
-                    //system.out.println("CapabilityServlet: Added capability to hierarchy: " + cap.getPrimaryName() + " (ID: " + cap.getId() + ", Parent: " + cap.getParentId() + ")");
                 }
-                //system.out.println("CapabilityServlet /hierarchy - JSON response size: " + arr.size());
+                com.example.budg_v2.util.HierarchyAccessMasker.mask(arr, "Capability", userId);
                 response.getWriter().write(arr.toString());
                 
             } else if ("/dropdown".equals(pathInfo)) {
@@ -152,6 +146,7 @@ public class CapabilityServlet extends HttpServlet {
                         try {
                             com.example.budg_v2.dao.CapabilityDAO capabilityDAO = new com.example.budg_v2.dao.CapabilityDAO();
                             List<Map<String, Object>> hierarchy = capabilityDAO.getCapabilityHierarchyFlat(id);
+                            com.example.budg_v2.util.HierarchyAccessMasker.mask(hierarchy, "Capability", userId);
                             com.google.gson.Gson gson = new com.google.gson.Gson();
                             response.getWriter().write(gson.toJson(hierarchy));
                         } catch (SQLException e) {

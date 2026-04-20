@@ -70,16 +70,16 @@ public class ClientServlet extends HttpServlet {
                     sendError(response, "Search query parameter 'q' is required", 400);
                 }
             } else if (path.equals("/hierarchy")) {
-                // Get all clients for hierarchy display
-                //system.out.println("ClientServlet /hierarchy - Starting hierarchy request (userId: " + userId + ")");
-                List<Map<String, Object>> clients = userId > 0 ? clientService.getAllClients(userId) : clientService.getAllClients();
+                // Hierarchy view returns the full tree so the relationship UI can
+                // structurally show every node; access-restricted private nodes
+                // are then masked (xxxx + lock) by HierarchyAccessMasker below.
+                List<Map<String, Object>> clients = clientService.getAllClients();
                 clients = RequestedSegmentFilterUtil.filterByRequestedSegment(
                         clients,
                         RequestedSegmentFilterUtil.resolveEffectiveSegmentId(request, segmentDAO),
                         "Client",
                         client -> ((Number) client.get("id")).intValue());
-                //system.out.println("ClientServlet /hierarchy - clients count: " + clients.size());
-                
+
                 com.google.gson.JsonArray arr = new com.google.gson.JsonArray();
                 for (Map<String, Object> clientMap : clients) {
                     com.google.gson.JsonObject o = new com.google.gson.JsonObject();
@@ -88,12 +88,8 @@ public class ClientServlet extends HttpServlet {
                     o.addProperty("description", (String) clientMap.get("definition"));
                     o.addProperty("parentId", (Integer) clientMap.get("parent_id"));
                     arr.add(o);
-                    // system.out.println("ClientServlet: Added client to hierarchy: " +
-                    // clientMap.get("primary_name") + " (ID: " + clientMap.get("id") + ", Parent: "
-                    // + clientMap.get("parent_id") + ")");
                 }
-                // system.out.println("ClientServlet /hierarchy - JSON response size: " +
-                // arr.size());
+                com.example.budg_v2.util.HierarchyAccessMasker.mask(arr, "Client", userId);
                 response.getWriter().write(arr.toString());
             } else if (path.matches("/\\d+/stakeholders")) {
                 String[] parts = path.split("/");

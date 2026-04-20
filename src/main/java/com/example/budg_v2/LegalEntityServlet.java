@@ -59,16 +59,16 @@ public class LegalEntityServlet extends HttpServlet {
                     getAllLegals(request, response);
                 }
             } else if ("/hierarchy".equals(pathInfo)) {
-                // Get all legal entities for hierarchy display
-                //system.out.println("LegalEntityServlet /hierarchy - Starting hierarchy request (userId: " + userId + ")");
-                List<Legal> legalEntities = userId > 0 ? legalService.getAllLegals(userId) : legalService.getAllLegals();
+                // Hierarchy view returns the full tree so the relationship UI can
+                // structurally show every node; access-restricted private nodes
+                // are then masked (xxxx + lock) by HierarchyAccessMasker below.
+                List<Legal> legalEntities = legalService.getAllLegalsForHierarchy();
                 legalEntities = RequestedSegmentFilterUtil.filterByRequestedSegment(
                         legalEntities,
                         RequestedSegmentFilterUtil.resolveEffectiveSegmentId(request, segmentDAO),
                         "LegalEntity",
                         Legal::getId);
-                //system.out.println("LegalEntityServlet /hierarchy - legal entities count: " + legalEntities.size());
-                
+
                 com.google.gson.JsonArray arr = new com.google.gson.JsonArray();
                 for (Legal le : legalEntities) {
                     com.google.gson.JsonObject o = new com.google.gson.JsonObject();
@@ -77,9 +77,8 @@ public class LegalEntityServlet extends HttpServlet {
                     o.addProperty("description", le.getDescription());
                     o.addProperty("parentId", le.getParentId());
                     arr.add(o);
-                    //system.out.println("LegalEntityServlet: Added legal entity to hierarchy: " + le.getLongName() + " (ID: " + le.getId() + ", Parent: " + le.getParentId() + ")");
                 }
-                //system.out.println("LegalEntityServlet /hierarchy - JSON response size: " + arr.size());
+                com.example.budg_v2.util.HierarchyAccessMasker.mask(arr, "LegalEntity", userId);
                 response.getWriter().write(arr.toString());
             } else if (pathInfo != null && pathInfo.matches("/\\d+/stakeholders")) {
                 String[] parts = pathInfo.split("/");

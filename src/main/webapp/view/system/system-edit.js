@@ -2244,32 +2244,44 @@
                 }
             }
 
+            const Mask = window.HierarchyMask;
+            const valOrMask = (node, raw) => (Mask && Mask.isMasked(node)) ? Mask.PLACEHOLDER : (raw || '');
+            const isMaskedNode = (node) => Mask ? Mask.isMasked(node) : false;
             tbody.innerHTML = hierarchyGroups.map(function (group, groupIndex) {
                 const hasChildren = group.children.length > 0;
                 const isCurrentSystem = group.isCurrent;
                 const isParentSystem = group.isParent;
+                const parentMasked = isMaskedNode(group.parent);
+                const parentName = valOrMask(group.parent, group.parent.displayName || group.parent.name);
+                const parentNameHtml = parentMasked
+                    ? `<i class="fas fa-lock masked-lock-icon" aria-hidden="true"></i>${escapeHtml(parentName)}`
+                    : escapeHtml(parentName);
 
                 let html = `
-                    <tr class="hierarchy-parent ${isCurrentSystem ? 'current-system' : ''} ${isParentSystem ? 'parent-system' : ''}">
+                    <tr class="hierarchy-parent ${isCurrentSystem ? 'current-system' : ''} ${isParentSystem ? 'parent-system' : ''}${parentMasked ? ' masked-row' : ''}"${parentMasked ? ' data-masked="true"' : ''}>
                         <td>
                             <div class="hierarchy-item">
                                 <i class="fas fa-database database-icon"></i>
-                                <span class="parent-name ${isCurrentSystem ? 'current-name' : ''} ${isParentSystem ? 'parent-name-style' : ''}">${escapeHtml(group.parent.displayName || group.parent.name || '')}</span>
+                                <span class="parent-name ${isCurrentSystem ? 'current-name' : ''} ${isParentSystem ? 'parent-name-style' : ''}${parentMasked ? ' masked-node' : ''}">${parentNameHtml}</span>
                                 ${isParentSystem ? '<span class="relationship-label">(Parent System)</span>' : ''}
                             </div>
                         </td>
-                        <td>${escapeHtml(group.parent.description || '') || '<span class="empty">-</span>'}</td>
-                        <td>${escapeHtml(group.parent.typeName || '') || '<span class="empty">-</span>'}</td>
-                        <td>${escapeHtml(group.parent.longName || '') || '<span class="empty">-</span>'}</td>
-                        <td>${escapeHtml(group.parent.classificationName || '') || '<span class="empty">-</span>'}</td>
+                        <td>${escapeHtml(valOrMask(group.parent, group.parent.description)) || '<span class="empty">-</span>'}</td>
+                        <td>${escapeHtml(valOrMask(group.parent, group.parent.typeName)) || '<span class="empty">-</span>'}</td>
+                        <td>${escapeHtml(valOrMask(group.parent, group.parent.longName)) || '<span class="empty">-</span>'}</td>
+                        <td>${escapeHtml(valOrMask(group.parent, group.parent.classificationName)) || '<span class="empty">-</span>'}</td>
                     </tr>
                 `;
 
-                // Add children
                 if (hasChildren) {
                     group.children.forEach(function (child, childIndex) {
+                        const childMasked = isMaskedNode(child);
+                        const childName = valOrMask(child, child.displayName || child.name);
+                        const childNameHtml = childMasked
+                            ? `<i class="fas fa-lock masked-lock-icon" aria-hidden="true"></i>${escapeHtml(childName)}`
+                            : escapeHtml(childName);
                         html += `
-                            <tr class="hierarchy-child">
+                            <tr class="hierarchy-child${childMasked ? ' masked-row' : ''}"${childMasked ? ' data-masked="true"' : ''}>
                                 <td>
                                     <div class="hierarchy-item">
                                         <div class="hierarchy-connector">
@@ -2277,14 +2289,14 @@
                                             <div class="connector-l-shape"></div>
                                         </div>
                                         <i class="fas fa-database database-icon"></i>
-                                        <span class="child-name">${escapeHtml(child.displayName || child.name || '')}</span>
-                                        <span class="relationship-label">(Child of: ${escapeHtml(group.parent.name || '')})</span>
+                                        <span class="child-name${childMasked ? ' masked-node' : ''}">${childNameHtml}</span>
+                                        <span class="relationship-label">(Child of: ${escapeHtml(valOrMask(group.parent, group.parent.name))})</span>
                                     </div>
                                 </td>
-                                <td>${escapeHtml(child.description || '') || '<span class="empty">-</span>'}</td>
-                                <td>${escapeHtml(child.typeName || '') || '<span class="empty">-</span>'}</td>
-                                <td>${escapeHtml(child.longName || '') || '<span class="empty">-</span>'}</td>
-                                <td>${escapeHtml(child.classificationName || '') || '<span class="empty">-</span>'}</td>
+                                <td>${escapeHtml(valOrMask(child, child.description)) || '<span class="empty">-</span>'}</td>
+                                <td>${escapeHtml(valOrMask(child, child.typeName)) || '<span class="empty">-</span>'}</td>
+                                <td>${escapeHtml(valOrMask(child, child.longName)) || '<span class="empty">-</span>'}</td>
+                                <td>${escapeHtml(valOrMask(child, child.classificationName)) || '<span class="empty">-</span>'}</td>
                             </tr>
                         `;
                     });

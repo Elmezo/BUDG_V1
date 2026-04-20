@@ -91,18 +91,13 @@ public class BusinessAreaServlet extends HttpServlet {
                     getAllBusinessAreas(response);
                 }
             } else if ("/hierarchy".equals(pathInfo)) {
-                // Get all business areas for hierarchy display
-                //system.out.println("BusinessAreaServlet /hierarchy - Starting hierarchy request (userId: " + userId + ")");
-                List<BusinessArea> businessAreas = userId > 0 ? 
-                    businessAreaService.getAllBusinessAreas(userId) : 
-                    businessAreaService.getAllBusinessAreas();
-                businessAreas = RequestedSegmentFilterUtil.filterByRequestedSegment(
-                        businessAreas,
-                        RequestedSegmentFilterUtil.resolveEffectiveSegmentId(request, segmentDAO),
-                        "BusinessArea",
-                        BusinessArea::getId);
-                //system.out.println("BusinessAreaServlet /hierarchy - business areas count: " + businessAreas.size());
-                
+                // Return the full set so the relationship hierarchy tree can include
+                // children that live in private segments. Inaccessible nodes are
+                // masked downstream so their identifying fields are hidden.
+                List<BusinessArea> businessAreas = userId > 0
+                    ? businessAreaService.getAllBusinessAreasForHierarchy()
+                    : businessAreaService.getAllBusinessAreas();
+
                 com.google.gson.JsonArray arr = new com.google.gson.JsonArray();
                 for (BusinessArea ba : businessAreas) {
                     com.google.gson.JsonObject o = new com.google.gson.JsonObject();
@@ -111,9 +106,8 @@ public class BusinessAreaServlet extends HttpServlet {
                     o.addProperty("description", ba.getDescription());
                     o.addProperty("parentId", ba.getParentId());
                     arr.add(o);
-                    //system.out.println("BusinessAreaServlet: Added business area to hierarchy: " + ba.getPrimaryName() + " (ID: " + ba.getId() + ", Parent: " + ba.getParentId() + ")");
                 }
-                //system.out.println("BusinessAreaServlet /hierarchy - JSON response size: " + arr.size());
+                com.example.budg_v2.util.HierarchyAccessMasker.mask(arr, "BusinessArea", userId);
                 response.getWriter().write(arr.toString());
             } else if ("/dropdown".equals(pathInfo)) {
                 // Return business areas for dropdown/parent picker

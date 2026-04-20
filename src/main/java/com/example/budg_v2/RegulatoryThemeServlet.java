@@ -144,16 +144,10 @@ public class RegulatoryThemeServlet extends HttpServlet {
                     response.getWriter().write(gson.toJson(error));
                 }
             } else if (pathInfo.equals("/hierarchy")) {
-                // Get all regulatory themes for hierarchy display
-                //system.out.println("RegulatoryThemeServlet /hierarchy - Starting hierarchy request");
+                // Hierarchy view returns the full tree so the relationship UI can
+                // structurally show every node; access-restricted private nodes
+                // are then masked (xxxx + lock) by HierarchyAccessMasker below.
                 List<RegulatoryTheme> themes = regulatoryThemeService.getAllRegulatoryThemes();
-                //system.out.println("RegulatoryThemeServlet /hierarchy - themes count: " + themes.size());
-                
-                if (themes.isEmpty()) {
-                    //system.out.println("RegulatoryThemeServlet /hierarchy - No themes found in database");
-                } else {
-                    //system.out.println("RegulatoryThemeServlet /hierarchy - First theme: " + themes.get(0).getPrimaryName());
-                }
 
                 com.google.gson.JsonArray arr = new com.google.gson.JsonArray();
                 for (RegulatoryTheme t : themes) {
@@ -166,9 +160,9 @@ public class RegulatoryThemeServlet extends HttpServlet {
                     o.addProperty("parentId", t.getParentId());
                     o.addProperty("lastUpdateDatetime", t.getLastUpdateDateTime() != null ? t.getLastUpdateDateTime().toString() : "");
                     arr.add(o);
-                    //system.out.println("RegulatoryThemeServlet: Added theme to hierarchy: " + t.getPrimaryName() + " (ID: " + t.getId() + ", Parent: " + t.getParentId() + ")");
                 }
-                //system.out.println("RegulatoryThemeServlet /hierarchy - JSON response size: " + arr.size());
+                int hierarchyUserId = UserContextUtil.getCurrentUserId(request);
+                com.example.budg_v2.util.HierarchyAccessMasker.mask(arr, "RegulatoryTheme", hierarchyUserId);
                 response.getWriter().write(arr.toString());
             } else if (pathInfo.matches("/\\d+")) {
                 // Get regulatory theme by ID

@@ -152,6 +152,39 @@
     border-left: 3px solid var(--secondary-color, #248567);
 }
 
+/* Masked node styling - applied when a hierarchy entry belongs to a private
+   segment the current user cannot access. Keep the row visible so the tree
+   structure is preserved, but make it visually subdued and non-interactive
+   so no information leaks via hover/title or link target. */
+.masked-row td,
+.hierarchy-container .masked-row td,
+.hierarchy-table .masked-row td {
+    color: var(--text-muted, #9ca3af);
+    font-style: italic;
+}
+
+.masked-node {
+    color: var(--text-muted, #9ca3af);
+    text-decoration: none;
+    cursor: not-allowed;
+    pointer-events: none;
+    user-select: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    letter-spacing: 0.08em;
+}
+
+.masked-node:hover {
+    text-decoration: none;
+    color: var(--text-muted, #9ca3af);
+}
+
+.masked-lock-icon {
+    font-size: 0.7em;
+    color: var(--text-muted, #9ca3af);
+}
+
 /* Section title styling */
 .hierarchy-container .section-title {
     font-weight: 600;

@@ -1,7 +1,9 @@
 package com.example.budg_v2;
 
 import com.example.budg_v2.service.RegulationHierarchyService;
+import com.example.budg_v2.util.HierarchyAccessMasker;
 import com.example.budg_v2.util.JsonUtil;
+import com.example.budg_v2.util.UserContextUtil;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
@@ -30,6 +32,8 @@ public class RegulationHierarchyServlet extends HttpServlet {
         
         try {
             List<Map<String, Object>> regulations = service.getAllRegulations();
+            int userId = UserContextUtil.getCurrentUserId(request);
+            HierarchyAccessMasker.mask(regulations, "Regulation", userId);
             response.getWriter().write(JsonUtil.toJson(regulations));
         } catch (SQLException e) {
             response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);

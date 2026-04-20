@@ -921,25 +921,30 @@
             }
         };
 
+        const Mask = window.HierarchyMask;
         const rowsHtml = hierarchyRows.rows.map(({ node, depth, childCount, hasChildren }) => {
-            const name = node.primaryName || 'Unnamed Theme';
-            const desc = node.description || '';
-            const lastUpdated = formatDate(node.lastUpdateDatetime);
+            const isMaskedNode = Mask ? Mask.isMasked(node) : false;
+            const ph = isMaskedNode ? Mask.PLACEHOLDER : null;
+            const name = isMaskedNode ? ph : (node.primaryName || 'Unnamed Theme');
+            const desc = isMaskedNode ? ph : (node.description || '');
+            const lastUpdated = isMaskedNode ? ph : formatDate(node.lastUpdateDatetime);
             const isCurrent = String(node.id) === String(currentId);
             const id = node.id;
             const parentId = node.parentId || '';
-            
-            // Debug: Log each node's data
-            console.log('Rendering theme node:', { name, desc, id, isCurrent, depth, childCount, hasChildren });
             
             const indent = Array(depth).fill('<span class="tree-indent"></span>').join('');
             const expander = hasChildren ? `<button type="button" class="tree-expander" aria-label="Toggle"><i class="fas fa-caret-down"></i></button>` : '<span class="tree-placeholder"></span>';
             const countBadge = hasChildren ? `<span class="child-count" title="Children">${childCount}</span>` : '';
             const linkClass = isCurrent ? 'theme-link current-theme-link' : 'theme-link';
-            const link = `<a class="${linkClass}" href="/view/regulatory-theme/${encodeURIComponent(id)}" title="View ${escapeHtml(name)}">${escapeHtml(name)}</a>`;
-            const refNumber = node.refNumber ? `<span class="theme-ref">(${escapeHtml(node.refNumber)})</span>` : '';
+            const link = isMaskedNode
+                ? `<span class="${linkClass} masked-node" title="Restricted item"><i class="fas fa-lock masked-lock-icon" aria-hidden="true"></i>${escapeHtml(name)}</span>`
+                : `<a class="${linkClass}" href="/view/regulatory-theme/${encodeURIComponent(id)}" title="View ${escapeHtml(name)}">${escapeHtml(name)}</a>`;
+            const refNumber = isMaskedNode
+                ? `<span class="theme-ref">(${escapeHtml(ph)})</span>`
+                : (node.refNumber ? `<span class="theme-ref">(${escapeHtml(node.refNumber)})</span>` : '');
+            const rowClasses = `${isCurrent ? 'current-row' : ''}${isMaskedNode ? ' masked-row' : ''}`.trim();
             
-            return `<tr class="${isCurrent ? 'current-row' : ''}" data-id="${id}" data-parent-id="${parentId}" data-depth="${depth}">
+            return `<tr class="${rowClasses}" data-id="${id}" data-parent-id="${parentId}" data-depth="${depth}"${isMaskedNode ? ' data-masked="true"' : ''}>
                 <td><div class="tree-cell">${indent}${expander}${depth>0?'<span class="tree-branch"></span>':''}<i class="fas fa-file-contract item-icon"></i><span class="theme-name">${link}</span>${refNumber}${countBadge}</div></td>
                 <td><span title="${escapeHtml(desc)}">${escapeHtml(desc)}</span></td>
                 <td><span title="${lastUpdated}">${lastUpdated}</span></td>

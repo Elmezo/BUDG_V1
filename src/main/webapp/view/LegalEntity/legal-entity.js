@@ -609,10 +609,14 @@
 
     // Render legal entity hierarchy table following Regulatory Theme pattern
     function renderLegalEntityTable(hierarchyRows, currentId) {
+        const Mask = window.HierarchyMask;
         const rowsHtml = hierarchyRows.rows.map(({ node, depth, childCount, hasChildren }) => {
+            const isMaskedNode = Mask ? Mask.isMasked(node) : false;
             const defaultName = window.I18n ? window.I18n.t('legalEntity.relationships.legalEntity') : 'Unnamed Legal Entity';
-            const name = node.longName ?? node.longname ?? node.shortname ?? node.shortName ?? node.displayName ?? node.name ?? defaultName;
-            const desc = node.description ?? node.Description ?? '';
+            const fallbackName = node.longName ?? node.longname ?? node.shortname ?? node.shortName ?? node.displayName ?? node.name ?? defaultName;
+            const fallbackDesc = node.description ?? node.Description ?? '';
+            const name = isMaskedNode ? Mask.PLACEHOLDER : fallbackName;
+            const desc = isMaskedNode ? Mask.PLACEHOLDER : fallbackDesc;
             const isCurrent = String(node.id ?? node.ID) === String(currentId);
             const id = node.id ?? node.ID;
             const parentId = node.parentId ?? node.Parent_ID ?? node.parent_id ?? '';
@@ -621,9 +625,12 @@
             const expander = hasChildren ? `<button type="button" class="tree-expander" aria-label="Toggle"><i class="fas fa-caret-down"></i></button>` : '<span class="tree-placeholder"></span>';
             const countBadge = hasChildren ? `<span class="child-count" title="Children">${childCount}</span>` : '';
             const linkClass = isCurrent ? 'le-link current-le-link' : 'le-link';
-            const link = `<a class="${linkClass}" href="/view/LegalEntity/${encodeURIComponent(id)}" title="View ${escapeHtml(name)}">${escapeHtml(name)}</a>`;
+            const link = isMaskedNode
+                ? `<span class="${linkClass} masked-node" title="Restricted item"><i class="fas fa-lock masked-lock-icon" aria-hidden="true"></i>${escapeHtml(name)}</span>`
+                : `<a class="${linkClass}" href="/view/LegalEntity/${encodeURIComponent(id)}" title="View ${escapeHtml(name)}">${escapeHtml(name)}</a>`;
+            const rowClasses = `${isCurrent ? 'current-row' : ''}${isMaskedNode ? ' masked-row' : ''}`.trim();
             
-            return `<tr class="${isCurrent ? 'current-row' : ''}" data-id="${id}" data-parent-id="${parentId}" data-depth="${depth}">
+            return `<tr class="${rowClasses}" data-id="${id}" data-parent-id="${parentId}" data-depth="${depth}"${isMaskedNode ? ' data-masked="true"' : ''}>
                 <td><div class="tree-cell">${indent}${expander}${depth>0?'<span class="tree-branch"></span>':''}<i class="fas fa-building item-icon"></i><span class="le-name">${link}</span>${countBadge}</div></td>
                 <td><span title="${escapeHtml(desc)}">${escapeHtml(desc)}</span></td>
             </tr>`;

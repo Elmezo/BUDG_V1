@@ -70,11 +70,11 @@ public class CommitteeServlet extends HttpServlet {
                 jsonResponse.add("data", JsonParser.parseString(gson.toJson(stakeholders)));
                 out.print(jsonResponse.toString());
             } else if ("/hierarchy".equals(pathInfo)) {
-                // Get all committees for hierarchy display
-                //system.out.println("CommitteeServlet /hierarchy - Starting hierarchy request (userId: " + userId + ")");
-                List<Committee> committees = getAllCommittees(conn, userId);
-                //system.out.println("CommitteeServlet /hierarchy - committees count: " + committees.size());
-                
+                // Hierarchy view returns the full tree so the relationship UI can
+                // structurally show every node; access-restricted private nodes
+                // are then masked (xxxx + lock) by HierarchyAccessMasker below.
+                List<Committee> committees = getAllCommitteesUnfiltered(conn);
+
                 com.google.gson.JsonArray arr = new com.google.gson.JsonArray();
                 for (Committee c : committees) {
                     com.google.gson.JsonObject o = new com.google.gson.JsonObject();
@@ -86,9 +86,8 @@ public class CommitteeServlet extends HttpServlet {
                     SegmentResponseUtil.applySegmentInfo(o, segmentInfo, request);
                     o.addProperty("segmentRestricted", ResponseSanitizer.isStakeholderOnly(request));
                     arr.add(o);
-                    //system.out.println("CommitteeServlet: Added committee to hierarchy: " + c.getPrimaryName() + " (ID: " + c.getId() + ", Parent: " + c.getParentId() + ")");
                 }
-                //system.out.println("CommitteeServlet /hierarchy - JSON response size: " + arr.size());
+                com.example.budg_v2.util.HierarchyAccessMasker.mask(arr, "Committee", userId);
                 out.print(arr.toString());
             } else if (pathInfo != null && pathInfo.matches("/relationships/\\d+")) {
                 // Get committee relationships by source ID

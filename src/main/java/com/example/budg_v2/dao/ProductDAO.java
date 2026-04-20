@@ -48,7 +48,7 @@ public class ProductDAO {
         return products;
     }
 
-    private List<Product> getAllProductsUnfiltered() throws SQLException {
+    public List<Product> getAllProductsUnfiltered() throws SQLException {
         List<Product> products = new ArrayList<>();
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(SELECT_ALL);
