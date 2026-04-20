@@ -247,12 +247,32 @@
                                 </a>
                             </div>
                         </div>
+                        <button type="button" class="header-collapse-btn" id="headerCollapseBtn"
+                            aria-label="Collapse header" title="Collapse header">
+                            <i class="fas fa-chevron-up"></i>
+                        </button>
                         <div class="settings-dropdown-container">
                             <button class="settings-btn" id="settingsBtn" data-i18n-title="button.actions"><i
                                     class="fas fa-cog"></i></button>
                             <div class="settings-dropdown-content" id="settingsDropdown">
-                                <a href="#" id="showDefaultsBtn"><i class="fas fa-square"></i> <span
-                                        data-i18n="button.showDefaults">Show Defaults</span></a>
+                                <div class="settings-dropdown-section settings-layout-actions">
+                                    <a href="#" id="saveDefaultLayoutBtn" class="settings-layout-row" style="display:none;">
+                                        <span class="settings-layout-icon settings-layout-icon-double-save" aria-hidden="true"><i class="fas fa-save"></i><i class="fas fa-save"></i></span>
+                                        <span data-i18n="button.saveDefaultLayout">Save Default Layout</span>
+                                        <span class="settings-layout-hint" title=""><i class="fas fa-info-circle"></i></span>
+                                    </a>
+                                    <a href="#" id="saveLayoutBtn" class="settings-layout-row">
+                                        <span class="settings-layout-icon settings-layout-icon-double-save" aria-hidden="true"><i class="fas fa-save"></i><i class="fas fa-save"></i></span>
+                                        <span data-i18n="button.saveLayout">Save Layout</span>
+                                        <span class="settings-layout-hint" title=""><i class="fas fa-info-circle"></i></span>
+                                    </a>
+                                    <a href="#" id="resetLayoutBtn" class="settings-layout-row">
+                                        <span class="settings-layout-icon"><i class="fas fa-undo"></i></span>
+                                        <span data-i18n="button.resetLayout">Reset Layout</span>
+                                        <span class="settings-layout-hint" title=""><i class="fas fa-info-circle"></i></span>
+                                    </a>
+                                </div>
+                                <div class="settings-dropdown-divider"></div>
                                 <div class="dropdown-submenu">
                                     <a href="#" id="chooseColumnsBtn"><i class="fas fa-hand-pointer"></i> <span
                                             data-i18n="button.chooseColumns">Choose Columns</span>
@@ -376,7 +396,9 @@
     <script src="assets/js/UnisonSearch/search-table.js"></script>
     <script src="assets/js/UnisonSearch/search-filters.js"></script>
     <script src="assets/js/UnisonSearch/search-input.js"></script>
+    <script src="assets/js/utils/role-utils.js"></script>
     <script src="assets/js/UnisonSearch/search-settings.js"></script>
+    <script src="assets/js/UnisonSearch/search-column-resize.js"></script>
     <script src="assets/js/UnisonSearch/search-tabs.js"></script>
     <script src="assets/js/UnisonSearch/search-messages.js"></script>
     <!-- Chart.js for dashboard (must load before dashboard script) -->
@@ -396,11 +418,99 @@
 
     <!-- Init & Debug -->
     <script src="assets/js/UnisonSearch/search-debug.js"></script>
-    <script src="assets/js/utils/role-utils.js"></script>
     <script src="assets/js/UnisonSearch/saved-searches.js"></script>
     <script src="assets/js/UnisonSearch/bulk-selection.js"></script>
     <script src="assets/js/UnisonSearch/search-init.js"></script>
     <script src="assets/js/UnisonSearch/search-export.js"></script>
+
+    <!-- Header collapse/expand toggle -->
+    <script>
+    (function () {
+        var STORAGE_KEY = 'search_contentHeaderCollapsed';
+        function apply(collapsed) {
+            var header = document.querySelector('.content-header');
+            if (!header) return;
+            header.classList.toggle('is-collapsed', !!collapsed);
+            var btn = document.getElementById('headerCollapseBtn');
+            if (btn) {
+                btn.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+                btn.title = collapsed ? 'Expand header' : 'Collapse header';
+            }
+        }
+        document.addEventListener('DOMContentLoaded', function () {
+            var saved = true;
+            try {
+                var v = localStorage.getItem(STORAGE_KEY);
+                if (v === '0') saved = false;
+                else if (v === '1') saved = true;
+            } catch (_) {}
+            apply(saved);
+            var btn = document.getElementById('headerCollapseBtn');
+            if (!btn) return;
+            btn.addEventListener('click', function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                var header = document.querySelector('.content-header');
+                if (!header) return;
+                var next = !header.classList.contains('is-collapsed');
+                apply(next);
+                try { localStorage.setItem(STORAGE_KEY, next ? '1' : '0'); } catch (_) {}
+            });
+        });
+    })();
+    </script>
+
+    <!-- DIAGNOSTICS: resize/columns debug (temporary) -->
+    <script>
+    (function () {
+        window.diagSearch = function () {
+            try {
+                var cat = (typeof getActiveCategoryWithFallback === 'function') ? getActiveCategoryWithFallback() : null;
+                var table = document.querySelector('.search-table');
+                var ths = table ? Array.from(table.querySelectorAll('thead th[data-column]')) : [];
+                var columns = ths.map(function (th) {
+                    var cs = window.getComputedStyle(th);
+                    return {
+                        col: th.getAttribute('data-column'),
+                        display: th.style.display || cs.display,
+                        inlineWidth: th.style.width || '',
+                        offsetWidth: th.offsetWidth,
+                        computedWidth: cs.width,
+                        computedMinWidth: cs.minWidth,
+                        computedMaxWidth: cs.maxWidth
+                    };
+                });
+                var styleEl = document.getElementById('search-table-col-widths');
+                var out = {
+                    category: cat,
+                    allColumns: (typeof getCurrentTableColumns === 'function') ? getCurrentTableColumns() : null,
+                    visibleColumns: (typeof getVisibleColumnsForCategory === 'function' && cat) ? getVisibleColumnsForCategory(cat) : null,
+                    defaultsFromUnison: (window.searchColumnControl && window.searchColumnControl.getDefaultColumnsFromUnisonDefaults && cat) ? window.searchColumnControl.getDefaultColumnsFromUnisonDefaults(cat) : null,
+                    storedWidths: (typeof getColumnWidthsForCategory === 'function' && cat) ? getColumnWidthsForCategory(cat) : null,
+                    inMemoryWidths: (window.searchTableWidths && window.searchTableWidths.dump) ? window.searchTableWidths.dump() : null,
+                    styleSheetCss: styleEl ? styleEl.textContent : null,
+                    tableTag: table ? {
+                        tableLayout: window.getComputedStyle(table).tableLayout,
+                        width: table.offsetWidth,
+                        minWidth: window.getComputedStyle(table).minWidth
+                    } : null,
+                    columns: columns
+                };
+                console.log('=== DIAG SEARCH ===');
+                console.log(JSON.stringify(out, null, 2));
+                console.log('===================');
+                return out;
+            } catch (err) {
+                console.error('diagSearch failed', err);
+                return { error: String(err) };
+            }
+        };
+        document.addEventListener('DOMContentLoaded', function () {
+            setTimeout(function () { try { window.diagSearch(); } catch (_) {} }, 1500);
+        });
+        console.log('[DIAG] Call diagSearch() anytime in console to dump state.');
+    })();
+    </script>
 </body>
 
 </html>

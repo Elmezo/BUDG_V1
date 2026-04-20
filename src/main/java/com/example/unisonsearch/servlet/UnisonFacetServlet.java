@@ -6,6 +6,7 @@ import com.example.unisonsearch.service.UnisonService;
 import com.example.unisonsearch.service.UnisonFacetService;
 import com.example.unisonsearch.util.FacetNormalizationUtil;
 import com.example.budg_v2.util.ActivityLogHelper;
+import com.example.budg_v2.util.AppRoleNames;
 import com.example.budg_v2.util.CorsUtil;
 import com.example.budg_v2.util.JwtUtil;
 import com.google.gson.Gson;
@@ -24,6 +25,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * Servlet for managing Unison facet configurations.
@@ -76,10 +78,10 @@ public class UnisonFacetServlet extends HttpServlet {
                 result.put("data", facets);
                 response.getWriter().write(gson.toJson(result));
             } else if (pathInfo.equals("/defaults")) {
-                // Get SuperAdmin defaults (check if user is admin)
-                if (!isAdmin(userId)) {
+                // Get SuperAdmin defaults (Super Admin only)
+                if (!isSuperAdmin(request)) {
                     response.setStatus(HttpServletResponse.SC_FORBIDDEN);
-                    response.getWriter().write("{\"error\":\"Forbidden - Admin access required\"}");
+                    response.getWriter().write("{\"error\":\"Forbidden - Super Admin access required\"}");
                     return;
                 }
                 JsonObject defaults = unisonFacetService.getSuperAdminDefaults();
@@ -150,6 +152,11 @@ public class UnisonFacetServlet extends HttpServlet {
                     facetMap.put("active", facet.get("active").getAsBoolean());
                     facetMap.put("activeFields", facet.has("activeFields") ? facet.get("activeFields").getAsString() : "");
                     facetMap.put("ordering", facet.get("ordering").getAsInt());
+                    if (facet.has("columnWidths") && facet.get("columnWidths").isJsonObject()) {
+                        facetMap.put("columnWidths", facet.get("columnWidths").toString());
+                    } else {
+                        facetMap.put("columnWidths", "");
+                    }
                     facets.add(facetMap);
                 }
                 
@@ -174,18 +181,23 @@ public class UnisonFacetServlet extends HttpServlet {
                         if (!oldFacet.get("active").equals(newFacet.get("active"))) changed = true;
                         if (!oldFacet.get("activeFields").equals(newFacet.get("activeFields"))) changed = true;
                         if (!oldFacet.get("ordering").equals(newFacet.get("ordering"))) changed = true;
+                        if (!Objects.equals(gson.toJson(oldFacet.get("columnWidths")), gson.toJson(newFacet.get("columnWidths")))) {
+                            changed = true;
+                        }
                         
                         if (changed) {
                             Map<String, Object> oldState = new HashMap<>();
                             oldState.put("facetId", facetId);
                             oldState.put("active", oldFacet.get("active"));
                             oldState.put("activeFields", oldFacet.get("activeFields"));
+                            oldState.put("columnWidths", oldFacet.get("columnWidths"));
                             oldState.put("ordering", oldFacet.get("ordering"));
                             
                             Map<String, Object> newState = new HashMap<>();
                             newState.put("facetId", facetId);
                             newState.put("active", newFacet.get("active"));
                             newState.put("activeFields", newFacet.get("activeFields"));
+                            newState.put("columnWidths", newFacet.get("columnWidths"));
                             newState.put("ordering", newFacet.get("ordering"));
                             
                             // Component = "Facet Name + Unison Grid"
@@ -211,10 +223,10 @@ public class UnisonFacetServlet extends HttpServlet {
                 result.put("message", "Facets reset to defaults");
                 response.getWriter().write(gson.toJson(result));
             } else if (pathInfo.equals("/defaults/save")) {
-                // Save SuperAdmin defaults
-                if (!isAdmin(userId)) {
+                // Save SuperAdmin defaults (Super Admin only)
+                if (!isSuperAdmin(request)) {
                     response.setStatus(HttpServletResponse.SC_FORBIDDEN);
-                    response.getWriter().write("{\"error\":\"Forbidden - Admin access required\"}");
+                    response.getWriter().write("{\"error\":\"Forbidden - Super Admin access required\"}");
                     return;
                 }
                 
@@ -248,8 +260,12 @@ public class UnisonFacetServlet extends HttpServlet {
                 for (int i = 0; i < columnsArray.size(); i++) {
                     columns.add(columnsArray.get(i).getAsString());
                 }
+                String columnWidthsJson = null;
+                if (json.has("columnWidths") && json.get("columnWidths").isJsonObject()) {
+                    columnWidthsJson = json.getAsJsonObject("columnWidths").toString();
+                }
                 
-                unisonFacetService.saveColumnPreferences(userId, facetId, columns);
+                unisonFacetService.saveColumnPreferences(userId, facetId, columns, columnWidthsJson);
                 
                 Map<String, Object> result = new HashMap<>();
                 result.put("success", true);
@@ -335,11 +351,23 @@ public class UnisonFacetServlet extends HttpServlet {
         return null;
     }
 
-    private boolean isAdmin(int userId) {
-        // TODO: Implement admin check - this should check user's role
-        // For now, return false - implement based on your role system
-        // You can check against a role table or system_role field in people table
-        return false;
+    /**
+     * Super Admin only (defaults read/write). Uses JWT role claim when available.
+     */
+    private boolean isSuperAdmin(HttpServletRequest request) {
+        Object role = request.getAttribute("userRole");
+        if (role == null || role.toString().trim().isEmpty()) {
+            try {
+                String token = getCookie(request, "ACCESS_TOKEN");
+                if (token != null) {
+                    JWTClaimsSet claims = JwtUtil.parseAndValidate(token);
+                    role = claims.getStringClaim("role");
+                }
+            } catch (Exception ignored) {
+                // leave role null
+            }
+        }
+        return AppRoleNames.isSuperAdminName(role != null ? role.toString() : null);
     }
 
     private String getRequestBody(HttpServletRequest request) throws IOException {

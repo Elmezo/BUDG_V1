@@ -3,6 +3,113 @@
 // Store visible columns state per category
 let visibleColumnsByCategory = {};
 
+// Per-category column widths (px), keyed by data-column id
+let columnWidthsByCategory = {};
+
+const COLUMN_WIDTHS_STORAGE_KEY = 'unisionSearch_columnWidths';
+
+function loadColumnWidthsFromStorage() {
+    try {
+        const stored = sessionStorage.getItem(COLUMN_WIDTHS_STORAGE_KEY);
+        if (stored) {
+            columnWidthsByCategory = JSON.parse(stored);
+        }
+    } catch (e) {
+        columnWidthsByCategory = {};
+    }
+}
+
+function saveColumnWidthsToStorage() {
+    try {
+        sessionStorage.setItem(COLUMN_WIDTHS_STORAGE_KEY, JSON.stringify(columnWidthsByCategory));
+    } catch (e) {
+        // Silent fail
+    }
+}
+
+function getColumnWidthsForCategory(category) {
+    if (!category) {
+        return null;
+    }
+    if (!columnWidthsByCategory[category]) {
+        loadColumnWidthsFromStorage();
+    }
+    const w = columnWidthsByCategory[category];
+    return w && typeof w === 'object' ? w : null;
+}
+
+function setColumnWidthsForCategory(category, widthsObj) {
+    if (!category) {
+        return;
+    }
+    if (widthsObj && typeof widthsObj === 'object') {
+        columnWidthsByCategory[category] = Object.assign({}, widthsObj);
+    } else {
+        delete columnWidthsByCategory[category];
+    }
+    saveColumnWidthsToStorage();
+}
+
+function mergeFacetsApiResponseIntoPreferences(result) {
+    if (!result || !result.success || !result.data || !Array.isArray(result.data)) {
+        return;
+    }
+    result.data.forEach(facet => {
+        const facetId = facet.facetId;
+        let category = null;
+        if (window.facetIdToModuleName && typeof window.facetIdToModuleName === 'function') {
+            const moduleName = window.facetIdToModuleName(facetId);
+            if (moduleName && typeof moduleNameToCategoryKey === 'function') {
+                category = moduleNameToCategoryKey(moduleName);
+            }
+        }
+        if (!category) {
+            const facetToCategoryMap = {
+                'DATASET': 'data-sets',
+                'ATTRIBUTE': 'attributes',
+                'SYSTEM': 'system',
+                'GLOSSARY': 'glossary',
+                'DATAQUALITY': 'data-quality',
+                'PEOPLE': 'people',
+                'ROLE': 'role',
+                'BUSINESS_AREA': 'business-area',
+                'LEGAL_ENTITY': 'legal-entity',
+                'CLIENT': 'client',
+                'COMMITTEE': 'committee',
+                'POLICY': 'policy',
+                'PROCESS': 'process',
+                'INTERFACE': 'interface',
+                'CAPABILITY': 'capability',
+                'PRODUCT': 'product',
+                'ORG_UNIT': 'org-unit',
+                'GEOGRAPHY': 'geography',
+                'REGULATION': 'regulation',
+                'REGULATOR': 'regulator',
+                'REGULATORY_THEME': 'regulatory-theme',
+                'ACTIVE_TASKS': 'active-tasks'
+            };
+            category = facetToCategoryMap[facetId];
+        }
+        if (!category) {
+            return;
+        }
+        if (facet.activeFields && facet.activeFields.trim().length > 0) {
+            const columns = facet.activeFields
+                .split(',')
+                .map(col => col.trim())
+                .filter(col => col.length > 0);
+            if (columns.length > 0) {
+                visibleColumnsByCategory[category] = columns;
+            }
+        }
+        if (facet.columnWidths && typeof facet.columnWidths === 'object' && !Array.isArray(facet.columnWidths)) {
+            columnWidthsByCategory[category] = Object.assign({}, facet.columnWidths);
+        }
+    });
+    loadVisibleColumnsFromStorage();
+    loadColumnWidthsFromStorage();
+}
+
 // Load visible columns from sessionStorage (cleared when browser closes)
 function loadVisibleColumnsFromStorage() {
     try {
@@ -24,19 +131,16 @@ function saveVisibleColumnsToStorage() {
     }
 }
 
-// Save column preferences to database for logged-in users
-async function saveColumnPreferencesToDatabase(category, columns) {
+// Save column preferences + widths to database (explicit Save Layout / Super Admin default save path)
+async function saveColumnPreferencesToDatabase(category, columns, columnWidthsObj) {
     if (!category || !Array.isArray(columns)) return;
     
-    // Check if user is logged in
     const isLoggedIn = typeof window.isUserLoggedIn === 'function' ? window.isUserLoggedIn() : false;
     if (!isLoggedIn) {
-        // Fall back to sessionStorage for guests
         return;
     }
     
     try {
-        // Map category to facetId
         const normalizedCategory = typeof categoryToModule === 'function' ? categoryToModule(category) : category;
         const facetId = window.moduleNameToFacetId ? 
             window.moduleNameToFacetId(normalizedCategory) : 
@@ -45,6 +149,16 @@ async function saveColumnPreferencesToDatabase(category, columns) {
         if (!facetId) {
             console.warn('[SETTINGS] Could not map category to facetId:', category);
             return;
+        }
+
+        const widthsPayload = {};
+        if (columnWidthsObj && typeof columnWidthsObj === 'object') {
+            Object.keys(columnWidthsObj).forEach(k => {
+                const n = parseInt(columnWidthsObj[k], 10);
+                if (!isNaN(n) && n > 0) {
+                    widthsPayload[k] = n;
+                }
+            });
         }
         
         const response = await fetch('/api/unison/columns/save', {
@@ -56,7 +170,8 @@ async function saveColumnPreferencesToDatabase(category, columns) {
             credentials: 'include',
             body: JSON.stringify({
                 facetId: facetId,
-                columns: columns
+                columns: columns,
+                columnWidths: widthsPayload
             })
         });
         
@@ -94,6 +209,7 @@ async function initializeColumnPreferencesFromDatabase() {
     if (!isLoggedIn) {
         // For guests, just load from sessionStorage
         loadVisibleColumnsFromStorage();
+        loadColumnWidthsFromStorage();
         return;
     }
     
@@ -109,88 +225,29 @@ async function initializeColumnPreferencesFromDatabase() {
         if (!response.ok) {
             console.error('[SETTINGS] Failed to load facets for column preferences:', response.status);
             loadVisibleColumnsFromStorage();
+            loadColumnWidthsFromStorage();
             return;
         }
         
         const result = await response.json();
         if (result.success && result.data && Array.isArray(result.data)) {
-            // Load column preferences for each facet
-            result.data.forEach(facet => {
-                if (facet.activeFields && facet.activeFields.trim().length > 0) {
-                    // Map facetId to category
-                    const facetId = facet.facetId;
-                    let category = null;
-                    
-                    // Try to map facetId to category using existing mapping functions
-                    if (window.facetIdToModuleName && typeof window.facetIdToModuleName === 'function') {
-                        const moduleName = window.facetIdToModuleName(facetId);
-                        if (moduleName && typeof moduleNameToCategoryKey === 'function') {
-                            category = moduleNameToCategoryKey(moduleName);
-                        }
-                    }
-                    
-                    // If mapping failed, try direct mapping
-                    if (!category) {
-                        const facetToCategoryMap = {
-                            'DATASET': 'data-sets',
-                            'ATTRIBUTE': 'attributes',
-                            'SYSTEM': 'system',
-                            'GLOSSARY': 'glossary',
-                            'DATAQUALITY': 'data-quality',
-                            'PEOPLE': 'people',
-                            'ROLE': 'role',
-                            'BUSINESS_AREA': 'business-area',
-                            'LEGAL_ENTITY': 'legal-entity',
-                            'CLIENT': 'client',
-                            'COMMITTEE': 'committee',
-                            'POLICY': 'policy',
-                            'PROCESS': 'process',
-                            'INTERFACE': 'interface',
-                            'CAPABILITY': 'capability',
-                            'PRODUCT': 'product',
-                            'ORG_UNIT': 'org-unit',
-                            'GEOGRAPHY': 'geography',
-                            'REGULATION': 'regulation',
-                            'REGULATOR': 'regulator',
-                            'REGULATORY_THEME': 'regulatory-theme',
-                            'ACTIVE_TASKS': 'active-tasks'
-                        };
-                        category = facetToCategoryMap[facetId];
-                    }
-                    
-                    if (category) {
-                        // Parse comma-separated string into array
-                        const columns = facet.activeFields
-                            .split(',')
-                            .map(col => col.trim())
-                            .filter(col => col.length > 0);
-                        
-                        if (columns.length > 0) {
-                            visibleColumnsByCategory[category] = columns;
-                        }
-                    }
-                }
-            });
-            
-            // Also load from sessionStorage to merge (sessionStorage takes precedence for current session)
-            loadVisibleColumnsFromStorage();
+            mergeFacetsApiResponseIntoPreferences(result);
         } else {
             loadVisibleColumnsFromStorage();
+            loadColumnWidthsFromStorage();
         }
     } catch (error) {
         console.error('[SETTINGS] Error initializing column preferences from database:', error);
         loadVisibleColumnsFromStorage();
+        loadColumnWidthsFromStorage();
     }
 }
 
-// Set visible columns for a category
+// Set visible columns for a category (staged only; use Save Layout to persist to DB)
 function setVisibleColumnsForCategory(category, columns) {
     if (!category || !Array.isArray(columns)) return;
 
     visibleColumnsByCategory[category] = columns;
-    
-    // Save to database for logged-in users, fall back to sessionStorage for guests
-    saveColumnPreferencesToDatabase(category, columns);
     saveVisibleColumnsToStorage();
 }
 
@@ -360,6 +417,9 @@ function initTableObserver() {
                     // Table was added, refresh dropdown if it's open
                     setTimeout(() => {
                         refreshDropdownIfOpen();
+                        if (typeof refreshSearchColumnResizers === 'function') {
+                            refreshSearchColumnResizers();
+                        }
                     }, 200);
                 }
             }
@@ -376,7 +436,9 @@ function initTableObserver() {
 function initSettingsDropdown() {
     const settingsBtn = document.getElementById('settingsBtn');
     const settingsDropdown = document.getElementById('settingsDropdown');
-    const showDefaultsBtn = document.getElementById('showDefaultsBtn');
+    const saveDefaultLayoutBtn = document.getElementById('saveDefaultLayoutBtn');
+    const saveLayoutBtn = document.getElementById('saveLayoutBtn');
+    const resetLayoutBtn = document.getElementById('resetLayoutBtn');
     const chooseColumnsBtn = document.getElementById('chooseColumnsBtn');
 
     if (!settingsBtn || !settingsDropdown) {
@@ -385,6 +447,16 @@ function initSettingsDropdown() {
 
     // Load saved columns on init
     loadVisibleColumnsFromStorage();
+    loadColumnWidthsFromStorage();
+
+    (async () => {
+        const role = await fetchSearchPageUserRole();
+        if (saveDefaultLayoutBtn) {
+            const R = typeof RoleUtils !== 'undefined' ? RoleUtils : null;
+            const isSa = R ? R.isSuperAdminRole(role) : false;
+            saveDefaultLayoutBtn.style.display = isSa ? 'flex' : 'none';
+        }
+    })();
 
     // Initialize export menu visibility based on current category
     // (updateExportButtonVisibility will handle showing/hiding the appropriate menu)
@@ -429,22 +501,28 @@ function initSettingsDropdown() {
         }
     });
 
-    // Show defaults functionality - reset to show all columns
-    if (showDefaultsBtn) {
-        showDefaultsBtn.addEventListener('click', async (e) => {
-            e.preventDefault();
-            const activeCategory = getActiveCategoryWithFallback();
-            if (activeCategory) {
-                // Wait for table to be ready first
-                await waitForTableColumns(3000);
-                resetToDefaultsForCategory(activeCategory);
-
-                // Refresh dropdown if it's open
-                refreshDropdownIfOpen();
-            }
-            settingsDropdown.classList.remove('show');
-        });
+    if (saveLayoutBtn) {
+        saveLayoutBtn.addEventListener('click', (e) => handleSaveLayoutClick(e, settingsDropdown));
     }
+    if (saveDefaultLayoutBtn) {
+        saveDefaultLayoutBtn.addEventListener('click', (e) => handleSaveDefaultLayoutClick(e, settingsDropdown));
+    }
+    if (resetLayoutBtn) {
+        resetLayoutBtn.addEventListener('click', (e) => handleResetLayoutClick(e, settingsDropdown));
+    }
+
+    if (typeof initSearchColumnResizers === 'function') {
+        initSearchColumnResizers();
+    }
+
+    [['saveDefaultLayoutBtn', 'hint.saveDefaultLayout'], ['saveLayoutBtn', 'hint.saveLayout'], ['resetLayoutBtn', 'hint.resetLayout']].forEach(([rowId, hintKey]) => {
+        const rowEl = document.getElementById(rowId);
+        const hintEl = rowEl && rowEl.querySelector('.settings-layout-hint');
+        if (hintEl) {
+            const t = window.I18n && typeof window.I18n.t === 'function' ? window.I18n.t(hintKey) : '';
+            hintEl.setAttribute('title', t || '');
+        }
+    });
 
     // Helper function to open and populate submenu
     async function openAndPopulateSubmenu() {
@@ -810,6 +888,237 @@ function toggleSearchColumn(columnKey) {
     updateTableColumnVisibility(activeCategory);
 }
 
+function applyStoredColumnWidths(category) {
+    if (category == null || category === '') {
+        category = typeof getActiveCategoryWithFallback === 'function' ? getActiveCategoryWithFallback() : null;
+    }
+    if (!category) {
+        return;
+    }
+    console.log('[RESIZE][apply] ' + JSON.stringify({ category: category, widths: getColumnWidthsForCategory(category) }));
+    if (window.searchTableWidths && typeof window.searchTableWidths.loadWidthsFromStore === 'function') {
+        window.searchTableWidths.loadWidthsFromStore(category);
+    }
+}
+
+async function fetchSearchPageUserRole() {
+    try {
+        const r = await fetch('/api/me', { credentials: 'include' });
+        if (!r.ok) {
+            return null;
+        }
+        const d = await r.json();
+        return d.role || null;
+    } catch (err) {
+        return null;
+    }
+}
+
+function getVisibleColumnsOrderedFromDom() {
+    const table = document.querySelector('.search-table');
+    if (!table) {
+        return [];
+    }
+    return Array.from(table.querySelectorAll('thead th[data-column]'))
+        .filter(th => th.style.display !== 'none')
+        .map(th => th.getAttribute('data-column'))
+        .filter(col => col != null && col.trim() !== '');
+}
+
+async function handleSaveLayoutClick(e, settingsDropdown) {
+    e.preventDefault();
+    e.stopPropagation();
+    const category = getActiveCategoryWithFallback();
+    if (!category) {
+        if (typeof showToast === 'function') {
+            showToast(window.I18n?.t('message.noCategorySelected') || 'No category selected', 'warning');
+        }
+        return;
+    }
+    await waitForTableColumns(3000);
+    let visibleColumns = getVisibleColumnsOrderedFromDom();
+    if (visibleColumns.length === 0) {
+        visibleColumns = getVisibleColumnsForCategory(category) || [];
+    }
+    const allColumns = getCurrentTableColumns();
+    visibleColumns = visibleColumns.filter(col => allColumns.includes(col));
+    if (visibleColumns.length === 0) {
+        if (typeof showToast === 'function') {
+            showToast(window.I18n?.t('message.noColumnsAvailable') || 'No columns available', 'warning');
+        }
+        return;
+    }
+    setVisibleColumnsForCategory(category, visibleColumns);
+    const widths = getColumnWidthsForCategory(category) || {};
+    const isLoggedIn = typeof window.isUserLoggedIn === 'function' ? window.isUserLoggedIn() : false;
+    if (isLoggedIn) {
+        await saveColumnPreferencesToDatabase(category, visibleColumns, widths);
+    }
+    saveVisibleColumnsToStorage();
+    saveColumnWidthsToStorage();
+    if (settingsDropdown) {
+        settingsDropdown.classList.remove('show');
+    }
+    if (typeof showToast === 'function') {
+        showToast(window.I18n?.t('message.layoutSaved') || 'Layout saved', 'success');
+    }
+}
+
+async function handleSaveDefaultLayoutClick(e, settingsDropdown) {
+    e.preventDefault();
+    e.stopPropagation();
+    const category = getActiveCategoryWithFallback();
+    if (!category) {
+        if (typeof showToast === 'function') {
+            showToast(window.I18n?.t('message.noCategorySelected') || 'No category selected', 'warning');
+        }
+        return;
+    }
+    await waitForTableColumns(3000);
+    const normalizedCategory = typeof categoryToModule === 'function' ? categoryToModule(category) : category;
+    const facetId = window.moduleNameToFacetId ?
+        window.moduleNameToFacetId(normalizedCategory) :
+        String(normalizedCategory).toUpperCase();
+    const defRes = await fetch('/api/unison/defaults', {
+        method: 'GET',
+        credentials: 'include',
+        headers: { 'Accept': 'application/json' }
+    });
+    if (defRes.status === 403) {
+        if (typeof showToast === 'function') {
+            showToast(window.I18n?.t('message.forbidden') || 'Forbidden', 'error');
+        }
+        return;
+    }
+    if (!defRes.ok) {
+        if (typeof showToast === 'function') {
+            showToast(window.I18n?.t('message.loadDefaultsFailed') || 'Could not load defaults', 'error');
+        }
+        return;
+    }
+    const defJson = await defRes.json();
+    const defaults = defJson.data;
+    if (!defaults || !Array.isArray(defaults.facets)) {
+        if (typeof showToast === 'function') {
+            showToast(window.I18n?.t('message.invalidDefaults') || 'Invalid defaults', 'error');
+        }
+        return;
+    }
+    let visibleColumns = getVisibleColumnsOrderedFromDom();
+    if (visibleColumns.length === 0) {
+        visibleColumns = getVisibleColumnsForCategory(category) || [];
+    }
+    const allColumns = getCurrentTableColumns();
+    visibleColumns = visibleColumns.filter(col => allColumns.includes(col));
+    if (visibleColumns.length === 0) {
+        if (typeof showToast === 'function') {
+            showToast(window.I18n?.t('message.noColumnsAvailable') || 'No columns available', 'warning');
+        }
+        return;
+    }
+    const idx = defaults.facets.findIndex(f => f.id === facetId);
+    if (idx < 0) {
+        if (typeof showToast === 'function') {
+            showToast(window.I18n?.t('message.facetNotInDefaults') || 'Facet not found in defaults', 'error');
+        }
+        return;
+    }
+    defaults.facets[idx].activeFields = visibleColumns.join(',');
+    const w = getColumnWidthsForCategory(category) || {};
+    defaults.facets[idx].columnWidths = Object.assign({}, w);
+    const saveRes = await fetch('/api/unison/defaults/save', {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+        },
+        body: JSON.stringify(defaults)
+    });
+    if (!saveRes.ok) {
+        if (typeof showToast === 'function') {
+            showToast(window.I18n?.t('message.saveDefaultsFailed') || 'Could not save defaults', 'error');
+        }
+        return;
+    }
+    if (window.searchColumnControl && typeof window.searchColumnControl.invalidateUnisonDefaultsCache === 'function') {
+        window.searchColumnControl.invalidateUnisonDefaultsCache();
+    }
+    if (typeof loadUnisonDefaultsForColumns === 'function') {
+        await loadUnisonDefaultsForColumns();
+    }
+    if (settingsDropdown) {
+        settingsDropdown.classList.remove('show');
+    }
+    if (typeof showToast === 'function') {
+        showToast(window.I18n?.t('message.defaultLayoutSaved') || 'Default layout saved', 'success');
+    }
+}
+
+async function handleResetLayoutClick(e, settingsDropdown) {
+    e.preventDefault();
+    e.stopPropagation();
+    const category = getActiveCategoryWithFallback();
+    const isLoggedIn = typeof window.isUserLoggedIn === 'function' ? window.isUserLoggedIn() : false;
+    if (isLoggedIn) {
+        const r = await fetch('/api/unison/facets/reset', {
+            method: 'POST',
+            credentials: 'include',
+            headers: { 'Accept': 'application/json' }
+        });
+        if (!r.ok) {
+            if (typeof showToast === 'function') {
+                showToast(window.I18n?.t('message.resetLayoutFailed') || 'Could not reset layout', 'error');
+            }
+            return;
+        }
+        const fr = await fetch('/api/unison/facets', {
+            method: 'GET',
+            credentials: 'include',
+            headers: { 'Accept': 'application/json' }
+        });
+        if (fr.ok) {
+            const result = await fr.json();
+            mergeFacetsApiResponseIntoPreferences(result);
+        }
+    } else {
+        try {
+            sessionStorage.removeItem('unisionSearch_visibleColumns');
+            sessionStorage.removeItem(COLUMN_WIDTHS_STORAGE_KEY);
+        } catch (err) {
+            /* ignore */
+        }
+        visibleColumnsByCategory = {};
+        columnWidthsByCategory = {};
+        if (typeof loadUnisonDefaultsForColumns === 'function') {
+            await loadUnisonDefaultsForColumns();
+        }
+        if (category) {
+            await resetToDefaultsForCategory(category);
+            const defW = window.searchColumnControl?.getDefaultColumnWidthsFromUnisonDefaults?.(category);
+            if (defW && typeof defW === 'object') {
+                setColumnWidthsForCategory(category, defW);
+            } else {
+                setColumnWidthsForCategory(category, {});
+            }
+        }
+    }
+    if (category) {
+        updateTableColumnVisibility(category);
+        applyStoredColumnWidths(category);
+        if (typeof refreshSearchColumnResizers === 'function') {
+            refreshSearchColumnResizers();
+        }
+        refreshDropdownIfOpen();
+    }
+    if (settingsDropdown) {
+        settingsDropdown.classList.remove('show');
+    }
+    if (typeof showToast === 'function') {
+        showToast(window.I18n?.t('message.layoutReset') || 'Layout reset', 'success');
+    }
+}
+
 // Update table column visibility
 function updateTableColumnVisibility(category) {
     const table = document.querySelector('.search-table');
@@ -914,6 +1223,11 @@ function updateTableColumnVisibility(category) {
             const columnKey = checkbox.value;
             checkbox.checked = visibleColumns.includes(columnKey);
         });
+    }
+
+    applyStoredColumnWidths(category);
+    if (typeof refreshSearchColumnResizers === 'function') {
+        refreshSearchColumnResizers();
     }
 }
 
@@ -1027,6 +1341,9 @@ async function applySavedColumnVisibility(category) {
             if (retryColumns.length > 0) {
                 updateTableColumnVisibility(category);
                 refreshDropdownIfOpen();
+                if (typeof refreshSearchColumnResizers === 'function') {
+                    refreshSearchColumnResizers();
+                }
             }
         }, 500);
         return;
@@ -1036,6 +1353,9 @@ async function applySavedColumnVisibility(category) {
     setTimeout(() => {
         updateTableColumnVisibility(category);
         refreshDropdownIfOpen();
+        if (typeof refreshSearchColumnResizers === 'function') {
+            refreshSearchColumnResizers();
+        }
     }, 100);
 }
 
@@ -1110,8 +1430,39 @@ if (typeof window !== 'undefined') {
     window.toggleSearchColumn = toggleSearchColumn;
     window.resetSearchColumnsToDefaults = resetSearchColumnsToDefaults;
     window.applySavedColumnVisibility = applySavedColumnVisibility;
+    window.applyStoredColumnWidths = applyStoredColumnWidths;
     window.toggleRelatedObjects = toggleRelatedObjects;
     window.getRelatedObjectsEnabled = getRelatedObjectsEnabled;
+
+    window.onSearchColumnWidthCommitted = function (category, columnKey, widthPx) {
+        console.log('[RESIZE][commit] ' + JSON.stringify({ category: category, columnKey: columnKey, widthPx: widthPx }));
+        if (!category || !columnKey) {
+            return;
+        }
+        if (!columnWidthsByCategory[category]) {
+            columnWidthsByCategory[category] = {};
+        }
+        columnWidthsByCategory[category][columnKey] = widthPx;
+        saveColumnWidthsToStorage();
+        console.log('[RESIZE][stored] ' + JSON.stringify(columnWidthsByCategory[category]));
+        try {
+            var th = document.querySelector('.search-table th[data-column="' + (CSS && CSS.escape ? CSS.escape(columnKey) : columnKey) + '"]');
+            if (th) {
+                var cs = window.getComputedStyle(th);
+                console.log('[RESIZE][th after commit] ' + JSON.stringify({
+                    col: columnKey,
+                    offsetWidth: th.offsetWidth,
+                    computedWidth: cs.width,
+                    computedMinWidth: cs.minWidth,
+                    computedMaxWidth: cs.maxWidth
+                }));
+            }
+            var styleEl = document.getElementById('search-table-col-widths');
+            if (styleEl) {
+                console.log('[RESIZE][stylesheet length] ' + styleEl.textContent.length + ' chars');
+            }
+        } catch (e) { /* noop */ }
+    };
 
     // Debug functions disabled
 }

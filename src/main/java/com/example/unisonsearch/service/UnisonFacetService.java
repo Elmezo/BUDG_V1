@@ -3,7 +3,9 @@ package com.example.unisonsearch.service;
 import com.example.budg_v2.database.DatabaseConnection;
 import com.example.unisonsearch.util.Constants;
 import com.example.unisonsearch.util.FacetNormalizationUtil;
+import com.google.gson.Gson;
 import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
 import java.sql.Connection;
@@ -12,6 +14,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -20,6 +23,8 @@ import java.util.Map;
  * Handles visibility, ordering, and activeFields for facets per user.
  */
 public class UnisonFacetService {
+
+    private final Gson gson = new Gson();
 
     private final UnisonService unisonService;
     private final ConfigurationService configurationService;
@@ -40,7 +45,7 @@ public class UnisonFacetService {
         int unisonId = unisonService.getUnisonId(userReference);
         
         try (Connection conn = DatabaseConnection.getConnection()) {
-            String sql = "SELECT facetId, active, active_fields, ordering FROM unison_facets WHERE unison_id = ? ORDER BY ordering, facetId";
+            String sql = "SELECT facetId, active, active_fields, column_widths, ordering FROM unison_facets WHERE unison_id = ? ORDER BY ordering, facetId";
             List<Map<String, Object>> facets = new ArrayList<>();
             
             try (PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -52,6 +57,8 @@ public class UnisonFacetService {
                         facet.put("active", rs.getBoolean("active"));
                         facet.put("activeFields", rs.getString("active_fields"));
                         facet.put("ordering", rs.getInt("ordering"));
+                        String cw = rs.getString("column_widths");
+                        facet.put("columnWidths", parseColumnWidthsJson(cw));
                         facets.add(facet);
                     }
                 }
@@ -116,8 +123,8 @@ public class UnisonFacetService {
             try {
                 // Use INSERT ... ON DUPLICATE KEY UPDATE to handle both insert and update
                 // This ensures facets are created if they don't exist, and updated if they do
-                String sql = "INSERT INTO unison_facets (unison_id, facetId, active, active_fields, ordering) VALUES (?, ?, ?, ?, ?) " +
-                             "ON DUPLICATE KEY UPDATE active = VALUES(active), active_fields = VALUES(active_fields), ordering = VALUES(ordering)";
+                String sql = "INSERT INTO unison_facets (unison_id, facetId, active, active_fields, column_widths, ordering) VALUES (?, ?, ?, ?, ?, ?) " +
+                             "ON DUPLICATE KEY UPDATE active = VALUES(active), active_fields = VALUES(active_fields), column_widths = VALUES(column_widths), ordering = VALUES(ordering)";
                 try (PreparedStatement ps = conn.prepareStatement(sql)) {
                     for (Map<String, Object> facet : facets) {
                         String facetId = FacetNormalizationUtil.normalizeToCanonical((String) facet.get("facetId"));
@@ -126,6 +133,7 @@ public class UnisonFacetService {
                         }
                         Boolean active = (Boolean) facet.get("active");
                         String activeFields = (String) facet.get("activeFields");
+                        String columnWidthsStr = stringifyColumnWidthsFromFacetMap(facet);
                         Integer ordering = (Integer) facet.get("ordering");
                         
                         // Ensure ordering is 0 if inactive
@@ -137,7 +145,8 @@ public class UnisonFacetService {
                         ps.setString(2, facetId);
                         ps.setBoolean(3, active != null ? active : false);
                         ps.setString(4, activeFields != null ? activeFields : "");
-                        ps.setInt(5, ordering != null ? ordering : 0);
+                        ps.setString(5, columnWidthsStr);
+                        ps.setInt(6, ordering != null ? ordering : 0);
                         ps.addBatch();
                     }
                     ps.executeBatch();
@@ -232,8 +241,15 @@ public class UnisonFacetService {
             if (facetId != null) {
                 boolean visibility = facet.has("visibility") && facet.get("visibility").getAsBoolean();
                 String activeFields = facet.has("activeFields") ? facet.get("activeFields").getAsString() : "";
+                String columnWidthsJson = "";
+                if (facet.has("columnWidths") && !facet.get("columnWidths").isJsonNull()) {
+                    JsonElement cw = facet.get("columnWidths");
+                    if (cw.isJsonObject()) {
+                        columnWidthsJson = cw.getAsJsonObject().toString();
+                    }
+                }
                 int order = visibility ? ordering++ : 0;
-                facetConfigs.put(facetId, new FacetConfig(visibility, activeFields, order));
+                facetConfigs.put(facetId, new FacetConfig(visibility, activeFields, columnWidthsJson, order));
             }
         }
         
@@ -241,9 +257,9 @@ public class UnisonFacetService {
         try (Connection conn = DatabaseConnection.getConnection()) {
             conn.setAutoCommit(false);
             try {
-                String sql = "INSERT INTO unison_facets (unison_id, facetId, active, active_fields, ordering) " +
-                             "VALUES (?, ?, ?, ?, ?) " +
-                             "ON DUPLICATE KEY UPDATE active = VALUES(active), active_fields = VALUES(active_fields), ordering = VALUES(ordering)";
+                String sql = "INSERT INTO unison_facets (unison_id, facetId, active, active_fields, column_widths, ordering) " +
+                             "VALUES (?, ?, ?, ?, ?, ?) " +
+                             "ON DUPLICATE KEY UPDATE active = VALUES(active), active_fields = VALUES(active_fields), column_widths = VALUES(column_widths), ordering = VALUES(ordering)";
                 try (PreparedStatement ps = conn.prepareStatement(sql)) {
                     for (Map.Entry<String, FacetConfig> entry : facetConfigs.entrySet()) {
                         String facetId = entry.getKey();
@@ -253,7 +269,8 @@ public class UnisonFacetService {
                         ps.setString(2, facetId);
                         ps.setBoolean(3, config.visibility);
                         ps.setString(4, config.activeFields);
-                        ps.setInt(5, config.ordering);
+                        ps.setString(5, config.columnWidthsJson != null ? config.columnWidthsJson : "");
+                        ps.setInt(6, config.ordering);
                         ps.addBatch();
                     }
                     ps.executeBatch();
@@ -318,7 +335,7 @@ public class UnisonFacetService {
      * @param columns Array of column names to save (will be stored as comma-separated string)
      * @throws SQLException if database error occurs
      */
-    public void saveColumnPreferences(int userReference, String facetId, List<String> columns) throws SQLException {
+    public void saveColumnPreferences(int userReference, String facetId, List<String> columns, String columnWidthsJson) throws SQLException {
         int unisonId = unisonService.getUnisonId(userReference);
         String canonicalFacetId = FacetNormalizationUtil.normalizeToCanonical(facetId);
         if (canonicalFacetId == null) {
@@ -329,22 +346,36 @@ public class UnisonFacetService {
         String activeFields = columns != null && !columns.isEmpty() 
             ? String.join(", ", columns) 
             : "";
+        String widths = columnWidthsJson != null ? columnWidthsJson.trim() : "";
+        if (widths.isEmpty()) {
+            widths = null;
+        }
         
         try (Connection conn = DatabaseConnection.getConnection()) {
-            String sql = "UPDATE unison_facets SET active_fields = ? WHERE unison_id = ? AND facetId = ?";
+            String sql = "UPDATE unison_facets SET active_fields = ?, column_widths = ? WHERE unison_id = ? AND facetId = ?";
             try (PreparedStatement ps = conn.prepareStatement(sql)) {
                 ps.setString(1, activeFields);
-                ps.setInt(2, unisonId);
-                ps.setString(3, canonicalFacetId);
+                if (widths != null) {
+                    ps.setString(2, widths);
+                } else {
+                    ps.setNull(2, java.sql.Types.LONGVARCHAR);
+                }
+                ps.setInt(3, unisonId);
+                ps.setString(4, canonicalFacetId);
                 
                 int rowsAffected = ps.executeUpdate();
                 if (rowsAffected == 0) {
                     // Facet doesn't exist, create it with default values
-                    String insertSql = "INSERT INTO unison_facets (unison_id, facetId, active, active_fields, ordering) VALUES (?, ?, 0, ?, 0)";
+                    String insertSql = "INSERT INTO unison_facets (unison_id, facetId, active, active_fields, column_widths, ordering) VALUES (?, ?, 0, ?, ?, 0)";
                     try (PreparedStatement insertPs = conn.prepareStatement(insertSql)) {
                         insertPs.setInt(1, unisonId);
                         insertPs.setString(2, canonicalFacetId);
                         insertPs.setString(3, activeFields);
+                        if (widths != null) {
+                            insertPs.setString(4, widths);
+                        } else {
+                            insertPs.setNull(4, java.sql.Types.LONGVARCHAR);
+                        }
                         insertPs.executeUpdate();
                     }
                 }
@@ -390,17 +421,50 @@ public class UnisonFacetService {
         return null;
     }
 
+    private Map<String, Object> parseColumnWidthsJson(String cw) {
+        if (cw == null || cw.trim().isEmpty()) {
+            return new LinkedHashMap<>();
+        }
+        try {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> parsed = gson.fromJson(cw, Map.class);
+            return parsed != null ? parsed : new LinkedHashMap<>();
+        } catch (Exception e) {
+            return new LinkedHashMap<>();
+        }
+    }
+
+    private String stringifyColumnWidthsFromFacetMap(Map<String, Object> facet) {
+        if (facet == null || !facet.containsKey("columnWidths")) {
+            return "";
+        }
+        Object o = facet.get("columnWidths");
+        if (o == null) {
+            return "";
+        }
+        if (o instanceof String) {
+            return ((String) o).trim();
+        }
+        try {
+            return gson.toJson(o);
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
     /**
      * Inner class to hold facet configuration.
      */
     private static class FacetConfig {
         final boolean visibility;
         final String activeFields;
+        final String columnWidthsJson;
         final int ordering;
         
-        FacetConfig(boolean visibility, String activeFields, int ordering) {
+        FacetConfig(boolean visibility, String activeFields, String columnWidthsJson, int ordering) {
             this.visibility = visibility;
             this.activeFields = activeFields;
+            this.columnWidthsJson = columnWidthsJson;
             this.ordering = ordering;
         }
     }
