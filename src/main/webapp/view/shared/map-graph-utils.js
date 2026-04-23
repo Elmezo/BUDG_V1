@@ -40,7 +40,15 @@
     // 1. applyHopsFilter
     // ─────────────────────────────────────────────────────────────────────────
     // BFS from root nodes, keeping every node within maxHops steps.
-    // Edges whose source or target falls outside the allowed set are removed.
+    //
+    // Edges are kept only when they represent an *outward* traversal from the
+    // root's BFS tree — i.e., when the closer endpoint is strictly inside the
+    // hop window (min(dist(a), dist(b)) < maxHops) and the farther endpoint is
+    // still within maxHops. This means:
+    //   hops = 1  →  only edges incident to the root(s) are drawn.
+    //   hops = 2  →  edges incident to root or to its direct neighbors.
+    // Edges between two nodes that both sit at the outer frontier layer are
+    // dropped so the hop count reflects the graph depth the user asked for.
     //
     // @param {Object}   graph        - { nodes: [], edges: [] }  (raw data, not Cytoscape)
     // @param {number}   maxHops      - Maximum steps from root (clamped 1–99)
@@ -71,25 +79,51 @@
         var roots = nodes.filter(selector).map(function (n) { return n.id; });
         if (roots.length === 0 && nodes.length > 0) roots.push(nodes[0].id);
 
-        // BFS
+        // Multi-source BFS: compute shortest undirected distance from any root.
+        var dist  = new Map();
+        var queue = [];
+        roots.forEach(function (id) {
+            if (!dist.has(id)) {
+                dist.set(id, 0);
+                queue.push(id);
+            }
+        });
+        var qHead = 0;
+        while (qHead < queue.length) {
+            var id  = queue[qHead++];
+            var d   = dist.get(id);
+            if (d >= clamped) continue;                // no need to expand past the hop window
+            var nbrs = [];
+            (outEdges.get(id) || []).forEach(function (e) { nbrs.push(e.to); });
+            (inEdges.get(id)  || []).forEach(function (e) { nbrs.push(e.from); });
+            for (var i = 0; i < nbrs.length; i++) {
+                var nb = nbrs[i];
+                if (!dist.has(nb)) {
+                    dist.set(nb, d + 1);
+                    queue.push(nb);
+                }
+            }
+        }
+
+        // Allowed nodes = anything reachable within the hop window.
         var allowed = new Set();
-        var queue   = roots.map(function (id) { return { id: id, hop: 0 }; });
-        var seen    = new Set();
-        while (queue.length) {
-            var item = queue.shift();
-            var id   = item.id;
-            var hop  = item.hop;
-            if (seen.has(id)) continue;
-            seen.add(id);
-            if (hop <= clamped) allowed.add(id);
-            if (hop >= clamped) continue;
-            (outEdges.get(id) || []).forEach(function (e) { queue.push({ id: e.to,   hop: hop + 1 }); });
-            (inEdges.get(id)  || []).forEach(function (e) { queue.push({ id: e.from, hop: hop + 1 }); });
+        dist.forEach(function (d, id) { if (d <= clamped) allowed.add(id); });
+
+        // Edges kept only when they represent outward BFS traversal within the
+        // window: the closer endpoint must be *strictly* inside (<maxHops),
+        // the farther endpoint must be within the window (<=maxHops).
+        function keepEdge(e) {
+            if (!allowed.has(e.from) || !allowed.has(e.to)) return false;
+            var da = dist.has(e.from) ? dist.get(e.from) : Infinity;
+            var db = dist.has(e.to)   ? dist.get(e.to)   : Infinity;
+            var near = Math.min(da, db);
+            var far  = Math.max(da, db);
+            return near < clamped && far <= clamped;
         }
 
         return {
             nodes: nodes.filter(function (n) { return allowed.has(n.id); }),
-            edges: edges.filter(function (e) { return allowed.has(e.from) && allowed.has(e.to); })
+            edges: edges.filter(keepEdge)
         };
     }
 
@@ -538,6 +572,65 @@
     }
 
     // =========================================================================
+    // 9. expandByHops
+    // ─────────────────────────────────────────────────────────────────────────
+    // Pipeline-agnostic multi-hop BFS expansion. Each map pipeline supplies
+    // entity-specific functions:
+    //   - getNeighbors(id)     → Array<string> of neighboring entity IDs
+    //   - fetchAndMerge(id)    → Promise that loads and merges entity data into state
+    //   - isLoaded(id)         → boolean guard so each entity is fetched at most once
+    //
+    // BFS from rootId, up to maxDepth (clamped 1–99). Every discovered entity
+    // inside the hop window is fetched exactly once; neighbors discovered after
+    // a fetch are enqueued for the next depth level.
+    //
+    // Returns a Set of visited entity IDs (including root).
+    // =========================================================================
+    async function expandByHops(opts) {
+        opts = opts || {};
+        var rootId = opts.rootId != null ? String(opts.rootId) : '';
+        var depthLimit = Math.min(99, Math.max(1, parseInt(opts.maxDepth, 10) || 1));
+        var getNeighbors = typeof opts.getNeighbors === 'function' ? opts.getNeighbors : function () { return []; };
+        var fetchAndMerge = typeof opts.fetchAndMerge === 'function' ? opts.fetchAndMerge : function () { return Promise.resolve(); };
+        var isLoaded = typeof opts.isLoaded === 'function' ? opts.isLoaded : function () { return false; };
+        var onError = typeof opts.onError === 'function' ? opts.onError : null;
+
+        var visited = new Set();
+        if (!rootId) return visited;
+        visited.add(rootId);
+        var queue = [{ id: rootId, depth: 0 }];
+
+        while (queue.length > 0) {
+            var head = queue.shift();
+            var idStr = String(head.id);
+            var depth = head.depth;
+
+            if (!isLoaded(idStr)) {
+                try {
+                    await fetchAndMerge(idStr);
+                } catch (err) {
+                    if (onError) {
+                        try { onError(idStr, err); } catch (e) { /* swallow */ }
+                    }
+                }
+            }
+
+            if (depth >= depthLimit) continue;
+
+            var neighbors = [];
+            try { neighbors = getNeighbors(idStr) || []; } catch (e) { neighbors = []; }
+            for (var i = 0; i < neighbors.length; i++) {
+                var nId = String(neighbors[i] == null ? '' : neighbors[i]).trim();
+                if (!nId || visited.has(nId)) continue;
+                visited.add(nId);
+                queue.push({ id: nId, depth: depth + 1 });
+            }
+        }
+
+        return visited;
+    }
+
+    // =========================================================================
     // Public API
     // =========================================================================
     window.MapGraphUtils = {
@@ -550,7 +643,8 @@
         extractSystemMeta:              extractSystemMeta,
         buildDataFlowKey:               buildDataFlowKey,
         buildEdgesFromInterfacesAndFlow: buildEdgesFromInterfacesAndFlow,
-        extractGlossaryNameFromAttr:    extractGlossaryNameFromAttr
+        extractGlossaryNameFromAttr:    extractGlossaryNameFromAttr,
+        expandByHops:                   expandByHops
     };
 
     window.createMapAdapter = createMapAdapter;

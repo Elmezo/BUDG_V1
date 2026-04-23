@@ -3,9 +3,8 @@
  *
  * Map structure:
  * - Systems added in the project Impact tab (orange).
- * - Systems directly linked to those impact systems (grey), one hop only.
- * - Does NOT show systems linked to those directly linked systems (no 2-hop).
- *   Example: A→B→C, add A in impact → map shows only A and B (not C).
+ * - Systems linked to impact systems (grey) via interfaces/data-flow up to the
+ *   currently selected hops count (direct and indirect).
  * - Edges: Solid = attributes specified for the interface; dashed = no attributes.
  *
  * Dataset / Attributes overlay:
@@ -33,7 +32,7 @@
         hopsCount: 15,
         /** System IDs from project Impact > Systems – shown in orange */
         impactSystemIds: new Set(),
-        /** Systems directly linked to impact systems (1 hop only) – shown in grey */
+        /** Systems linked to impact systems up to state.hopsCount (direct + indirect) – shown in grey */
         linkedSystemIds: new Set(),
         systemsData: new Map(),
         interfacesData: [],
@@ -456,7 +455,7 @@
         }
 
         if (graph.nodes.length === 0) {
-            showPlaceholder('No systems in Impact tab. Add systems in Impact > System, or add records in Impact > Data Sets or Data Attributes (systems from those sub-tabs also appear on the map). Orange = impact systems; grey = systems directly linked to them (1 hop only).');
+            showPlaceholder('No systems in Impact tab. Add systems in Impact > System, or add records in Impact > Data Sets or Data Attributes (systems from those sub-tabs also appear on the map). Orange = impact systems; grey = systems linked to them up to the selected hops.');
             hideLoading();
             return;
         }

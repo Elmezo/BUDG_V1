@@ -250,8 +250,34 @@
                 const interfaceIds = new Set();
                 const dataFlowKeys = new Set();
 
-                for (const systemId of state.impactSystemIds) {
+                // Hop-bounded BFS from each impact system so N-hop neighbors and their
+                // cross-system edges (e.g. A->B->C when hops>=2) are discovered.
+                const depthLimit = Math.min(99, Math.max(1, parseInt(state.hopsCount, 10) || 15));
+                const systemsFullyLoaded = new Set();
+                const systemDepth = new Map();
+                const systemQueue = [];
+                state.impactSystemIds.forEach(id => {
+                    const idStr = String(id);
+                    systemDepth.set(idStr, 0);
+                    systemQueue.push(idStr);
+                });
+
+                while (systemQueue.length > 0) {
+                    const systemId = systemQueue.shift();
+                    if (systemsFullyLoaded.has(systemId)) continue;
+                    const currentDepth = systemDepth.get(systemId) || 0;
                     try {
+                        if (!state.systemsData.has(systemId)) {
+                            const data = await fetchSystemByIdSafe(systemId);
+                            if (data) {
+                                state.systemsData.set(systemId, data);
+                            } else {
+                                // Deleted system: remove from impact seeds so it doesn't appear.
+                                if (state.impactSystemIds.has(systemId)) state.impactSystemIds.delete(systemId);
+                                systemsFullyLoaded.add(systemId);
+                                continue;
+                            }
+                        }
                         const [ifaceRes, flowRes] = await Promise.all([
                             api.getSystemInterfaces(systemId).catch(() => null),
                             api.getDataFlowOutsideInterfaces(systemId).catch(() => null)
@@ -271,27 +297,36 @@
                                 state.dataFlowData.push(flow);
                             }
                         });
-                        if (!state.systemsData.has(systemId)) {
-                            const data = await fetchSystemByIdSafe(systemId);
-                            if (data) state.systemsData.set(systemId, data);
-                            else state.impactSystemIds.delete(systemId);  // deleted system: don't show on map
-                        }
+                        systemsFullyLoaded.add(systemId);
+
+                        if (currentDepth >= depthLimit) continue;
+                        const neighbors = new Set();
+                        ifaceList.forEach(iface => {
+                            const fromId = String(iface.fromId || iface.sourceSystemId || '');
+                            const toId = String(iface.toId || iface.targetSystemId || '');
+                            if (fromId && fromId !== systemId) neighbors.add(fromId);
+                            if (toId && toId !== systemId) neighbors.add(toId);
+                        });
+                        flowList.forEach(flow => {
+                            const fromId = String(flow.fromId || flow.sourceSystemId || '');
+                            const toId = String(flow.toId || flow.targetSystemId || '');
+                            if (fromId && fromId !== systemId) neighbors.add(fromId);
+                            if (toId && toId !== systemId) neighbors.add(toId);
+                        });
+                        neighbors.forEach(nbId => {
+                            const nextDepth = currentDepth + 1;
+                            if (!systemDepth.has(nbId) || systemDepth.get(nbId) > nextDepth) {
+                                systemDepth.set(nbId, nextDepth);
+                            }
+                            if (!systemsFullyLoaded.has(nbId) && !state.impactSystemIds.has(nbId)) {
+                                state.linkedSystemIds.add(nbId);
+                            }
+                            if (!systemsFullyLoaded.has(nbId)) {
+                                systemQueue.push(nbId);
+                            }
+                        });
                     } catch (e) { /* ignore */ }
                 }
-
-                // Project Facet: only 1-hop. Linked = directly connected to an impact system; do NOT add 2-hop.
-                state.interfacesData.forEach(iface => {
-                    const fromId = String(iface.fromId || iface.sourceSystemId || '');
-                    const toId = String(iface.toId || iface.targetSystemId || '');
-                    if (fromId && state.impactSystemIds.has(fromId) && !state.impactSystemIds.has(toId)) state.linkedSystemIds.add(toId);
-                    if (toId && state.impactSystemIds.has(toId) && !state.impactSystemIds.has(fromId)) state.linkedSystemIds.add(fromId);
-                });
-                state.dataFlowData.forEach(flow => {
-                    const fromId = String(flow.fromId || flow.sourceSystemId || '');
-                    const toId = String(flow.toId || flow.targetSystemId || '');
-                    if (fromId && state.impactSystemIds.has(fromId) && !state.impactSystemIds.has(toId)) state.linkedSystemIds.add(toId);
-                    if (toId && state.impactSystemIds.has(toId) && !state.impactSystemIds.has(fromId)) state.linkedSystemIds.add(fromId);
-                });
 
                 // Overlay: Impact datasets/attributes and interface data (solid edges only)
                 await loadProjectImpactDatasetsAndAttributes(projectId);

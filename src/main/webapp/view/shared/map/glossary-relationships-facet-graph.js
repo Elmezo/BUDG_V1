@@ -316,16 +316,31 @@
             
             // Mark linked in state
             linkedDatasetIds.forEach(id => state.linkedDatasets.add(id));
-            
-            // 5) Load linked dataset details and collect relationship edges (to find "other" datasets)
-            const otherDatasetIds = new Set();
-            for (const datasetId of linkedDatasetIds) {
+
+            // 5) Hop-bounded BFS from every linked dataset (seed set) over
+            //    /api/dataset-relationships/{id} to discover indirect datasets.
+            const depthLimit = Math.min(99, Math.max(1, parseInt(state.hopsCount, 10) || 15));
+            const datasetDepth = new Map();
+            const datasetQueue = [];
+            linkedDatasetIds.forEach(id => {
+                const idStr = String(id);
+                datasetDepth.set(idStr, 0);
+                datasetQueue.push(idStr);
+            });
+            const processedDatasets = new Set();
+            while (datasetQueue.length > 0) {
+                const datasetId = datasetQueue.shift();
+                if (processedDatasets.has(datasetId)) continue;
+                processedDatasets.add(datasetId);
+                const currentDepth = datasetDepth.get(datasetId) || 0;
                 try {
-                    const datasetData = await window.BUDG_API_SERVICE.getDatasetById(datasetId, null, { silent404: true });
-                    const dataset = datasetData?.data || datasetData;
-                    if (dataset) {
-                        state.datasetsData.set(String(datasetId), dataset);
+                    if (!state.datasetsData.has(datasetId)) {
+                        const datasetData = await window.BUDG_API_SERVICE.getDatasetById(datasetId, null, { silent404: true });
+                        const dataset = datasetData?.data || datasetData;
+                        if (dataset) state.datasetsData.set(datasetId, dataset);
                     }
+                    // Don't fetch further relationships once we've hit the hop limit.
+                    if (currentDepth >= depthLimit) continue;
                     const relResp = await fetch(`/api/dataset-relationships/${datasetId}`, { method: 'GET', credentials: 'include', headers: { 'Content-Type': 'application/json' } });
                     if (relResp.ok) {
                         const relData = await relResp.json();
@@ -339,27 +354,21 @@
                                     sourceDatasetId: srcId,
                                     targetDatasetId: tgtId
                                 });
-                                if (!linkedDatasetIds.has(srcId)) otherDatasetIds.add(srcId);
-                                if (!linkedDatasetIds.has(tgtId)) otherDatasetIds.add(tgtId);
+                                const nextDepth = currentDepth + 1;
+                                [srcId, tgtId].forEach(nbId => {
+                                    if (!nbId || nbId === datasetId) return;
+                                    if (!datasetDepth.has(nbId) || datasetDepth.get(nbId) > nextDepth) {
+                                        datasetDepth.set(nbId, nextDepth);
+                                    }
+                                    if (!processedDatasets.has(nbId)) {
+                                        datasetQueue.push(nbId);
+                                    }
+                                });
                             }
                         });
                     }
                 } catch (e) {
                     facetWarn('[GLOSSARY-RELATIONSHIPS-MAP] Error loading dataset', datasetId, e);
-                }
-            }
-            
-            // 6) Load "other" dataset details (connected but not linked)
-            for (const datasetId of otherDatasetIds) {
-                if (state.datasetsData.has(String(datasetId))) continue;
-                try {
-                    const datasetData = await window.BUDG_API_SERVICE.getDatasetById(datasetId, null, { silent404: true });
-                    const dataset = datasetData?.data || datasetData;
-                    if (dataset) {
-                        state.datasetsData.set(String(datasetId), dataset);
-                    }
-                } catch (e) {
-                    facetWarn('[GLOSSARY-RELATIONSHIPS-MAP] Error loading other dataset', datasetId, e);
                 }
             }
             
@@ -454,54 +463,97 @@
             }
             
             linkedSystemIds.forEach(id => state.linkedSystems.add(id));
-            
-            const otherSystemIds = new Set();
-            for (const systemId of linkedSystemIds) {
+
+            // Hop-bounded BFS from every linked system (seed) over interfaces + data-flow
+            // to discover indirect systems up to state.hopsCount levels.
+            const depthLimit = Math.min(99, Math.max(1, parseInt(state.hopsCount, 10) || 15));
+            const interfaceIds = new Set();
+            const dataFlowKeys = new Set();
+            state.interfacesData.forEach(iface => {
+                if (iface?.id != null) interfaceIds.add(String(iface.id));
+            });
+            state.dataFlowData.forEach(flow => {
+                const key = window.MapGraphUtils.buildDataFlowKey(flow, { useArrowSeparator: true });
+                if (key) dataFlowKeys.add(key);
+            });
+            const systemsFullyLoaded = new Set();
+            const systemDepth = new Map();
+            const systemQueue = [];
+            linkedSystemIds.forEach(id => {
+                const idStr = String(id);
+                systemDepth.set(idStr, 0);
+                systemQueue.push(idStr);
+            });
+
+            while (systemQueue.length > 0) {
+                const systemId = systemQueue.shift();
+                if (systemsFullyLoaded.has(systemId)) continue;
+                const currentDepth = systemDepth.get(systemId) || 0;
                 try {
-                    const systemData = await window.BUDG_API_SERVICE.getSystemById(systemId);
-                    const data = systemData?.data || systemData;
-                    if (data && !data.error) {
-                        state.systemsData.set(String(systemId), data);
+                    if (!state.systemsData.has(systemId)) {
+                        const systemData = await window.BUDG_API_SERVICE.getSystemById(systemId);
+                        const data = systemData?.data || systemData;
+                        if (data && !data.error) {
+                            state.systemsData.set(systemId, data);
+                        } else if (data && data.error && (String(data.error).includes('403') || String(data.error).toLowerCase().includes('forbidden'))) {
+                            state.inaccessibleSystems.add(systemId);
+                            systemsFullyLoaded.add(systemId);
+                            continue;
+                        }
                     }
-                    const interfaces = await window.BUDG_API_SERVICE.getSystemInterfaces(systemId);
+                    // Always fetch a node's edges so it can contribute to cross-system links,
+                    // but only enqueue new neighbors while we're still inside the hop window.
+                    const interfaces = await window.BUDG_API_SERVICE.getSystemInterfaces(systemId).catch(() => null);
                     const interfacesList = Array.isArray(interfaces?.data) ? interfaces.data : (Array.isArray(interfaces) ? interfaces : []);
-                    state.interfacesData.push(...interfacesList);
-                    const dataFlow = await window.BUDG_API_SERVICE.getDataFlowOutsideInterfaces(systemId);
-                    const dataFlowList = Array.isArray(dataFlow?.data) ? dataFlow.data : (Array.isArray(dataFlow) ? dataFlow : []);
-                    state.dataFlowData.push(...dataFlowList);
                     interfacesList.forEach(iface => {
-                        const fromId = iface.fromId || iface.sourceSystemId;
-                        const toId = iface.toId || iface.targetSystemId;
-                        if (fromId && String(fromId) !== String(systemId)) otherSystemIds.add(String(fromId));
-                        if (toId && String(toId) !== String(systemId)) otherSystemIds.add(String(toId));
+                        const ifaceId = iface?.id;
+                        if (ifaceId != null && !interfaceIds.has(String(ifaceId))) {
+                            state.interfacesData.push(iface);
+                            interfaceIds.add(String(ifaceId));
+                        }
+                    });
+                    const dataFlow = await window.BUDG_API_SERVICE.getDataFlowOutsideInterfaces(systemId).catch(() => null);
+                    const dataFlowList = Array.isArray(dataFlow?.data) ? dataFlow.data : (Array.isArray(dataFlow) ? dataFlow : []);
+                    dataFlowList.forEach(flow => {
+                        const key = window.MapGraphUtils.buildDataFlowKey(flow, { useArrowSeparator: true });
+                        if (key && !dataFlowKeys.has(key)) {
+                            state.dataFlowData.push(flow);
+                            dataFlowKeys.add(key);
+                        }
+                    });
+                    systemsFullyLoaded.add(systemId);
+
+                    if (currentDepth >= depthLimit) continue;
+                    const neighbors = new Set();
+                    interfacesList.forEach(iface => {
+                        const fromId = String(iface.fromId || iface.sourceSystemId || '');
+                        const toId = String(iface.toId || iface.targetSystemId || '');
+                        if (fromId && fromId !== systemId) neighbors.add(fromId);
+                        if (toId && toId !== systemId) neighbors.add(toId);
                     });
                     dataFlowList.forEach(flow => {
-                        const fromId = flow.fromId;
-                        const toId = flow.toId;
-                        if (fromId && String(fromId) !== String(systemId)) otherSystemIds.add(String(fromId));
-                        if (toId && String(toId) !== String(systemId)) otherSystemIds.add(String(toId));
+                        const fromId = String(flow.fromId || flow.sourceSystemId || '');
+                        const toId = String(flow.toId || flow.targetSystemId || '');
+                        if (fromId && fromId !== systemId) neighbors.add(fromId);
+                        if (toId && toId !== systemId) neighbors.add(toId);
                     });
-                } catch (e) {
-                    facetWarn('[GLOSSARY-RELATIONSHIPS-MAP] Error loading system', systemId, e);
-                }
-            }
-            
-            for (const systemId of otherSystemIds) {
-                if (state.systemsData.has(String(systemId))) continue;
-                try {
-                    const systemData = await window.BUDG_API_SERVICE.getSystemById(systemId);
-                    const data = systemData?.data || systemData;
-                    if (data && !data.error) {
-                        state.systemsData.set(String(systemId), data);
-                    } else if (data && data.error && (String(data.error).includes('403') || String(data.error).toLowerCase().includes('forbidden'))) {
-                        state.inaccessibleSystems.add(String(systemId));
-                    }
+                    neighbors.forEach(nbId => {
+                        const nextDepth = currentDepth + 1;
+                        if (!systemDepth.has(nbId) || systemDepth.get(nbId) > nextDepth) {
+                            systemDepth.set(nbId, nextDepth);
+                        }
+                        if (!systemsFullyLoaded.has(nbId)) {
+                            systemQueue.push(nbId);
+                        }
+                    });
                 } catch (e) {
                     const code = e.status || e.statusCode || (e.response && e.response.status);
                     const msg = (e.message || e.toString() || '').toLowerCase();
                     if (code === 403 || msg.includes('403') || msg.includes('forbidden')) {
-                        state.inaccessibleSystems.add(String(systemId));
+                        state.inaccessibleSystems.add(systemId);
                     }
+                    systemsFullyLoaded.add(systemId);
+                    facetWarn('[GLOSSARY-RELATIONSHIPS-MAP] Error loading system', systemId, e);
                 }
             }
             
@@ -691,9 +743,9 @@
             });
         }
         
-        // Hops filter: restrict to nodes within hopsCount from root (System/Data lineage only)
+        // Hops filter: restrict to nodes within hopsCount from root/current for every map type.
         let result = { nodes, edges };
-        if ((state.mapType === 'system-lineage' || state.mapType === 'dataset-lineage') && state.hopsCount > 0) {
+        if (state.hopsCount > 0) {
             result = adapter.applyHopsFilter(result);
         }
         const { nodes: nodesFiltered, edges: edgesFiltered } = adapter.filterHiddenNodes(result.nodes, result.edges);

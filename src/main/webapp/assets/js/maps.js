@@ -1273,16 +1273,54 @@
         const edges = [];
         const edgeMap = new Map();
         const inScopeNodeIds = new Set();
+        const systemAliasToNodeId = new Map();
+
+        function firstPresent(obj, keys) {
+            if (!obj || !Array.isArray(keys)) return null;
+            for (const key of keys) {
+                if (obj[key] != null && String(obj[key]).trim() !== '') return String(obj[key]).trim();
+            }
+            return null;
+        }
+
+        function systemAliasKeys(name, systemId) {
+            const keys = [];
+            if (systemId != null && String(systemId).trim() !== '') keys.push(`id:${String(systemId).trim()}`);
+            const rawName = String(name || '').trim();
+            if (rawName) {
+                const compact = rawName.toLowerCase().replace(/[^a-z0-9]/g, '');
+                if (compact) keys.push(`name:${compact}`);
+                const slug = slugify(rawName);
+                if (slug) keys.push(`slug:${slug}`);
+            }
+            return keys;
+        }
+
+        function resolveSystemNodeId(name, systemId) {
+            const aliases = systemAliasKeys(name, systemId);
+            for (const alias of aliases) {
+                if (systemAliasToNodeId.has(alias)) {
+                    const existing = systemAliasToNodeId.get(alias);
+                    aliases.forEach(a => systemAliasToNodeId.set(a, existing));
+                    return existing;
+                }
+            }
+            const fallback = (name && slugify(name)) ? slugify(name) : `sys-${nodesMap.size + 1}`;
+            const nodeId = `system:${(systemId != null && String(systemId).trim() !== '') ? String(systemId).trim() : fallback}`;
+            aliases.forEach(a => systemAliasToNodeId.set(a, nodeId));
+            return nodeId;
+        }
 
         // Create system nodes (Axon: orange = in scope of active search)
         rows.forEach((row, index) => {
             const systemName = row['Short Name'] || row['Long Name'] || row.Name || `System ${index + 1}`;
-            const systemId = `system:${slugify(systemName)}`;
-            inScopeNodeIds.add(systemId);
+            const rawSystemId = firstPresent(row, ['ID', 'id', 'System ID', 'systemId', 'system_id']);
+            const systemNodeId = resolveSystemNodeId(systemName, rawSystemId);
+            inScopeNodeIds.add(systemNodeId);
 
-            if (!nodesMap.has(systemId)) {
-                nodesMap.set(systemId, {
-                    id: systemId,
+            if (!nodesMap.has(systemNodeId)) {
+                nodesMap.set(systemNodeId, {
+                    id: systemNodeId,
                     label: systemName,
                     group: 'system',
                     level: 1,
@@ -1299,7 +1337,8 @@
             // Check for parent system relationships
             const parentSystem = row['Parent Short Name'] || row['Parent System'];
             if (parentSystem) {
-                const parentId = `system:${slugify(parentSystem)}`;
+                const parentSystemId = firstPresent(row, ['Parent System ID', 'parentSystemId', 'parent_system_id', 'Parent ID', 'parentId', 'parent_id']);
+                const parentId = resolveSystemNodeId(parentSystem, parentSystemId);
                 
                 if (!nodesMap.has(parentId)) {
                     nodesMap.set(parentId, {
@@ -1311,13 +1350,13 @@
                     });
                 }
 
-                const edgeId = `${parentId}->${systemId}`;
+                const edgeId = `${parentId}->${systemNodeId}`;
                 if (!edgeMap.has(edgeId)) {
                     edgeMap.set(edgeId, true);
                             edges.push({
                                 id: edgeId,
                                 from: parentId,
-                                to: systemId,
+                                to: systemNodeId,
                                 label: 'parent',
                                 dashes: true,
                                 color: '#94a3b8'
@@ -1338,8 +1377,10 @@
                     const hasLinkingAttributes = dataAttributes > 0;
 
                     if (sourceSystem && targetSystem) {
-                        const sourceId = `system:${slugify(sourceSystem)}`;
-                        const targetId = `system:${slugify(targetSystem)}`;
+                        const sourceSystemId = firstPresent(row, ['Source System ID', 'sourceSystemId', 'source_system_id', 'Source ID', 'sourceId', 'source_id']);
+                        const targetSystemId = firstPresent(row, ['Target System ID', 'targetSystemId', 'target_system_id', 'Target ID', 'targetId', 'target_id']);
+                        const sourceId = resolveSystemNodeId(sourceSystem, sourceSystemId);
+                        const targetId = resolveSystemNodeId(targetSystem, targetSystemId);
 
                         if (!nodesMap.has(sourceId)) {
                             nodesMap.set(sourceId, {
@@ -2685,12 +2726,146 @@
 
         const results = new Map();
         const API = window.BUDG_API_SERVICE || window.apiService;
+        const systemDatasetCache = new Map();
+        const datasetAttrGlossaryCache = new Map();
+        const datasetRelatedCache = new Map();
 
         function markInaccessibleSystem(id) {
             if (id != null) MapState.inaccessibleSystemIds.add(String(id));
         }
         function markInaccessibleDataset(id) {
             if (id != null) MapState.inaccessibleDatasetIds.add(String(id));
+        }
+        function asArray(v) {
+            if (Array.isArray(v)) return v;
+            if (Array.isArray(v?.data)) return v.data;
+            return [];
+        }
+        function firstPresent(obj, keys) {
+            if (!obj || !Array.isArray(keys)) return null;
+            for (const k of keys) {
+                const val = obj[k];
+                if (val != null && String(val).trim() !== '') return String(val).trim();
+            }
+            return null;
+        }
+        function datasetIdFromRow(row) {
+            return firstPresent(row, [
+                'id', 'ID', 'datasetId', 'dataset_id', 'Dataset ID', 'datasetID',
+                'relatedDatasetId', 'related_dataset_id',
+                'sourceDatasetId', 'source_dataset_id', 'Source Dataset ID',
+                'targetDatasetId', 'target_dataset_id', 'Target Dataset ID',
+                'fromDatasetId', 'toDatasetId'
+            ]);
+        }
+        async function getSystemDatasetsCached(systemId) {
+            const sid = String(systemId);
+            if (systemDatasetCache.has(sid)) return systemDatasetCache.get(sid);
+            let dsList = [];
+            if (API && typeof API.getSystemDatasets === 'function') {
+                const dsRes = await API.getSystemDatasets(systemId).catch(err => { if (err && err.status === 403) markInaccessibleSystem(systemId); return null; });
+                dsList = asArray(dsRes);
+            } else {
+                const r = await fetch(`/api/system-data/${systemId}/datasets`, { credentials: 'include' }).catch(() => null);
+                if (r && r.status === 403) markInaccessibleSystem(systemId);
+                const j = r && r.ok ? await r.json() : null;
+                dsList = asArray(j);
+            }
+            systemDatasetCache.set(sid, dsList);
+            return dsList;
+        }
+        async function getDatasetAttributeGlossariesCached(datasetId) {
+            const did = String(datasetId);
+            if (datasetAttrGlossaryCache.has(did)) return datasetAttrGlossaryCache.get(did);
+            const names = [];
+            try {
+                const attrR = await fetch('/api/attribute/' + did, { credentials: 'include' }).catch(function() { return null; });
+                if (attrR && attrR.status === 403) markInaccessibleDataset(did);
+                const attrJ = attrR && attrR.ok ? await attrR.json() : null;
+                const attrArr = asArray(attrJ);
+                attrArr.forEach(function(a) {
+                    const gn = a['Glossary Name attribute'] || a.glossaryName || a.GlossaryName;
+                    if (gn && names.indexOf(gn) === -1) names.push(gn);
+                });
+            } catch (e) { /* skip */ }
+            datasetAttrGlossaryCache.set(did, names);
+            return names;
+        }
+        function extractRelatedDatasetIds(payload, seedDatasetId) {
+            const related = new Set();
+            const seed = seedDatasetId != null ? String(seedDatasetId) : null;
+            const rows = asArray(payload);
+            rows.forEach(function(row) {
+                if (row == null) return;
+                if (typeof row !== 'object') {
+                    const id = String(row);
+                    if (id && id !== seed) related.add(id);
+                    return;
+                }
+                const src = firstPresent(row, ['sourceDatasetId', 'source_dataset_id', 'Source Dataset ID', 'fromDatasetId']);
+                const tgt = firstPresent(row, ['targetDatasetId', 'target_dataset_id', 'Target Dataset ID', 'toDatasetId', 'relatedDatasetId', 'related_dataset_id']);
+                const rid = firstPresent(row, [
+                    'datasetId', 'dataset_id', 'Dataset ID', 'datasetID',
+                    'relatedDatasetId', 'related_dataset_id'
+                ]);
+                const nestedSrc = datasetIdFromRow(row.sourceDataset || row.source || null);
+                const nestedTgt = datasetIdFromRow(row.targetDataset || row.target || row.relatedDataset || null);
+                const candidates = [rid, src, tgt, nestedSrc, nestedTgt];
+                if (seed && src && tgt) {
+                    if (String(src) === seed && String(tgt) !== seed) related.add(String(tgt));
+                    else if (String(tgt) === seed && String(src) !== seed) related.add(String(src));
+                }
+                candidates.forEach(function(c) {
+                    if (c != null && String(c) !== '' && String(c) !== seed) related.add(String(c));
+                });
+            });
+            return related;
+        }
+        async function getRelatedDatasetIdsCached(datasetId) {
+            const did = String(datasetId);
+            if (datasetRelatedCache.has(did)) return datasetRelatedCache.get(did);
+            let related = new Set();
+            try {
+                const relResp = await fetch(`/api/dataset-relationships/${did}`, { credentials: 'include' }).catch(() => null);
+                if (relResp && relResp.status === 403) markInaccessibleDataset(did);
+                const relJson = relResp && relResp.ok ? await relResp.json() : null;
+                related = extractRelatedDatasetIds(relJson, did);
+            } catch (e) { /* skip */ }
+            datasetRelatedCache.set(did, related);
+            return related;
+        }
+
+        const glossarySystemLineageMode = overlayType === 'glossary' && MapState.mapType === 'system-lineage';
+        let inScopeSystemIds = new Set();
+        let datasetsBySystemId = new Map();
+        let relatedToInScopeDatasetIds = new Set();
+
+        if (glossarySystemLineageMode) {
+            const inScopeNodeIds = MapState.inScopeNodeIds || new Set();
+            for (const [nodeId, info] of overlayData) {
+                if (info.group !== 'system' || !info.systemId) continue;
+                const sid = String(info.systemId);
+                if (!datasetsBySystemId.has(sid)) {
+                    const dsList = await getSystemDatasetsCached(sid);
+                    datasetsBySystemId.set(sid, dsList);
+                }
+                if (inScopeNodeIds.has(nodeId) || (info.nodeData && info.nodeData.inScope)) {
+                    inScopeSystemIds.add(sid);
+                }
+            }
+            const inScopeDatasetIds = new Set();
+            inScopeSystemIds.forEach(function(sid) {
+                const list = datasetsBySystemId.get(sid) || [];
+                list.forEach(function(ds) {
+                    const did = datasetIdFromRow(ds);
+                    if (did != null && String(did) !== '') inScopeDatasetIds.add(String(did));
+                });
+            });
+            for (const did of inScopeDatasetIds) {
+                relatedToInScopeDatasetIds.add(String(did));
+                const relSet = await getRelatedDatasetIdsCached(did);
+                relSet.forEach(function(rid) { relatedToInScopeDatasetIds.add(String(rid)); });
+            }
         }
 
         for (const [nodeId, info] of overlayData) {
@@ -2722,34 +2897,29 @@
                         items = Array.isArray((json && json.data) || json) ? ((json && json.data) || json) : [];
                     } else if (overlayType === 'glossary') {
                         var seenSysG = new Set();
-                        // 1) System-level glossary
-                        if (API && typeof API.getSystemById === 'function') {
+                        var sid = String(systemId);
+                        if (!glossarySystemLineageMode && API && typeof API.getSystemById === 'function') {
                             var s = await API.getSystemById(systemId).catch(err => { if (err && err.status === 403) markInaccessibleSystem(systemId); return null; });
                             var d = (s && (s.data || s)) || {};
                             var sysGName = d.primaryGlossaryName || d.glossaryName;
                             if (sysGName && !seenSysG.has(sysGName)) { seenSysG.add(sysGName); items.push({ name: sysGName, source: 'system' }); }
                         }
-                        // 2) Dataset-level and attribute-level glossary
-                        var sysDsList = [];
-                        if (API && typeof API.getSystemDatasets === 'function') {
-                            var dsRes = await API.getSystemDatasets(systemId).catch(() => null);
-                            var dsArr = Array.isArray(dsRes?.data) ? dsRes.data : (Array.isArray(dsRes) ? dsRes : []);
-                            sysDsList = dsArr;
-                        }
+                        var sysDsList = glossarySystemLineageMode
+                            ? (datasetsBySystemId.get(sid) || [])
+                            : await getSystemDatasetsCached(sid);
+                        var isInScopeSystem = glossarySystemLineageMode ? inScopeSystemIds.has(sid) : true;
                         for (var sd of sysDsList) {
-                            var sdId = sd.id ?? sd.datasetId ?? sd.dataset_id;
-                            var sdGName = sd.glossaryName;
+                            var sdId = datasetIdFromRow(sd);
+                            if (glossarySystemLineageMode && !isInScopeSystem) {
+                                if (!sdId || !relatedToInScopeDatasetIds.has(String(sdId))) continue;
+                            }
+                            var sdGName = sd.glossaryName || sd['Glossary Name'] || sd.primaryGlossaryName;
                             if (sdGName && !seenSysG.has(sdGName)) { seenSysG.add(sdGName); items.push({ name: sdGName, source: 'dataset' }); }
                             if (sdId) {
-                                try {
-                                    var attrR = await fetch('/api/attribute/' + sdId, { credentials: 'include' }).catch(function() { return null; });
-                                    var attrJ = attrR && attrR.ok ? await attrR.json() : null;
-                                    var attrArr = Array.isArray(attrJ?.data) ? attrJ.data : (Array.isArray(attrJ) ? attrJ : []);
-                                    attrArr.forEach(function(a) {
-                                        var gn = a['Glossary Name attribute'] || a.glossaryName || a.GlossaryName;
-                                        if (gn && !seenSysG.has(gn)) { seenSysG.add(gn); items.push({ name: gn, source: 'attribute' }); }
-                                    });
-                                } catch (e) { /* skip */ }
+                                var attrGlossaries = await getDatasetAttributeGlossariesCached(sdId);
+                                attrGlossaries.forEach(function(gn) {
+                                    if (gn && !seenSysG.has(gn)) { seenSysG.add(gn); items.push({ name: gn, source: 'attribute' }); }
+                                });
                             }
                         }
                     } else if (overlayType === 'attributes' || overlayType === 'linking-attributes') {
@@ -3142,27 +3312,39 @@
             return;
         }
 
-        const png = MapState.network.png({
-            output: 'blob',
-            bg: '#ffffff',
-            full: true
-        });
+        const filename = `budg-map-${Date.now()}.png`;
 
-        png.then(blob => {
-            if (!blob || blob.size === 0) {
-                alert('Export failed: empty image');
-                return;
-            }
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = `budg-map-${Date.now()}.png`;
-            link.click();
-            URL.revokeObjectURL(url);
-        }).catch(err => {
+        if (typeof window.exportMapWithOverlays === 'function' && MapState.canvas) {
+            window.exportMapWithOverlays(MapState.network, MapState.canvas, filename);
+            return;
+        }
+
+        try {
+            const png = MapState.network.png({
+                output: 'blob',
+                bg: '#ffffff',
+                full: true
+            });
+
+            png.then(blob => {
+                if (!blob || blob.size === 0) {
+                    alert('Export failed: empty image');
+                    return;
+                }
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = filename;
+                link.click();
+                URL.revokeObjectURL(url);
+            }).catch(err => {
+                console.error('[MAPS] Export PNG failed', err);
+                alert('Export failed. Try zooming or refreshing the map.');
+            });
+        } catch (err) {
             console.error('[MAPS] Export PNG failed', err);
             alert('Export failed. Try zooming or refreshing the map.');
-        });
+        }
     }
 
     // Helper for categoryToModule when not provided by search (e.g. standalone maps.html)

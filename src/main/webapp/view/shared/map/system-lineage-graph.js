@@ -79,6 +79,17 @@
                 showPlaceholder('System id is missing or invalid.');
                 return;
             }
+            // Reset collections so reloads/switches don't accumulate stale data.
+            state.systemData = null;
+            state.interfacesData = [];
+            state.dataFlowData = [];
+            state.connectedSystems = new Map();
+            state.inaccessibleSystems = new Set();
+            state.deletedSystems = new Set();
+            state.systemsFullyLoaded = new Set();
+            state.interfaceIds = new Set();
+            state.dataFlowKeys = new Set();
+
             // Load system data, interfaces, and data flow outside interfaces in parallel
             const [systemData, interfacesData, dataFlowData] = await Promise.all([
                 window.BUDG_API_SERVICE.getSystemById(systemId),
@@ -96,6 +107,8 @@
                 const key = window.MapGraphUtils.buildDataFlowKey(flow, { useArrowSeparator: true });
                 if (key) state.dataFlowKeys.add(key);
             });
+            // Root system's interfaces + data flow now loaded — mark as fully loaded.
+            state.systemsFullyLoaded.add(String(systemId));
 
             dLogMap(logPrefix + ' System data:', systemData);
             dLogMap(logPrefix + ' Interfaces:', state.interfacesData);
@@ -128,6 +141,7 @@
                     // Check if system is deleted (404) vs inaccessible (403)
                     if (!sysData || (sysData.error && sysData.error.includes('404'))) {
                         // Deleted system - skip it (don't add to map)
+                        if (state.deletedSystems) state.deletedSystems.add(String(sysId));
                         dLogMap(logPrefix + ' System', sysId, 'not found (likely deleted), skipping');
                         return;
                     }
@@ -154,6 +168,7 @@
                     
                     if (isNotFound) {
                         // Deleted system - skip it
+                        if (state.deletedSystems) state.deletedSystems.add(String(sysId));
                         dLogMap(logPrefix + ' System', sysId, 'not found (likely deleted), skipping');
                     } else if (isForbidden) {
                         // Segment restriction - show as locked
@@ -173,6 +188,10 @@
             
             await Promise.all(connectedSystemPromises);
             dLogMap(logPrefix + ' Connected systems data:', state.connectedSystems);
+
+            // Expand fetched lineage to requested hop depth before graph build.
+            const requestedDepth = Math.min(99, Math.max(1, parseInt(state.hopsCount, 10) || 15));
+            await expandConnectedSystemsLineage(requestedDepth);
 
             // Build and render graph with all system data
             const graph = buildSystemLineageGraph();
@@ -231,16 +250,6 @@
                 const interfaceName = iface.name || '';
                 const dataAttributes = iface.dataAttributes || 0;
                 
-                // Filter: Only show interfaces where current system is FROM or TO
-                const isFromCurrent = String(fromId || '') === String(currentSystemId) ||
-                                     (fromSystem || '').toLowerCase() === currentSystemName.toLowerCase();
-                const isToCurrent = String(toId || '') === String(currentSystemId) ||
-                                   (toSystem || '').toLowerCase() === currentSystemName.toLowerCase();
-                
-                if (!isFromCurrent && !isToCurrent) {
-                    return; // Skip interfaces not related to current system
-                }
-                
                 // Filter by dataAttributes:
                 // - systemInterfaces: show dashed lines (dataAttributes = 0, interface connections)
                 // - dataAttributeLinks: show solid lines (dataAttributes > 0, attribute lineage)
@@ -260,8 +269,8 @@
                     const systemInfo = state.connectedSystems.get(String(fromId));
                     const isInaccessible = state.inaccessibleSystems.has(String(fromId));
                     
-                    // If system is not in either map, it's likely deleted - skip it
-                    if (!systemInfo && !isInaccessible) {
+                    // Skip if explicitly known deleted
+                    if (state.deletedSystems && state.deletedSystems.has(String(fromId))) {
                         dLogMap(logPrefix + ' Skipping deleted system', fromId, 'from interface', interfaceName);
                         return; // Skip this interface entirely
                     }
@@ -302,8 +311,8 @@
                     const systemInfo = state.connectedSystems.get(String(toId));
                     const isInaccessible = state.inaccessibleSystems.has(String(toId));
                     
-                    // If system is not in either map, it's likely deleted - skip it
-                    if (!systemInfo && !isInaccessible) {
+                    // Skip if explicitly known deleted
+                    if (state.deletedSystems && state.deletedSystems.has(String(toId))) {
                         dLogMap(logPrefix + ' Skipping deleted system', toId, 'from interface', interfaceName);
                         return; // Skip this interface entirely
                     }
@@ -381,24 +390,14 @@
                 const toId = flow.toId;
                 const dataAttributes = flow.dataAttributes || 0;
                 
-                // Filter: Only show data flow where current system is FROM or TO
-                const isFromCurrent = String(fromId || '') === String(currentSystemId) ||
-                                     (fromSystem || '').toLowerCase() === currentSystemName.toLowerCase();
-                const isToCurrent = String(toId || '') === String(currentSystemId) ||
-                                   (toSystem || '').toLowerCase() === currentSystemName.toLowerCase();
-                
-                if (!isFromCurrent && !isToCurrent) {
-                    return; // Skip data flow not related to current system
-                }
-
                 // Add source system node (only if it exists - skip deleted systems)
                 if (fromId && !nodesMap.has(String(fromId))) {
                     // Skip if system is deleted (not in connectedSystems and not in inaccessibleSystems)
                     const systemInfo = state.connectedSystems.get(String(fromId));
                     const isInaccessible = state.inaccessibleSystems.has(String(fromId));
                     
-                    // If system is not in either map, it's likely deleted - skip this data flow
-                    if (!systemInfo && !isInaccessible) {
+                    // Skip if explicitly known deleted
+                    if (state.deletedSystems && state.deletedSystems.has(String(fromId))) {
                         dLogMap(logPrefix + ' Skipping deleted system', fromId, 'from data flow');
                         return; // Skip this data flow entirely
                     }
@@ -438,8 +437,8 @@
                     const systemInfo = state.connectedSystems.get(String(toId));
                     const isInaccessible = state.inaccessibleSystems.has(String(toId));
                     
-                    // If system is not in either map, it's likely deleted - skip this data flow
-                    if (!systemInfo && !isInaccessible) {
+                    // Skip if explicitly known deleted
+                    if (state.deletedSystems && state.deletedSystems.has(String(toId))) {
                         dLogMap(logPrefix + ' Skipping deleted system', toId, 'from data flow');
                         return; // Skip this data flow entirely
                     }
@@ -1186,57 +1185,32 @@
 
     // Expand lineage by pulling connections of neighboring systems (multi-hop)
     // This shows all systems connected to the current system, and systems connected to those systems
-    // Example: CRM -> QWR -> QWR2 (all will be shown)
+    // Example: CRM -> QWR -> QWR2 (all will be shown) up to state.hopsCount depth.
     async function expandConnectedSystemsLineage(maxDepth = 2) {
-        const visited = new Set();
-        const rootId = String(state.systemId);
-        visited.add(rootId);
+        const depthLimit = Math.min(99, Math.max(1, parseInt(maxDepth, 10) || 2));
+        const rootId = String(state.systemId || '');
+        if (!rootId) return;
 
-        const queue = [{ id: rootId, depth: 0 }];
-        const systemsToFetch = new Set([rootId]);
+        if (!state.systemsFullyLoaded) state.systemsFullyLoaded = new Set();
+        // Root's interfaces/data-flow are loaded by the caller (loadMapData / _mapEngineApiLoader)
+        state.systemsFullyLoaded.add(rootId);
 
-        // First pass: collect all system IDs that need to be fetched
-        while (queue.length > 0) {
-            const { id, depth } = queue.shift();
-            if (depth >= maxDepth) continue;
-
-            const neighbors = getNeighborsForSystem(id);
-            for (const neighborId of neighbors) {
-                const nIdStr = String(neighborId);
-                if (visited.has(nIdStr)) continue;
-                visited.add(nIdStr);
-                systemsToFetch.add(nIdStr);
-                queue.push({ id: nIdStr, depth: depth + 1 });
-            }
-        }
-
-        // Second pass: fetch all systems in parallel (more efficient)
-        const fetchPromises = Array.from(systemsToFetch).map(systemId => 
-            fetchAndMergeSystem(systemId).catch(error => {
-                dWarnMap(`${logPrefix} Failed to fetch system ${systemId}:`, error);
-                state.inaccessibleSystems.add(String(systemId));
-            })
-        );
-
-        await Promise.all(fetchPromises);
-
-        // Third pass: rebuild neighbors after fetching all systems
-        // This ensures we get connections from newly fetched systems (like QWR2)
-        const allNeighbors = new Set();
-        systemsToFetch.forEach(systemId => {
-            const neighbors = getNeighborsForSystem(systemId);
-            neighbors.forEach(n => allNeighbors.add(String(n)));
-        });
-
-        // Fetch any additional systems that were discovered
-        const additionalSystems = Array.from(allNeighbors).filter(id => !systemsToFetch.has(id));
-        if (additionalSystems.length > 0) {
-            await Promise.all(additionalSystems.map(systemId => 
-                fetchAndMergeSystem(systemId).catch(error => {
-                    dWarnMap(`${logPrefix} Failed to fetch additional system ${systemId}:`, error);
-                    state.inaccessibleSystems.add(String(systemId));
-                })
-            ));
+        const U = window.MapGraphUtils;
+        if (U && typeof U.expandByHops === 'function') {
+            await U.expandByHops({
+                rootId: rootId,
+                maxDepth: depthLimit,
+                getNeighbors: function (id) { return getNeighborsForSystem(id); },
+                fetchAndMerge: function (id) { return fetchAndMergeSystem(id); },
+                isLoaded: function (id) {
+                    return state.systemsFullyLoaded.has(String(id)) ||
+                           (state.deletedSystems && state.deletedSystems.has(String(id)));
+                },
+                onError: function (id, err) {
+                    dWarnMap(`${logPrefix} Failed to fetch system ${id}:`, err);
+                    state.inaccessibleSystems.add(String(id));
+                }
+            });
         }
     }
 
@@ -1245,11 +1219,12 @@
     async function fetchAndMergeSystem(systemId) {
         if (!systemId) return;
         const idStr = String(systemId);
-        
-        // Skip if already fetched (unless it failed before)
-        if (state.connectedSystems.has(idStr) && !state.inaccessibleSystems.has(idStr)) {
-            return;
-        }
+
+        if (!state.systemsFullyLoaded) state.systemsFullyLoaded = new Set();
+        // Skip if we've already fully loaded this system's interfaces/data-flow.
+        if (state.systemsFullyLoaded.has(idStr)) return;
+        // Skip known-deleted systems.
+        if (state.deletedSystems && state.deletedSystems.has(idStr)) return;
 
         try {
             let systemData = null;
@@ -1269,6 +1244,7 @@
                 if (isNotFound) {
                     // 404 Not Found = deleted system - skip it (don't add to map)
                     dLogMap(logPrefix + ' System', idStr, 'not found (likely deleted), skipping');
+                    if (state.deletedSystems) state.deletedSystems.add(idStr);
                     return;
                 } else if (isForbidden) {
                     // 403 Forbidden = segment access restriction - show as locked
@@ -1295,6 +1271,7 @@
             if (!systemData || (systemData.error && systemData.error.includes('404'))) {
                 // Deleted system - skip it
                 dLogMap(logPrefix + ' System', idStr, 'not found (likely deleted), skipping');
+                if (state.deletedSystems) state.deletedSystems.add(idStr);
                 return;
             }
             
@@ -1336,6 +1313,10 @@
                     state.dataFlowKeys.add(key);
                 }
             });
+
+            // Mark as fully loaded so subsequent hop expansions don't refetch.
+            if (!state.systemsFullyLoaded) state.systemsFullyLoaded = new Set();
+            state.systemsFullyLoaded.add(idStr);
         } catch (error) {
             // System is likely inaccessible due to segment permissions
             dWarnMap(logPrefix + ' Unable to expand system (likely inaccessible/locked):', idStr, error);
@@ -1362,6 +1343,8 @@
             state.dataFlowData       = [];
             state.connectedSystems   = new Map();
             state.inaccessibleSystems = new Set();
+            state.deletedSystems    = new Set();
+            state.systemsFullyLoaded = new Set();
             state.interfaceIds       = new Set();
             state.dataFlowKeys       = new Set();
             state.datasetsData       = [];
@@ -1409,14 +1392,26 @@
                 await Promise.all(Array.from(connectedSystemIds).map(async sysId => {
                     try {
                         const sysData = await window.BUDG_API_SERVICE.getSystemById(sysId);
-                        if (!sysData || (sysData.error && sysData.error.includes('404'))) { return; }
+                        if (!sysData || (sysData.error && sysData.error.includes('404'))) {
+                            state.deletedSystems.add(String(sysId));
+                            return;
+                        }
                         if (sysData && !sysData.error) {
                             state.connectedSystems.set(String(sysId), { systemData: sysData });
                         } else if (sysData && sysData.error && sysData.error.includes('403')) {
                             state.inaccessibleSystems.add(String(sysId));
                         }
-                    } catch (e) { /* skip inaccessible */ }
+                    } catch (e) {
+                        const statusCode = e.status || e.statusCode || (e.response && e.response.status);
+                        const errorMessage = e.message || e.toString() || '';
+                        const isNotFound = statusCode === 404 || errorMessage.includes('404') || errorMessage.toLowerCase().includes('not found');
+                        if (isNotFound) state.deletedSystems.add(String(sysId));
+                        /* skip inaccessible */
+                    }
                 }));
+
+                const requestedDepth = Math.min(99, Math.max(1, parseInt(state.hopsCount, 10) || 15));
+                await expandConnectedSystemsLineage(requestedDepth);
             }
 
             return { entity: state.systemData, _state: state };

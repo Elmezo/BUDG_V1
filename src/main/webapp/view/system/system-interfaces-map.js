@@ -50,6 +50,8 @@
         dataFlowData: [],
         connectedSystems: new Map(),
         inaccessibleSystems: new Set(),
+        deletedSystems: new Set(),
+        systemsFullyLoaded: new Set(),
         interfaceIds: new Set(),
         dataFlowKeys: new Set(),
         hiddenNodes: new Set(),
@@ -409,12 +411,36 @@
         }
     }
 
-    // Set hops count (1-99, Axon recommends 15)
+    // Set hops count (1-99, Axon recommends 15). Triggers a full reload so
+    // multi-hop expansion fetches indirect relationships at the new depth.
     function setHopsCount(count) {
         const val = Math.min(99, Math.max(1, parseInt(count, 10) || 15));
         InterfaceMapState.hopsCount = val;
-        if (InterfaceMapState.network) {
-            const graph = InterfaceMapState.mapType === 'dataset-lineage' ? buildDatasetLineageGraph() : buildSystemLineageGraph();
+        if (!InterfaceMapState.systemId) return;
+        if (InterfaceMapState.mapType === 'system-lineage') {
+            showLoading();
+            expandConnectedSystemsLineage(val)
+                .catch(function (err) {
+                    embWarn('[INTERFACE-MAP] Failed to expand lineage for hops update:', err);
+                })
+                .finally(function () {
+                    const graph = buildSystemLineageGraph();
+                    renderNetwork(graph);
+                    hideLoading();
+                });
+        } else if (InterfaceMapState.mapType === 'dataset-lineage') {
+            showLoading();
+            loadDatasetLineageData()
+                .catch(function (err) {
+                    embWarn('[INTERFACE-MAP] Failed to reload dataset lineage for hops update:', err);
+                })
+                .finally(function () {
+                    const graph = buildDatasetLineageGraph();
+                    renderNetwork(graph);
+                    hideLoading();
+                });
+        } else if (InterfaceMapState.network) {
+            const graph = buildDatasetLineageGraph();
             renderNetwork(graph);
         }
     }
