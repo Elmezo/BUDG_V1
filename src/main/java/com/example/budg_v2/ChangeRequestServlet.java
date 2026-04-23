@@ -474,7 +474,7 @@ public class ChangeRequestServlet extends HttpServlet {
                 facetType = requestData.get("facetType").getAsString();
                 
                 // Validate: Cannot raise CR for restricted facets
-                String[] restrictedFacets = {"regulatory-theme", "geography", "regulator", "people"};
+                String[] restrictedFacets = {"regulatory-theme", "geography", "regulator", "people", "legal-entity", "org-unit"};
                 for (String restricted : restrictedFacets) {
                     if (restricted.equals(facetType)) {
                         response.setStatus(HttpServletResponse.SC_BAD_REQUEST);

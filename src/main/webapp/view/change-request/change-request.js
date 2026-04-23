@@ -16,7 +16,7 @@
         const params = getUrlParams();
         
         // Validate: Cannot raise CR for restricted facets
-        const restrictedFacets = ['regulatory-theme', 'geography', 'regulator', 'people'];
+        const restrictedFacets = ['regulatory-theme', 'geography', 'regulator', 'people', 'legal-entity', 'org-unit'];
         if (params.facetType && restrictedFacets.includes(params.facetType)) {
             const facetDisplayName = getFacetDisplayName(params.facetType);
             alert(`Change requests cannot be raised for ${facetDisplayName} facets.`);
