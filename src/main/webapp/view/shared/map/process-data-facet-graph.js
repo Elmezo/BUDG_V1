@@ -154,8 +154,37 @@
                 const interfaceIds = new Set();
                 const dataFlowKeys = new Set();
 
-                for (const systemId of state.impactSystemIds) {
+                // Hop-bounded BFS from each impact system so indirect neighbors (N-hop)
+                // appear on the map and their cross-system edges can render.
+                const depthLimit = Math.min(99, Math.max(1, parseInt(state.hopsCount, 10) || 15));
+                const systemsFullyLoaded = new Set();
+                const systemDepth = new Map();
+                const systemQueue = [];
+                state.impactSystemIds.forEach(id => {
+                    const idStr = String(id);
+                    systemDepth.set(idStr, 0);
+                    systemQueue.push(idStr);
+                });
+
+                while (systemQueue.length > 0) {
+                    const systemId = systemQueue.shift();
+                    if (systemsFullyLoaded.has(systemId)) continue;
+                    const currentDepth = systemDepth.get(systemId) || 0;
                     try {
+                        if (!state.systemsData.has(systemId)) {
+                            try {
+                                const sys = await api.getSystemById(systemId);
+                                const data = sys?.data || sys;
+                                if (data) state.systemsData.set(systemId, data);
+                                else state.systemsData.set(systemId, { name: 'System ' + systemId });
+                            } catch (e) {
+                                const status = e?.status ?? e?.statusCode ?? (e?.response?.status);
+                                if (status === 403 || (e?.message && (e.message.includes('403') || e.message.toLowerCase().includes('forbidden')))) {
+                                    state.inaccessibleSystems.add(String(systemId));
+                                }
+                                state.systemsData.set(systemId, { name: 'System ' + systemId });
+                            }
+                        }
                         const [ifaceRes, flowRes] = await Promise.all([
                             api.getSystemInterfaces(systemId).catch(() => null),
                             api.getDataFlowOutsideInterfaces(systemId).catch(() => null)
@@ -175,49 +204,35 @@
                                 state.dataFlowData.push(flow);
                             }
                         });
-                        if (!state.systemsData.has(systemId)) {
-                            try {
-                                const sys = await api.getSystemById(systemId);
-                                const data = sys?.data || sys;
-                                if (data) state.systemsData.set(systemId, data);
-                            } catch (e) {
-                                const status = e?.status ?? e?.statusCode ?? (e?.response?.status);
-                                if (status === 403 || (e?.message && (e.message.includes('403') || e.message.toLowerCase().includes('forbidden')))) {
-                                    state.inaccessibleSystems.add(String(systemId));
-                                    state.systemsData.set(systemId, { name: 'System ' + systemId });
-                                }
+                        systemsFullyLoaded.add(systemId);
+
+                        if (currentDepth >= depthLimit) continue;
+                        const neighbors = new Set();
+                        ifaceList.forEach(iface => {
+                            const fromId = String(iface.fromId || iface.sourceSystemId || '');
+                            const toId = String(iface.toId || iface.targetSystemId || '');
+                            if (fromId && fromId !== systemId) neighbors.add(fromId);
+                            if (toId && toId !== systemId) neighbors.add(toId);
+                        });
+                        flowList.forEach(flow => {
+                            const fromId = String(flow.fromId || flow.sourceSystemId || '');
+                            const toId = String(flow.toId || flow.targetSystemId || '');
+                            if (fromId && fromId !== systemId) neighbors.add(fromId);
+                            if (toId && toId !== systemId) neighbors.add(toId);
+                        });
+                        neighbors.forEach(nbId => {
+                            const nextDepth = currentDepth + 1;
+                            if (!systemDepth.has(nbId) || systemDepth.get(nbId) > nextDepth) {
+                                systemDepth.set(nbId, nextDepth);
                             }
-                        }
+                            if (!systemsFullyLoaded.has(nbId) && !state.impactSystemIds.has(nbId)) {
+                                state.linkedSystemIds.add(nbId);
+                            }
+                            if (!systemsFullyLoaded.has(nbId)) {
+                                systemQueue.push(nbId);
+                            }
+                        });
                     } catch (e) { /* ignore */ }
-                }
-
-                state.interfacesData.forEach(iface => {
-                    const fromId = String(iface.fromId || iface.sourceSystemId || '');
-                    const toId = String(iface.toId || iface.targetSystemId || '');
-                    if (fromId && state.impactSystemIds.has(fromId) && !state.impactSystemIds.has(toId)) state.linkedSystemIds.add(toId);
-                    if (toId && state.impactSystemIds.has(toId) && !state.impactSystemIds.has(fromId)) state.linkedSystemIds.add(fromId);
-                });
-                state.dataFlowData.forEach(flow => {
-                    const fromId = String(flow.fromId || flow.sourceSystemId || '');
-                    const toId = String(flow.toId || flow.targetSystemId || '');
-                    if (fromId && state.impactSystemIds.has(fromId) && !state.impactSystemIds.has(toId)) state.linkedSystemIds.add(toId);
-                    if (toId && state.impactSystemIds.has(toId) && !state.impactSystemIds.has(fromId)) state.linkedSystemIds.add(fromId);
-                });
-
-                for (const systemId of state.linkedSystemIds) {
-                    if (state.systemsData.has(systemId)) continue;
-                    try {
-                        const sys = await api.getSystemById(systemId);
-                        const data = sys?.data || sys;
-                        if (data) state.systemsData.set(systemId, data);
-                        else state.systemsData.set(systemId, { name: 'System ' + systemId });
-                    } catch (e) {
-                        const status = e?.status ?? e?.statusCode ?? (e?.response?.status);
-                        if (status === 403 || (e?.message && (e.message.includes('403') || e.message.toLowerCase().includes('forbidden')))) {
-                            state.inaccessibleSystems.add(String(systemId));
-                        }
-                        state.systemsData.set(systemId, { name: 'System ' + systemId });
-                    }
                 }
 
                 return buildSystemLineageGraph();

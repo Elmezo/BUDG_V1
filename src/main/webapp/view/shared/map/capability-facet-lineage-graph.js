@@ -77,14 +77,17 @@
                 return;
             }
             
-            // Build lineage: path from root to current, then current's children
+            // Build lineage: ancestors (path to root) + all descendants (recursive children).
+            // The final hop trim is applied in buildCapabilityLineageGraph via
+            // adapter.applyHopsFilter, so loading the full ancestor path and the full
+            // descendant subtree lets the user expand/contract freely via hopsCount.
             const lineageCapabilities = new Set();
-            
-            // 1. Find path from root to current (ancestors)
+
+            // 1) Ancestors: follow parentId up to root.
             const pathToCurrent = [];
             let current = currentCapability;
             while (current) {
-                pathToCurrent.unshift(current); // Add to beginning to maintain root-to-current order
+                pathToCurrent.unshift(current);
                 const parentId = String(current.parentId || current.Parent_ID || current.parent_id || '');
                 if (parentId && parentId !== '0' && capabilityMap.has(parentId)) {
                     current = capabilityMap.get(parentId);
@@ -92,23 +95,32 @@
                     break;
                 }
             }
-            
-            // Add all capabilities in path
             pathToCurrent.forEach(cap => {
-                const id = String(cap.id || cap.ID);
-                lineageCapabilities.add(id);
+                lineageCapabilities.add(String(cap.id || cap.ID));
             });
-            
-            // 2. Find current capability's direct children (not siblings)
-            const currentIdNum = parseInt(currentId);
+
+            // 2) Descendants: BFS over children (not just direct) so N hops expand N levels down.
+            const childrenByParent = new Map();
             allCapabilities.forEach(cap => {
-                const capParentId = cap.parentId || cap.Parent_ID || cap.parent_id;
-                const capParentIdNum = parseInt(capParentId) || 0;
-                if (capParentIdNum === currentIdNum) {
-                    const childId = String(cap.id || cap.ID);
-                    lineageCapabilities.add(childId);
-                }
+                const parentId = String(cap.parentId || cap.Parent_ID || cap.parent_id || '');
+                if (!parentId) return;
+                if (!childrenByParent.has(parentId)) childrenByParent.set(parentId, []);
+                childrenByParent.get(parentId).push(cap);
             });
+
+            const descendantQueue = [currentId];
+            const descendantVisited = new Set([currentId]);
+            while (descendantQueue.length > 0) {
+                const parentKey = descendantQueue.shift();
+                const children = childrenByParent.get(parentKey) || [];
+                children.forEach(child => {
+                    const childId = String(child.id || child.ID);
+                    if (descendantVisited.has(childId)) return;
+                    descendantVisited.add(childId);
+                    lineageCapabilities.add(childId);
+                    descendantQueue.push(childId);
+                });
+            }
             
             // Convert to array of capability objects
             state.lineageCapabilities = Array.from(lineageCapabilities)

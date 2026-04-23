@@ -695,9 +695,9 @@
     function setHopsCount(count) {
         const val = Math.min(99, Math.max(1, parseInt(count, 10) || 15));
         DatasetMapState.hopsCount = val;
-        if (DatasetMapState.network) {
-            const graph = DatasetMapState.mapType === 'dataset-lineage' ? buildDatasetLineageGraph() : buildSystemLineageGraph();
-            renderNetwork(graph);
+        // Re-load so multi-hop expansion fetches indirect relationships at the new depth.
+        if (DatasetMapState.datasetId) {
+            loadMapData(DatasetMapState.datasetId);
         }
     }
 

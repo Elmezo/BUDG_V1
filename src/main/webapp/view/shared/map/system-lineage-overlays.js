@@ -139,6 +139,17 @@
                 if (overlayType === 'attributes' || overlayType === 'linking-attributes') {
                     await loadAttributeOverlayData(overlayType, systemIds, currentSystemId, overlayData);
                 } else {
+                    if (overlayType === 'glossary') {
+                        // Build glossary scope once per overlay load cycle and share it across
+                        // per-system fetches so we do not re-fetch dataset relationships.
+                        try {
+                            await ensureSystemLineageGlossaryScope(systemIds);
+                        } catch (scopeErr) {
+                            ovWarn(logPrefix + ' Failed to prepare glossary scope:', scopeErr);
+                            state._glossaryScopeCache = null;
+                        }
+                    }
+
                     // Load overlay data for each system based on type
                     await Promise.all(systemIds.map(async (systemId) => {
                         try {
@@ -1119,6 +1130,138 @@
         return terms;
     }
 
+    function normalizeDatasetsList(raw) {
+        if (raw == null) return [];
+        if (Array.isArray(raw)) return raw;
+        if (Array.isArray(raw.data)) return raw.data;
+        if (raw.data && Array.isArray(raw.data.data)) return raw.data.data;
+        if (Array.isArray(raw.datasets)) return raw.datasets;
+        if (raw.data && Array.isArray(raw.data.datasets)) return raw.data.datasets;
+        return [];
+    }
+
+    function getDatasetIdFromEntity(ds) {
+        return ds && (ds.id || ds.ID || ds.datasetId || ds.dataSetId) ? String(ds.id || ds.ID || ds.datasetId || ds.dataSetId) : '';
+    }
+
+    function getRelationshipDatasetId(rel, keys) {
+        if (!rel || !Array.isArray(keys)) return '';
+        for (var i = 0; i < keys.length; i++) {
+            var value = rel[keys[i]];
+            if (value !== null && value !== undefined && String(value).trim() !== '') {
+                return String(value);
+            }
+        }
+        return '';
+    }
+
+    async function getSystemDatasetIdsForGlossary(systemId) {
+        var systemIdStr = String(systemId || '');
+        if (!systemIdStr) return [];
+
+        var ids = state.linkedDatasets
+            ? Array.from(state.linkedDatasets.entries())
+                .filter(function (entry) { return String(entry[1] && entry[1].systemId) === systemIdStr; })
+                .map(function (entry) { return String(entry[0]); })
+            : [];
+
+        if (ids.length > 0) return Array.from(new Set(ids));
+
+        var API = window.BUDG_API_SERVICE;
+        if (!API || typeof API.getSystemDatasets !== 'function') return [];
+
+        try {
+            var dsResp = await API.getSystemDatasets(systemIdStr);
+            var dsList = normalizeDatasetsList(dsResp);
+            return Array.from(new Set(dsList.map(getDatasetIdFromEntity).filter(Boolean)));
+        } catch (e) {
+            ovWarn(logPrefix + ' Failed to get system datasets for glossary scope', systemIdStr, e);
+            return [];
+        }
+    }
+
+    async function getDirectRelatedDatasetIds(datasetId, relCache) {
+        var datasetIdStr = String(datasetId || '');
+        if (!datasetIdStr) return new Set();
+
+        if (relCache && relCache.has(datasetIdStr)) {
+            return new Set(relCache.get(datasetIdStr));
+        }
+
+        var related = new Set();
+        try {
+            var relResp = await fetch('/api/dataset-relationships/' + encodeURIComponent(datasetIdStr), {
+                method: 'GET',
+                credentials: 'include',
+                headers: { 'Content-Type': 'application/json' }
+            });
+            if (relResp.ok) {
+                var relData = await relResp.json();
+                var inbound = Array.isArray(relData && relData.inbound) ? relData.inbound : [];
+                var outbound = Array.isArray(relData && relData.outbound) ? relData.outbound : [];
+
+                inbound.forEach(function (rel) {
+                    var sourceId = getRelationshipDatasetId(rel, ['sourceDatasetId', 'sourceDataSetId', 'datasetId', 'DatasetId', 'id', 'ID']);
+                    if (sourceId && sourceId !== datasetIdStr) related.add(sourceId);
+                });
+                outbound.forEach(function (rel) {
+                    var targetId = getRelationshipDatasetId(rel, ['targetDatasetId', 'targetDataSetId', 'datasetId', 'DatasetId', 'id', 'ID']);
+                    if (targetId && targetId !== datasetIdStr) related.add(targetId);
+                });
+            }
+        } catch (e) {
+            ovWarn(logPrefix + ' Failed to fetch dataset relationships for glossary scope', datasetIdStr, e);
+        }
+
+        if (relCache) relCache.set(datasetIdStr, new Set(related));
+        return related;
+    }
+
+    function buildGlossaryScopeKey(visibleSystemIds) {
+        var ids = Array.from(new Set((visibleSystemIds || []).map(function (id) { return String(id || ''); }).filter(Boolean))).sort();
+        return [
+            String(state.systemId || ''),
+            String(state.mapType || ''),
+            ids.join(',')
+        ].join('|');
+    }
+
+    async function ensureSystemLineageGlossaryScope(visibleSystemIds) {
+        if (state.mapType === 'dataset-lineage') return null;
+
+        var key = buildGlossaryScopeKey(visibleSystemIds);
+        if (state._glossaryScopeCache && state._glossaryScopeCache.key === key) {
+            return state._glossaryScopeCache.scope;
+        }
+
+        var currentSystemId = String(state.systemId || '');
+        var orangeDatasetIds = new Set(await getSystemDatasetIdsForGlossary(currentSystemId));
+        var relatedDatasetIds = new Set();
+        var relCache = new Map();
+
+        for (const did of orangeDatasetIds) {
+            var neighbors = await getDirectRelatedDatasetIds(did, relCache);
+            neighbors.forEach(function (nId) { relatedDatasetIds.add(String(nId)); });
+        }
+
+        var datasetsBySystem = new Map();
+        var uniqueSystems = Array.from(new Set((visibleSystemIds || []).map(function (id) { return String(id || ''); }).filter(Boolean)));
+        for (const sid of uniqueSystems) {
+            var datasetIds = await getSystemDatasetIdsForGlossary(sid);
+            datasetsBySystem.set(String(sid), datasetIds.map(function (id) { return String(id); }));
+        }
+
+        var scope = {
+            currentSystemId: currentSystemId,
+            orangeDatasetIds: orangeDatasetIds,
+            allowedRelatedDatasetIds: relatedDatasetIds,
+            datasetsBySystem: datasetsBySystem
+        };
+
+        state._glossaryScopeCache = { key: key, scope: scope };
+        return scope;
+    }
+
     // Fetch overlay data for a specific system
     async function fetchOverlayDataForSystem(systemId, overlayType) {
         const API = window.BUDG_API_SERVICE;
@@ -1157,19 +1300,26 @@
                     const glossaryTerms = [];
                     const seenGlossary = new Set();
                     try {
-                        const sysDatasets = state.linkedDatasets
-                            ? Array.from(state.linkedDatasets.entries())
-                                .filter(([, info]) => String(info.systemId) === String(systemId))
-                                .map(([did]) => did)
-                            : [];
-                        if (sysDatasets.length === 0) {
-                            const dsResp = await API.getSystemDatasets?.(systemId);
-                            const dsList = Array.isArray(dsResp?.data) ? dsResp.data : (Array.isArray(dsResp) ? dsResp : []);
-                            dsList.forEach(ds => {
-                                const did = ds.id || ds.ID || ds.datasetId;
-                                if (did) sysDatasets.push(String(did));
+                        const systemIdStr = String(systemId);
+                        const currentSystemId = String(state.systemId || '');
+                        const scope = state._glossaryScopeCache && state._glossaryScopeCache.scope
+                            ? state._glossaryScopeCache.scope
+                            : null;
+
+                        let sysDatasets = [];
+                        if (scope && scope.datasetsBySystem && scope.datasetsBySystem.has(systemIdStr)) {
+                            sysDatasets = (scope.datasetsBySystem.get(systemIdStr) || []).map(function (id) { return String(id); });
+                        } else {
+                            sysDatasets = await getSystemDatasetIdsForGlossary(systemIdStr);
+                        }
+
+                        if (scope && systemIdStr !== currentSystemId) {
+                            const allowedRelated = scope.allowedRelatedDatasetIds || new Set();
+                            sysDatasets = sysDatasets.filter(function (did) {
+                                return allowedRelated.has(String(did));
                             });
                         }
+
                         for (const did of sysDatasets) {
                             // 1) Dataset's own glossary
                             try {

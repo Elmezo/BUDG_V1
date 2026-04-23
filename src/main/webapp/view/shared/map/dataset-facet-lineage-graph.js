@@ -163,7 +163,15 @@
             
             // Now recursively find datasets that have relationships with attributes from already-linked datasets
             // This implements: "datasets that have relationships with an attribute from one of the present datasets"
-            const datasetsToProcess = Array.from(linkedDatasetIds).filter(id => id !== currentDatasetId);
+            // Bounded by state.hopsCount so the graph matches the user-selected hop depth.
+            const depthLimit = Math.min(99, Math.max(1, parseInt(state.hopsCount, 10) || 15));
+            const datasetDepth = new Map();
+            datasetDepth.set(currentDatasetId, 0);
+            const datasetsToProcess = [];
+            Array.from(linkedDatasetIds).filter(id => id !== currentDatasetId).forEach(id => {
+                if (!datasetDepth.has(String(id))) datasetDepth.set(String(id), 1);
+                datasetsToProcess.push(String(id));
+            });
             const allLinkedDatasetAttributeIds = new Map(); // datasetId -> Set of attribute IDs
             
             // Initialize with opened dataset attributes
@@ -173,6 +181,9 @@
             for (const datasetId of datasetsToProcess) {
                 if (processedDatasets.has(datasetId)) continue;
                 processedDatasets.add(datasetId);
+                const currentDepth = datasetDepth.get(String(datasetId)) || 0;
+                // Stop descending once we've reached the hop limit.
+                if (currentDepth >= depthLimit) continue;
                 
                 try {
                     // Get attributes for this linked dataset
@@ -255,8 +266,13 @@
                                     datasetToSystemMap.set(String(otherDatasetId), String(rel.systemId));
                                 }
                                 
-                                // Add to processing queue
-                                if (!processedDatasets.has(String(otherDatasetId))) {
+                                // Track hop depth for the newly-linked dataset and enqueue only
+                                // if it stays within the requested hop window.
+                                const nextDepth = currentDepth + 1;
+                                if (!datasetDepth.has(String(otherDatasetId)) || datasetDepth.get(String(otherDatasetId)) > nextDepth) {
+                                    datasetDepth.set(String(otherDatasetId), nextDepth);
+                                }
+                                if (!processedDatasets.has(String(otherDatasetId)) && nextDepth < depthLimit) {
                                     datasetsToProcess.push(String(otherDatasetId));
                                 }
                             }
@@ -347,95 +363,137 @@
         }
     }
 
-    // Load system lineage data
+    // Load system lineage data (hops-driven multi-hop expansion).
     async function loadSystemLineageData() {
         try {
             const currentSystemId = String(state.systemId);
-            
-            // Load interfaces
+            if (!state.systemsFullyLoaded) state.systemsFullyLoaded = new Set();
+            if (!state.interfaceIds) state.interfaceIds = new Set();
+            if (!state.dataFlowKeys) state.dataFlowKeys = new Set();
+
+            // Load root system's interfaces + data flow up front.
             const interfacesData = await window.BUDG_API_SERVICE.getSystemInterfaces(currentSystemId);
             state.interfacesData = Array.isArray(interfacesData?.data) ? interfacesData.data : (Array.isArray(interfacesData) ? interfacesData : []);
-            
-            // Load data flow
+            state.interfacesData.forEach(iface => {
+                if (iface?.id != null) state.interfaceIds.add(String(iface.id));
+            });
+
             const dataFlowData = await window.BUDG_API_SERVICE.getDataFlowOutsideInterfaces(currentSystemId);
             state.dataFlowData = Array.isArray(dataFlowData?.data) ? dataFlowData.data : (Array.isArray(dataFlowData) ? dataFlowData : []);
-            
-            // Get all systems that have datasets with attributes having relationships with the opened dataset
-            // Case 1: Systems with attribute relationships (solid lines)
+            state.dataFlowData.forEach(flow => {
+                const key = window.MapGraphUtils.buildDataFlowKey(flow, { useArrowSeparator: true });
+                if (key) state.dataFlowKeys.add(key);
+            });
+            state.systemsFullyLoaded.add(currentSystemId);
+
             const systemsWithAttributes = new Set();
             const currentDatasetId = String(state.datasetId);
-            
-            // Get relationships for the opened dataset
+
             const relResp = await fetch(`/api/dataset-relationships/${currentDatasetId}`, {
                 method: 'GET',
                 credentials: 'include',
                 headers: { 'Content-Type': 'application/json' }
             });
-            
+
             if (relResp.ok) {
                 const relData = await relResp.json();
                 const allRels = [...(relData.inbound || []), ...(relData.outbound || [])];
-                
                 allRels.forEach(rel => {
-                    if (rel.systemId) {
-                        systemsWithAttributes.add(String(rel.systemId));
-                    }
+                    if (rel.systemId) systemsWithAttributes.add(String(rel.systemId));
                 });
             }
-            
+
             state.systemsWithAttributes = systemsWithAttributes;
-            
-            // Case 2: Systems with interfaces but no data attributes (dotted lines)
-            // These are systems that have interfaces with the current system but do NOT have
-            // datasets with attributes having relationships with the opened dataset
+
+            // Hop-bounded BFS across interfaces + data flow to discover indirect systems.
+            const depthLimit = Math.min(99, Math.max(1, parseInt(state.hopsCount, 10) || 15));
+
+            function getNeighborsForSystem(id) {
+                const idStr = String(id);
+                const neighbors = new Set();
+                state.interfacesData.forEach(iface => {
+                    const fromId = String(iface.fromId || iface.sourceSystemId || '');
+                    const toId = String(iface.toId || iface.targetSystemId || '');
+                    if (fromId === idStr && toId) neighbors.add(toId);
+                    if (toId === idStr && fromId) neighbors.add(fromId);
+                });
+                state.dataFlowData.forEach(flow => {
+                    const fromId = String(flow.fromId || flow.sourceSystemId || '');
+                    const toId = String(flow.toId || flow.targetSystemId || '');
+                    if (fromId === idStr && toId) neighbors.add(toId);
+                    if (toId === idStr && fromId) neighbors.add(fromId);
+                });
+                return Array.from(neighbors);
+            }
+
+            async function fetchAndMergeSystem(id) {
+                const idStr = String(id);
+                if (state.systemsFullyLoaded.has(idStr)) return;
+                try {
+                    const systemData = await window.BUDG_API_SERVICE.getSystemById(idStr);
+                    if (!systemData || (systemData.error && systemData.error.includes('404'))) return;
+                    if (systemData.error && systemData.error.includes('403')) {
+                        state.inaccessibleSystems.add(idStr);
+                        return;
+                    }
+                    const [ifaceResp, flowResp] = await Promise.all([
+                        window.BUDG_API_SERVICE.getSystemInterfaces(idStr).catch(() => null),
+                        window.BUDG_API_SERVICE.getDataFlowOutsideInterfaces(idStr).catch(() => null)
+                    ]);
+                    state.connectedSystems.set(idStr, { systemData });
+                    const ifaceList = Array.isArray(ifaceResp?.data) ? ifaceResp.data : (Array.isArray(ifaceResp) ? ifaceResp : []);
+                    ifaceList.forEach(iface => {
+                        const ifaceId = iface?.id;
+                        if (ifaceId != null && !state.interfaceIds.has(String(ifaceId))) {
+                            state.interfacesData.push(iface);
+                            state.interfaceIds.add(String(ifaceId));
+                        }
+                    });
+                    const flowList = Array.isArray(flowResp?.data) ? flowResp.data : (Array.isArray(flowResp) ? flowResp : []);
+                    flowList.forEach(flow => {
+                        const key = window.MapGraphUtils.buildDataFlowKey(flow, { useArrowSeparator: true });
+                        if (key && !state.dataFlowKeys.has(key)) {
+                            state.dataFlowData.push(flow);
+                            state.dataFlowKeys.add(key);
+                        }
+                    });
+                    state.systemsFullyLoaded.add(idStr);
+                } catch (e) {
+                    const statusCode = e.status || e.statusCode;
+                    if (statusCode === 403) state.inaccessibleSystems.add(idStr);
+                }
+            }
+
+            const U = window.MapGraphUtils;
+            if (U && typeof U.expandByHops === 'function') {
+                await U.expandByHops({
+                    rootId: currentSystemId,
+                    maxDepth: depthLimit,
+                    getNeighbors: getNeighborsForSystem,
+                    fetchAndMerge: fetchAndMergeSystem,
+                    isLoaded: function (id) { return state.systemsFullyLoaded.has(String(id)); }
+                });
+            }
+
+            // Recompute connected-system sets now that expansion has populated state.
             const systemsWithInterfacesOnly = new Set();
             const allConnectedSystemIds = new Set();
-            
-            // Collect all systems connected via interfaces
             state.interfacesData.forEach(iface => {
                 const fromId = iface.fromId || iface.sourceSystemId;
                 const toId = iface.toId || iface.targetSystemId;
-                
-                if (fromId && String(fromId) !== currentSystemId) {
-                    allConnectedSystemIds.add(String(fromId));
-                }
-                if (toId && String(toId) !== currentSystemId) {
-                    allConnectedSystemIds.add(String(toId));
-                }
+                if (fromId && String(fromId) !== currentSystemId) allConnectedSystemIds.add(String(fromId));
+                if (toId && String(toId) !== currentSystemId) allConnectedSystemIds.add(String(toId));
             });
-            
-            // Systems with interfaces only are those that have interfaces but are NOT in systemsWithAttributes
+            state.dataFlowData.forEach(flow => {
+                const fromId = flow.fromId || flow.sourceSystemId;
+                const toId = flow.toId || flow.targetSystemId;
+                if (fromId && String(fromId) !== currentSystemId) allConnectedSystemIds.add(String(fromId));
+                if (toId && String(toId) !== currentSystemId) allConnectedSystemIds.add(String(toId));
+            });
             allConnectedSystemIds.forEach(systemId => {
-                if (!systemsWithAttributes.has(systemId)) {
-                    systemsWithInterfacesOnly.add(systemId);
-                }
+                if (!systemsWithAttributes.has(systemId)) systemsWithInterfacesOnly.add(systemId);
             });
-            
             state.systemsWithInterfacesOnly = systemsWithInterfacesOnly;
-            
-            // Fetch system details
-            const allSystemIds = new Set([currentSystemId]);
-            systemsWithAttributes.forEach(id => allSystemIds.add(id));
-            systemsWithInterfacesOnly.forEach(id => allSystemIds.add(id));
-            
-            for (const systemId of allSystemIds) {
-                if (systemId === currentSystemId) continue;
-                
-                try {
-                    const systemData = await window.BUDG_API_SERVICE.getSystemById(systemId);
-                    state.connectedSystems.set(String(systemId), {
-                        systemData: systemData,
-                        hasAttributes: systemsWithAttributes.has(String(systemId)),
-                        interfacesOnly: systemsWithInterfacesOnly.has(String(systemId))
-                    });
-                } catch (e) {
-                    const statusCode = e.status || e.statusCode;
-                    if (statusCode === 403) {
-                        state.inaccessibleSystems.add(String(systemId));
-                    }
-                }
-            }
-            
         } catch (error) {
             console.error('[SYSTEM-LINEAGE] Failed to load system lineage data:', error);
         }
@@ -637,53 +695,47 @@
                 }
             });
         }
-        
-        // Create edges
-        // Case 1: Solid lines for systems with attributes
-        if (showDataAttributeLinks) {
-            state.systemsWithAttributes.forEach(systemId => {
-                const systemIdStr = String(systemId);
-                if (!nodesMap.has(systemIdStr)) return;
-                
-                const edgeId = `${systemIdStr}->${currentSystemId}`;
-                const reverseEdgeId = `${currentSystemId}->${systemIdStr}`;
-                
-                if (!edgeMap.has(edgeId) && !edgeMap.has(reverseEdgeId)) {
-                    edgeMap.set(edgeId, true);
-                    edges.push({
-                        id: edgeId,
-                        from: systemIdStr,
-                        to: currentSystemId,
-                        label: '',
-                        dashes: false, // Solid line
-                        lineStyle: 'solid',
-                        lineType: 'attribute-lineage'
-                    });
-                }
+
+        // Case 3: Draw cross-system edges from every merged interface + data-flow record so
+        // indirect hops (HR->Finance) render, not just root-connected edges.
+        if (showSystemInterfaces && Array.isArray(state.interfacesData)) {
+            state.interfacesData.forEach(iface => {
+                const fromId = String(iface.fromId || iface.sourceSystemId || '');
+                const toId = String(iface.toId || iface.targetSystemId || '');
+                if (!fromId || !toId || fromId === toId) return;
+                if (!nodesMap.has(fromId) || !nodesMap.has(toId)) return;
+                const edgeId = `iface-${fromId}->${toId}-${iface.id || ''}`;
+                if (edgeMap.has(edgeId)) return;
+                edgeMap.set(edgeId, true);
+                edges.push({
+                    id: edgeId,
+                    from: fromId,
+                    to: toId,
+                    label: '',
+                    dashes: true,
+                    lineStyle: 'dashed',
+                    lineType: 'interface'
+                });
             });
         }
-        
-        // Case 2: Dotted lines for systems with interfaces only
-        if (showSystemInterfaces) {
-            state.systemsWithInterfacesOnly.forEach(systemId => {
-                const systemIdStr = String(systemId);
-                if (!nodesMap.has(systemIdStr)) return;
-                
-                const edgeId = `${systemIdStr}->${currentSystemId}`;
-                const reverseEdgeId = `${currentSystemId}->${systemIdStr}`;
-                
-                if (!edgeMap.has(edgeId) && !edgeMap.has(reverseEdgeId)) {
-                    edgeMap.set(edgeId, true);
-                    edges.push({
-                        id: edgeId,
-                        from: systemIdStr,
-                        to: currentSystemId,
-                        label: '',
-                        dashes: true, // Dotted line
-                        lineStyle: 'dashed',
-                        lineType: 'interface'
-                    });
-                }
+        if (showDataAttributeLinks && Array.isArray(state.dataFlowData)) {
+            state.dataFlowData.forEach(flow => {
+                const fromId = String(flow.fromId || flow.sourceSystemId || '');
+                const toId = String(flow.toId || flow.targetSystemId || '');
+                if (!fromId || !toId || fromId === toId) return;
+                if (!nodesMap.has(fromId) || !nodesMap.has(toId)) return;
+                const edgeId = `flow-${fromId}->${toId}`;
+                if (edgeMap.has(edgeId)) return;
+                edgeMap.set(edgeId, true);
+                edges.push({
+                    id: edgeId,
+                    from: fromId,
+                    to: toId,
+                    label: '',
+                    dashes: false,
+                    lineStyle: 'solid',
+                    lineType: 'attribute-lineage'
+                });
             });
         }
         

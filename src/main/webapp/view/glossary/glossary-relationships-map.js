@@ -768,19 +768,27 @@
         }
     }
 
-    // Set hops count (1-99, Axon recommends 15)
+    // Set hops count (1-99, Axon recommends 15). Triggers a full data reload so
+    // hop-driven expansion fetches indirect relationships at the new depth.
     function setHopsCount(count) {
         const val = Math.min(99, Math.max(1, parseInt(count, 10) || 15));
         GlossaryRelationshipsMapState.hopsCount = val;
-        if (GlossaryRelationshipsMapState.network && (GlossaryRelationshipsMapState.mapType === 'system-lineage' || GlossaryRelationshipsMapState.mapType === 'dataset-lineage')) {
-            const graph = buildGraph();
-            const rootNodeIds = findRootNodesFromGraph(graph);
-            GlossaryRelationshipsMapState.network.elements().remove();
-            const elements = buildElementsFromGraph(graph);
-            GlossaryRelationshipsMapState.network.add(elements);
-            GlossaryRelationshipsMapState.network.layout(buildCytoscapeLayout(rootNodeIds)).run();
-            if (GlossaryRelationshipsMapState.overlay !== 'none') loadOverlayData(GlossaryRelationshipsMapState.overlay);
+        if (!GlossaryRelationshipsMapState.glossaryId) return;
+        if (GlossaryRelationshipsMapState.mapType === 'glossary-lineage') {
+            // Glossary lineage already loads the full connected component; re-render with new hops trim.
+            if (GlossaryRelationshipsMapState.network) {
+                const graph = buildGraph();
+                const rootNodeIds = findRootNodesFromGraph(graph);
+                GlossaryRelationshipsMapState.network.elements().remove();
+                const elements = buildElementsFromGraph(graph);
+                GlossaryRelationshipsMapState.network.add(elements);
+                GlossaryRelationshipsMapState.network.layout(buildCytoscapeLayout(rootNodeIds)).run();
+                if (GlossaryRelationshipsMapState.overlay !== 'none') loadOverlayData(GlossaryRelationshipsMapState.overlay);
+            }
+            return;
         }
+        // For dataset-lineage and system-lineage sub-views, re-expand to the new depth.
+        loadMapData(GlossaryRelationshipsMapState.glossaryId);
     }
 
     // Load overlay data for all visible nodes
