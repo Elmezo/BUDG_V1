@@ -3597,20 +3597,32 @@
                 const mandatoryWorkflow = crData?.mandatoryWorkflow;
                 const isAutoCR = mandatoryWorkflow === true || mandatoryWorkflow === 1 || mandatoryWorkflow === 'true' || mandatoryWorkflow === '1';
                 
-                // Only show confirmation message for auto CRs
+                // Lock notice: only for auto CRs, and only for the user who triggered the auto CR (createdBy)
                 if (isAutoCR) {
-                    // Get object reference from CR to show in warning message
-                    const objectReference = crData?.reference || currentChangeRequest?.reference || 'this object';
-                    
-                    // Extract current facet from reference (e.g., "Data Set 86" -> "Data Set", "Glossary 20" -> "Glossary")
+                    const causerId = crData?.createdBy ?? crData?.created_by ?? currentChangeRequest?.createdBy ?? currentChangeRequest?.created_by;
+                    let currentUid = currentUser && (currentUser.id || currentUser.userId || currentUser.ID);
+                    if (currentUid == null && window.AuthHelper && typeof window.AuthHelper.getCurrentUser === 'function') {
+                        try {
+                            const u = await window.AuthHelper.getCurrentUser();
+                            currentUid = u && (u.id ?? u.userId ?? u.ID);
+                        } catch (e) {
+                            console.warn('[CR View] Could not resolve current user for start-WF notice:', e);
+                        }
+                    }
+                    const isAutoCrCauser = causerId != null && currentUid != null &&
+                        String(causerId) === String(currentUid);
+
+                    const objectLabel = (crData?.referenceObjectName || crData?.reference_object_name ||
+                        currentChangeRequest?.referenceObjectName || currentChangeRequest?.reference_object_name || '').trim()
+                        || crData?.reference || currentChangeRequest?.reference || 'this object';
+
                     let currentFacet = 'this facet';
                     const reference = crData?.reference || currentChangeRequest?.reference;
                     if (reference) {
                         const refParts = reference.split(/\s+/);
                         if (refParts.length >= 2) {
-                            // Handle multi-word facets like "Data Set", "System Interface"
                             const firstTwoWords = refParts[0] + ' ' + refParts[1];
-                            if (firstTwoWords === 'Data Set' || firstTwoWords === 'System Interface' || 
+                            if (firstTwoWords === 'Data Set' || firstTwoWords === 'System Interface' ||
                                 firstTwoWords === 'Business Area' || firstTwoWords === 'Legal Entity') {
                                 currentFacet = firstTwoWords;
                             } else {
@@ -3620,18 +3632,20 @@
                             currentFacet = refParts[0];
                         }
                     }
-                    
-                    // Show detailed confirmation message for Auto CR (only mention current facet)
-                    const confirmationMessage = 
-                        `⚠️ IMPORTANT NOTICE:\n\n` +
-                        `Starting this workflow will lock editing on ${objectReference} in the ${currentFacet} facet.\n\n` +
-                        `Once the workflow starts (status becomes "Running"), you will NOT be able to edit ${objectReference} until the Change Request status becomes:\n` +
-                        `• Completed (changes will be accepted)\n` +
-                        `• OR Cancelled (changes will be rejected)\n\n` +
-                        `Note: You can still edit ${objectReference} while the CR status is "Pending Start" (before starting the workflow).\n\n` +
-                        `Do you want to proceed with starting the workflow?`;
-                    
-                    if (!confirm(confirmationMessage)) {
+
+                    if (isAutoCrCauser) {
+                        const confirmationMessage =
+                            `⚠️ IMPORTANT NOTICE:\n\n` +
+                            `Starting this workflow will lock editing on "${objectLabel}" in the ${currentFacet} facet.\n\n` +
+                            `Once the workflow starts (status becomes "Running"), you will NOT be able to edit "${objectLabel}" until the Change Request status becomes:\n` +
+                            `• Completed (changes will be accepted)\n` +
+                            `• OR Cancelled (changes will be rejected)\n\n` +
+                            `Note: You can still edit "${objectLabel}" while the CR status is "Pending Start" (before starting the workflow).\n\n` +
+                            `Do you want to proceed with starting the workflow?`;
+                        if (!confirm(confirmationMessage)) {
+                            return;
+                        }
+                    } else if (!confirm('Do you want to proceed with starting the workflow?')) {
                         return;
                     }
                 } else {

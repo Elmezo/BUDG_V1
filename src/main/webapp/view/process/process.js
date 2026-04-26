@@ -1559,7 +1559,8 @@
                         facetId: 'Process',
                         containerId: 'processViewContainer',
                         objectId: id,
-                        title: vT('card.customFields', 'CUSTOM FIELDS')
+                        title: vT('card.customFields', 'CUSTOM FIELDS'),
+                        view: view === 'changes' ? 'changes' : null
                     });
                 } catch (error) {
                     console.error('Error rendering custom fields:', error);

@@ -76,13 +76,15 @@ class RolesNotAcceptedWidget {
             return;
         }
 
-        const titleBase = (window.I18n && window.I18n.t) ? window.I18n.t('dashboard.rolesNotAccepted') : 'Roles Not Accepted';
-        const outOfText = (window.I18n && window.I18n.t) ? window.I18n.t('dashboard.rolesNotAcceptedOutOf', { n: data.total, total: data.total }) : `${data.total} out of ${data.total}`;
+        const totalStr = Number(data.total).toLocaleString();
+        const heading = (window.I18n && window.I18n.t)
+            ? window.I18n.t('dashboard.rolesNotAcceptedHeading', { count: totalStr })
+            : `Roles Not Accepted (${totalStr})`;
         container.innerHTML = `
             <div class="dashboard-widget" data-widget-id="rolesNotAccepted">
                 <div class="dashboard-widget-header">
                     <h3 class="dashboard-widget-title clickable" id="rolesNotAcceptedTitle">
-                        ${titleBase} | ${outOfText}
+                        ${heading}
                     </h3>
                 </div>
                 <div class="dashboard-widget-body">
@@ -190,22 +192,26 @@ class RolesNotAcceptedWidget {
                 },
                 plugins: [{
                     id: 'centerText',
-                    beforeDraw: function(chart) {
-                        const width = chart.width;
-                        const height = chart.height;
-                        const ctx = chart.ctx;
-                        ctx.restore();
-                        
-                        // Total count
-                        const total = data.total;
-                        const fontSize = (height / 160).toFixed(2) * 40;
-                        ctx.font = `bold ${fontSize}px Arial`;
+                    afterDatasetsDraw(chart) {
+                        const { ctx, chartArea } = chart;
+                        if (!chartArea || chartArea.width <= 0 || chartArea.height <= 0) {
+                            return;
+                        }
+                        const centerX = chartArea.left + chartArea.width / 2;
+                        const centerY = chartArea.top + chartArea.height / 2;
+                        const total = Number(data.total);
+                        const label = Number.isFinite(total) ? total.toLocaleString() : String(data.total);
+                        const shortSide = Math.min(chartArea.width, chartArea.height);
+                        let fontSize = Math.round(shortSide * 0.17);
+                        fontSize = Math.max(14, Math.min(fontSize, 30));
+
+                        ctx.save();
+                        ctx.font = `bold ${fontSize}px Inter, system-ui, -apple-system, "Segoe UI", Arial, sans-serif`;
                         ctx.textBaseline = 'middle';
                         ctx.textAlign = 'center';
-                        ctx.fillStyle = '#333';
-                        ctx.fillText(total, width / 2, height / 2);
-                        
-                        ctx.save();
+                        ctx.fillStyle = '#1f2937';
+                        ctx.fillText(label, centerX, centerY);
+                        ctx.restore();
                     }
                 }]
             });

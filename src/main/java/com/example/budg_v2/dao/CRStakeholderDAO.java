@@ -1481,6 +1481,76 @@ public class CRStakeholderDAO {
     }
 
     /**
+     * Manual CRs store a copy of stakeholders in {@code cr_stakeholders} at creation time.
+     * If the source object had none, that table stays empty while assignments added later
+     * only exist on the object. Merge persisted CR rows with live source object rows
+     * (deduped by person + role) so the CR view and permission checks stay accurate.
+     */
+    public List<Map<String, Object>> getStakeholdersForManualChangeRequest(int changeRequestId, String reference)
+            throws SQLException {
+        List<Map<String, Object>> fromCr = getStakeholdersForChangeRequest(changeRequestId);
+        if (reference == null || reference.trim().isEmpty()) {
+            return fromCr;
+        }
+        List<Map<String, Object>> fromSource = getStakeholdersFromSourceObject(reference);
+        if (fromSource.isEmpty()) {
+            return fromCr;
+        }
+        Set<String> seen = new HashSet<>();
+        for (Map<String, Object> row : fromCr) {
+            seen.add(stakeholderPersonRoleKey(row.get("userId"), row.get("roleId")));
+        }
+        List<Map<String, Object>> merged = new ArrayList<>(fromCr);
+        for (Map<String, Object> src : fromSource) {
+            String key = stakeholderPersonRoleKey(src.get("personId"), src.get("roleId"));
+            if (!seen.contains(key)) {
+                seen.add(key);
+                merged.add(sourceStakeholderRowForManualCrResponse(src));
+            }
+        }
+        return merged;
+    }
+
+    private static String stakeholderPersonRoleKey(Object personIdObj, Object roleIdObj) {
+        int pid = 0;
+        if (personIdObj instanceof Number) {
+            pid = ((Number) personIdObj).intValue();
+        }
+        int rid = 0;
+        if (roleIdObj instanceof Number) {
+            rid = ((Number) roleIdObj).intValue();
+        }
+        return pid + ":" + rid;
+    }
+
+    private static Map<String, Object> sourceStakeholderRowForManualCrResponse(Map<String, Object> src) {
+        Map<String, Object> m = new HashMap<>();
+        Object personIdObj = src.get("personId");
+        int personId = personIdObj instanceof Number ? ((Number) personIdObj).intValue() : 0;
+        Object roleIdObj = src.get("roleId");
+        int roleId = roleIdObj instanceof Number ? ((Number) roleIdObj).intValue() : 0;
+        m.put("id", null);
+        m.put("userId", personId);
+        m.put("personId", personId);
+        m.put("roleId", roleId);
+        m.put("userName", src.get("personName"));
+        m.put("personName", src.get("personName"));
+        m.put("orgUnitId", src.get("orgUnitId"));
+        m.put("orgUnitName", src.get("orgUnitName"));
+        m.put("roleName", src.get("roleName"));
+        Object accepted = src.get("roleAccepted");
+        m.put("acceptedStatus", accepted);
+        m.put("roleAccepted", accepted);
+        if (src.containsKey("roleAssignmentValid")) {
+            m.put("roleAssignmentValid", src.get("roleAssignmentValid"));
+        }
+        if (src.containsKey("roleAssignmentWarning")) {
+            m.put("roleAssignmentWarning", src.get("roleAssignmentWarning"));
+        }
+        return m;
+    }
+
+    /**
      * Build reference string from facet type and ID
      */
     private String buildReference(String facetType, int facetId) {

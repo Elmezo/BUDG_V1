@@ -131,6 +131,7 @@
         "pendingTasks": "Pending Tasks",
         "others": "Others",
         "rolesNotAcceptedOutOf": "{n} out of {total}",
+        "rolesNotAcceptedHeading": "Roles Not Accepted ({count})",
         "modal": {
             "editingImage": "Editing image…",
             "editingTable": "Editing table…",
@@ -231,7 +232,9 @@
             "sharingUpdateFailed": "Failed to update sharing settings. Please try again.",
             "sharingSaveError": "An error occurred while saving sharing settings. Please try again.",
             "selectSharingOption": "Please select a sharing option.",
-            "cannotShareWithSelf": "You cannot share the dashboard with yourself. Please choose another user."
+            "cannotShareWithSelf": "You cannot share the dashboard with yourself. Please choose another user.",
+            "onlyOwnerCanModify": "You can only change sharing for dashboards you own. This dashboard was shared with you.",
+            "loadSharingFailed": "Could not load sharing settings. Please try again."
         }
     },
     "button": {

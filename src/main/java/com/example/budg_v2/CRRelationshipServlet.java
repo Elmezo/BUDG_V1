@@ -345,8 +345,7 @@ public class CRRelationshipServlet extends HttpServlet {
                                 // For auto CRs, get stakeholders from the source object
                                 stakeholders = stakeholderDAO.getStakeholdersFromSourceObject(reference);
                             } else {
-                                // For manual CRs, get stakeholders from cr_stakeholders table
-                                stakeholders = stakeholderDAO.getStakeholdersForChangeRequest(sourceCrId);
+                                stakeholders = stakeholderDAO.getStakeholdersForManualChangeRequest(sourceCrId, reference);
                             }
                             
                             boolean isStakeholder = false;

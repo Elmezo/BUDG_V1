@@ -2305,9 +2305,47 @@ public class PendingChangesServlet extends HttpServlet {
                 //system.out.println("[PendingChangesServlet] Column " + col + " error: " + e.getMessage());
             }
         }
-        
+
+        if ("glossary".equalsIgnoreCase(facetName)) {
+            appendGlossaryAliasChanges(conn, originalId, clonedId, changes);
+        }
+
         //system.out.println("[PendingChangesServlet] compareObjects returning " + changes.size() + " changes");
         return changes;
+    }
+
+    /**
+     * Aliases live in glossary_alias_names, not on the glossary row — include them in View Changes / changes table.
+     */
+    private void appendGlossaryAliasChanges(Connection conn, int originalId, int clonedId,
+                                            List<Map<String, String>> changes) throws SQLException {
+        String oldJoined = loadGlossaryAliasesJoined(conn, originalId);
+        String newJoined = loadGlossaryAliasesJoined(conn, clonedId);
+        if (Objects.equals(oldJoined, newJoined)) {
+            return;
+        }
+        Map<String, String> change = new HashMap<>();
+        change.put("fieldName", "Aliases");
+        change.put("oldValue", oldJoined != null ? oldJoined : "");
+        change.put("newValue", newJoined != null ? newJoined : "");
+        changes.add(change);
+    }
+
+    private String loadGlossaryAliasesJoined(Connection conn, int glossaryId) throws SQLException {
+        List<String> names = new ArrayList<>();
+        String sql = "SELECT Name FROM glossary_alias_names WHERE Glossary_id = ? ORDER BY Name";
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, glossaryId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    String n = rs.getString(1);
+                    if (n != null && !n.trim().isEmpty()) {
+                        names.add(n.trim());
+                    }
+                }
+            }
+        }
+        return String.join(", ", names);
     }
     
     /**

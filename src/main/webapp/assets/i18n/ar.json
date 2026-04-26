@@ -131,6 +131,7 @@
         "pendingTasks": "المهام المعلقة",
         "others": "أخرى",
         "rolesNotAcceptedOutOf": "{n} من {total}",
+        "rolesNotAcceptedHeading": "الأدوار غير المقبولة ({count})",
         "modal": {
             "editingImage": "جاري تحرير الصورة…",
             "editingTable": "جاري تحرير الجدول…",
@@ -231,7 +232,9 @@
             "sharingUpdateFailed": "فشل تحديث إعدادات المشاركة. يرجى المحاولة مرة أخرى.",
             "sharingSaveError": "حدث خطأ أثناء حفظ إعدادات المشاركة. يرجى المحاولة مرة أخرى.",
             "selectSharingOption": "يرجى اختيار خيار مشاركة.",
-            "cannotShareWithSelf": "لا يمكنك مشاركة لوحة التحكم مع نفسك. يرجى اختيار مستخدم آخر."
+            "cannotShareWithSelf": "لا يمكنك مشاركة لوحة التحكم مع نفسك. يرجى اختيار مستخدم آخر.",
+            "onlyOwnerCanModify": "يمكنك تغيير المشاركة فقط للوحات التي تملكها. تمت مشاركة هذه اللوحة معك.",
+            "loadSharingFailed": "تعذر تحميل إعدادات المشاركة. يرجى المحاولة مرة أخرى."
         }
     },
     "button": {

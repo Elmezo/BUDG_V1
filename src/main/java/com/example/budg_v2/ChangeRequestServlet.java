@@ -337,6 +337,7 @@ public class ChangeRequestServlet extends HttpServlet {
                                 
                                 // Create JSON object from change request
                                 JsonObject crJson = gson.toJsonTree(changeRequest).getAsJsonObject();
+                                addReferenceObjectDisplayName(crJson, changeRequest);
                                 
                                 // Add analysis if exists
                                 if (!analyses.isEmpty()) {
@@ -358,7 +359,9 @@ public class ChangeRequestServlet extends HttpServlet {
                             } catch (SQLException e) {
                                 logger.warn("Error loading analysis/resolution for CR {}: {}", id, e.getMessage());
                                 // Continue without analysis/resolution
-                                response.getWriter().write(gson.toJson(changeRequest));
+                                JsonObject crJsonFallback = gson.toJsonTree(changeRequest).getAsJsonObject();
+                                addReferenceObjectDisplayName(crJsonFallback, changeRequest);
+                                response.getWriter().write(gson.toJson(crJsonFallback));
                             }
                         } else {
                             logger.warn("Change request not found for ID: {}", id);
@@ -2066,6 +2069,27 @@ public class ChangeRequestServlet extends HttpServlet {
     /**
      * Check if user can complete CR (super admin, admin, or stakeholder)
      */
+    /**
+     * Adds resolved primary/display name for the CR's referenced object (e.g. process title for "Process 89").
+     */
+    private void addReferenceObjectDisplayName(JsonObject crJson, ChangeRequest changeRequest) {
+        if (changeRequest == null || crJson == null) {
+            return;
+        }
+        String ref = changeRequest.getReference();
+        if (ref == null || ref.trim().isEmpty()) {
+            return;
+        }
+        try (Connection conn = DatabaseConnection.getConnection()) {
+            String displayName = WorkflowTaskDAO.resolveDisplayNameForCrReference(conn, ref);
+            if (displayName != null && !displayName.trim().isEmpty()) {
+                crJson.addProperty("referenceObjectName", displayName.trim());
+            }
+        } catch (Exception e) {
+            logger.debug("Could not resolve referenceObjectName for '{}': {}", ref, e.getMessage());
+        }
+    }
+
     private boolean checkUserCanCompleteCR(HttpServletRequest request, int userId, int changeRequestId) {
         try {
             // Check if user is admin or super admin
@@ -2088,10 +2112,18 @@ public class ChangeRequestServlet extends HttpServlet {
                 return false;
             }
             
-            // Check if user is stakeholder (excluding requestor)
-            List<Map<String, Object>> stakeholders = crStakeholderDAO.getStakeholdersForChangeRequest(changeRequestId);
+            boolean isAutoCR = cr.getMandatoryWorkflow() != null && cr.getMandatoryWorkflow();
+            List<Map<String, Object>> stakeholders;
+            if (isAutoCR) {
+                String ref = cr.getReference();
+                stakeholders = (ref != null && !ref.trim().isEmpty())
+                        ? crStakeholderDAO.getStakeholdersFromSourceObject(ref)
+                        : new java.util.ArrayList<>();
+            } else {
+                stakeholders = crStakeholderDAO.getStakeholdersForManualChangeRequest(changeRequestId, cr.getReference());
+            }
             for (Map<String, Object> stakeholder : stakeholders) {
-                Integer stakeholderUserId = (Integer) stakeholder.get("User_ID");
+                Integer stakeholderUserId = extractStakeholderUserId(stakeholder);
                 if (stakeholderUserId != null && stakeholderUserId == userId) {
                     logger.info("User {} is stakeholder (not requestor), authorized to complete CR {}", userId, changeRequestId);
                     return true;
@@ -2193,8 +2225,8 @@ public class ChangeRequestServlet extends HttpServlet {
                         stakeholders = new ArrayList<>();
                     }
                 } else {
-                    logger.info("🔍 [STAKEHOLDER CHECK] Manual CR detected - fetching stakeholders from cr_stakeholders table");
-                    stakeholders = crStakeholderDAO.getStakeholdersForChangeRequest(changeRequestId);
+                    logger.info("🔍 [STAKEHOLDER CHECK] Manual CR — cr_stakeholders plus live source object");
+                    stakeholders = crStakeholderDAO.getStakeholdersForManualChangeRequest(changeRequestId, cr.getReference());
                 }
                 
                 logger.info("🔍 [STAKEHOLDER CHECK] Found {} stakeholders for CR {} (isAutoCR: {}, checking userId: {})", 
@@ -2328,6 +2360,39 @@ public class ChangeRequestServlet extends HttpServlet {
             return false;
         }
     }
+    private static Integer extractStakeholderUserId(Map<String, Object> stakeholder) {
+        Object userIdObj = stakeholder.get("userId");
+        if (userIdObj == null) {
+            userIdObj = stakeholder.get("User_ID");
+        }
+        if (userIdObj == null) {
+            userIdObj = stakeholder.get("user_id");
+        }
+        if (userIdObj == null) {
+            userIdObj = stakeholder.get("personId");
+        }
+        if (userIdObj == null) {
+            return null;
+        }
+        if (userIdObj instanceof Integer) {
+            return (Integer) userIdObj;
+        }
+        if (userIdObj instanceof Long) {
+            return ((Long) userIdObj).intValue();
+        }
+        if (userIdObj instanceof Number) {
+            return ((Number) userIdObj).intValue();
+        }
+        if (userIdObj instanceof String) {
+            try {
+                return Integer.parseInt((String) userIdObj);
+            } catch (NumberFormatException e) {
+                return null;
+            }
+        }
+        return null;
+    }
+
     /**
      * Get status ID by status name from changerequeststatus table
      */

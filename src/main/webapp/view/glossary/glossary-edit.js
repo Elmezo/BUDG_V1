@@ -1684,7 +1684,8 @@ async function initializePage() {
                     facetId: 'Glossary',
                     containerId: 'customFieldsContainer',
                     mode: 'edit',
-                    objectId: id
+                    objectId: id,
+                    view: editViewMode === 'changes' ? 'changes' : null
                 });
                 console.log('Custom fields initialized:', window.customFieldsContext);
             } catch (error) {

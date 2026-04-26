@@ -2,6 +2,7 @@ package com.example.budg_v2.service;
 
 import com.example.budg_v2.dao.FacetChangesDAO;
 import com.example.budg_v2.database.DatabaseConnection;
+import com.example.budg_v2.util.CustomFieldPendingFacetHelper;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import org.slf4j.Logger;
@@ -414,6 +415,15 @@ public class FacetChangesService {
             logger.error("      ❌ SQL: {}", updateSql.replaceFirst("\\?", String.valueOf(nobjectId)).replaceFirst("\\?", String.valueOf(objectId)));
             throw e;
         }
+
+        if ("glossary".equalsIgnoreCase(facetName)) {
+            copyGlossaryAliasesFromCloneToOriginal(conn, objectId, nobjectId);
+        }
+
+        String fn = facetName != null ? facetName.toLowerCase() : "";
+        if ("glossary".equals(fn) || "dataset".equals(fn) || "system".equals(fn) || "process".equals(fn)) {
+            CustomFieldPendingFacetHelper.promotePendingCloneCustomFields(conn, fn, objectId, nobjectId);
+        }
         
         // Step 2: Update all foreign key references from nobject_id to object_id
         // This must be done BEFORE deleting nobject_id to avoid foreign key constraint violations
@@ -443,6 +453,25 @@ public class FacetChangesService {
             logger.error("      ❌ SQL Error deleting from {} table: {}", tableName, e.getMessage());
             logger.error("      ❌ SQL: {}", deleteSql.replace("?", String.valueOf(nobjectId)));
             throw e;
+        }
+    }
+
+    /**
+     * Replace original glossary aliases with the cloned row's aliases (aliases are not columns on glossary).
+     */
+    private void copyGlossaryAliasesFromCloneToOriginal(Connection conn, int objectId, int nobjectId) throws SQLException {
+        try (PreparedStatement del = conn.prepareStatement("DELETE FROM glossary_alias_names WHERE Glossary_id = ?")) {
+            del.setInt(1, objectId);
+            int removed = del.executeUpdate();
+            logger.info("      └─ [ALIASES] Cleared {} alias row(s) for original glossary {}", removed, objectId);
+        }
+        String insertSql = "INSERT INTO glossary_alias_names (Glossary_id, Name, Last_updated_Datetime, Last_updated_UserID) " +
+                "SELECT ?, Name, Last_updated_Datetime, Last_updated_UserID FROM glossary_alias_names WHERE Glossary_id = ?";
+        try (PreparedStatement ins = conn.prepareStatement(insertSql)) {
+            ins.setInt(1, objectId);
+            ins.setInt(2, nobjectId);
+            int copied = ins.executeUpdate();
+            logger.info("      └─ [ALIASES] Copied {} alias row(s) from clone {} to original {}", copied, nobjectId, objectId);
         }
     }
 
@@ -1710,6 +1739,7 @@ public class FacetChangesService {
                 break;
             case "glossary":
                 childTables = new String[][] {
+                    {"glossary_alias_names", "Glossary_id"},
                     {"glossary_audit_history", "id"},
                     {"glossary_audit", "id"},
                     {"glossary_x_system", "GlossaryID"},
@@ -1759,6 +1789,15 @@ public class FacetChangesService {
             } catch (SQLException e) {
                 // Table might not exist or column might not exist - that's OK
                 logger.debug("   └─ Could not clean up {}.{} for cloned ID {}: {}", table, column, nobjectId, e.getMessage());
+            }
+        }
+
+        String fn = facetName != null ? facetName.toLowerCase() : "";
+        if ("glossary".equals(fn) || "dataset".equals(fn) || "system".equals(fn) || "process".equals(fn)) {
+            try {
+                CustomFieldPendingFacetHelper.deleteCloneCustomFields(conn, fn, nobjectId);
+            } catch (SQLException e) {
+                logger.warn("   └─ Could not delete custom field rows for cloned ID {}: {}", nobjectId, e.getMessage());
             }
         }
     }

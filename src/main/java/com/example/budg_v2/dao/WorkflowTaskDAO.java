@@ -646,7 +646,7 @@ public class WorkflowTaskDAO {
                                 taskData.put("objectTypeNormalized", normalizedType);
 
                                 // Resolve actual object name from the database
-                                String objectName = resolveObjectName(conn, facetRaw, objectId);
+                                String objectName = WorkflowTaskDAO.resolveObjectName(conn, facetRaw, objectId);
                                 taskData.put("object", objectName != null ? objectName : crReference);
                             } else {
                                 taskData.put("objectType", "Change Request");
@@ -738,10 +738,31 @@ public class WorkflowTaskDAO {
     }
 
     /**
+     * Resolve display name from a CR reference string (e.g. {@code "Process 89"}).
+     */
+    public static String resolveDisplayNameForCrReference(Connection conn, String reference) {
+        if (reference == null || reference.trim().isEmpty()) {
+            return null;
+        }
+        Pattern pattern = Pattern.compile("^(.+?)\\s+(\\d+)$");
+        Matcher matcher = pattern.matcher(reference.trim());
+        if (!matcher.matches()) {
+            return null;
+        }
+        String facetRaw = matcher.group(1).trim();
+        try {
+            int objectId = Integer.parseInt(matcher.group(2).trim());
+            return resolveObjectName(conn, facetRaw, objectId);
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    /**
      * Resolve the display name of an object given its facet type and ID.
      * Returns null if the name cannot be resolved.
      */
-    private String resolveObjectName(java.sql.Connection conn, String facetRaw, int objectId) {
+    public static String resolveObjectName(java.sql.Connection conn, String facetRaw, int objectId) {
         if (facetRaw == null || objectId <= 0) return null;
         String facetKey = facetRaw.toLowerCase().trim();
         try {
