@@ -258,7 +258,7 @@
 
             // Initialize WorkflowView component
             if (typeof WorkflowView !== 'undefined') {
-                WorkflowView.initialize(moduleId, 'workflowList');
+                WorkflowView.initialize(moduleId, 'workflowList', this.currentFacetType, this.currentFacetId);
             } else {
                 console.error('WorkflowView component not loaded');
                 const t = (k) => (window.I18n && window.I18n.t(k)) || k;

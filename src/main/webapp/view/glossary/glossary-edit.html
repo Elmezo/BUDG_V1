@@ -510,6 +510,7 @@
                         <button class="tab" data-tab="relationships" data-i18n="tab.relationships">RELATIONSHIPS</button>
                         <button class="tab" data-tab="stakeholders" data-i18n="tab.stakeholders">STAKEHOLDERS</button>
                         <button class="tab" data-tab="impact" data-i18n="tab.impact">IMPACT</button>
+                        <button class="tab" data-tab="workflow" data-i18n="tab.workflow">WORKFLOW</button>
                     </div>
                 </div>
                 <div class="content-body">
@@ -888,6 +889,10 @@
                             </div>
                         </div>
                     </div>
+
+                    <div id="workflowContainer" class="tab-content" style="display:none;">
+                        <div id="glossaryObjectWorkflowRoot" class="edit-form-container"></div>
+                    </div>
                     
                 </div>
             </div>
@@ -935,6 +940,11 @@
     <script src="../../view/glossary/glossary-documents-init.js"></script>
     <script src="../../assets/js/advanced-rich-text-editor.js"></script>
     <script src="../../assets/js/hierarchy-helper.js"></script>
+    <link rel="stylesheet" href="../../assets/js/libs/bpmn-js/assets/bpmn-font/css/bpmn.css">
+    <link rel="stylesheet" href="../../assets/js/libs/bpmn-js/assets/bpmn-js.css">
+    <link rel="stylesheet" href="../../assets/js/libs/bpmn-js/assets/diagram-js.css">
+    <script src="../../assets/js/libs/bpmn-js/bpmn-modeler.production.min.js"></script>
+    <script src="../../view/workflow-edit.js"></script>
     <script src="../../view/glossary/glossary-edit.js"></script>
 </body>
 </html>

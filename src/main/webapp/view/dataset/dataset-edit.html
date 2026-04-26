@@ -102,6 +102,7 @@
                     <button class="tab" data-tab="attribute" data-i18n="label.attribute">ATTRIBUTE</button>
                     <button class="tab" data-tab="relationships" data-i18n="tab.relationships">RELATIONSHIPS</button>
                     <button class="tab" data-tab="impact" data-i18n="tab.impact">IMPACT</button>
+                    <button class="tab" data-tab="workflow" data-i18n="tab.workflow">WORKFLOW</button>
                 </div>
             </div>
             <div class="content-body">
@@ -403,6 +404,10 @@
                     </div>
                 </div>
 
+                <div id="workflowTab" class="tab-panel" style="display: none;">
+                    <div id="datasetObjectWorkflowRoot" class="view-section" style="grid-column:1/-1;"></div>
+                </div>
+
             </div>
         </div>
     </main>
@@ -429,6 +434,11 @@
     <script src="../../view/components/document-table-component.js"></script>
     <script src="../../view/dataset/dataset-documents-init.js"></script>
     <script src="../../assets/js/advanced-rich-text-editor.js"></script>
+    <link rel="stylesheet" href="../../assets/js/libs/bpmn-js/assets/bpmn-font/css/bpmn.css">
+    <link rel="stylesheet" href="../../assets/js/libs/bpmn-js/assets/bpmn-js.css">
+    <link rel="stylesheet" href="../../assets/js/libs/bpmn-js/assets/diagram-js.css">
+    <script src="../../assets/js/libs/bpmn-js/bpmn-modeler.production.min.js"></script>
+    <script src="../../view/workflow-edit.js"></script>
     <script src="../../view/dataset/dataset-edit.js"></script>
     <script src="../../assets/js/header.js"></script>
 

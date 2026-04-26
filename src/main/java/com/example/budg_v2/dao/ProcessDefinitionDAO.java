@@ -90,7 +90,12 @@ public class ProcessDefinitionDAO {
      * Find all process definitions
      */
     public List<ProcessDefinition> findAll() throws SQLException {
-        String sql = "SELECT * FROM process_definition ORDER BY Created_At DESC";
+        // Exclude object-private workflows (mapped in process_definition_object_scope)
+        String sql = "SELECT pd.* FROM process_definition pd "
+                + "WHERE NOT EXISTS ("
+                + "  SELECT 1 FROM process_definition_object_scope os "
+                + "  WHERE os.Process_Definition_ID = pd.ID"
+                + ") ORDER BY pd.Created_At DESC";
         List<ProcessDefinition> list = new ArrayList<>();
 
         try (Connection conn = DatabaseConnection.getConnection();
@@ -108,13 +113,49 @@ public class ProcessDefinitionDAO {
      * Find process definitions by entity ID
      */
     public List<ProcessDefinition> findByEntityId(int entityId) throws SQLException {
-        String sql = "SELECT * FROM process_definition WHERE Entity_ID = ? ORDER BY Created_At DESC";
+        String sql = "SELECT pd.* FROM process_definition pd "
+                + "WHERE pd.Entity_ID = ? AND NOT EXISTS ("
+                + "  SELECT 1 FROM process_definition_object_scope os "
+                + "  WHERE os.Process_Definition_ID = pd.ID"
+                + ") ORDER BY pd.Created_At DESC";
         List<ProcessDefinition> list = new ArrayList<>();
 
         try (Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
 
             stmt.setInt(1, entityId);
+
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    list.add(mapResultSet(rs));
+                }
+            }
+        }
+        return list;
+    }
+
+    /**
+     * For object workflow "view" mode: global/admin definitions for the module (no object scope)
+     * plus object-private definitions scoped to the given facet and object.
+     */
+    public List<ProcessDefinition> findByEntityIdForObjectWorkflowView(int entityId, String facetType, int objectId)
+            throws SQLException {
+        String sql = "SELECT pd.* FROM process_definition pd "
+                + "WHERE pd.Entity_ID = ? AND ("
+                + "  NOT EXISTS (SELECT 1 FROM process_definition_object_scope os "
+                + "    WHERE os.Process_Definition_ID = pd.ID)"
+                + "  OR EXISTS (SELECT 1 FROM process_definition_object_scope os2 "
+                + "    WHERE os2.Process_Definition_ID = pd.ID "
+                + "    AND os2.Facet_Type = ? AND os2.Object_ID = ?)"
+                + ") ORDER BY pd.Created_At DESC";
+        List<ProcessDefinition> list = new ArrayList<>();
+
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setInt(1, entityId);
+            stmt.setString(2, facetType);
+            stmt.setInt(3, objectId);
 
             try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {

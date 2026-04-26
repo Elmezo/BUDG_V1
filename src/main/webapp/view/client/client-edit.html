@@ -150,6 +150,7 @@
                 <div class="tab-container">
                     <button class="tab active" data-tab="view" data-i18n="client.tabs.details">DETAILS</button>
                     <button class="tab" data-tab="stakeholders" data-i18n="tab.stakeholders">STAKEHOLDERS</button>
+                    <button class="tab" data-tab="workflow" data-i18n="tab.workflow">WORKFLOW</button>
                 </div>
             </div>
             <div class="content-body">
@@ -254,6 +255,9 @@
                 
                 <!-- Stakeholders Tab -->
                 <div id="clientStakeholdersContainer" class="view-grid" style="display:none;"></div>
+                <div id="clientWorkflowContainer" class="view-grid" style="display:none;">
+                    <div id="clientObjectWorkflowRoot"></div>
+                </div>
             </div>
         </div>
     </main>
@@ -270,6 +274,11 @@
     <script src="../../view/client/client-stakeholder-edit.js"></script>
 
     <script src="../../assets/js/advanced-rich-text-editor.js"></script>
+    <link rel="stylesheet" href="../../assets/js/libs/bpmn-js/assets/bpmn-font/css/bpmn.css">
+    <link rel="stylesheet" href="../../assets/js/libs/bpmn-js/assets/bpmn-js.css">
+    <link rel="stylesheet" href="../../assets/js/libs/bpmn-js/assets/diagram-js.css">
+    <script src="../../assets/js/libs/bpmn-js/bpmn-modeler.production.min.js"></script>
+    <script src="../../view/workflow-edit.js"></script>
     <script src="../../view/client/client-edit.js"></script>
     <script src="../../assets/js/header.js"></script>
 

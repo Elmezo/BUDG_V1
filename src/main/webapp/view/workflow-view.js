@@ -8,6 +8,9 @@
 
     const WorkflowView = {
         currentModuleId: null,
+        /** When set with currentObjectId, workflows are loaded via /api/object_workflows (view mode) to include object-private definitions. */
+        currentFacetType: null,
+        currentObjectId: null,
         workflows: [],
         selectedWorkflow: null,
         bpmnViewer: null,
@@ -20,9 +23,16 @@
          * Initialize the workflow view component
          * @param {number} moduleId - The ID of the current module
          * @param {string} containerId - The ID of the container element
+         * @param {string} [facetType] - Facet key (e.g. glossary) for object-scoped workflow merge
+         * @param {number} [objectId] - Object instance id for object-scoped workflow merge
          */
-        initialize: async function (moduleId, containerId) {
+        initialize: async function (moduleId, containerId, facetType, objectId) {
             this.currentModuleId = moduleId;
+            this.currentFacetType = facetType != null && facetType !== '' ? String(facetType) : null;
+            this.currentObjectId = objectId != null && objectId !== '' ? parseInt(objectId, 10) : null;
+            if (this.currentObjectId != null && Number.isNaN(this.currentObjectId)) {
+                this.currentObjectId = null;
+            }
 
             const container = document.getElementById(containerId);
             if (!container) {
@@ -405,7 +415,15 @@
             if (selectContainer) selectContainer.style.display = 'none';
 
             try {
-                const response = await fetch(`/api/process_definitions?entityId=${this.currentModuleId}`);
+                let url;
+                if (this.currentFacetType && this.currentObjectId != null) {
+                    url = '/api/object_workflows?mode=view&facetType=' + encodeURIComponent(this.currentFacetType) +
+                        '&objectId=' + encodeURIComponent(String(this.currentObjectId)) +
+                        '&entityId=' + encodeURIComponent(String(this.currentModuleId));
+                } else {
+                    url = `/api/process_definitions?entityId=${this.currentModuleId}`;
+                }
+                const response = await fetch(url);
 
                 if (!response.ok) {
                     throw new Error('Failed to load workflows');

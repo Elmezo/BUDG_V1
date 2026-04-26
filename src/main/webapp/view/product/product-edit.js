@@ -299,7 +299,7 @@ async function saveProduct(id, closeAfter) {
     buttons.forEach(b => { if (b) b.disabled = true; });
 
     try {
-        if (activeTab === 'relationshipsTab') {
+        if (activeTab === 'relationshipsTab' || activeTab === 'workflowTab') {
             showSuccessMessage(window.I18n ? window.I18n.t('regulation.messages.noDataToSaveOnTab') : 'No data to save on this tab', false);
             restoreButtons();
             return;
@@ -649,6 +649,17 @@ function switchTab(tabName) {
             } else {
                 console.error('Impact edit functionality not available');
             }
+        }
+    }
+
+    if (tabName === 'workflowTab') {
+        const id = parseId();
+        if (id && window.ObjectWorkflowEdit) {
+            window.ObjectWorkflowEdit.ensureInitialized({
+                rootId: 'productObjectWorkflowRoot',
+                facetType: 'product',
+                objectId: id
+            });
         }
     }
     

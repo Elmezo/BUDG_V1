@@ -60,6 +60,7 @@
                     <button class="tab" data-tab="stakeholders" data-i18n="tab.stakeholders">STAKEHOLDERS</button>
                     <button class="tab" data-tab="impact" data-i18n="tab.impact">IMPACT</button>
                     <button class="tab" data-tab="data" data-i18n="tab.data">DATA</button>
+                    <button class="tab" data-tab="workflow" data-i18n="tab.workflow">WORKFLOW</button>
                 </div>
             </div>
             <div class="content-body">
@@ -731,6 +732,10 @@
                         </div>
                     </div>
                 </div>
+
+                <div class="tab-content" id="workflow">
+                    <div id="projectObjectWorkflowRoot"></div>
+                </div>
             </div>
         </div>
 </div>
@@ -795,6 +800,11 @@
 <script src="../../view/components/document-table-component.js"></script>
 <script src="../../view/project/project-documents-init.js"></script>
 <script src="../../assets/js/advanced-rich-text-editor.js"></script>
+<link rel="stylesheet" href="../../assets/js/libs/bpmn-js/assets/bpmn-font/css/bpmn.css">
+<link rel="stylesheet" href="../../assets/js/libs/bpmn-js/assets/bpmn-js.css">
+<link rel="stylesheet" href="../../assets/js/libs/bpmn-js/assets/diagram-js.css">
+<script src="../../assets/js/libs/bpmn-js/bpmn-modeler.production.min.js"></script>
+<script src="../../view/workflow-edit.js"></script>
 <script src="../../view/project/project-edit.js"></script>
 <script src="../../view/project/project-stakeholder-edit.js"></script>
 <script src="../../view/project/project-impact-edit.js"></script>

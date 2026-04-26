@@ -1119,6 +1119,17 @@ function switchTab(tabName) {
             window.initBusinessAreaImpactEdit(id);
         }
     }
+
+    if (tabName === 'workflow') {
+        const id = parseId();
+        if (id && window.ObjectWorkflowEdit) {
+            window.ObjectWorkflowEdit.ensureInitialized({
+                rootId: 'businessAreaObjectWorkflowRoot',
+                facetType: 'business-area',
+                objectId: id
+            });
+        }
+    }
     
     // Restore form data for the new tab
     restoreFormData(tabName);
@@ -1711,6 +1722,15 @@ function switchTab(tabName) {
         const id = parseId();
         if (id && window.initBusinessAreaImpactEdit) {
             window.initBusinessAreaImpactEdit(id);
+        }
+    } else if (tabName === 'workflow') {
+        const id = parseId();
+        if (id && window.ObjectWorkflowEdit) {
+            window.ObjectWorkflowEdit.ensureInitialized({
+                rootId: 'businessAreaObjectWorkflowRoot',
+                facetType: 'business-area',
+                objectId: id
+            });
         }
     }
 }

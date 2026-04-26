@@ -423,6 +423,7 @@
                         <button class="tab" data-tab="components" data-i18n="tab.components">COMPONENTS</button>
                         <button class="tab" data-tab="stakeholders" data-i18n="tab.stakeholders">STAKEHOLDERS</button>
                         <button class="tab" data-tab="impact" data-i18n="tab.impact">IMPACT</button>
+                        <button class="tab" data-tab="workflow" data-i18n="tab.workflow">WORKFLOW</button>
                     </div>
                 </div>
                 <div class="content-body">
@@ -1102,6 +1103,10 @@
                         </div>
                     </div>
                 </div>
+
+                <div id="workflow" class="tab-content" style="display:none;">
+                    <div id="processObjectWorkflowRoot"></div>
+                </div>
             </div>
         </main>
     </div>
@@ -1147,6 +1152,11 @@
 
 <script src="../../assets/js/advanced-rich-text-editor.js"></script>
 <script src="../../assets/js/hierarchy-helper.js"></script>
+<link rel="stylesheet" href="../../assets/js/libs/bpmn-js/assets/bpmn-font/css/bpmn.css">
+<link rel="stylesheet" href="../../assets/js/libs/bpmn-js/assets/bpmn-js.css">
+<link rel="stylesheet" href="../../assets/js/libs/bpmn-js/assets/diagram-js.css">
+<script src="../../assets/js/libs/bpmn-js/bpmn-modeler.production.min.js"></script>
+<script src="../../view/workflow-edit.js"></script>
 <script src="process-edit.js?v=20260324"></script>
 </body>
 </html>

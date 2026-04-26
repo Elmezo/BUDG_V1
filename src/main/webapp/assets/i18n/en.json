@@ -1507,6 +1507,7 @@
                 "typeRequired": "Error: Type is required. You must select a System Type.",
                 "noChangesToSave": "No changes to save",
                 "noChangesToSaveInTab": "No changes to save in this tab.",
+                "workflowUseEditorSave": "Workflow changes are saved with Save workflow in the workflow section. Use Save & Close here to return to the system view.",
                 "impactSaveNotAvailable": "Impact save not available.",
                 "noSystemIdProvided": "No system ID provided",
                 "systemLockedBy": "This system is currently locked by {lockedBy}. Please try again later.",
