@@ -765,22 +765,22 @@ class NotificationPanel {
             return this.createBulkUploadNotificationItem(notification, time);
         }
 
-        // Process message and add Change Request link if available
+        // Process message: workflow §CR§/§OBJ§ markers or legacy Change Request #id link
         let message = notification.message || '';
-
-        // If changeRequestId exists, ensure it's linked in the message
-        if (notification.changeRequestId) {
+        if (this.hasWorkflowMessageMarkers(message)) {
+            message = this.formatWorkflowMessageWithLinkMarkers(message, notification);
+        } else if (notification.changeRequestId) {
             const crId = notification.changeRequestId;
             const crLink = `<a href="/view/change-request/change-request-view.html?id=${crId}" onclick="event.stopPropagation();" style="color: #248567; font-weight: 500; text-decoration: none;">Change Request #${crId}</a>`;
-
-            // Check if message already mentions change request
-            const changeRequestMatch = message.match(/change request (\d+)/i);
+            const msg = this.escapeHtml(message);
+            const changeRequestMatch = msg.match(/change request (\d+)/i);
             if (changeRequestMatch) {
-                message = message.replace(/change request \d+/i, crLink);
+                message = msg.replace(/change request \d+/i, crLink);
             } else {
-                // Add change request link at the end of message
-                message = message + (message.trim().endsWith('.') ? ' ' : '. ') + `View ${crLink}`;
+                message = msg + (msg.trim().endsWith('.') ? ' ' : '. ') + `View ${crLink}`;
             }
+        } else {
+            message = this.escapeHtml(message);
         }
 
         // Build link URL with taskId if available
@@ -1010,6 +1010,56 @@ class NotificationPanel {
             default:
                 return normalized.replace(/\s+/g, '-');
         }
+    }
+
+    /**
+     * @returns {boolean} true if message uses §CR§ / §OBJ§ markers from WorkflowNotificationService
+     */
+    hasWorkflowMessageMarkers(message) {
+        if (!message) {
+            return false;
+        }
+        return /\u00A7(CR|OBJ)\u00A7/.test(message);
+    }
+
+    /**
+     * Renders link markers (section-sign delimited) as safe HTML anchors; escapes all other text.
+     */
+    formatWorkflowMessageWithLinkMarkers(message, notification) {
+        if (!message) {
+            return '';
+        }
+        const re = /\u00A7(CR|OBJ)\u00A7([\s\S]*?)\u00A7\/(CR|OBJ)\u00A7/g;
+        const style = 'color: #248567; font-weight: 500; text-decoration: none;';
+        let out = '';
+        let last = 0;
+        let m;
+        while ((m = re.exec(message)) !== null) {
+            if (m.index > last) {
+                out += this.escapeHtml(message.substring(last, m.index));
+            }
+            const open = m[1];
+            const inner = m[2];
+            const close = m[3];
+            if (open === close) {
+                if (open === 'CR' && notification.changeRequestId) {
+                    const href = `/view/change-request/change-request-view.html?id=${notification.changeRequestId}`;
+                    out += `<a href="${href}" onclick="event.stopPropagation();" style="${style}">${this.escapeHtml(inner)}</a>`;
+                } else if (open === 'OBJ' && notification.facetType && notification.objectId) {
+                    const href = this.getObjectLink(notification.facetType, notification.objectId);
+                    out += `<a href="${href}" onclick="event.stopPropagation();" style="${style}">${this.escapeHtml(inner)}</a>`;
+                } else {
+                    out += this.escapeHtml(m[0]);
+                }
+            } else {
+                out += this.escapeHtml(m[0]);
+            }
+            last = m.index + m[0].length;
+        }
+        if (last < message.length) {
+            out += this.escapeHtml(message.substring(last));
+        }
+        return out;
     }
 
     /**

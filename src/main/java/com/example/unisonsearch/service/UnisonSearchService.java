@@ -4,6 +4,7 @@ import com.example.unisonsearch.model.*;
 import com.example.unisonsearch.config.FilterMetadataConfig;
 import com.example.unisonsearch.util.UnisonTrace;
 import com.example.budg_v2.dao.SegmentDAO;
+import com.example.budg_v2.database.DatabaseConnection;
 import com.example.budg_v2.service.SegmentAccessService;
 
 import com.google.gson.Gson;
@@ -11,6 +12,9 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -2880,7 +2884,7 @@ public class UnisonSearchService {
                 if (facetName != null) {
                     ids.removeAll(getActiveNObjectIdsForFacet(facetName));
                 }
-                return ids;
+                return removeBudgStatusDeletedIdsForWebUser(facet, ids);
             } catch (Exception e) {
                 System.err.println("[UnisonSearchService] getAllIdsForFacet (context path) error for " + facet + ": " + e.getMessage());
                 // fall through to legacy path
@@ -2900,7 +2904,7 @@ public class UnisonSearchService {
                             Set<Integer> excludedIds = getActiveNObjectIdsForFacet(facetName);
                             accessible.removeAll(excludedIds);
                         }
-                        return accessible;
+                        return removeBudgStatusDeletedIdsForWebUser(facet, accessible);
                     }
                     return new HashSet<>();
                 } catch (Exception e) {
@@ -2922,7 +2926,7 @@ public class UnisonSearchService {
                 allIds.removeAll(excludedIds);
             }
             
-            return allIds;
+            return removeBudgStatusDeletedIdsForWebUser(facet, allIds);
         } catch (SQLException e) {
             System.err.println("[UnisonSearchService] getAllIdsForFacet error for " + facet + ": " + e.getMessage());
             return new HashSet<>();
@@ -4467,40 +4471,84 @@ public class UnisonSearchService {
             com.example.unisonsearch.repository.DatabaseHelper dbHelper = new com.example.unisonsearch.repository.DatabaseHelper();
 
             String placeholders = String.join(",", Collections.nCopies(peopleIds.size(), "?"));
-            String sql = "SELECT p.ID, p.First_Name, p.Last_Name, p.Email, p.Function_Name, p.Org_Unit_ID, p.Deleted_date, " +
-                    "ou.Name AS Org_Unit_Name, ou.Reference AS Org_Unit_Ref " +
-                    "FROM people p " +
-                    "LEFT JOIN org_unit ou ON p.Org_Unit_ID = ou.ID AND ou.deleted_Date IS NULL " +
-                    "WHERE p.ID IN (" + placeholders + ") " +
-                    "AND p.Deleted_date IS NULL";
+            // Match QueryBuilder.getSqlForModule("people") column names/aliases so Unison
+            // related-People tables show the same cells as the People facet (not underscore-only keys).
+            String sql = """
+                SELECT
+                    p.ID AS ID,
+                    p.First_Name AS 'First Name',
+                    p.ID AS 'First Name_ID',
+                    p.Last_Name AS 'Last Name',
+                    p.ID AS 'Last Name_ID',
+                    p.Email AS Email,
+                    p.Function_Name AS `Function`,
+                    p.Org_Unit_ID AS Org_Unit_ID,
+                    ou.Reference AS 'Org Unit Ref',
+                    ou.Name AS 'Org Unit',
+                    ou.ID AS 'Org Unit_ID',
+                    s.PrimaryName AS 'BUDG Status',
+                    r.primaryname AS 'Profile Name',
+                    p.System_Role AS System_Role,
+                    p.last_User_LogIn AS 'Last Login',
+                    ls.Primary_Name AS Lifecycle,
+                    et.primary_Name AS 'Employee Type',
+                    pd.lan_id AS 'LAN ID',
+                    p.Created_Date AS 'Created Date',
+                    p.Last_Updated AS 'Last Updated'
+                FROM people p
+                LEFT JOIN status s ON p.status_id = s.ID
+                LEFT JOIN people_details pd ON p.ip_details = pd.id
+                LEFT JOIN employment_type et ON pd.employment_type = et.id
+                LEFT JOIN role r ON p.System_Role = r.id
+                LEFT JOIN org_unit ou ON p.Org_Unit_ID = ou.ID
+                LEFT JOIN people_lifecycle_status ls ON pd.lifecycle = ls.ID
+                """
+                    + "WHERE p.ID IN (" + placeholders + ") " +
+                "AND p.Deleted_date IS NULL";
 
             List<Object> params = new ArrayList<>(peopleIds);
             List<Map<String, Object>> results = dbHelper.executeQuery(sql, params);
 
             for (Map<String, Object> row : results) {
-                Map<String, Object> peopleRow = new HashMap<>();
-                Object id = row.get("ID");
+                Map<String, Object> peopleRow = new HashMap<>(row);
+                Object id = peopleRow.get("ID");
                 if (id != null) {
-                    peopleRow.put("ID", id);
                     peopleRow.put("id", id);
                 }
-                peopleRow.put("First_Name", row.get("First_Name"));
-                peopleRow.put("first_name", row.get("First_Name"));
-                peopleRow.put("Last_Name", row.get("Last_Name"));
-                peopleRow.put("last_name", row.get("Last_Name"));
-                peopleRow.put("Email", row.get("Email"));
-                peopleRow.put("email", row.get("Email"));
-                peopleRow.put("Function_Name", row.get("Function_Name"));
-                peopleRow.put("function_name", row.get("Function_Name"));
-                peopleRow.put("Org_Unit_ID", row.get("Org_Unit_ID"));
-                peopleRow.put("org_unit_id", row.get("Org_Unit_ID"));
-                
-                // Add org unit name and reference
-                peopleRow.put("Org Unit", row.get("Org_Unit_Name"));
-                peopleRow.put("org_unit", row.get("Org_Unit_Name"));
-                peopleRow.put("Org Unit Ref", row.get("Org_Unit_Ref"));
-                peopleRow.put("org_unit_ref", row.get("Org_Unit_Ref"));
-                
+                // Backward compatibility for callers expecting snake_case / old keys
+                Object firstName = peopleRow.get("First Name");
+                if (firstName == null) {
+                    firstName = peopleRow.get("First_Name");
+                }
+                peopleRow.put("First_Name", firstName);
+                peopleRow.put("first_name", firstName);
+
+                Object lastName = peopleRow.get("Last Name");
+                if (lastName == null) {
+                    lastName = peopleRow.get("Last_Name");
+                }
+                peopleRow.put("Last_Name", lastName);
+                peopleRow.put("last_name", lastName);
+
+                Object email = peopleRow.get("Email");
+                peopleRow.put("email", email);
+
+                Object fn = peopleRow.get("Function");
+                if (fn == null) {
+                    fn = peopleRow.get("Function_Name");
+                }
+                peopleRow.put("Function_Name", fn);
+                peopleRow.put("function_name", fn);
+
+                if (peopleRow.get("Org_Unit_ID") == null) {
+                    peopleRow.put("Org_Unit_ID", peopleRow.get("Org Unit_ID"));
+                }
+                peopleRow.put("org_unit_id", peopleRow.get("Org_Unit_ID"));
+
+                Object ouName = peopleRow.get("Org Unit");
+                peopleRow.put("org_unit", ouName);
+                Object ouRef = peopleRow.get("Org Unit Ref");
+                peopleRow.put("org_unit_ref", ouRef);
                 rows.add(peopleRow);
             }
         } catch (Exception e) {
@@ -14744,36 +14792,171 @@ public class UnisonSearchService {
     }
 
     /**
+     * Entity table + id/status columns for filtering out BUDG status = "Deleted" for Web Users.
+     * Aligned with {@code BulkDeleteDAO} / {@code QueryBuilder} status joins.
+     */
+    private record BudgStatusBinding(String table, String idCol, String statusCol, String statusTable) {
+    }
+
+    /**
+     * Same as {@code QueryBuilder#isAdminOrSuperAdmin}: super admin, or system role "admin" only.
+     */
+    private boolean isUnisonAdminOrSuperAdmin(Integer userId) {
+        if (userId == null || userId <= 0) {
+            return false;
+        }
+        try {
+            if (SegmentAccessService.isSuperAdmin(userId)) {
+                return true;
+            }
+        } catch (SQLException e) {
+            // continue
+        }
+        String sql = """
+            SELECT r.primaryname AS role_name
+            FROM people p
+            LEFT JOIN role r ON p.System_Role = r.id
+            WHERE p.ID = ?
+            """;
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, userId);
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    String roleName = rs.getString("role_name");
+                    if (roleName != null && "admin".equalsIgnoreCase(roleName.trim())) {
+                        return true;
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            // assume not admin
+        }
+        return false;
+    }
+
+    /**
+     * BUDG Status lookup binding for a canonical facet, or null when this rule should not apply.
+     */
+    private BudgStatusBinding getBudgStatusBindingForFacet(String facetId) {
+        if (facetId == null) {
+            return null;
+        }
+        String c = com.example.unisonsearch.util.FacetNormalizationUtil.normalizeToCanonical(facetId);
+        if (c == null) {
+            return null;
+        }
+        return switch (c) {
+            case "DATASET" -> new BudgStatusBinding("dataset", "ID", "status", "status");
+            case "SYSTEM" -> new BudgStatusBinding("system", "id", "status", "status");
+            case "GLOSSARY" -> new BudgStatusBinding("glossary", "ID", "status", "status");
+            case "PROCESS" -> new BudgStatusBinding("process", "id", "status", "status");
+            case "PROJECT" -> new BudgStatusBinding("project", "id", "status", "status");
+            case "POLICY" -> new BudgStatusBinding("policy", "ID", "status", "status");
+            case "PRODUCT" -> new BudgStatusBinding("product", "id", "status", "status");
+            case "CAPABILITY" -> new BudgStatusBinding("capability", "ID", "status", "status");
+            case "CLIENT" -> new BudgStatusBinding("client", "ID", "status", "status");
+            case "COMMITTEE" -> new BudgStatusBinding("committee", "ID", "status", "status");
+            case "LEGAL_ENTITY" -> new BudgStatusBinding("legal", "ID", "status", "status");
+            case "BUSINESS_AREA" -> new BudgStatusBinding("business_area", "ID", "status", "status");
+            case "INTERFACE" -> new BudgStatusBinding("interface", "id", "status_id", "status");
+            case "ORG_UNIT" -> new BudgStatusBinding("org_unit", "ID", "status_id", "status");
+            case "REGULATION" -> new BudgStatusBinding("regulation", "ID", "RegulationStatus_ID", "regulation_status");
+            case "REGULATORY_THEME" -> new BudgStatusBinding("regulatorytheme", "ID", "Status_ID", "status");
+            // No lifecycle BUDG "Deleted" status (or out of scope): do not filter here
+            case "ATTRIBUTE", "PEOPLE", "ROLE", "GEOGRAPHY", "REGULATOR", "CHANGE_REQUESTS", "CHANGE_REQUEST", "CHANGEREQUEST",
+                 "ACTIVE_TASKS" -> null;
+            default -> null;
+        };
+    }
+
+    /**
+     * For Web Users, remove object IDs whose BUDG status display name is "Deleted".
+     * Admins / super admins return {@code ids} unchanged.
+     */
+    private Set<Integer> removeBudgStatusDeletedIdsForWebUser(String facetId, Set<Integer> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return ids;
+        }
+        if (isUnisonAdminOrSuperAdmin(currentUserId)) {
+            return ids;
+        }
+        BudgStatusBinding b = getBudgStatusBindingForFacet(facetId);
+        if (b == null) {
+            return ids;
+        }
+        List<Integer> idList = new ArrayList<>(ids);
+        final int batch = 500;
+        Set<Integer> toRemove = new HashSet<>();
+        for (int i = 0; i < idList.size(); i += batch) {
+            int end = Math.min(i + batch, idList.size());
+            List<Integer> sub = idList.subList(i, end);
+            int n = sub.size();
+            if (n == 0) {
+                continue;
+            }
+            String placeholders = String.join(",", Collections.nCopies(n, "?"));
+            String q = "SELECT t.`" + b.idCol() + "` AS oid FROM `" + b.table() + "` t "
+                    + "INNER JOIN `" + b.statusTable() + "` s ON t.`" + b.statusCol() + "` = s.id "
+                    + "WHERE t.`" + b.idCol() + "` IN (" + placeholders + ") "
+                    + "AND LOWER(TRIM(s.primaryname)) = 'deleted'";
+            try (Connection conn = DatabaseConnection.getConnection();
+                    PreparedStatement ps = conn.prepareStatement(q)) {
+                for (int j = 0; j < n; j++) {
+                    ps.setInt(j + 1, sub.get(j));
+                }
+                try (ResultSet rs = ps.executeQuery()) {
+                    while (rs.next()) {
+                        toRemove.add(rs.getInt("oid"));
+                    }
+                }
+            } catch (SQLException e) {
+                System.err.println("[UnisonSearchService] removeBudgStatusDeletedIdsForWebUser: " + e.getMessage());
+            }
+        }
+        if (toRemove.isEmpty()) {
+            return ids;
+        }
+        Set<Integer> out = new HashSet<>(ids);
+        out.removeAll(toRemove);
+        return out;
+    }
+
+    /**
      * Generic method to load facet rows based on facet ID.
      */
     private List<Map<String, Object>> loadFacetRows(String facetId, Set<Integer> ids) {
         if (ids == null || ids.isEmpty()) {
             return new ArrayList<>();
         }
+        Set<Integer> filtered = removeBudgStatusDeletedIdsForWebUser(facetId, ids);
+        if (filtered.isEmpty()) {
+            return new ArrayList<>();
+        }
 
         String normalized = facetId.toUpperCase();
         return switch (normalized) {
-            case "DATASET", "DATA_SETS", "DATASETS" -> loadDatasetRows(ids);
-            case "SYSTEM", "SYSTEMS" -> loadSystemRows(ids);
-            case "ATTRIBUTE", "ATTRIBUTES" -> loadAttributeRows(ids);
-            case "GLOSSARY", "GLOSSARIES" -> loadGlossaryRows(ids);
-            case "INTERFACE", "INTERFACES" -> loadInterfaceRows(ids);
-            case "PEOPLE", "PERSON" -> loadPeopleRows(ids);
-            case "ORG_UNIT", "ORGUNIT", "ORG_UNITS" -> loadOrgUnitRows(ids);
-            case "ROLE", "ROLES" -> loadRoleRows(ids);
-            case "PROCESS", "PROCESSES" -> loadProcessRows(ids);
-            case "PROJECT", "PROJECTS" -> loadProjectRows(ids);
-            case "PRODUCT", "PRODUCTS" -> loadProductRows(ids);
-            case "POLICY", "POLICIES" -> loadPolicyRows(ids);
-            case "BUSINESS_AREA", "BUSINESSAREA" -> loadBusinessAreaRows(ids);
-            case "CAPABILITY", "CAPABILITIES" -> loadCapabilityRows(ids);
-            case "LEGAL_ENTITY", "LEGALENTITY" -> loadLegalEntityRows(ids);
-            case "GEOGRAPHY", "GEOGRAPHIES" -> loadGeographyRows(ids);
-            case "REGULATION", "REGULATIONS" -> loadRegulationRows(ids);
-            case "REGULATOR", "REGULATORS" -> loadRegulatorRows(ids);
-            case "REGULATORY_THEME", "REGULATORYTHEME" -> loadRegulatoryThemeRows(ids);
-            case "CHANGE_REQUEST", "CHANGEREQUEST", "CHANGE_REQUESTS" -> loadChangeRequestRows(ids);
-            case "ACTIVE_TASKS", "ACTIVETASKS", "ACTIVE-TASKS" -> loadActiveTaskRows(ids);
+            case "DATASET", "DATA_SETS", "DATASETS" -> loadDatasetRows(filtered);
+            case "SYSTEM", "SYSTEMS" -> loadSystemRows(filtered);
+            case "ATTRIBUTE", "ATTRIBUTES" -> loadAttributeRows(filtered);
+            case "GLOSSARY", "GLOSSARIES" -> loadGlossaryRows(filtered);
+            case "INTERFACE", "INTERFACES" -> loadInterfaceRows(filtered);
+            case "PEOPLE", "PERSON" -> loadPeopleRows(filtered);
+            case "ORG_UNIT", "ORGUNIT", "ORG_UNITS" -> loadOrgUnitRows(filtered);
+            case "ROLE", "ROLES" -> loadRoleRows(filtered);
+            case "PROCESS", "PROCESSES" -> loadProcessRows(filtered);
+            case "PROJECT", "PROJECTS" -> loadProjectRows(filtered);
+            case "PRODUCT", "PRODUCTS" -> loadProductRows(filtered);
+            case "POLICY", "POLICIES" -> loadPolicyRows(filtered);
+            case "BUSINESS_AREA", "BUSINESSAREA" -> loadBusinessAreaRows(filtered);
+            case "CAPABILITY", "CAPABILITIES" -> loadCapabilityRows(filtered);
+            case "LEGAL_ENTITY", "LEGALENTITY" -> loadLegalEntityRows(filtered);
+            case "GEOGRAPHY", "GEOGRAPHIES" -> loadGeographyRows(filtered);
+            case "REGULATION", "REGULATIONS" -> loadRegulationRows(filtered);
+            case "REGULATOR", "REGULATORS" -> loadRegulatorRows(filtered);
+            case "REGULATORY_THEME", "REGULATORYTHEME" -> loadRegulatoryThemeRows(filtered);
+            case "CHANGE_REQUEST", "CHANGEREQUEST", "CHANGE_REQUESTS" -> loadChangeRequestRows(filtered);
+            case "ACTIVE_TASKS", "ACTIVETASKS", "ACTIVE-TASKS" -> loadActiveTaskRows(filtered);
             default -> new ArrayList<>();
         };
     }

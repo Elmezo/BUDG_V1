@@ -9,7 +9,50 @@
     let rolesData = [];
     let attributeRolesData = [];
     let roleStatusesData = [];
-    let peopleData = [];
+    /** Admin role assignments: "dataset:roleId" | "attribute:roleId" -> [{ id, name }, ...] */
+    let peopleByRoleId = {};
+
+    function roleKey(roleId) {
+        return roleId == null || roleId === '' ? '' : String(roleId);
+    }
+
+    function peopleScopeKey(stakeholderType) {
+        return stakeholderType === 'attribute' ? 'attribute' : 'dataset';
+    }
+
+    function roleCacheKey(stakeholderType, roleId) {
+        return `${peopleScopeKey(stakeholderType)}:${roleKey(roleId)}`;
+    }
+
+    function getPeopleForRole(roleId, stakeholderType = 'dataset') {
+        return peopleByRoleId[roleCacheKey(stakeholderType, roleId)] || [];
+    }
+
+    function setPeopleForRole(roleId, people, stakeholderType = 'dataset') {
+        peopleByRoleId[roleCacheKey(stakeholderType, roleId)] = Array.isArray(people) ? people.slice() : [];
+    }
+
+    function matchPersonByNameInList(personName, list) {
+        if (!personName || !Array.isArray(list) || list.length === 0) {
+            return null;
+        }
+        let person = list.find(p => p.name === personName);
+        if (!person) {
+            person = list.find(p => {
+                const cleanPersonName = p.name.replace(/\s*\([^)]*\)\s*$/, '').trim();
+                const cleanStakeholderName = personName.replace(/\s*\([^)]*\)\s*$/, '').trim();
+                return cleanPersonName === cleanStakeholderName;
+            });
+        }
+        if (!person) {
+            person = list.find(p =>
+                p.name.toLowerCase().includes(personName.toLowerCase()) ||
+                personName.toLowerCase().includes(p.name.toLowerCase())
+            );
+        }
+        return person || null;
+    }
+
     let attributesData = [];
     let currentUserId = null;
     let canEditStakeholders = false;
@@ -415,41 +458,6 @@
         }
     }
 
-    // Load all people from API
-    async function loadAllPeople() {
-        try {
-            //console.log('Loading all people...');
-            const response = await fetch('/api/dataset-stakeholder/lookup?type=people', {
-                method: 'GET',
-                credentials: 'include',
-                headers: {
-                    'Content-Type': 'application/json'
-                }
-            });
-
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
-            const data = await response.json();
-            //console.log('People API response:', data);
-
-            if (Array.isArray(data)) {
-                peopleData = data.map(person => ({
-                    id: person.PeopleID || person.peopleId || person.id,
-                    name: person.Name || person.name || person.personName
-                }));
-            } else {
-                peopleData = [];
-            }
-
-            //console.log('Loaded people:', peopleData);
-        } catch (error) {
-            console.error('Error loading people:', error);
-            peopleData = [];
-        }
-    }
-
     // Load people by role
     async function loadPeopleByRole(roleId, stakeholderType = 'dataset') {
         try {
@@ -550,72 +558,54 @@
     // Load people for existing roles in stakeholders data
     async function loadPeopleForExistingRoles() {
         try {
-            //console.log('Loading people for existing roles in stakeholders data...');
+            peopleByRoleId = {};
 
-            // Get unique role IDs from existing stakeholders
-            const existingRoleIds = [...new Set(stakeholdersData
-                .filter(s => s.roleId)
-                .map(s => s.roleId))];
+            const datasetRoleIds = [...new Set(stakeholdersData.filter(s => s.roleId).map(s => s.roleId))];
+            const attributeRoleIds = [...new Set(attributeStakeholdersData.filter(s => s.roleId).map(s => s.roleId))];
 
-            //console.log('Existing role IDs:', existingRoleIds);
+            for (const roleId of datasetRoleIds) {
+                const people = await loadPeopleByRole(roleId, 'dataset');
+                setPeopleForRole(roleId, people, 'dataset');
+            }
+            for (const roleId of attributeRoleIds) {
+                const people = await loadPeopleByRole(roleId, 'attribute');
+                setPeopleForRole(roleId, people, 'attribute');
+            }
 
-            // Load people for each existing role and combine them
-            const allPeoplePromises = existingRoleIds.map(roleId => loadPeopleByRole(roleId));
-            const allPeopleArrays = await Promise.all(allPeoplePromises);
-
-            // Combine all people and remove duplicates
-            const allPeople = [];
-            const seenIds = new Set();
-
-            allPeopleArrays.forEach(peopleArray => {
-                peopleArray.forEach(person => {
-                    if (!seenIds.has(person.id)) {
-                        seenIds.add(person.id);
-                        allPeople.push(person);
-                    }
-                });
-            });
-
-            // Store in peopleData for use in dropdowns
-            peopleData = allPeople;
-            //console.log('Loaded people for existing roles:', peopleData);
-
-            // Now try to match people IDs by name for stakeholders that don't have peopleId
             stakeholdersData.forEach(stakeholder => {
-                if (!stakeholder.peopleId && stakeholder.personName) {
-                    // Try exact match first
-                    let person = peopleData.find(p => p.name === stakeholder.personName);
-
-                    // If no exact match, try partial matching (handle cases where one has email and other doesn't)
-                    if (!person) {
-                        person = peopleData.find(p => {
-                            // Extract name without email from both sides
-                            const cleanPersonName = p.name.replace(/\s*\([^)]*\)\s*$/, '').trim();
-                            const cleanStakeholderName = stakeholder.personName.replace(/\s*\([^)]*\)\s*$/, '').trim();
-                            return cleanPersonName === cleanStakeholderName;
-                        });
-                    }
-
-                    // If still no match, try checking if stakeholder name is contained in person name
-                    if (!person) {
-                        person = peopleData.find(p =>
-                            p.name.toLowerCase().includes(stakeholder.personName.toLowerCase()) ||
-                            stakeholder.personName.toLowerCase().includes(p.name.toLowerCase())
-                        );
-                    }
-
-                    if (person) {
-                        stakeholder.peopleId = person.id;
-                        //console.log('Found people ID for', stakeholder.personName, ':', person.id, 'matched with:', person.name);
-                    } else {
-                        console.warn('Could not find people ID for:', stakeholder.personName, 'in available people:', peopleData.map(p => p.name));
-                    }
+                if (!stakeholder.roleId || !stakeholder.personName) {
+                    return;
+                }
+                if (stakeholder.peopleId && stakeholder.peopleId !== 'null') {
+                    return;
+                }
+                const list = getPeopleForRole(stakeholder.roleId, 'dataset');
+                const person = matchPersonByNameInList(stakeholder.personName, list);
+                if (person) {
+                    stakeholder.peopleId = person.id;
+                } else {
+                    console.warn('Could not find people ID for:', stakeholder.personName, 'within admin-assigned dataset users for role', stakeholder.roleId);
                 }
             });
 
+            attributeStakeholdersData.forEach(stakeholder => {
+                if (!stakeholder.roleId || !stakeholder.personName) {
+                    return;
+                }
+                if (stakeholder.peopleId && stakeholder.peopleId !== 'null') {
+                    return;
+                }
+                const list = getPeopleForRole(stakeholder.roleId, 'attribute');
+                const person = matchPersonByNameInList(stakeholder.personName, list);
+                if (person) {
+                    stakeholder.peopleId = person.id;
+                } else {
+                    console.warn('Could not find people ID for:', stakeholder.personName, 'within admin-assigned attribute users for role', stakeholder.roleId);
+                }
+            });
         } catch (error) {
             console.error('Error loading people for existing roles:', error);
-            peopleData = [];
+            peopleByRoleId = {};
         }
     }
 
@@ -873,21 +863,26 @@
 
     // Render a single stakeholder row
     function renderStakeholderRow(stakeholder, index) {
-        // For existing stakeholders with roleId, we need to show the current person even if we don't have all people loaded
+        const isDatasetStakeholder = index < stakeholdersData.length;
+        const isAttributeStakeholder = index >= stakeholdersData.length;
+        const peopleStakeholderType = isDatasetStakeholder ? 'dataset' : 'attribute';
+
         let peopleOptions = '<option value="">Select Person</option>';
 
         if (stakeholder.roleId) {
-            // If this is existing data, show the current person selection
-            if (stakeholder.peopleId && stakeholder.personName) {
+            const rolePeople = getPeopleForRole(stakeholder.roleId, peopleStakeholderType);
+            const selectedId = stakeholder.peopleId != null && stakeholder.peopleId !== '' && stakeholder.peopleId !== 'null'
+                ? String(stakeholder.peopleId)
+                : '';
+            const idsInRole = new Set(rolePeople.map(p => String(p.id)));
+
+            rolePeople.forEach(person => {
+                const sel = selectedId && String(person.id) === selectedId ? ' selected' : '';
+                peopleOptions += `<option value="${person.id}"${sel}>${escapeHtml(person.name)}</option>`;
+            });
+
+            if (selectedId && !idsInRole.has(selectedId) && stakeholder.personName) {
                 peopleOptions += `<option value="${stakeholder.peopleId}" selected>${escapeHtml(stakeholder.personName)}</option>`;
-            }
-            // Add other people from peopleData if available (but avoid duplicates)
-            if (peopleData && peopleData.length > 0) {
-                peopleData.forEach(person => {
-                    if (person.id != stakeholder.peopleId) {
-                        peopleOptions += `<option value="${person.id}">${escapeHtml(person.name)}</option>`;
-                    }
-                });
             }
         }
 
@@ -903,10 +898,6 @@
                 statusOptions += `<option value="${status.id}" ${isSelected ? 'selected' : ''}>${escapeHtml(status.name)}</option>`;
             });
         }
-
-        // Determine if this is a dataset or attribute stakeholder
-        const isDatasetStakeholder = index < stakeholdersData.length;
-        const isAttributeStakeholder = index >= stakeholdersData.length;
         
         // Use appropriate roles data based on stakeholder type
         const currentRolesData = isDatasetStakeholder ? rolesData : attributeRolesData;
@@ -1015,29 +1006,27 @@
                 const peopleSelect = row.querySelector('.stakeholder-people');
 
                 if (roleId) {
-                    // Load people for this role using dataset API
                     const peopleForRole = await loadPeopleByRole(roleId, 'dataset');
+                    setPeopleForRole(roleId, peopleForRole, 'dataset');
 
-                    // Merge new people with existing peopleData to avoid validation issues
-                    peopleForRole.forEach(person => {
-                        const exists = peopleData.find(p => p.id == person.id);
-                        if (!exists) {
-                            peopleData.push(person);
-                        }
-                    });
+                    if (!peopleForRole || peopleForRole.length === 0) {
+                        peopleSelect.innerHTML = '';
+                        const opt = document.createElement('option');
+                        opt.value = ''; opt.disabled = true; opt.selected = true;
+                        opt.textContent = 'No users for this role — check Admin > Role Assignment or segment access';
+                        peopleSelect.appendChild(opt);
+                        peopleSelect.disabled = true;
+                    } else {
+                        peopleSelect.disabled = false;
+                        peopleSelect.innerHTML = '<option value="">Select Person</option>';
+                        peopleForRole.forEach(person => {
+                            const option = document.createElement('option');
+                            option.value = person.id;
+                            option.textContent = person.name;
+                            peopleSelect.appendChild(option);
+                        });
+                    }
 
-                    // Enable and update people dropdown
-                    peopleSelect.disabled = false;
-                    peopleSelect.innerHTML = '<option value="">Select Person</option>';
-
-                    peopleForRole.forEach(person => {
-                        const option = document.createElement('option');
-                        option.value = person.id;
-                        option.textContent = person.name;
-                        peopleSelect.appendChild(option);
-                    });
-
-                    // Clear current selection in dataset stakeholders
                     if (stakeholdersData[index]) {
                         stakeholdersData[index].peopleId = null;
                         stakeholdersData[index].personName = '';
@@ -1088,29 +1077,27 @@
                 const peopleSelect = row.querySelector('.stakeholder-people');
 
                 if (roleId) {
-                    // Load people for this role using attribute API
                     const peopleForRole = await loadPeopleByRole(roleId, 'attribute');
+                    setPeopleForRole(roleId, peopleForRole, 'attribute');
 
-                    // Merge new people with existing peopleData to avoid validation issues
-                    peopleForRole.forEach(person => {
-                        const exists = peopleData.find(p => p.id == person.id);
-                        if (!exists) {
-                            peopleData.push(person);
-                        }
-                    });
+                    if (!peopleForRole || peopleForRole.length === 0) {
+                        peopleSelect.innerHTML = '';
+                        const opt = document.createElement('option');
+                        opt.value = ''; opt.disabled = true; opt.selected = true;
+                        opt.textContent = 'No users for this role — check Admin > Role Assignment or segment access';
+                        peopleSelect.appendChild(opt);
+                        peopleSelect.disabled = true;
+                    } else {
+                        peopleSelect.disabled = false;
+                        peopleSelect.innerHTML = '<option value="">Select Person</option>';
+                        peopleForRole.forEach(person => {
+                            const option = document.createElement('option');
+                            option.value = person.id;
+                            option.textContent = person.name;
+                            peopleSelect.appendChild(option);
+                        });
+                    }
 
-                    // Enable and update people dropdown
-                    peopleSelect.disabled = false;
-                    peopleSelect.innerHTML = '<option value="">Select Person</option>';
-
-                    peopleForRole.forEach(person => {
-                        const option = document.createElement('option');
-                        option.value = person.id;
-                        option.textContent = person.name;
-                        peopleSelect.appendChild(option);
-                    });
-
-                    // Clear current selection in attribute stakeholders
                     if (attributeStakeholdersData[index]) {
                         attributeStakeholdersData[index].peopleId = null;
                         attributeStakeholdersData[index].personName = '';
@@ -1202,7 +1189,7 @@
                     personSelect.appendChild(opt);
                     personSelect.disabled = true;
                 } else {
-                    people.forEach(p => { if (!peopleData.find(existing => String(existing.id) === String(p.id))) { peopleData.push(p); } });
+                    setPeopleForRole(roleId, people, 'dataset');
                     personSelect.innerHTML = '<option value="">Select Person</option>';
                     people.forEach(p => { const o = document.createElement('option'); o.value = p.id; o.textContent = p.name; personSelect.appendChild(o); });
                     personSelect.disabled = false;
@@ -1236,10 +1223,10 @@
         try {
             const selectedRole = rolesData.find(r => String(r.id) === String(roleId));
             const selectedStatus = roleStatusesData.find(s => String(s.id) === String(statusId));
-            const selectedPerson = peopleData.find(p => String(p.id) === String(peopleId));
+            const selectedPerson = getPeopleForRole(roleId, 'dataset').find(p => String(p.id) === String(peopleId));
             const selectedDelegate = stakeholdersData.find(s => String(s.objectXPeopleId) === String(delegateIpId));
 
-            // Fallback: read the person name directly from the dropdown option if not found in peopleData
+            // Fallback: read the person name directly from the dropdown option if not found in role cache
             const personSelectEl = document.getElementById('newStakeholderPerson');
             const personNameFallback = personSelectEl
                 ? (personSelectEl.options[personSelectEl.selectedIndex]?.text || '')
@@ -1364,10 +1351,9 @@
                 stakeholder.peopleId = null;
                 stakeholder.personName = '';
             } else if (field === 'peopleId' && value) {
-                // Try to find person in peopleData first
-                let person = peopleData.find(p => p.id == value);
+                const rid = stakeholder.roleId;
+                let person = getPeopleForRole(rid, 'dataset').find(p => String(p.id) === String(value));
 
-                // If not found in peopleData, try to extract from dropdown option
                 if (!person) {
                     const row = document.querySelector(`tr[data-index="${index}"]`);
                     if (row) {
@@ -1377,25 +1363,20 @@
                             if (selectedOption) {
                                 const personName = selectedOption.textContent;
                                 person = { id: value, name: personName };
-                                // Add to peopleData for future validation
-                                peopleData.push(person);
+                                const list = getPeopleForRole(rid, 'dataset').slice();
+                                if (!list.find(p => String(p.id) === String(value))) {
+                                    list.push(person);
+                                    setPeopleForRole(rid, list, 'dataset');
+                                }
                             }
                         }
                     }
                 }
 
-                // If still not found, try to load from API
-                if (!person) {
-                    const currentRoleId = stakeholder.roleId;
-                    if (currentRoleId) {
-                        const rolePeople = await loadPeopleByRole(currentRoleId, 'dataset');
-                        person = rolePeople.find(p => p.id == value);
-
-                        // Add to peopleData if found
-                        if (person && !peopleData.find(p => p.id == person.id)) {
-                            peopleData.push(person);
-                        }
-                    }
+                if (!person && rid) {
+                    const rolePeople = await loadPeopleByRole(rid, 'dataset');
+                    setPeopleForRole(rid, rolePeople, 'dataset');
+                    person = rolePeople.find(p => String(p.id) === String(value));
                 }
 
                 stakeholder.personName = person ? person.name : '';
@@ -1439,10 +1420,9 @@
                 stakeholder.peopleId = null;
                 stakeholder.personName = '';
             } else if (field === 'peopleId' && value) {
-                // Try to find person in peopleData first
-                let person = peopleData.find(p => p.id == value);
+                const rid = stakeholder.roleId;
+                let person = getPeopleForRole(rid, 'attribute').find(p => String(p.id) === String(value));
 
-                // If not found in peopleData, try to extract from dropdown option
                 if (!person) {
                     const row = document.querySelector(`tr[data-index="${index + stakeholdersData.length}"]`);
                     if (row) {
@@ -1452,25 +1432,20 @@
                             if (selectedOption) {
                                 const personName = selectedOption.textContent;
                                 person = { id: value, name: personName };
-                                // Add to peopleData for future validation
-                                peopleData.push(person);
+                                const list = getPeopleForRole(rid, 'attribute').slice();
+                                if (!list.find(p => String(p.id) === String(value))) {
+                                    list.push(person);
+                                    setPeopleForRole(rid, list, 'attribute');
+                                }
                             }
                         }
                     }
                 }
 
-                // If still not found, try to load from API
-                if (!person) {
-                    const currentRoleId = stakeholder.roleId;
-                    if (currentRoleId) {
-                        const rolePeople = await loadPeopleByRole(currentRoleId, 'attribute');
-                        person = rolePeople.find(p => p.id == value);
-
-                        // Add to peopleData if found
-                        if (person && !peopleData.find(p => p.id == person.id)) {
-                            peopleData.push(person);
-                        }
-                    }
+                if (!person && rid) {
+                    const rolePeople = await loadPeopleByRole(rid, 'attribute');
+                    setPeopleForRole(rid, rolePeople, 'attribute');
+                    person = rolePeople.find(p => String(p.id) === String(value));
                 }
 
                 stakeholder.personName = person ? person.name : '';
@@ -1684,7 +1659,6 @@
         const allStakeholders = [...stakeholdersData, ...attributeStakeholdersData];
 
         //console.log('Validating stakeholders data:', allStakeholders);
-        //console.log('Available people data:', peopleData);
         //console.log('Available roles data:', rolesData);
         //console.log('Available role statuses data:', roleStatusesData);
         //console.log('Available attributes data:', attributesData);
@@ -1723,6 +1697,14 @@
             // Validate Name (Required)
             if (!stakeholder.peopleId || stakeholder.peopleId === null || stakeholder.peopleId === '') {
                 errors.push(`Row ${rowNum}: Name is required and must be selected`);
+            } else {
+                const ptype = isDatasetStakeholder ? 'dataset' : 'attribute';
+                const rolePeople = getPeopleForRole(stakeholder.roleId, ptype);
+                const personExists = rolePeople.some(p => String(p.id) === String(stakeholder.peopleId))
+                    || (rolePeople.length === 0 && !!stakeholder.peopleId);
+                if (!personExists) {
+                    errors.push(`Row ${rowNum}: Selected person is invalid`);
+                }
             }
 
             // Validate Role Status (Required)
@@ -1746,12 +1728,10 @@
                 // Only show this error if we have a peopleId but no personName
                 // This is a soft validation - we allow it if peopleId exists
                 if (stakeholder.peopleId) {
-                    console.warn(`Row ${rowNum}: Person ID exists but name is empty, attempting to find name...`);
-                    // Try to find the person name from peopleData
-                    const person = peopleData.find(p => p.id == stakeholder.peopleId);
+                    const ptype = isDatasetStakeholder ? 'dataset' : 'attribute';
+                    const person = getPeopleForRole(stakeholder.roleId, ptype).find(p => String(p.id) === String(stakeholder.peopleId));
                     if (person) {
                         stakeholder.personName = person.name;
-                        //console.log(`Found person name: ${person.name}`);
                     }
                 }
             }

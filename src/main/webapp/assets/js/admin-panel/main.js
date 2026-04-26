@@ -877,7 +877,7 @@ function showOperatingModelContent(contentArea) {
             },
             {
                 title: T('adminPanel.operatingModel.licensedUsers.title', 'Licensed Users'),
-                description: T('adminPanel.operatingModel.licensedUsers.description', 'List of users that can edit BUDG objects.'),
+                description: T('adminPanel.operatingModel.licensedUsers.description', 'Super Admins, Admins, and Web Users who have Edit permission on at least one object (via the permissions table).'),
                 iconClass: 'fas fa-id-card',
                 submenuI18nKey: 'adminPanel.submenu.licensedUsers',
                 useViewButton: true

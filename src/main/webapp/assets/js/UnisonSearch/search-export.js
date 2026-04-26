@@ -93,15 +93,25 @@
             });
         }
 
-        // Other facets handlers (PDF, Excel, CSV only)
+        // Other facets: plain export + export with stakeholders (backend includeStakeholders flag)
         const exportPdfBtn = document.getElementById('exportPdfBtn');
+        const exportPdfWithStakeholdersBtn = document.getElementById('exportPdfWithStakeholdersBtn');
         const exportExcelBtn = document.getElementById('exportExcelBtn');
+        const exportExcelWithStakeholdersBtn = document.getElementById('exportExcelWithStakeholdersBtn');
         const exportCsvBtn = document.getElementById('exportCsvBtn');
+        const exportCsvWithStakeholdersBtn = document.getElementById('exportCsvWithStakeholdersBtn');
 
         if (exportPdfBtn) {
             exportPdfBtn.addEventListener('click', (e) => {
                 e.preventDefault();
                 exportDataForOtherFacets('pdf', false);
+            });
+        }
+
+        if (exportPdfWithStakeholdersBtn) {
+            exportPdfWithStakeholdersBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                exportDataForOtherFacets('pdf', true);
             });
         }
 
@@ -112,10 +122,24 @@
             });
         }
 
+        if (exportExcelWithStakeholdersBtn) {
+            exportExcelWithStakeholdersBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                exportDataForOtherFacets('excel', true);
+            });
+        }
+
         if (exportCsvBtn) {
             exportCsvBtn.addEventListener('click', (e) => {
                 e.preventDefault();
                 exportDataForOtherFacets('csv', false);
+            });
+        }
+
+        if (exportCsvWithStakeholdersBtn) {
+            exportCsvWithStakeholdersBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                exportDataForOtherFacets('csv', true);
             });
         }
     }

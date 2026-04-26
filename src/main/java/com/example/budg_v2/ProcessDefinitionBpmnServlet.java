@@ -3,6 +3,7 @@ package com.example.budg_v2;
 import com.example.budg_v2.dao.BpmnContentDAO;
 import com.example.budg_v2.util.AppRoleNames;
 import com.example.budg_v2.util.BpmnFileManager;
+import com.example.budg_v2.util.BpmnParser;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import jakarta.servlet.ServletException;
@@ -116,6 +117,23 @@ public class ProcessDefinitionBpmnServlet extends HttpServlet {
                 response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
                 JsonObject error = new JsonObject();
                 error.addProperty("error", "XML content cannot be empty");
+                response.getWriter().write(gson.toJson(error));
+                return;
+            }
+
+            try {
+                if (!BpmnParser.hasAtLeastOneEndEvent(xmlContent)) {
+                    response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                    JsonObject error = new JsonObject();
+                    error.addProperty("error", "BPMN must contain at least one end event");
+                    response.getWriter().write(gson.toJson(error));
+                    return;
+                }
+            } catch (Exception e) {
+                logger.warn("BPMN parse error during end event validation: {}", e.getMessage());
+                response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                JsonObject error = new JsonObject();
+                error.addProperty("error", "Invalid BPMN XML: " + e.getMessage());
                 response.getWriter().write(gson.toJson(error));
                 return;
             }

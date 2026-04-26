@@ -202,6 +202,29 @@ public class BpmnParser {
     }
 
     /**
+     * Count {@code endEvent} elements in a parsed BPMN document (any namespace).
+     */
+    public static int countEndEvents(Document doc) {
+        if (doc == null) {
+            return 0;
+        }
+        return doc.getElementsByTagNameNS("*", "endEvent").getLength();
+    }
+
+    /**
+     * Returns true if the BPMN XML contains at least one end event.
+     *
+     * @throws Exception if the XML cannot be parsed as BPMN
+     */
+    public static boolean hasAtLeastOneEndEvent(String bpmnXml) throws Exception {
+        if (bpmnXml == null || bpmnXml.trim().isEmpty()) {
+            return false;
+        }
+        Document doc = parseXml(bpmnXml);
+        return countEndEvents(doc) > 0;
+    }
+
+    /**
      * Extract custom properties from end event (Status and Lifecycle)
      * Similar to extractTaskProperties but for end events
      */

@@ -242,6 +242,7 @@ public class FilterMetadataConfig {
         
         // Change Request filters
         List<FilterField> changeRequestFilters = new ArrayList<>();
+        changeRequestFilters.add(new FilterField("status", "Status", FilterType.DROPDOWN, "changerequeststatus", "CR_StatusID"));
         changeRequestFilters.add(new FilterField("type", "Type", FilterType.DROPDOWN, "changerequest_type", "CR_TypeID"));
         changeRequestFilters.add(new FilterField("severity", "Severity", FilterType.DROPDOWN, "changerequest_severity", "CR_SeverityID"));
         changeRequestFilters.add(new FilterField("urgency", "Urgency", FilterType.DROPDOWN, "changerequest_urgency", "CR_UrgencyID"));
