@@ -290,7 +290,7 @@ window.EditDropdown = (function() {
         const facetName = getTranslation(facetI18nKey, config.displayName);
         
         // Check if change requests are allowed for this facet type
-        const restrictedFacets = ['regulatory-theme', 'geography', 'regulator', 'people'];
+        const restrictedFacets = ['regulatory-theme', 'geography', 'regulator', 'people', 'legal-entity', 'org-unit'];
         const canRaiseChangeRequest = !restrictedFacets.includes(facetType);
         
         // Check if edit option should be disabled (e.g., when Auto CR is active)

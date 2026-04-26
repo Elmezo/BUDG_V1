@@ -30,6 +30,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import com.google.gson.JsonObject;
+
 /**
  * Servlet for Active Tasks operations
  * Endpoints:
@@ -59,17 +61,44 @@ public class ActiveTasksServlet extends HttpServlet {
         response.setCharacterEncoding("UTF-8");
 
         try {
-            // Get user ID from request
-            Integer userId = getUserIdFromRequest(request);
+            Integer sessionUserId = getUserIdFromRequest(request);
+            String personIdParam = request.getParameter("personId");
+            int targetUserId;
 
-            if (userId == null || userId <= 0) {
-                // Guest/anonymous: return empty list so UI does not show 401
-                response.getWriter().write("[]");
-                return;
+            if (personIdParam != null && !personIdParam.isBlank()) {
+                if (sessionUserId == null || sessionUserId <= 0) {
+                    response.getWriter().write("[]");
+                    return;
+                }
+                int requestedPersonId;
+                try {
+                    requestedPersonId = Integer.parseInt(personIdParam.trim());
+                } catch (NumberFormatException e) {
+                    response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                    JsonObject error = new JsonObject();
+                    error.addProperty("error", "Invalid personId");
+                    response.getWriter().write(gson.toJson(error));
+                    return;
+                }
+                String userRole = (String) request.getAttribute("userRole");
+                boolean isAdmin = userRole != null && userRole.toLowerCase().contains("admin");
+                if (!isAdmin && sessionUserId != requestedPersonId) {
+                    response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                    JsonObject error = new JsonObject();
+                    error.addProperty("error", "Not allowed to list workflow tasks for another user");
+                    response.getWriter().write(gson.toJson(error));
+                    return;
+                }
+                targetUserId = requestedPersonId;
+            } else {
+                if (sessionUserId == null || sessionUserId <= 0) {
+                    response.getWriter().write("[]");
+                    return;
+                }
+                targetUserId = sessionUserId;
             }
 
-            // Get active tasks for user
-            List<Map<String, Object>> tasks = taskDAO.findActiveTasksForUser(userId);
+            List<Map<String, Object>> tasks = taskDAO.findActiveTasksForUser(targetUserId);
 
             // Enrich tasks with decision options from BPMN
             List<Map<String, Object>> enrichedTasks = new ArrayList<>();

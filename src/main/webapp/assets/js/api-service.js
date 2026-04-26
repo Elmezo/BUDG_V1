@@ -2332,11 +2332,30 @@ class ApiService {
     }
 
     async getPersonContributingChangeRequests(userId) {
-        // Get change requests where the user is a stakeholder (even if not the creator)
-        // Note: getApiUrl already includes /api in base URL, so use /changerequests not /api/changerequests
-        // Add cache-busting parameter to ensure fresh data
         const timestamp = new Date().getTime();
-        return this.get(`/changerequests?stakeholder=${userId}&t=${timestamp}`);
+        try {
+            return await this.get(`/changerequests?contributing=${encodeURIComponent(userId)}&t=${timestamp}`);
+        } catch (e) {
+            if (e.status === 403) {
+                return [];
+            }
+            throw e;
+        }
+    }
+
+    /**
+     * Active workflow tasks for a person (assignee or CR role). personId must be self unless caller is admin.
+     */
+    async getPersonActiveWorkflowTasks(personId) {
+        const timestamp = new Date().getTime();
+        try {
+            return await this.get('/active-tasks', { personId, t: timestamp });
+        } catch (e) {
+            if (e.status === 403) {
+                return [];
+            }
+            throw e;
+        }
     }
 }
 

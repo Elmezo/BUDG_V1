@@ -11,6 +11,7 @@ import com.example.budg_v2.service.SegmentAccessService;
 import com.example.budg_v2.service.WorkflowNotificationService;
 import com.example.budg_v2.util.UserContextUtil;
 import com.example.budg_v2.dao.WorkflowInstanceDAO;
+import com.example.budg_v2.dao.WorkflowTaskDAO;
 import com.example.budg_v2.model.WorkflowInstance;
 import com.example.budg_v2.util.BpmnParser;
 import com.example.budg_v2.util.BpmnFileManager;
@@ -19,7 +20,6 @@ import com.example.budg_v2.model.ChangeRequestResolution;
 import com.example.budg_v2.service.DFCRService;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
-import java.util.Map;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
@@ -44,7 +44,9 @@ import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import com.example.budg_v2.database.DatabaseConnection;
 
 /**
@@ -105,6 +107,7 @@ public class ChangeRequestServlet extends HttpServlet {
             String pathInfo = request.getPathInfo();
             String reference = request.getParameter("reference");
             String stakeholderParam = request.getParameter("stakeholder");
+            String contributingParam = request.getParameter("contributing");
             
             if (pathInfo == null || pathInfo.equals("/")) {
                 List<ChangeRequest> changeRequests;
@@ -130,6 +133,30 @@ public class ChangeRequestServlet extends HttpServlet {
                         logger.info("Found {} change requests for stakeholder {}", changeRequests.size(), personId);
                     } catch (NumberFormatException e) {
                         logger.warn("Invalid stakeholder parameter: {}", stakeholderParam);
+                        changeRequests = new ArrayList<>();
+                    }
+                } else if (contributingParam != null && !contributingParam.trim().isEmpty()) {
+                    // CRs where this person has an active workflow task/step but did not raise the CR
+                    try {
+                        int personId = Integer.parseInt(contributingParam.trim());
+                        int requestingUserId = UserContextUtil.getCurrentUserId(request);
+                        String userRole = (String) request.getAttribute("userRole");
+                        boolean isAdminOrSuperAdmin = userRole != null
+                                && userRole.trim().toLowerCase().contains("admin");
+                        if (!isAdminOrSuperAdmin && personId != requestingUserId) {
+                            response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                            JsonObject error = new JsonObject();
+                            error.addProperty("error", "Not allowed to view contributing change requests for another user");
+                            response.getWriter().write(gson.toJson(error));
+                            return;
+                        }
+                        changeRequests = loadContributingChangeRequests(personId);
+                        logger.info("Found {} contributing change requests for person {}", changeRequests.size(), personId);
+                    } catch (NumberFormatException e) {
+                        logger.warn("Invalid contributing parameter: {}", contributingParam);
+                        changeRequests = new ArrayList<>();
+                    } catch (SQLException sqlEx) {
+                        logger.error("Database error loading contributing change requests", sqlEx);
                         changeRequests = new ArrayList<>();
                     }
                 } else if (reference != null && !reference.trim().isEmpty()) {
@@ -474,7 +501,7 @@ public class ChangeRequestServlet extends HttpServlet {
                 facetType = requestData.get("facetType").getAsString();
                 
                 // Validate: Cannot raise CR for restricted facets
-                String[] restrictedFacets = {"regulatory-theme", "geography", "regulator", "people"};
+                String[] restrictedFacets = {"regulatory-theme", "geography", "regulator", "people", "legal-entity", "org-unit"};
                 for (String restricted : restrictedFacets) {
                     if (restricted.equals(facetType)) {
                         response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
@@ -1325,6 +1352,42 @@ public class ChangeRequestServlet extends HttpServlet {
             error.addProperty("error", "Internal server error: " + e.getMessage());
             response.getWriter().write(gson.toJson(error));
         }
+    }
+
+    /**
+     * Change requests where the person has an active workflow task (assignee or matching CR role)
+     * but is not the user who raised the change request.
+     */
+    private List<ChangeRequest> loadContributingChangeRequests(int personId) throws SQLException {
+        WorkflowTaskDAO taskDAO = new WorkflowTaskDAO();
+        List<Map<String, Object>> tasks = taskDAO.findActiveTasksForUser(personId);
+        LinkedHashSet<Integer> orderedCrIds = new LinkedHashSet<>();
+        for (Map<String, Object> t : tasks) {
+            Object crIdObj = t.get("changeRequestId");
+            if (!(crIdObj instanceof Integer)) {
+                continue;
+            }
+            int crId = (Integer) crIdObj;
+            if (crId <= 0) {
+                continue;
+            }
+            Object createdByObj = t.get("crCreatedBy");
+            if (createdByObj instanceof Integer) {
+                int createdBy = (Integer) createdByObj;
+                if (createdBy == personId) {
+                    continue;
+                }
+            }
+            orderedCrIds.add(crId);
+        }
+        List<ChangeRequest> result = new ArrayList<>();
+        for (Integer crId : orderedCrIds) {
+            ChangeRequest cr = changeRequestDAO.getChangeRequestById(crId);
+            if (cr != null && cr.getDeletedAt() == null) {
+                result.add(cr);
+            }
+        }
+        return result;
     }
 
     /**
