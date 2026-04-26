@@ -761,6 +761,74 @@
         DatasetMapState.network.off('zoom pan', updateOverlayPositions);
         DatasetMapState.network.off('drag', 'node', updateOverlayPositions);
     }
+
+    function relDatasetId(rel, keys) {
+        if (!rel || !Array.isArray(keys)) return '';
+        for (var i = 0; i < keys.length; i++) {
+            var value = rel[keys[i]];
+            if (value !== undefined && value !== null && String(value).trim() !== '') {
+                return String(value);
+            }
+        }
+        return '';
+    }
+
+    function getDatasetMapGlossaryScopeKey() {
+        return [
+            String(DatasetMapState.systemId || ''),
+            String(DatasetMapState.mapType || ''),
+            String((DatasetMapState.linkedDatasets && DatasetMapState.linkedDatasets.size) || 0),
+            String((DatasetMapState.datasetRelationships || []).length)
+        ].join('|');
+    }
+
+    function ensureDatasetMapGlossaryScope() {
+        var key = getDatasetMapGlossaryScopeKey();
+        if (DatasetMapState._glossaryDatasetScope && DatasetMapState._glossaryDatasetScope.key === key) {
+            return DatasetMapState._glossaryDatasetScope.scope;
+        }
+
+        var currentSystemId = String(DatasetMapState.systemId || '');
+        var currentDatasetIds = new Set();
+        var datasetsBySystem = new Map();
+        if (DatasetMapState.linkedDatasets) {
+            DatasetMapState.linkedDatasets.forEach(function (info, datasetId) {
+                var sid = String((info && info.systemId) || '');
+                var did = String(datasetId || '');
+                if (!sid || !did) return;
+                if (!datasetsBySystem.has(sid)) datasetsBySystem.set(sid, []);
+                datasetsBySystem.get(sid).push(did);
+                if (sid === currentSystemId) currentDatasetIds.add(did);
+            });
+        }
+
+        var relatedDatasetIds = new Set();
+        (DatasetMapState.datasetRelationships || []).forEach(function (rel) {
+            var srcDid = relDatasetId(rel, ['sourceDatasetId', 'sourceDataSetId', 'Source_DatasetID']);
+            var tgtDid = relDatasetId(rel, ['targetDatasetId', 'targetDataSetId', 'Target_DatasetID']);
+            if (!srcDid || !tgtDid) return;
+            if (currentDatasetIds.has(srcDid) && !currentDatasetIds.has(tgtDid)) relatedDatasetIds.add(tgtDid);
+            if (currentDatasetIds.has(tgtDid) && !currentDatasetIds.has(srcDid)) relatedDatasetIds.add(srcDid);
+        });
+
+        var scope = {
+            currentSystemId: currentSystemId,
+            currentDatasetIds: currentDatasetIds,
+            relatedDatasetIds: relatedDatasetIds,
+            datasetsBySystem: datasetsBySystem
+        };
+        DatasetMapState._glossaryDatasetScope = { key: key, scope: scope };
+        return scope;
+    }
+
+    function isDatasetAllowedInDatasetMapGlossary(scope, datasetId, systemId) {
+        if (!scope) return false;
+        var did = String(datasetId || '');
+        var sid = String(systemId || '');
+        if (!did || !sid) return false;
+        if (sid === scope.currentSystemId) return scope.currentDatasetIds.has(did);
+        return scope.relatedDatasetIds.has(did);
+    }
     
     // Fetch overlay data for a dataset
     async function fetchOverlayDataForDataset(datasetId, overlayType) {
@@ -907,6 +975,13 @@
                 }
 
                 case 'glossary': {
+                    if (DatasetMapState.mapType === 'system-lineage') {
+                        var dsInfo = DatasetMapState.linkedDatasets?.get(String(datasetId));
+                        var dsSystemId = dsInfo && dsInfo.systemId != null ? String(dsInfo.systemId) : '';
+                        if (!isDatasetAllowedInDatasetMapGlossary(ensureDatasetMapGlossaryScope(), datasetId, dsSystemId)) {
+                            return [];
+                        }
+                    }
                     const glossaryTerms = [];
                     const seen = new Set();
                     // 1) Dataset's own glossary term
@@ -1156,9 +1231,11 @@
                     const glossaryTerms = [];
                     const seenGlossary = new Set();
                     try {
-                        const sysGlossaryDatasets = DatasetMapState.linkedDatasets
+                        let sysGlossaryDatasets = DatasetMapState.linkedDatasets
                             ? Array.from(DatasetMapState.linkedDatasets.entries()).filter(([, info]) => String(info.systemId) === String(systemId)).map(([did]) => did)
                             : [];
+                        const glossaryScope = ensureDatasetMapGlossaryScope();
+                        sysGlossaryDatasets = sysGlossaryDatasets.filter(did => isDatasetAllowedInDatasetMapGlossary(glossaryScope, did, systemId));
                         for (const did of sysGlossaryDatasets) {
                             // 1) Dataset's own glossary
                             try {
