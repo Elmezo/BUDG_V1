@@ -24,6 +24,86 @@
             }
         }
 
+        function getGlossaryScopeHelper() {
+            if (window.GlossaryOverlayScope && typeof window.GlossaryOverlayScope.createSystemScope === 'function') {
+                return window.GlossaryOverlayScope;
+            }
+
+            function normalizeId(value) {
+                if (value === null || value === undefined) return '';
+                var out = String(value).trim();
+                return out;
+            }
+
+            function collectRelatedDatasetIds(seedDatasetIds, relCache, getNeighbors) {
+                return Promise.all(Array.from(seedDatasetIds).map(async function (datasetId) {
+                    var did = normalizeId(datasetId);
+                    if (!did) return [];
+                    var neighbors = await getNeighbors(did, relCache);
+                    return Array.from(neighbors || []);
+                })).then(function (allNeighborLists) {
+                    var related = new Set();
+                    allNeighborLists.forEach(function (neighborList) {
+                        (neighborList || []).forEach(function (neighborId) {
+                            var nid = normalizeId(neighborId);
+                            if (nid) related.add(nid);
+                        });
+                    });
+                    return related;
+                });
+            }
+
+            window.GlossaryOverlayScope = {
+                createSystemScope: async function (params) {
+                    params = params || {};
+                    var currentSystemId = normalizeId(params.currentSystemId);
+                    var visibleSystemIds = Array.from(new Set((params.visibleSystemIds || []).map(normalizeId).filter(Boolean)));
+                    var getDatasetsForSystem = params.getDatasetsForSystem;
+                    var getRelatedDatasetsForDataset = params.getRelatedDatasetsForDataset;
+                    if (typeof getDatasetsForSystem !== 'function' || typeof getRelatedDatasetsForDataset !== 'function') {
+                        return {
+                            currentSystemId: currentSystemId,
+                            currentSystemIds: new Set(currentSystemId ? [currentSystemId] : []),
+                            currentDatasetIds: new Set(),
+                            relatedDatasetIds: new Set(),
+                            datasetsBySystem: new Map()
+                        };
+                    }
+
+                    var datasetsBySystem = new Map();
+                    for (const sid of visibleSystemIds) {
+                        var dsIds = await getDatasetsForSystem(sid);
+                        var normIds = Array.from(new Set((dsIds || []).map(normalizeId).filter(Boolean)));
+                        datasetsBySystem.set(sid, normIds);
+                    }
+
+                    var currentDatasetIds = new Set(datasetsBySystem.get(currentSystemId) || []);
+                    var relCache = new Map();
+                    var relatedDatasetIds = await collectRelatedDatasetIds(currentDatasetIds, relCache, getRelatedDatasetsForDataset);
+
+                    return {
+                        currentSystemId: currentSystemId,
+                        currentSystemIds: new Set(currentSystemId ? [currentSystemId] : []),
+                        currentDatasetIds: currentDatasetIds,
+                        relatedDatasetIds: relatedDatasetIds,
+                        datasetsBySystem: datasetsBySystem
+                    };
+                },
+                isDatasetInScope: function (scope, datasetId, datasetSystemId) {
+                    if (!scope) return false;
+                    var did = normalizeId(datasetId);
+                    var sid = normalizeId(datasetSystemId);
+                    if (!did || !sid) return false;
+                    if (scope.currentSystemIds && scope.currentSystemIds.has(sid)) {
+                        return scope.currentDatasetIds && scope.currentDatasetIds.has(did);
+                    }
+                    return scope.relatedDatasetIds && scope.relatedDatasetIds.has(did);
+                }
+            };
+
+            return window.GlossaryOverlayScope;
+        }
+
         function setOverlay(overlay) {
         ovLog(logPrefix + ' setOverlay called with:', overlay, 'mapType:', state.mapType);
         state.overlay = overlay;
@@ -1234,29 +1314,16 @@
             return state._glossaryScopeCache.scope;
         }
 
-        var currentSystemId = String(state.systemId || '');
-        var orangeDatasetIds = new Set(await getSystemDatasetIdsForGlossary(currentSystemId));
-        var relatedDatasetIds = new Set();
-        var relCache = new Map();
+        var scope = await getGlossaryScopeHelper().createSystemScope({
+            currentSystemId: state.systemId,
+            visibleSystemIds: visibleSystemIds,
+            getDatasetsForSystem: getSystemDatasetIdsForGlossary,
+            getRelatedDatasetsForDataset: getDirectRelatedDatasetIds
+        });
 
-        for (const did of orangeDatasetIds) {
-            var neighbors = await getDirectRelatedDatasetIds(did, relCache);
-            neighbors.forEach(function (nId) { relatedDatasetIds.add(String(nId)); });
-        }
-
-        var datasetsBySystem = new Map();
-        var uniqueSystems = Array.from(new Set((visibleSystemIds || []).map(function (id) { return String(id || ''); }).filter(Boolean)));
-        for (const sid of uniqueSystems) {
-            var datasetIds = await getSystemDatasetIdsForGlossary(sid);
-            datasetsBySystem.set(String(sid), datasetIds.map(function (id) { return String(id); }));
-        }
-
-        var scope = {
-            currentSystemId: currentSystemId,
-            orangeDatasetIds: orangeDatasetIds,
-            allowedRelatedDatasetIds: relatedDatasetIds,
-            datasetsBySystem: datasetsBySystem
-        };
+        // Backward-compatible aliases used by existing code paths.
+        scope.orangeDatasetIds = scope.currentDatasetIds;
+        scope.allowedRelatedDatasetIds = scope.relatedDatasetIds;
 
         state._glossaryScopeCache = { key: key, scope: scope };
         return scope;
@@ -1301,7 +1368,6 @@
                     const seenGlossary = new Set();
                     try {
                         const systemIdStr = String(systemId);
-                        const currentSystemId = String(state.systemId || '');
                         const scope = state._glossaryScopeCache && state._glossaryScopeCache.scope
                             ? state._glossaryScopeCache.scope
                             : null;
@@ -1313,10 +1379,9 @@
                             sysDatasets = await getSystemDatasetIdsForGlossary(systemIdStr);
                         }
 
-                        if (scope && systemIdStr !== currentSystemId) {
-                            const allowedRelated = scope.allowedRelatedDatasetIds || new Set();
+                        if (scope) {
                             sysDatasets = sysDatasets.filter(function (did) {
-                                return allowedRelated.has(String(did));
+                                return getGlossaryScopeHelper().isDatasetInScope(scope, did, systemIdStr);
                             });
                         }
 

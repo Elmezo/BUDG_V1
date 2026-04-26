@@ -433,9 +433,11 @@ public class SegmentAccessService {
         // Get the segment of the object
         int objectSegmentId = getObjectSegmentId(objectId, objectType);
         
-        // If object has no segment assignment (-1), access is denied (not found)
+        // Unassigned objects (-1) are treated as Enterprise for view access.
+        // This keeps read behavior aligned with list/filter queries that already
+        // expose unassigned records as enterprise-visible items.
         if (objectSegmentId == -1) {
-            return false;
+            return true;
         }
         
         // Enterprise segment (ID=1) is accessible to all
