@@ -1764,16 +1764,26 @@
     },
     "workflowView": {
         "selectWorkflow": "اختيار سير العمل",
+        "processDetails": "تفاصيل العملية",
         "workflowLabel": "سير العمل",
         "workflowRequired": "*",
         "selectPlaceholder": "اختر سير عمل...",
         "processName": "اسم العملية:",
         "description": "الوصف:",
         "workflowDiagram": "مخطط سير العمل",
+        "diagramSubtitle": "معاينة للقراءة فقط",
         "loadingWorkflow": "جاري تحميل سير العمل...",
         "noWorkflowsAvailable": "لا توجد سير عمل مفعلة لهذه الوحدة",
         "elementProperties": "خصائص العنصر",
-        "close": "إغلاق"
+        "elementType": "نوع العنصر",
+        "close": "إغلاق",
+        "fitView": "ملاءمة العرض",
+        "showProperties": "الخصائص",
+        "hideProperties": "إخفاء اللوحة",
+        "combinedListHint": "تتضمن هذه القائمة سير عمل الوحدة وسير العمل المرتبط بهذا السجل.",
+        "workflowCount": "{count} سير عمل متاح",
+        "diagramLoadError": "تعذر تحميل مخطط سير العمل",
+        "workflowsLoadError": "تعذر تحميل سير العمل"
     },
     "datasetImpact": {
         "sections": {
