@@ -156,24 +156,36 @@ public class CRStakeholderDAO {
         
         String objectXIpidColumn = getObjectXIpidColumn(facetType);
         
-        // Query to get stakeholders from the source object's junction table
+        // One row per person+role on this object (duplicate junction rows collapse).
+        // MAX(roleAccepted) prefers a positive acceptance when multiple values exist.
         String sql = String.format("""
-            SELECT DISTINCT
-                oxp.ipid as personId,
-                CONCAT(p.First_Name, ' ', p.Last_Name) as personName,
-                oxp.roleID as roleId,
-                orl.primaryname as roleName,
-                ou.ID as orgUnitId,
-                ou.Name as orgUnitName,
-                ra.Message as roleAccepted
-            FROM %s jt
-            JOIN object_x_people oxp ON jt.%s = oxp.id
-            JOIN people p ON oxp.ipid = p.ID
-            LEFT JOIN object_role orl ON oxp.roleID = orl.ID
-            LEFT JOIN org_unit ou ON p.Org_Unit_ID = ou.ID
-            LEFT JOIN roleaccepted ra ON oxp.AcceptedID = ra.ID
-            WHERE jt.%s = ?
-            ORDER BY orl.primaryname, p.Last_Name, p.First_Name
+            SELECT
+                personId,
+                personName,
+                roleId,
+                roleName,
+                orgUnitId,
+                orgUnitName,
+                roleAccepted
+            FROM (
+                SELECT
+                    oxp.ipid as personId,
+                    MAX(CONCAT(p.First_Name, ' ', p.Last_Name)) as personName,
+                    oxp.roleID as roleId,
+                    MAX(orl.primaryname) as roleName,
+                    MAX(ou.ID) as orgUnitId,
+                    MAX(ou.Name) as orgUnitName,
+                    MAX(ra.Message) as roleAccepted
+                FROM %s jt
+                JOIN object_x_people oxp ON jt.%s = oxp.id
+                JOIN people p ON oxp.ipid = p.ID
+                LEFT JOIN object_role orl ON oxp.roleID = orl.ID
+                LEFT JOIN org_unit ou ON p.Org_Unit_ID = ou.ID
+                LEFT JOIN roleaccepted ra ON oxp.AcceptedID = ra.ID
+                WHERE jt.%s = ?
+                GROUP BY oxp.ipid, oxp.roleID
+            ) grouped
+            ORDER BY roleName, personName
             """, tableName, objectXIpidColumn, idColumn);
         
         logger.debug("Fetching stakeholders for {} {} with SQL: {}", facetType, facetId, sql);
@@ -1425,20 +1437,21 @@ public class CRStakeholderDAO {
      * Get stakeholders for a change request
      */
     public List<Map<String, Object>> getStakeholdersForChangeRequest(int changeRequestId) throws SQLException {
-        // Note: We don't remove duplicates here because multiple rows with same person+role
-        // may be legitimate (from different junction table rows in the source object)
-        
+        // Role accepted: resolve via a scalar subquery. Joining object_x_people only on
+        // (ipid, roleID) matches every assignment of that role for the person app-wide and
+        // multiplies cr_stakeholders rows — one row per crs.ID only.
         String sql = "SELECT crs.ID, crs.User_ID, crs.Object_Role_ID, " +
                     "CONCAT(p.First_Name, ' ', p.Last_Name) AS user_name, " +
                     "p.Org_Unit_ID, ou.Name AS org_unit_name, " +
                     "orl.primaryname AS role_name, " +
-                    "ra.Message AS accepted_status " +
+                    "(SELECT ra_inner.Message FROM object_x_people oxp_inner " +
+                    " LEFT JOIN roleaccepted ra_inner ON oxp_inner.AcceptedID = ra_inner.ID " +
+                    " WHERE oxp_inner.ipid = crs.User_ID AND oxp_inner.roleID = crs.Object_Role_ID " +
+                    " ORDER BY oxp_inner.ID ASC LIMIT 1) AS accepted_status " +
                     "FROM cr_stakeholders crs " +
                     "LEFT JOIN people p ON crs.User_ID = p.ID " +
                     "LEFT JOIN org_unit ou ON p.Org_Unit_ID = ou.ID " +
                     "LEFT JOIN object_role orl ON crs.Object_Role_ID = orl.id " +
-                    "LEFT JOIN object_x_people oxp ON oxp.ipid = crs.User_ID AND oxp.roleID = crs.Object_Role_ID " +
-                    "LEFT JOIN roleaccepted ra ON oxp.AcceptedID = ra.ID " +
                     "WHERE crs.CR_ID = ?";
         
         List<Map<String, Object>> stakeholders = new ArrayList<>();

@@ -2512,78 +2512,51 @@
     // Store selected change request for start/complete actions
     let selectedChangeRequestId = null;
     let selectedChangeRequest = null;
+    let selectedContributingChangeRequestId = null;
+    let selectedContributingChangeRequest = null;
+    let selectedWfTaskId = null;
 
     async function loadChangeRequestData(id) {
         const container = document.getElementById('peopleChangeContainer');
         if (!container) return;
-        
+
         container.innerHTML = '<div class="view-section" style="grid-column: 1/-1;">Loading change requests...</div>';
-        
-        try {
-            const changeData = await window.BUDG_API_SERVICE.getPersonChangeRequests(id);
-            
-            if (!changeData || changeData.length === 0) {
-                container.innerHTML = `
-                    <div class="view-section" style="grid-column: 1/-1;">
-                        <div class="section-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                            <div class="section-title">RAISED BY ME</div>
-                            <div class="section-actions">
-                                <button class="btn-icon" title="Settings">
-                                    <i class="fas fa-cog"></i>
-                                </button>
-                            </div>
-                        </div>
-                        <div class="empty-state" style="text-align: center; padding: 3rem;">
-                            <i class="fas fa-exchange-alt" style="font-size: 3rem; color: var(--text-muted, #9ca3af); margin-bottom: 1rem;"></i>
-                            <p style="color: var(--text-muted, #6b7280);">No change requests found</p>
-                        </div>
-                    </div>
-                `;
-                return;
-            }
 
-            // Format status badge
-            function formatStatusBadge(statusName) {
-                if (!statusName || statusName.trim() === '') return '<span class="empty">-</span>';
-                const statusLower = statusName.toLowerCase();
-                let badgeClass = 'status-badge';
-                if (statusLower.includes('pending')) {
-                    badgeClass += ' status-pending';
-                } else if (statusLower.includes('running')) {
-                    badgeClass += ' status-running';
-                } else if (statusLower.includes('completed')) {
-                    badgeClass += ' status-completed';
-                } else if (statusLower.includes('cancelled') || statusLower.includes('canceled')) {
-                    badgeClass += ' status-cancelled';
-                }
-                return `<span class="${badgeClass}">${escapeHtml(statusName)}</span>`;
+        function formatStatusBadge(statusName) {
+            if (!statusName || statusName.trim() === '') return '<span class="empty">-</span>';
+            const statusLower = statusName.toLowerCase();
+            let badgeClass = 'status-badge';
+            if (statusLower.includes('pending')) {
+                badgeClass += ' status-pending';
+            } else if (statusLower.includes('running')) {
+                badgeClass += ' status-running';
+            } else if (statusLower.includes('completed')) {
+                badgeClass += ' status-completed';
+            } else if (statusLower.includes('cancelled') || statusLower.includes('canceled')) {
+                badgeClass += ' status-cancelled';
             }
+            return `<span class="${badgeClass}">${escapeHtml(statusName)}</span>`;
+        }
 
-            // Format type badge
-            function formatTypeBadge(typeName) {
-                if (!typeName || typeName.trim() === '') return '<span class="empty">-</span>';
-                return `<span class="view-badge">${escapeHtml(typeName)}</span>`;
-            }
+        function formatTypeBadge(typeName) {
+            if (!typeName || typeName.trim() === '') return '<span class="empty">-</span>';
+            return `<span class="view-badge">${escapeHtml(typeName)}</span>`;
+        }
 
-            // Build table rows
-            const tableRows = changeData.map(cr => {
+        function buildCrTableRows(changeList, rowClass) {
+            const list = Array.isArray(changeList) ? changeList : [];
+            return list.map(cr => {
                 const ref = cr.ref || cr.Ref || cr.id || '';
                 const title = cr.primaryName || cr.PrimaryName || cr.title || cr.Title || 'Untitled';
-                // Map description to summary field
                 const description = cr.summary || cr.Summary || cr.description || cr.Description || '';
-                // Map Type - use typeName first (loaded from changerequest_type table), fallback to empty
                 const typeName = cr.typeName || cr.TypeName || '';
-                // Only show typeName, not the ID - if typeName is missing, show empty
                 const typeDisplay = typeName || '';
-                // Map Status - use statusName (loaded from changerequeststatus table), fallback to empty
                 const statusName = cr.statusName || cr.StatusName || '';
-                // Only show statusName, not "Unknown" - if statusName is missing, show empty
                 const statusDisplay = statusName || '';
                 const crId = cr.id || cr.ID;
-                const hasWorkflow = !!(cr.workflowInstanceId || cr.processInstanceId);
                 return `
-                    <tr data-cr-id="${crId}" class="change-request-row ${selectedChangeRequestId === crId ? 'selected' : ''}" style="cursor: pointer;">
-                        <td>${escapeHtml(ref)}</td>
+                    <tr data-cr-id="${crId}" class="${rowClass}" style="cursor: pointer;">
+                        <td>${escapeHtml(String(ref))}</td>
                         <td>
                             <a href="/view/change-request/change-request-view.html?id=${crId}" class="cr-title-link">
                                 <i class="fas fa-comment-dots" style="margin-right: 0.5rem; color: var(--primary-color, #248567);"></i>
@@ -2596,51 +2569,185 @@
                     </tr>
                 `;
             }).join('');
+        }
+
+        function emptyCrTableMessage(message) {
+            return `<tr><td colspan="5" class="empty-state" style="text-align:center;padding:2rem;color:var(--text-muted,#6b7280);">${escapeHtml(message)}</td></tr>`;
+        }
+
+        try {
+            const [raisedRes, contributingRes, tasksRes] = await Promise.all([
+                window.BUDG_API_SERVICE.getPersonChangeRequests(id),
+                window.BUDG_API_SERVICE.getPersonContributingChangeRequests(id).catch(() => []),
+                window.BUDG_API_SERVICE.getPersonActiveWorkflowTasks(id).catch(() => [])
+            ]);
+
+            const changeData = Array.isArray(raisedRes) ? raisedRes : [];
+            const contributingData = Array.isArray(contributingRes) ? contributingRes : [];
+            const tasksData = Array.isArray(tasksRes) ? tasksRes : [];
+
+            const raisedRows = changeData.length ? buildCrTableRows(changeData, 'cr-raised-row') : emptyCrTableMessage('No change requests raised by you');
+            const contributingRows = contributingData.length
+                ? buildCrTableRows(contributingData, 'cr-contributing-row')
+                : emptyCrTableMessage('No contributing change requests');
+
+            const taskRows = tasksData.length
+                ? tasksData.map((task, idx) => {
+                    const tid = Number.parseInt(String(task.taskId != null ? task.taskId : task.id), 10);
+                    const crId = task.changeRequestId;
+                    const name = task.name || task.taskName || '-';
+                    const desc = task.object || task.roleName || '-';
+                    const due = task.dueDate || '-';
+                    const crTitle = task.title || '';
+                    const crLink = crId ? `/view/change-request/change-request-view.html?id=${crId}` : '#';
+                    const safeTaskId = Number.isFinite(tid) && tid > 0 ? Math.floor(tid) : '';
+                    return `
+                        <tr data-task-id="${safeTaskId}" class="wf-task-row" style="cursor: pointer;">
+                            <td>${idx + 1}</td>
+                            <td>${escapeHtml(name)}</td>
+                            <td>${escapeHtml(desc || '-')}</td>
+                            <td>${escapeHtml(String(due))}</td>
+                            <td>
+                                ${crId ? `<a href="${crLink}" class="cr-title-link">
+                                    <i class="fas fa-comment-dots" style="margin-right: 0.5rem; color: var(--primary-color, #248567);"></i>
+                                    ${escapeHtml(crTitle || 'Change request')}
+                                </a>` : escapeHtml(crTitle || '-')}
+                            </td>
+                        </tr>
+                    `;
+                }).join('')
+                : '<tr><td colspan="5" class="empty-state" style="text-align:center;padding:2rem;color:var(--text-muted,#6b7280);">No active workflow tasks</td></tr>';
 
             container.innerHTML = `
-                <div class="view-section" style="grid-column: 1/-1;">
-                    <div class="section-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                        <div class="section-title">RAISED BY ME</div>
-                        <div class="section-actions">
-                            <div class="dropdown">
-                                <button class="btn-icon" title="Settings" data-toggle="dropdown">
-                                    <i class="fas fa-cog"></i>
-                                    <i class="fas fa-chevron-down" style="font-size: 0.7rem; margin-left: 0.25rem;"></i>
+                <div class="people-cr-tab-sections" style="display: flex; flex-direction: column; gap: 1.5rem; grid-column: 1 / -1;">
+                    <div class="view-section" style="grid-column: 1/-1;">
+                        <div class="section-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                            <div class="section-title">RAISED BY ME</div>
+                            <div class="section-actions" style="display: flex; gap: 0.5rem; align-items: center;">
+                                <button type="button" id="startWorkflowBtn" class="btn btn-sm btn-primary" disabled style="opacity: 0.5; cursor: not-allowed;">
+                                    <i class="fas fa-play"></i> Start
                                 </button>
+                                <button type="button" id="completeCRBtn" class="btn btn-sm btn-secondary" disabled style="opacity: 0.5; cursor: not-allowed;">
+                                    <i class="fas fa-flag-checkered"></i> Complete
+                                </button>
+                                <button type="button" class="btn-icon" title="Settings"><i class="fas fa-cog"></i></button>
                             </div>
                         </div>
+                        <div class="data-table-wrapper">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Ref</th>
+                                        <th>Title</th>
+                                        <th>Description</th>
+                                        <th>Type</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="changeRequestsRaisedTableBody">${raisedRows}</tbody>
+                            </table>
+                        </div>
+                        <div class="table-footer">${changeData.length} record${changeData.length !== 1 ? 's' : ''}</div>
                     </div>
-                    <div class="data-table-wrapper">
-                        <table class="data-table">
-                            <thead>
-                                <tr>
-                                    <th>Ref</th>
-                                    <th>Title</th>
-                                    <th>Description</th>
-                                    <th>Type</th>
-                                    <th>Status</th>
-                                </tr>
-                            </thead>
-                            <tbody id="changeRequestsTableBody">
-                                ${tableRows}
-                            </tbody>
-                        </table>
+
+                    <div class="view-section" style="grid-column: 1/-1;">
+                        <div class="section-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                            <div class="section-title">CONTRIBUTING</div>
+                            <div class="section-actions" style="display: flex; gap: 0.5rem; align-items: center;">
+                                <button type="button" id="completeCRContributingBtn" class="btn btn-sm btn-secondary" disabled style="opacity: 0.5; cursor: not-allowed;">
+                                    <i class="fas fa-flag-checkered"></i> Complete
+                                </button>
+                                <button type="button" class="btn-icon" title="Settings"><i class="fas fa-cog"></i></button>
+                            </div>
+                        </div>
+                        <div class="data-table-wrapper">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Ref</th>
+                                        <th>Title</th>
+                                        <th>Description</th>
+                                        <th>Type</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="contributingTableBody">${contributingRows}</tbody>
+                            </table>
+                        </div>
+                        <div class="table-footer">${contributingData.length} record${contributingData.length !== 1 ? 's' : ''}</div>
                     </div>
-                    <div class="table-footer">
-                        ${changeData.length} record${changeData.length !== 1 ? 's' : ''}
+
+                    <div class="view-section" style="grid-column: 1/-1;">
+                        <div class="section-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                            <div class="section-title">WORKFLOW TASKS</div>
+                            <div class="section-actions" style="display: flex; gap: 0.5rem; align-items: center;">
+                                <button type="button" id="completeWorkflowTaskBtn" class="btn btn-sm btn-secondary" disabled style="opacity: 0.5; cursor: not-allowed;">
+                                    <i class="fas fa-file-signature"></i> Complete Task
+                                </button>
+                                <button type="button" class="btn-icon" title="Settings"><i class="fas fa-cog"></i></button>
+                            </div>
+                        </div>
+                        <div class="data-table-wrapper">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>No.</th>
+                                        <th>Active Task Name</th>
+                                        <th>Description</th>
+                                        <th>Due Date</th>
+                                        <th>Change Request Name</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="workflowTasksTableBody">${taskRows}</tbody>
+                            </table>
+                        </div>
+                        <div class="table-footer">${tasksData.length} record${tasksData.length !== 1 ? 's' : ''}</div>
                     </div>
                 </div>
             `;
 
-            // Store change requests data for later use
             window._peopleChangeRequests = changeData;
+            window._peopleContributingChangeRequests = contributingData;
+            window._peopleWorkflowTasks = tasksData;
 
-            // Reset selection when table reloads
             selectedChangeRequestId = null;
             selectedChangeRequest = null;
+            selectedContributingChangeRequestId = null;
+            selectedContributingChangeRequest = null;
+            selectedWfTaskId = null;
 
-            // Setup row selection handlers
-            setupChangeRequestTableHandlers(changeData);
+            setupCrTableSectionHandlers('changeRequestsRaisedTableBody', 'cr-raised-row', changeData, (cr) => {
+                selectedChangeRequest = cr;
+                selectedChangeRequestId = cr ? (cr.id || cr.ID) : null;
+                clearCrTabRowSelection('contributingTableBody', 'cr-contributing-row');
+                clearCrTabRowSelection('workflowTasksTableBody', 'wf-task-row');
+                selectedContributingChangeRequest = null;
+                selectedContributingChangeRequestId = null;
+                selectedWfTaskId = null;
+                updateButtonStates(selectedChangeRequest);
+                updateContributingCompleteButtonState(null);
+                setWorkflowTaskCompleteEnabled(false);
+            });
+
+            setupCrTableSectionHandlers('contributingTableBody', 'cr-contributing-row', contributingData, (cr) => {
+                selectedContributingChangeRequest = cr;
+                selectedContributingChangeRequestId = cr ? (cr.id || cr.ID) : null;
+                clearCrTabRowSelection('changeRequestsRaisedTableBody', 'cr-raised-row');
+                clearCrTabRowSelection('workflowTasksTableBody', 'wf-task-row');
+                selectedChangeRequest = null;
+                selectedChangeRequestId = null;
+                selectedWfTaskId = null;
+                updateButtonStates(null);
+                updateContributingCompleteButtonState(selectedContributingChangeRequest);
+                setWorkflowTaskCompleteEnabled(false);
+            });
+
+            setupWorkflowTasksTableHandlers(tasksData);
+
+            wirePeopleChangeRequestTabToolbar(id);
+            updateButtonStates(null);
+            updateContributingCompleteButtonState(null);
+            setWorkflowTaskCompleteEnabled(false);
         } catch (e) {
             console.error('Failed to load change request data:', e);
             container.innerHTML = `
@@ -2648,38 +2755,194 @@
                     <div class="section-title">CHANGE REQUEST</div>
                     <div class="empty-state" style="text-align: center; padding: 3rem;">
                         <i class="fas fa-exclamation-triangle" style="font-size: 3rem; color: var(--danger, #b91c1c); margin-bottom: 1rem;"></i>
-                        <p style="color: var(--danger, #b91c1c);">Failed to load change request data: ${e.message || 'Unknown error'}</p>
+                        <p style="color: var(--danger, #b91c1c);">Failed to load change request data: ${escapeHtml(e.message || 'Unknown error')}</p>
                     </div>
                 </div>
             `;
         }
     }
 
-    // Setup table handlers for row selection
-    function setupChangeRequestTableHandlers(changeRequests) {
-        const tbody = document.getElementById('changeRequestsTableBody');
+    function clearCrTabRowSelection(tbodyId, rowClass) {
+        const tbody = document.getElementById(tbodyId);
+        if (!tbody) return;
+        tbody.querySelectorAll('tr.' + rowClass).forEach(r => r.classList.remove('selected'));
+    }
 
+    function setupCrTableSectionHandlers(tbodyId, rowClass, changeRequests, onSelect) {
+        const tbody = document.getElementById(tbodyId);
         if (!tbody) return;
 
-        // Row selection handler
         tbody.addEventListener('click', (e) => {
-            const row = e.target.closest('tr.change-request-row');
+            const row = e.target.closest('tr.' + rowClass);
             if (!row) return;
-
-            // Don't select if clicking on the link
             if (e.target.closest('a.cr-title-link')) {
                 return;
             }
 
-            const crId = parseInt(row.getAttribute('data-cr-id'));
+            const crId = parseInt(row.getAttribute('data-cr-id'), 10);
             if (!crId) return;
 
-            // Update selection
-            document.querySelectorAll('tr.change-request-row').forEach(r => r.classList.remove('selected'));
+            tbody.querySelectorAll('tr.' + rowClass).forEach(r => r.classList.remove('selected'));
             row.classList.add('selected');
-            selectedChangeRequestId = crId;
-            selectedChangeRequest = changeRequests.find(cr => (cr.id || cr.ID) === crId);
+            const cr = (changeRequests || []).find(c => (c.id || c.ID) === crId);
+            onSelect(cr || null);
         });
+    }
+
+    function setupWorkflowTasksTableHandlers(tasks) {
+        const tbody = document.getElementById('workflowTasksTableBody');
+        if (!tbody) return;
+
+        tbody.addEventListener('click', (e) => {
+            const row = e.target.closest('tr.wf-task-row');
+            if (!row) return;
+            if (e.target.closest('a.cr-title-link')) {
+                return;
+            }
+
+            const taskId = parseInt(row.getAttribute('data-task-id'), 10);
+            if (!taskId) return;
+
+            tbody.querySelectorAll('tr.wf-task-row').forEach(r => r.classList.remove('selected'));
+            row.classList.add('selected');
+            selectedWfTaskId = taskId;
+            clearCrTabRowSelection('changeRequestsRaisedTableBody', 'cr-raised-row');
+            clearCrTabRowSelection('contributingTableBody', 'cr-contributing-row');
+            selectedChangeRequest = null;
+            selectedChangeRequestId = null;
+            selectedContributingChangeRequest = null;
+            selectedContributingChangeRequestId = null;
+            updateButtonStates(null);
+            updateContributingCompleteButtonState(null);
+            setWorkflowTaskCompleteEnabled(true);
+        });
+    }
+
+    function setWorkflowTaskCompleteEnabled(enabled) {
+        const btn = document.getElementById('completeWorkflowTaskBtn');
+        if (!btn) return;
+        btn.disabled = !enabled;
+        btn.style.opacity = enabled ? '1' : '0.5';
+        btn.style.cursor = enabled ? 'pointer' : 'not-allowed';
+    }
+
+    function wirePeopleChangeRequestTabToolbar(personId) {
+        const startBtn = document.getElementById('startWorkflowBtn');
+        if (startBtn) {
+            startBtn.onclick = () => {
+                if (!selectedChangeRequest) return;
+                handleStartWorkflowFromTable(selectedChangeRequest);
+            };
+        }
+
+        const completeRaised = document.getElementById('completeCRBtn');
+        if (completeRaised) {
+            completeRaised.onclick = () => {
+                if (!selectedChangeRequestId) {
+                    alert('Select a change request in Raised by me');
+                    return;
+                }
+                handleCompleteChangeRequestFromTable(selectedChangeRequestId);
+            };
+        }
+
+        const completeContributing = document.getElementById('completeCRContributingBtn');
+        if (completeContributing) {
+            completeContributing.onclick = () => {
+                if (!selectedContributingChangeRequestId) {
+                    alert('Select a change request in Contributing');
+                    return;
+                }
+                handleCompleteChangeRequestFromTable(selectedContributingChangeRequestId);
+            };
+        }
+
+        const completeTaskBtn = document.getElementById('completeWorkflowTaskBtn');
+        if (completeTaskBtn) {
+            completeTaskBtn.onclick = () => handleCompleteWorkflowTaskFromPeopleTab(personId);
+        }
+    }
+
+    async function handleCompleteWorkflowTaskFromPeopleTab(personId) {
+        if (!selectedWfTaskId) {
+            alert('Select a workflow task');
+            return;
+        }
+        if (!confirm('Complete this workflow task?')) {
+            return;
+        }
+        const btn = document.getElementById('completeWorkflowTaskBtn');
+        try {
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Completing...';
+            }
+            const response = await fetch(`/api/workflow_tasks/${selectedWfTaskId}/complete`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ decision: 'complete', comment: '' })
+            });
+            if (!response.ok) {
+                const err = await response.json().catch(() => ({}));
+                throw new Error(err.error || 'Failed to complete task');
+            }
+            await loadChangeRequestData(personId);
+        } catch (err) {
+            console.error(err);
+            alert(err.message || 'Failed to complete task');
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-file-signature"></i> Complete Task';
+            }
+        }
+    }
+
+    function updateContributingCompleteButtonState(changeRequest) {
+        const completeBtn = document.getElementById('completeCRContributingBtn');
+        if (!completeBtn) return;
+
+        if (!changeRequest) {
+            completeBtn.disabled = true;
+            completeBtn.style.opacity = '0.5';
+            completeBtn.style.cursor = 'not-allowed';
+            completeBtn.title = 'Select a running change request to complete';
+            completeBtn.innerHTML = '<i class="fas fa-flag-checkered"></i> Complete';
+            return;
+        }
+
+        const statusName = (changeRequest.statusName || changeRequest.StatusName || '').toLowerCase();
+        const hasWorkflow = !!(changeRequest.workflowInstanceId || changeRequest.processInstanceId);
+        const isRunning = statusName.includes('running');
+
+        if (isRunning && hasWorkflow) {
+            completeBtn.disabled = true;
+            completeBtn.style.opacity = '0.5';
+            completeBtn.style.cursor = 'not-allowed';
+            completeBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Checking...';
+            checkWorkflowCompletion(changeRequest.id || changeRequest.ID).then(workflowCompleted => {
+                completeBtn.disabled = !workflowCompleted;
+                if (workflowCompleted) {
+                    completeBtn.style.opacity = '1';
+                    completeBtn.style.cursor = 'pointer';
+                    completeBtn.title = 'Complete selected change request';
+                } else {
+                    completeBtn.style.opacity = '0.5';
+                    completeBtn.style.cursor = 'not-allowed';
+                    completeBtn.title = 'Workflow must be completed before completing change request';
+                }
+                completeBtn.innerHTML = '<i class="fas fa-flag-checkered"></i> Complete';
+            }).catch(() => {
+                completeBtn.disabled = true;
+                completeBtn.innerHTML = '<i class="fas fa-flag-checkered"></i> Complete';
+            });
+        } else {
+            completeBtn.disabled = true;
+            completeBtn.style.opacity = '0.5';
+            completeBtn.style.cursor = 'not-allowed';
+            completeBtn.title = 'Select a running change request to complete';
+            completeBtn.innerHTML = '<i class="fas fa-flag-checkered"></i> Complete';
+        }
     }
 
     // Update button states based on selected change request
@@ -2688,8 +2951,18 @@
         const completeBtn = document.getElementById('completeCRBtn');
 
         if (!changeRequest) {
-            if (startBtn) startBtn.disabled = true;
-            if (completeBtn) completeBtn.disabled = true;
+            if (startBtn) {
+                startBtn.disabled = true;
+                startBtn.style.opacity = '0.5';
+                startBtn.style.cursor = 'not-allowed';
+                startBtn.innerHTML = '<i class="fas fa-play"></i> Start';
+            }
+            if (completeBtn) {
+                completeBtn.disabled = true;
+                completeBtn.style.opacity = '0.5';
+                completeBtn.style.cursor = 'not-allowed';
+                completeBtn.innerHTML = '<i class="fas fa-flag-checkered"></i> Complete';
+            }
             return;
         }
 

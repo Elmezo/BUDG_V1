@@ -546,6 +546,7 @@ public class WorkflowTaskDAO {
                 "cr.PrimaryName as crTitle, " +
                 "cr.Reference as crReference, " +
                 "cr.Created_At as crCreatedAt, " +
+                "cr.Created_By as crCreatedBy, " +
                 "crt.PrimaryName as crType, " +
                 "p.First_Name as ownerFirstName, " +
                 "p.Last_Name as ownerLastName, " +
@@ -618,6 +619,11 @@ public class WorkflowTaskDAO {
                         Timestamp crCreatedAt = rs.getTimestamp("crCreatedAt");
                         if (crCreatedAt != null) {
                             taskData.put("assignDate", crCreatedAt);
+                        }
+
+                        int crCreatedByCol = rs.getInt("crCreatedBy");
+                        if (!rs.wasNull()) {
+                            taskData.put("crCreatedBy", crCreatedByCol);
                         }
 
                         // Resolve Object Type and actual Object name from CR Reference.
