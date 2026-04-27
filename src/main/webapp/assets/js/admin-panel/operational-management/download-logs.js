@@ -31,13 +31,13 @@ function showDownloadLogsContent(contentArea) {
                             </div>
                             <div class="card-title-wrapper">
                                 <h3>${T('adminPanel.downloadLogs.systemLogsArchive', 'System Logs Archive')}</h3>
-                                <p class="card-subtitle">${T('adminPanel.downloadLogs.cardSubtitle', 'Download a formatted ZIP organized into error logs and non-error logs')}</p>
+                                <p class="card-subtitle">${T('adminPanel.downloadLogs.cardSubtitle', 'Download a formatted ZIP organized by service, with errors and combined logs for each service')}</p>
                             </div>
                         </div>
                     </div>
                     <div class="card-body">
                         <div class="log-info-section">
-                            <p class="info-description">${T('adminPanel.downloadLogs.infoDescription', 'The ZIP contains formatted logs only. Errors are separated from the combined non-error logs, and each type includes by-day files plus one all-days file.')}</p>
+                            <p class="info-description">${T('adminPanel.downloadLogs.infoDescription', 'The ZIP contains formatted logs only. It includes an all-services summary plus service folders, each with errors and combined non-error logs by day and all days.')}</p>
                             
                             <div class="log-types-grid">
                                 <div class="log-type-card">
@@ -45,9 +45,9 @@ function showDownloadLogsContent(contentArea) {
                                         <i class="fas fa-exclamation-triangle"></i>
                                     </div>
                                     <div class="log-type-content">
-                                        <h4>${T('adminPanel.downloadLogs.errorLogs', 'Error Logs')}</h4>
-                                        <p class="log-type-pattern">errors/by-day + errors-all-days.log</p>
-                                        <p class="log-type-desc">${T('adminPanel.downloadLogs.errorLogsDesc', 'Error-only logs from prod_errors files')}</p>
+                                        <h4>${T('adminPanel.downloadLogs.allServicesLogs', 'All Services Summary')}</h4>
+                                        <p class="log-type-pattern">all-services/by-day + all-services-all-days.log</p>
+                                        <p class="log-type-desc">${T('adminPanel.downloadLogs.allServicesLogsDesc', 'Complete formatted log view across every service')}</p>
                                     </div>
                                 </div>
                                 
@@ -56,9 +56,9 @@ function showDownloadLogsContent(contentArea) {
                                         <i class="fas fa-shield-alt"></i>
                                     </div>
                                     <div class="log-type-content">
-                                        <h4>${T('adminPanel.downloadLogs.combinedLogs', 'Combined Logs')}</h4>
-                                        <p class="log-type-pattern">combined/by-day + combined-all-days.log</p>
-                                        <p class="log-type-desc">${T('adminPanel.downloadLogs.combinedLogsDesc', 'Unified non-error logs from application and audit sources')}</p>
+                                        <h4>${T('adminPanel.downloadLogs.serviceLogs', 'Service Logs')}</h4>
+                                        <p class="log-type-pattern">services/{service}/errors + combined</p>
+                                        <p class="log-type-desc">${T('adminPanel.downloadLogs.serviceLogsDesc', 'Each service folder contains errors and combined non-error logs with by-day and all-days files')}</p>
                                     </div>
                                 </div>
                             </div>

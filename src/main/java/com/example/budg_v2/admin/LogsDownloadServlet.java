@@ -76,6 +76,30 @@ public class LogsDownloadServlet extends HttpServlet {
     private final Gson gson = new Gson();
     private final LdapAuthService ldapAuthService = new LdapAuthService();
 
+    private static final List<ServicePattern> SERVICE_PATTERNS = List.of(
+            new ServicePattern("authorization", "authorization", "segmentation"),
+            new ServicePattern("bulk-upload", "bulk-upload", "bulkupload", "bulk_upload", "asset-onboarder",
+                    "assetonboarder", "onboarder"),
+            new ServicePattern("bulk-migrate", "bulk-migrate", "bulkmigrate", "bulk_migrate", "migration",
+                    "migrate"),
+            new ServicePattern("change-request", "change-request", "changerequest", "change_request"),
+            new ServicePattern("document-upload", "document-upload", "documentupload", "document_upload",
+                    "documentmanagement"),
+            new ServicePattern("notification", "notification", "notify"),
+            new ServicePattern("unison", "unison", "unison-search"),
+            new ServicePattern("value-list", "value-list", "valuelist", "value_list"),
+            new ServicePattern("event-monitor", "event-monitor", "eventmonitor", "event_monitor", "monitor"),
+            new ServicePattern("dashboard", "dashboard"),
+            new ServicePattern("workflow", "workflow"),
+            new ServicePattern("policy", "policy"),
+            new ServicePattern("process", "process"),
+            new ServicePattern("product", "product"),
+            new ServicePattern("capability", "capability"),
+            new ServicePattern("interface", "interface"),
+            new ServicePattern("glossary", "glossary"),
+            new ServicePattern("dataset", "dataset")
+    );
+
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
@@ -420,8 +444,8 @@ public class LogsDownloadServlet extends HttpServlet {
     }
 
     /**
-     * Builds ZIP with formatted log groups:
-     * errors/ for error logs, and combined/ for non-error logs.
+     * Builds ZIP with a microservice-style layout:
+     * all-services/ for the full application view, then services/{service}/errors|combined.
      */
     private byte[] createZipFile(List<Path> logFiles) throws IOException {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -438,12 +462,91 @@ public class LogsDownloadServlet extends HttpServlet {
                 .comparing((SourceLogFile source) -> source.daySortKey())
                 .thenComparing(source -> source.path.getFileName().toString()));
 
+        List<LogEvent> events = readLogEvents(sourceFiles);
+        events.sort(Comparator
+                .comparing((LogEvent event) -> event.daySortKey())
+                .thenComparing(event -> event.timestampSortKey)
+                .thenComparing(event -> event.sourceFileName));
+
         try (ZipOutputStream zos = new ZipOutputStream(baos)) {
-            writeArchiveType(zos, "errors", "errors", filterByType(sourceFiles, LogArchiveType.ERRORS), EventFilter.ERROR_ONLY);
-            writeArchiveType(zos, "combined", "combined", sourceFiles, EventFilter.NON_ERROR);
+            writeAllServicesArchive(zos, events);
+            writeServiceArchives(zos, events);
         }
 
         return baos.toByteArray();
+    }
+
+    private List<LogEvent> readLogEvents(List<SourceLogFile> sourceFiles) throws IOException {
+        List<LogEvent> events = new ArrayList<>();
+        for (SourceLogFile source : sourceFiles) {
+            try (BufferedReader reader = Files.newBufferedReader(source.path, StandardCharsets.UTF_8)) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    if (line.isEmpty()) {
+                        continue;
+                    }
+                    for (String eventText : splitLogEvents(line)) {
+                        if (eventText.isBlank()) {
+                            continue;
+                        }
+                        events.add(toLogEvent(eventText, source));
+                    }
+                }
+            }
+        }
+        return events;
+    }
+
+    private LogEvent toLogEvent(String eventText, SourceLogFile source) {
+        JsonObject json = null;
+        try {
+            JsonElement root = JsonParser.parseString(eventText);
+            if (root.isJsonObject()) {
+                json = root.getAsJsonObject();
+            }
+        } catch (Exception ignored) {
+            // Keep malformed log lines in the archive; they will be rendered as readable raw blocks.
+        }
+
+        String level = firstString(json, "level");
+        boolean error = "ERROR".equalsIgnoreCase(level)
+                || (level == null && (source.type == LogArchiveType.ERRORS || rawLooksLikeError(eventText)));
+        String serviceName = classifyService(json, eventText, source.path.getFileName().toString());
+        String timestamp = firstString(json, "timestamp", "@timestamp");
+
+        return new LogEvent(eventText, json, source.path.getFileName().toString(), source.dayKey,
+                timestamp != null ? timestamp : "", serviceName, error);
+    }
+
+    private static String classifyService(JsonObject event, String rawEventText, String sourceFileName) {
+        String searchable = buildServiceSearchText(event, rawEventText, sourceFileName);
+        for (ServicePattern pattern : SERVICE_PATTERNS) {
+            if (pattern.matches(searchable)) {
+                return pattern.serviceName;
+            }
+        }
+        return "other";
+    }
+
+    private static String buildServiceSearchText(JsonObject event, String rawEventText, String sourceFileName) {
+        StringBuilder sb = new StringBuilder();
+        appendSearchText(sb, sourceFileName);
+        appendSearchText(sb, firstString(event, "logger_name", "logger"));
+        appendSearchText(sb, firstString(event, "thread_name", "thread"));
+        appendSearchText(sb, firstString(event, "component", "service", "serviceName", "module"));
+        appendSearchText(sb, firstString(event, "message"));
+        appendSearchText(sb, rawEventText);
+        return sb.toString()
+                .toLowerCase(Locale.ROOT)
+                .replace('_', '-')
+                .replace('.', '-');
+    }
+
+    private static void appendSearchText(StringBuilder sb, String value) {
+        if (value == null || value.isBlank()) {
+            return;
+        }
+        sb.append(' ').append(value);
     }
 
     private SourceLogFile toSourceLogFile(Path logFile) throws IOException {
@@ -460,37 +563,95 @@ public class LogsDownloadServlet extends HttpServlet {
         return new SourceLogFile(logFile, type, extractLogDay(fileName), Files.getLastModifiedTime(logFile).toMillis());
     }
 
-    private static List<SourceLogFile> filterByType(List<SourceLogFile> sourceFiles, LogArchiveType type) {
-        List<SourceLogFile> filtered = new ArrayList<>();
-        for (SourceLogFile source : sourceFiles) {
-            if (source.type == type) {
-                filtered.add(source);
+    private void writeAllServicesArchive(ZipOutputStream zos, List<LogEvent> events) throws IOException {
+        putDirectoryEntry(zos, "all-services/");
+        putDirectoryEntry(zos, "all-services/by-day/");
+
+        Map<String, List<LogEvent>> byDay = groupEventsByDay(events);
+        for (Map.Entry<String, List<LogEvent>> dayEntry : byDay.entrySet()) {
+            writeEventEntry(zos,
+                    "all-services/by-day/all-services-" + dayEntry.getKey() + ".log",
+                    dayEntry.getValue());
+        }
+
+        writeEventEntry(zos, "all-services/all-services-all-days.log", events);
+    }
+
+    private void writeServiceArchives(ZipOutputStream zos, List<LogEvent> events) throws IOException {
+        putDirectoryEntry(zos, "services/");
+        Map<String, List<LogEvent>> byService = new TreeMap<>();
+        for (LogEvent event : events) {
+            byService.computeIfAbsent(event.serviceName, k -> new ArrayList<>()).add(event);
+        }
+
+        for (Map.Entry<String, List<LogEvent>> serviceEntry : byService.entrySet()) {
+            String serviceFolder = "services/" + serviceEntry.getKey() + "/";
+            putDirectoryEntry(zos, serviceFolder);
+
+            List<LogEvent> serviceEvents = serviceEntry.getValue();
+            writeServiceTypeArchive(zos, serviceFolder, "errors", filterEvents(serviceEvents, true));
+            writeServiceTypeArchive(zos, serviceFolder, "combined", filterEvents(serviceEvents, false));
+        }
+    }
+
+    private void writeServiceTypeArchive(ZipOutputStream zos, String serviceFolder, String typeName,
+                                         List<LogEvent> events) throws IOException {
+        String typeFolder = serviceFolder + typeName + "/";
+        putDirectoryEntry(zos, typeFolder);
+        putDirectoryEntry(zos, typeFolder + "by-day/");
+
+        Map<String, List<LogEvent>> byDay = groupEventsByDay(events);
+        for (Map.Entry<String, List<LogEvent>> dayEntry : byDay.entrySet()) {
+            writeEventEntry(zos, typeFolder + "by-day/" + typeName + "-" + dayEntry.getKey() + ".log",
+                    dayEntry.getValue());
+        }
+
+        writeEventEntry(zos, typeFolder + typeName + "-all-days.log", events);
+    }
+
+    private static List<LogEvent> filterEvents(List<LogEvent> events, boolean errorsOnly) {
+        List<LogEvent> filtered = new ArrayList<>();
+        for (LogEvent event : events) {
+            if (event.error == errorsOnly) {
+                filtered.add(event);
             }
         }
         return filtered;
     }
 
-    private void writeArchiveType(ZipOutputStream zos, String folderName, String outputPrefix,
-                                  List<SourceLogFile> sourceFiles, EventFilter eventFilter)
-            throws IOException {
-        putDirectoryEntry(zos, folderName + "/");
-        putDirectoryEntry(zos, folderName + "/by-day/");
-
-        Map<String, List<SourceLogFile>> byDay = groupByDay(sourceFiles);
-        for (Map.Entry<String, List<SourceLogFile>> dayEntry : byDay.entrySet()) {
-            String entryName = folderName + "/by-day/" + outputPrefix + "-" + dayEntry.getKey() + ".log";
-            writeFormattedEntry(zos, entryName, dayEntry.getValue(), eventFilter);
-        }
-
-        writeFormattedEntry(zos, folderName + "/" + outputPrefix + "-all-days.log", sourceFiles, eventFilter);
-    }
-
-    private Map<String, List<SourceLogFile>> groupByDay(List<SourceLogFile> sourceFiles) {
-        Map<String, List<SourceLogFile>> byDay = new TreeMap<>(this::compareDayKeys);
-        for (SourceLogFile source : sourceFiles) {
-            byDay.computeIfAbsent(source.dayKey, k -> new ArrayList<>()).add(source);
+    private Map<String, List<LogEvent>> groupEventsByDay(List<LogEvent> events) {
+        Map<String, List<LogEvent>> byDay = new TreeMap<>(this::compareDayKeys);
+        for (LogEvent event : events) {
+            byDay.computeIfAbsent(event.dayKey, k -> new ArrayList<>()).add(event);
         }
         return byDay;
+    }
+
+    private void writeEventEntry(ZipOutputStream zos, String entryName, List<LogEvent> events) throws IOException {
+        putZipEntry(zos, entryName, System.currentTimeMillis());
+        Writer writer = new OutputStreamWriter(zipEntrySink(zos), StandardCharsets.UTF_8);
+        writeFormattedLogHeader(writer, entryName);
+
+        if (events.isEmpty()) {
+            writer.write("No log entries found for this group.\n");
+        } else {
+            for (LogEvent event : events) {
+                writeLogEvent(writer, event);
+                writer.write('\n');
+            }
+        }
+
+        writer.flush();
+        writer.close();
+        zos.closeEntry();
+    }
+
+    private void writeLogEvent(Writer writer, LogEvent event) throws IOException {
+        if (event.json != null) {
+            writeJsonLogBlock(writer, event.json, event.sourceFileName, event.serviceName);
+        } else {
+            writeNonJsonBlock(writer, event.rawText, event.sourceFileName, event.serviceName);
+        }
     }
 
     private int compareDayKeys(String a, String b) {
@@ -504,39 +665,6 @@ public class LogsDownloadServlet extends HttpServlet {
             return -1;
         }
         return a.compareTo(b);
-    }
-
-    private void writeFormattedEntry(ZipOutputStream zos, String entryName,
-                                     List<SourceLogFile> sourceFiles, EventFilter eventFilter)
-            throws IOException {
-        long lastModified = sourceFiles.isEmpty()
-                ? System.currentTimeMillis()
-                : sourceFiles.stream().mapToLong(source -> source.lastModified).max().orElse(System.currentTimeMillis());
-
-        putZipEntry(zos, entryName, lastModified);
-        Writer writer = new OutputStreamWriter(zipEntrySink(zos), StandardCharsets.UTF_8);
-        writeFormattedLogHeader(writer, entryName);
-        int writtenEvents = appendFormattedLogs(sourceFiles, writer, eventFilter);
-        if (writtenEvents == 0) {
-            writer.write("No log entries found for this group.\n");
-        }
-        writer.flush();
-        writer.close();
-        zos.closeEntry();
-    }
-
-    private int appendFormattedLogs(List<SourceLogFile> sourceFiles, Writer writer, EventFilter eventFilter) throws IOException {
-        if (sourceFiles.isEmpty()) {
-            return 0;
-        }
-
-        int writtenEvents = 0;
-        for (SourceLogFile source : sourceFiles) {
-            try (BufferedReader reader = Files.newBufferedReader(source.path, StandardCharsets.UTF_8)) {
-                writtenEvents += appendFormattedLog(reader, writer, source, eventFilter);
-            }
-        }
-        return writtenEvents;
     }
 
     private static void putZipEntry(ZipOutputStream zos, String entryName, long lastModified) throws IOException {
@@ -582,54 +710,6 @@ public class LogsDownloadServlet extends HttpServlet {
         writer.write("================================================================================\n\n");
     }
 
-    private int appendFormattedLog(BufferedReader reader, Writer writer,
-                                   SourceLogFile source, EventFilter eventFilter) throws IOException {
-        int writtenEvents = 0;
-        String line;
-        while ((line = reader.readLine()) != null) {
-            if (line.isEmpty()) {
-                continue;
-            }
-            for (String eventText : splitLogEvents(line)) {
-                if (eventText.isBlank()) {
-                    continue;
-                }
-                if (writeFormattedEvent(eventText, writer, source, eventFilter)) {
-                    writer.write('\n');
-                    writtenEvents++;
-                }
-            }
-        }
-        return writtenEvents;
-    }
-
-    private boolean writeFormattedEvent(String eventText, Writer writer,
-                                        SourceLogFile source, EventFilter eventFilter) throws IOException {
-        try {
-            JsonElement root = JsonParser.parseString(eventText);
-            if (!root.isJsonObject()) {
-                return writeFallbackEvent(eventText, writer, source, eventFilter);
-            }
-            JsonObject event = root.getAsJsonObject();
-            if (!eventFilter.accepts(event, source, eventText)) {
-                return false;
-            }
-            writeJsonLogBlock(writer, event, source.path.getFileName().toString());
-            return true;
-        } catch (Exception e) {
-            return writeFallbackEvent(eventText, writer, source, eventFilter);
-        }
-    }
-
-    private boolean writeFallbackEvent(String eventText, Writer writer,
-                                       SourceLogFile source, EventFilter eventFilter) throws IOException {
-        if (!eventFilter.accepts(null, source, eventText)) {
-            return false;
-        }
-        writeNonJsonBlock(writer, eventText, source.path.getFileName().toString());
-        return true;
-    }
-
     /**
      * Some deployed log files contain escaped "\n" or "\r\n" between JSON events
      * instead of real newlines. Split those boundaries without touching escaped
@@ -640,7 +720,7 @@ public class LogsDownloadServlet extends HttpServlet {
         return Arrays.asList(line.split("(?:\\\\r)?\\\\n(?=\\s*\\{\\s*\"@?timestamp\")"));
     }
 
-    private void writeJsonLogBlock(Writer writer, JsonObject o, String sourceFileName) throws IOException {
+    private void writeJsonLogBlock(Writer writer, JsonObject o, String sourceFileName, String serviceName) throws IOException {
         String ts = firstString(o, "timestamp", "@timestamp");
         String level = firstString(o, "level");
         String channel = firstString(o, "channel");
@@ -665,6 +745,8 @@ public class LogsDownloadServlet extends HttpServlet {
         writer.write(levelMeaning(level));
         writer.write("\nSource File: ");
         writer.write(sourceFileName != null ? sourceFileName : "unknown");
+        writer.write("\nService: ");
+        writer.write(serviceName != null ? serviceName : "other");
         writer.write("\nMessage:\n");
 
         String message = jsonElementToPlainText(o.get("message"));
@@ -740,11 +822,13 @@ public class LogsDownloadServlet extends HttpServlet {
         };
     }
 
-    private void writeNonJsonBlock(Writer writer, String line, String sourceFileName) throws IOException {
+    private void writeNonJsonBlock(Writer writer, String line, String sourceFileName, String serviceName) throws IOException {
         writer.write("================================================================================\n");
         writer.write("[RAW LINE — not valid JSON]\n");
         writer.write("Source File: ");
         writer.write(sourceFileName != null ? sourceFileName : "unknown");
+        writer.write("\nService: ");
+        writer.write(serviceName != null ? serviceName : "other");
         writer.write('\n');
         writer.write(expandEscapedControlCharacters(line));
         writer.write('\n');
@@ -988,34 +1072,6 @@ public class LogsDownloadServlet extends HttpServlet {
         }
     }
 
-    private enum EventFilter {
-        ERROR_ONLY {
-            @Override
-            boolean accepts(JsonObject event, SourceLogFile source, String rawEventText) {
-                if (source.type == LogArchiveType.ERRORS) {
-                    String level = firstString(event, "level");
-                    return level == null || "ERROR".equalsIgnoreCase(level);
-                }
-                return "ERROR".equalsIgnoreCase(firstString(event, "level"));
-            }
-        },
-        NON_ERROR {
-            @Override
-            boolean accepts(JsonObject event, SourceLogFile source, String rawEventText) {
-                if (source.type == LogArchiveType.ERRORS) {
-                    return false;
-                }
-                String level = firstString(event, "level");
-                if (level != null) {
-                    return !"ERROR".equalsIgnoreCase(level);
-                }
-                return !rawLooksLikeError(rawEventText);
-            }
-        };
-
-        abstract boolean accepts(JsonObject event, SourceLogFile source, String rawEventText);
-    }
-
     private static boolean rawLooksLikeError(String rawEventText) {
         if (rawEventText == null) {
             return false;
@@ -1024,6 +1080,26 @@ public class LogsDownloadServlet extends HttpServlet {
         return normalized.contains("\"level\":\"error\"")
                 || normalized.contains("\"level\" : \"error\"")
                 || normalized.contains(" error:");
+    }
+
+    private static class ServicePattern {
+        final String serviceName;
+        final List<String> aliases;
+
+        ServicePattern(String serviceName, String... aliases) {
+            this.serviceName = serviceName;
+            this.aliases = Arrays.asList(aliases);
+        }
+
+        boolean matches(String searchableText) {
+            for (String alias : aliases) {
+                String normalizedAlias = alias.toLowerCase(Locale.ROOT).replace('_', '-').replace('.', '-');
+                if (searchableText.contains(normalizedAlias)) {
+                    return true;
+                }
+            }
+            return false;
+        }
     }
 
     private static class SourceLogFile {
@@ -1037,6 +1113,31 @@ public class LogsDownloadServlet extends HttpServlet {
             this.type = type;
             this.dayKey = dayKey;
             this.lastModified = lastModified;
+        }
+
+        String daySortKey() {
+            return "current".equals(dayKey) ? "9999-12-31" : dayKey;
+        }
+    }
+
+    private static class LogEvent {
+        final String rawText;
+        final JsonObject json;
+        final String sourceFileName;
+        final String dayKey;
+        final String timestampSortKey;
+        final String serviceName;
+        final boolean error;
+
+        LogEvent(String rawText, JsonObject json, String sourceFileName, String dayKey,
+                 String timestampSortKey, String serviceName, boolean error) {
+            this.rawText = rawText;
+            this.json = json;
+            this.sourceFileName = sourceFileName;
+            this.dayKey = dayKey;
+            this.timestampSortKey = timestampSortKey;
+            this.serviceName = serviceName;
+            this.error = error;
         }
 
         String daySortKey() {
