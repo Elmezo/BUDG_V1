@@ -17,7 +17,9 @@ public class SensitiveDataMasker {
     private static final Set<String> SENSITIVE_FIELD_PATTERNS = new HashSet<>(Arrays.asList(
         "password", "pwd", "passwd", "pass",
         "token", "access_token", "refresh_token", "api_token", "auth_token",
-        "api_key", "apikey", "secret_key", "secret", "private_key",
+        "authorization", "cookie", "set-cookie", "jwt", "bearer",
+        "api_key", "apikey", "secret_key", "secret", "private_key", "jwt_secret_key",
+        "bind_password", "bindpassword", "credential", "credentials",
         "ssn", "social_security_number", "social_security",
         "credit_card", "card_number", "cardnumber", "cvv", "cvc",
         "bank_account", "account_number", "routing_number"
@@ -29,6 +31,8 @@ public class SensitiveDataMasker {
     private static final List<Pattern> SENSITIVE_VALUE_PATTERNS = Arrays.asList(
         // JWT tokens (eyJ...)
         Pattern.compile("eyJ[A-Za-z0-9_-]{20,}\\.eyJ[A-Za-z0-9_-]{20,}\\.[A-Za-z0-9_-]{20,}"),
+        // Bearer token headers
+        Pattern.compile("(?i)Bearer\\s+[A-Za-z0-9._~+/=-]{20,}"),
         // API keys (long alphanumeric strings)
         Pattern.compile("^[A-Za-z0-9]{32,}$"),
         // Credit card numbers (13-19 digits)
@@ -125,9 +129,19 @@ public class SensitiveDataMasker {
             masked = pattern.matcher(masked).replaceAll(REDACTED_VALUE);
         }
         
+        // Remove credential metadata that can still leak security posture.
+        masked = masked.replaceAll("(?i)(password|pwd|passwd|pass)\\s+length\\s*[:=]\\s*\\d+",
+            "$1 length=***REDACTED***");
+        masked = masked.replaceAll("(?i)(token|secret|key|cookie)\\s+(found|present)\\s*[:=]?\\s*yes\\s*\\([^)]*length\\s*[:=]\\s*\\d+[^)]*\\)",
+            "$1 $2=***REDACTED***");
+
         // Mask common patterns like "password=xxx" or "token=xxx"
-        masked = masked.replaceAll("(?i)(password|pwd|token|api[_-]?key|secret)\\s*[=:]\\s*[^\\s,}]+", 
+        masked = masked.replaceAll("(?i)(password|pwd|passwd|pass|token|authorization|cookie|jwt|api[_-]?key|secret|credential)\\s*[=:]\\s*[^\\s,}]+",
             "$1=***REDACTED***");
+
+        // Mask common English phrasing used in operational logs.
+        masked = masked.replaceAll("(?i)(with\\s+matching\\s+)password", "$1credentials");
+        masked = maskEmails(masked);
         
         return masked;
     }
@@ -163,6 +177,13 @@ public class SensitiveDataMasker {
         // Check against sensitive value patterns
         return SENSITIVE_VALUE_PATTERNS.stream()
             .anyMatch(pattern -> pattern.matcher(value).find());
+    }
+
+    private static String maskEmails(String value) {
+        return value.replaceAll(
+            "\\b([A-Za-z0-9._%+-])([A-Za-z0-9._%+-]*)(@[A-Za-z0-9.-]+\\.[A-Za-z]{2,})\\b",
+            "$1***$3"
+        );
     }
     
     /**

@@ -40,8 +40,6 @@ public class JwtSecretKeySetup {
         
         if (success) {
             logger.info("✓ JWT_SECRET_KEY successfully added to .env file");
-            logger.info("Key length: {} characters", secretKey.length());
-            logger.info("Key preview: {}...", secretKey.substring(0, Math.min(20, secretKey.length())));
             logger.info("Note: Keep this key secret and never commit it to version control");
         } else {
             logger.error("✗ Failed to add JWT_SECRET_KEY to .env file");

@@ -68,17 +68,29 @@ public class DistributedRateLimiter {
                                identifier, getAttemptCount(identifier));
                 }
                 if (!emailAllowed && email != null) {
-                    logger.warn("Rate limit exceeded for email {}: {} attempts in last minute", 
-                               email, getAttemptCountByEmail(email));
+                    logger.warn("Rate limit exceeded for user {}: {} attempts in last minute",
+                               maskEmailForLog(email), getAttemptCountByEmail(email));
                 }
             }
             
             return allowed;
         } catch (SQLException e) {
-            logger.error("Error checking rate limit for client: {}, email: {}", identifier, email, e);
+            logger.error("Error checking rate limit for client: {}, user: {}", identifier, maskEmailForLog(email), e);
             // On error, allow the request (fail open) to prevent DoS on database
             return true;
         }
+    }
+
+    private static String maskEmailForLog(String email) {
+        if (email == null || email.isBlank()) {
+            return "unknown";
+        }
+        String trimmed = email.trim();
+        int at = trimmed.indexOf('@');
+        if (at <= 0) {
+            return "***";
+        }
+        return trimmed.substring(0, 1) + "***" + trimmed.substring(at);
     }
     
     /**
@@ -146,7 +158,7 @@ public class DistributedRateLimiter {
                 ps.setString(3, ipAddress != null ? ipAddress : extractIpFromIdentifier(identifier));
                 ps.executeUpdate();
                 
-                logger.debug("Recorded failed login attempt for client: {}, email: {}, ip: {}", identifier, email, ipAddress);
+                logger.debug("Recorded failed login attempt for client: {}, user: {}, ip: {}", identifier, maskEmailForLog(email), ipAddress);
             }
         } catch (SQLException e) {
             logger.error("Error recording failed login attempt for client: {}", identifier, e);
@@ -175,7 +187,7 @@ public class DistributedRateLimiter {
                 ps.setString(3, ipAddress != null ? ipAddress : extractIpFromIdentifier(identifier));
                 ps.executeUpdate();
                 
-                logger.debug("Recorded successful login for client: {}, email: {}, ip: {}", identifier, email, ipAddress);
+                logger.debug("Recorded successful login for client: {}, user: {}, ip: {}", identifier, maskEmailForLog(email), ipAddress);
             }
         } catch (SQLException e) {
             logger.error("Error recording successful login for client: {}", identifier, e);
@@ -243,7 +255,7 @@ public class DistributedRateLimiter {
                 }
             }
         } catch (SQLException e) {
-            logger.error("Error getting attempt count for email: {}", email, e);
+            logger.error("Error getting attempt count for user: {}", maskEmailForLog(email), e);
         }
         
         return 0;

@@ -221,24 +221,22 @@ public class ApplicationInitializer implements ServletContextListener {
         // Validate key length (minimum 32 bytes = 256 bits)
         byte[] keyBytes = jwtSecret.getBytes();
         if (keyBytes.length < 32) {
-            String errorMsg = String.format(
+            String errorMsg =
                 "\n" +
                 "═══════════════════════════════════════════════════════════════\n" +
                 "  CRITICAL ERROR: JWT_SECRET_KEY is too short!\n" +
                 "═══════════════════════════════════════════════════════════════\n" +
                 "\n" +
                 "JWT_SECRET_KEY must be at least 32 bytes (256 bits) for security.\n" +
-                "Current length: %d bytes\n" +
+                "Configured key is below the minimum required length.\n" +
                 "\n" +
                 "Please generate a longer key (64+ bytes recommended).\n" +
-                "═══════════════════════════════════════════════════════════════\n",
-                keyBytes.length
-            );
+                "═══════════════════════════════════════════════════════════════\n";
             logger.error(errorMsg);
-            throw new IllegalStateException("JWT_SECRET_KEY must be at least 32 bytes (256 bits). Current length: " + keyBytes.length + " bytes");
+            throw new IllegalStateException("JWT_SECRET_KEY must be at least 32 bytes (256 bits)");
         }
         
-        logger.info("JWT_SECRET_KEY validated successfully (length: {} bytes)", keyBytes.length);
+        logger.info("JWT_SECRET_KEY validated successfully");
     }
 
     /**

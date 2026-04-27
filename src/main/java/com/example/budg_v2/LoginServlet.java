@@ -109,23 +109,24 @@ public class LoginServlet extends HttpServlet {
 
             // Enhanced input validation
             if (!isValidEmailOrUsername(email)) {
-                logger.warn("Invalid email or username format attempted: {}", email);
+                logger.warn("Invalid email or username format attempted: {}", maskEmailForLog(email));
                 sendErrorResponse(response, "Invalid email or username format. Please enter a valid email address or username.", 400, "email", "INVALID_EMAIL_FORMAT");
                 return;
             }
 
+            String maskedEmail = maskEmailForLog(email);
+
             if (!isValidPassword(password)) {
-                logger.warn("Invalid password format attempted for email: {}", email);
+                logger.warn("Invalid password format attempted for user: {}", maskedEmail);
                 sendErrorResponse(response, "Invalid password format. Password must be between 1 and 100 characters.", 400, "password", "INVALID_PASSWORD_FORMAT");
                 return;
             }
 
-            // Debug logging
-            logger.info("Attempting login for email: {} with password length: {}", email, password.length());
+            logger.info("Login attempt started for user: {}", maskedEmail);
 
             // Check if account is locked before attempting authentication
             if (isAccountLocked(email)) {
-                logger.warn("Login attempt blocked for locked account: {} from IP: {}", email, clientIp);
+                logger.warn("Login attempt blocked for locked account: {} from IP: {}", maskedEmail, clientIp);
                 sendErrorResponse(response, "Your account has been locked. Please contact your system administrator to unlock it.", 403, "general", "ACCOUNT_LOCKED");
                 return;
             }
@@ -136,13 +137,13 @@ public class LoginServlet extends HttpServlet {
                 user = authenticateUser(email, password);
             } catch (LdapConnectionException e) {
                 // LDAP connection failed - show error message to user
-                logger.error("LDAP connection error during login for email: {} from IP: {}. Error: {}", 
-                            email, clientIp, e.getMessage(), e);
+                logger.error("LDAP connection error during login for user: {} from IP: {}. Error: {}",
+                            maskedEmail, clientIp, e.getMessage(), e);
                 String errorCode = "LDAP_" + e.getErrorType().name();
                 sendErrorResponse(response, e.getUserFriendlyMessage(), 503, "general", errorCode);
                 return;
             } catch (InactiveAccountException e) {
-                logger.warn("Login blocked for inactive account: {} from IP: {}", email, clientIp);
+                logger.warn("Login blocked for inactive account: {} from IP: {}", maskedEmail, clientIp);
                 sendErrorResponse(response, "Your account is inactive. Please contact your system administrator to reactivate it.", 403, "general", "ACCOUNT_INACTIVE");
                 return;
             }
@@ -150,14 +151,13 @@ public class LoginServlet extends HttpServlet {
             if (user == null) {
                 // Record failed attempt in distributed rate limiter
                 DistributedRateLimiter.recordFailedAttempt(clientIdentifier, email, clientIp);
-                logger.warn("Failed login attempt for email: {} from IP: {} - Password length: {}", email, clientIp,
-                        password.length());
+                logger.warn("Failed login attempt for user: {} from IP: {} - reason=INVALID_CREDENTIALS", maskedEmail, clientIp);
 
                 // Check if this is the 5th failed attempt and lock the account
                 int failedAttempts = DistributedRateLimiter.getAttemptCountByEmail(email);
                 if (failedAttempts >= 5) {
                     lockUserAccount(email);
-                    logger.warn("Account locked after 5 failed attempts for email: {}", email);
+                    logger.warn("Account locked after 5 failed attempts for user: {}", maskedEmail);
                     sendErrorResponse(response, "Your account has been locked due to too many failed login attempts. Please contact your system administrator to unlock it.",
                             403, "general", "ACCOUNT_LOCKED");
                     return;
@@ -169,7 +169,7 @@ public class LoginServlet extends HttpServlet {
 
             // Record successful login
             DistributedRateLimiter.recordSuccessfulLogin(clientIdentifier, email, clientIp);
-            logger.info("Successful login for user: {} from IP: {}", email, clientIp);
+            logger.info("Successful login for user: {} from IP: {}", maskedEmail, clientIp);
 
             // Update last login timestamp for the user
             updateLastLoginTime((Integer) user.get("id"));
@@ -235,7 +235,6 @@ public class LoginServlet extends HttpServlet {
 
         } catch (Exception e) {
             logger.error("Unexpected error during login", e);
-            e.printStackTrace();
             sendErrorResponse(response, "An internal server error occurred. Please try again later or contact support if the problem persists.", 500, "general", "INTERNAL_SERVER_ERROR");
         }
     }
@@ -269,7 +268,7 @@ public class LoginServlet extends HttpServlet {
         // Step 2: If user doesn't exist, reject login immediately
         // Users must be created first through LDAP sync from admin panel
         if (dbPassword == null) {
-            logger.warn("Login attempt for non-existent user: {}. User must be created through LDAP sync first.", email);
+            logger.warn("Login attempt for non-existent user: {}. User must be created through LDAP sync first.", maskEmailForLog(email));
             return null; // Reject login - user doesn't exist
         }
         
@@ -277,33 +276,33 @@ public class LoginServlet extends HttpServlet {
         if (LdapPlaceholderPassword.matches(dbPassword)) {
             // User is from LDAP - must authenticate via LDAP only
             if (!LdapConfigUtil.isLdapEnabled()) {
-                logger.error("LDAP user attempted login but LDAP is disabled: {}", email);
+                logger.error("LDAP user attempted login but LDAP is disabled: {}", maskEmailForLog(email));
                 return null; // Reject - LDAP is required but disabled
             }
             
-            logger.info("LDAP user detected, attempting LDAP authentication for email: {}", email);
+            logger.info("LDAP user detected, attempting LDAP authentication for user: {}", maskEmailForLog(email));
             try {
                 Map<String, Object> ldapUser = ldapAuthService.authenticateUser(email, password);
                 if (ldapUser != null) {
-                    logger.info("LDAP authentication successful for email: {}", email);
+                    logger.info("LDAP authentication successful for user: {}", maskEmailForLog(email));
                     return convertLdapUserToSystemUser(ldapUser);
                 } else {
                     // LDAP authentication failed - reject login (no fallback to database)
-                    logger.warn("LDAP authentication failed for LDAP user: {}", email);
+                    logger.warn("LDAP authentication failed for LDAP user: {}", maskEmailForLog(email));
                     return null;
                 }
             } catch (LdapConnectionException e) {
                 // LDAP connection error - rethrow to show error message to user
-                logger.error("LDAP connection failed for email: {}. Error: {}", email, e.getMessage(), e);
+                logger.error("LDAP connection failed for user: {}. Error: {}", maskEmailForLog(email), e.getMessage(), e);
                 throw e;
             } catch (Exception e) {
                 // Other LDAP errors - reject login (no fallback)
-                logger.error("LDAP authentication error for LDAP user: {}. Error: {}", email, e.getMessage(), e);
+                logger.error("LDAP authentication error for LDAP user: {}. Error: {}", maskEmailForLog(email), e.getMessage(), e);
                 return null;
             }
         } else {
             // User is regular (not from LDAP) - authenticate via database only
-            logger.info("Regular user detected, attempting database authentication for email: {}", email);
+            logger.info("Regular user detected, attempting database authentication for user: {}", maskEmailForLog(email));
             return authenticateUserFromDatabase(email, password);
         }
     }
@@ -317,6 +316,21 @@ public class LoginServlet extends HttpServlet {
             return false;
         }
         return statusName.trim().toLowerCase().startsWith("inactive");
+    }
+
+    private static String maskEmailForLog(String email) {
+        if (email == null || email.isBlank()) {
+            return "unknown";
+        }
+        String trimmed = email.trim();
+        int at = trimmed.indexOf('@');
+        if (at <= 0) {
+            return "***";
+        }
+        String local = trimmed.substring(0, at);
+        String domain = trimmed.substring(at + 1);
+        String visible = local.substring(0, Math.min(1, local.length()));
+        return visible + "***@" + domain;
     }
 
     /**
@@ -360,16 +374,16 @@ public class LoginServlet extends HttpServlet {
             pstmt.setString(1, email);
             pstmt.setString(2, password);
 
-            logger.info("Executing database authentication query for email: {}", email);
+            logger.debug("Executing database authentication query for user: {}", maskEmailForLog(email));
 
             try (ResultSet rs = pstmt.executeQuery()) {
                 if (rs.next()) {
-                    logger.info("Database authentication successful for user: {}", email);
+                    logger.info("Database authentication successful for user: {}", maskEmailForLog(email));
                     return mapResultSetToUser(rs);
                 }
             }
         } catch (SQLException e) {
-            logger.error("Database error during authentication for email: {}", email, e);
+            logger.error("Database error during authentication for user: {}", maskEmailForLog(email), e);
             throw e;
         }
 
@@ -420,11 +434,11 @@ public class LoginServlet extends HttpServlet {
                 if (rs.next()) {
                     String statusName = rs.getString("status_name");
                     if (isInactiveStatus(statusName)) {
-                        logger.warn("Login denied for user '{}' with inactive status: '{}'", email, statusName);
+                        logger.warn("Login denied for user '{}' with inactive status: '{}'", maskEmailForLog(email), statusName);
                         throw new InactiveAccountException(email, statusName);
                     }
                 } else {
-                    logger.warn("No user found in database for email: {} with matching password", email);
+                    logger.warn("No user found in database for user: {} with matching credentials", maskEmailForLog(email));
                 }
             }
         }
@@ -647,8 +661,8 @@ public class LoginServlet extends HttpServlet {
             try (ResultSet generatedKeys = pstmt.getGeneratedKeys()) {
                 if (generatedKeys.next()) {
                     int userId = generatedKeys.getInt(1);
-                    logger.info("Created LDAP user in database with ID: {} for email: {}", userId,
-                            ldapUser.get("email"));
+                    logger.info("Created LDAP user in database with ID: {} for user: {}", userId,
+                            maskEmailForLog(String.valueOf(ldapUser.get("email"))));
                     return userId;
                 } else {
                     throw new SQLException("Creating LDAP user failed, no ID obtained.");
@@ -840,7 +854,7 @@ public class LoginServlet extends HttpServlet {
                 }
             }
         } catch (SQLException e) {
-            logger.error("Error checking account lock status for email: {}", email, e);
+            logger.error("Error checking account lock status for user: {}", maskEmailForLog(email), e);
             // On error, don't block login (fail open)
             return false;
         }
@@ -869,13 +883,13 @@ public class LoginServlet extends HttpServlet {
             int rowsUpdated = pstmt.executeUpdate();
 
             if (rowsUpdated > 0) {
-                logger.info("Account locked for email: {}", email);
+                logger.info("Account locked for user: {}", maskEmailForLog(email));
             } else {
-                logger.warn("No account found to lock for email: {}", email);
+                logger.warn("No account found to lock for user: {}", maskEmailForLog(email));
             }
 
         } catch (SQLException e) {
-            logger.error("Error locking account for email: {}", email, e);
+            logger.error("Error locking account for user: {}", maskEmailForLog(email), e);
             // Don't throw - locking failure shouldn't block the login response
         }
     }
