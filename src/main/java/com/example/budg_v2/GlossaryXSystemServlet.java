@@ -2,7 +2,9 @@ package com.example.budg_v2;
 
 import com.example.budg_v2.dao.FacetChangesDAO;
 import com.example.budg_v2.dao.GlossaryXSystemDAO;
+import com.example.budg_v2.service.DFCRService;
 import com.example.budg_v2.service.SegmentValidationService;
+import com.example.budg_v2.util.UserContextUtil;
 import com.example.budg_v2.util.CorsUtil;
 import com.example.budg_v2.util.JsonUtil;
 import com.example.budg_v2.util.RelationshipAccessUtil;
@@ -172,6 +174,16 @@ public class GlossaryXSystemServlet extends HttpServlet {
                 
                 logger.debug("Strategic source data: glossaryId={}, systemId={}, datasetId={}, relationTypeId={}", 
                             glossaryId, systemId, datasetId, relationTypeId);
+
+                int userId = UserContextUtil.getCurrentUserId(req);
+                if (userId > 0) {
+                    try {
+                        boolean isAdmin = UserContextUtil.isCurrentUserAdmin(req);
+                        new DFCRService().ensureEditAutoCrIfMissing("Glossary", GLOSSARY_FACET_TYPE, glossaryId, null, userId, isAdmin);
+                    } catch (Exception e) {
+                        logger.warn("[GlossaryXSystem] DFCR ensure before strategic source POST: {}", e.getMessage());
+                    }
+                }
 
                 // Check for active automatic CR and get cloned glossary ID (like Impact tab)
                 Integer activeCrId = null;
@@ -370,6 +382,18 @@ public class GlossaryXSystemServlet extends HttpServlet {
                         }
                     } catch (SQLException e) {
                         logger.warn("Error checking for original glossary ID: {}", e.getMessage());
+                    }
+                }
+
+                if (originalGlossaryId != null) {
+                    int userId = UserContextUtil.getCurrentUserId(req);
+                    if (userId > 0) {
+                        try {
+                            boolean isAdmin = UserContextUtil.isCurrentUserAdmin(req);
+                            new DFCRService().ensureEditAutoCrIfMissing("Glossary", GLOSSARY_FACET_TYPE, originalGlossaryId, null, userId, isAdmin);
+                        } catch (Exception e) {
+                            logger.warn("[GlossaryXSystem] DFCR ensure before strategic source PUT: {}", e.getMessage());
+                        }
                     }
                 }
                 

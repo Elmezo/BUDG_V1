@@ -459,6 +459,19 @@ public class AttributeRelationshipServlet extends HttpServlet {
                            ? requestData.get("datasetId").getAsInt() : null;
         
         System.out.println("[AttributeRelationshipServlet] Saving relationships - datasetId: " + datasetId + ", operations count: " + (operations != null ? operations.size() : 0));
+
+        if (datasetId != null && datasetId > 0) {
+            int userId = com.example.budg_v2.util.UserContextUtil.getCurrentUserId(req);
+            if (userId > 0) {
+                try {
+                    boolean isAdmin = com.example.budg_v2.util.UserContextUtil.isCurrentUserAdmin(req);
+                    new com.example.budg_v2.service.DFCRService().ensureEditAutoCrIfMissing(
+                            "Data Set", DATASET_FACET_TYPE, datasetId, getDatasetType(datasetId), userId, isAdmin);
+                } catch (Exception e) {
+                    System.err.println("[AttributeRelationshipServlet] DFCR ensure before relationship save: " + e.getMessage());
+                }
+            }
+        }
         
         // Check for active auto CR (no need for cloned dataset - we save with original attribute IDs)
         Integer activeCrId = null;
@@ -926,6 +939,24 @@ public class AttributeRelationshipServlet extends HttpServlet {
                 return rs.next();
             }
         }
+    }
+
+    private Integer getDatasetType(int datasetId) {
+        try (Connection conn = DatabaseConnection.getConnection()) {
+            String sql = "SELECT DatasetType FROM dataset WHERE ID = ?";
+            try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+                stmt.setInt(1, datasetId);
+                try (ResultSet rs = stmt.executeQuery()) {
+                    if (rs.next()) {
+                        int typeId = rs.getInt("DatasetType");
+                        return rs.wasNull() ? null : typeId;
+                    }
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("[AttributeRelationshipServlet] Error getting dataset type: " + e.getMessage());
+        }
+        return null;
     }
 }
 

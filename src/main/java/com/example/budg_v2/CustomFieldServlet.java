@@ -1,7 +1,9 @@
 package com.example.budg_v2;
 
 import com.example.budg_v2.constants.ActivityLogConstants;
+import com.example.budg_v2.dao.FacetChangesDAO;
 import com.example.budg_v2.database.DatabaseConnection;
+import com.example.budg_v2.service.DFCRService;
 import com.example.budg_v2.service.PermissionService;
 import com.example.budg_v2.util.ActivityLogHelper;
 import com.example.budg_v2.util.CorsUtil;
@@ -231,7 +233,8 @@ public class CustomFieldServlet extends HttpServlet {
                     }
                 }
                 
-                Map<String, Object> result = saveCustomFieldValues(requestData, userId);
+                Map<String, Object> result = saveCustomFieldValues(requestData, userId, true,
+                        UserContextUtil.isCurrentUserAdmin(req));
                 if ((Boolean) result.get("success")) {
                     resp.setStatus(HttpServletResponse.SC_OK);
                 } else {
@@ -813,15 +816,111 @@ public class CustomFieldServlet extends HttpServlet {
         return values;
     }
 
+    /**
+     * First save from the Custom Fields tab should create the same automatic edit CR as the summary tab
+     * for Glossary, Data Set, System, and Process (only).
+     */
+    private static void ensureDfcrAutoCrForCustomFieldSave(Connection conn, String facetKey, int canonicalObjectId,
+                                                           int userId, boolean isAdmin) {
+        if (userId <= 0 || facetKey == null) {
+            return;
+        }
+        String fk = facetKey.toLowerCase().trim();
+        if (!"glossary".equals(fk) && !"dataset".equals(fk) && !"system".equals(fk) && !"process".equals(fk)) {
+            return;
+        }
+        try {
+            FacetChangesDAO facetDao = new FacetChangesDAO();
+            Integer moduleFacetTypeId = facetDao.getFacetId(fk);
+            if (moduleFacetTypeId == null) {
+                return;
+            }
+            String dfcrFacetName;
+            switch (fk) {
+                case "glossary":
+                    dfcrFacetName = "Glossary";
+                    break;
+                case "dataset":
+                    dfcrFacetName = "Data Set";
+                    break;
+                case "system":
+                    dfcrFacetName = "System";
+                    break;
+                case "process":
+                    dfcrFacetName = "Process";
+                    break;
+                default:
+                    return;
+            }
+            Integer typeId = loadDfcrObjectTypeId(conn, fk, canonicalObjectId);
+            new DFCRService().ensureEditAutoCrIfMissing(dfcrFacetName, moduleFacetTypeId, canonicalObjectId, typeId, userId, isAdmin);
+        } catch (Exception e) {
+            System.err.println("[CustomFieldServlet] DFCR ensure before custom field save: " + e.getMessage());
+        }
+    }
+
+    private static Integer loadDfcrObjectTypeId(Connection conn, String facetKey, int objectId) throws SQLException {
+        switch (facetKey.toLowerCase().trim()) {
+            case "glossary":
+                try (PreparedStatement ps = conn.prepareStatement("SELECT Type FROM glossary WHERE ID = ?")) {
+                    ps.setInt(1, objectId);
+                    try (ResultSet rs = ps.executeQuery()) {
+                        if (rs.next()) {
+                            int t = rs.getInt("Type");
+                            return rs.wasNull() ? null : t;
+                        }
+                    }
+                }
+                break;
+            case "dataset":
+                try (PreparedStatement ps = conn.prepareStatement("SELECT DatasetType FROM dataset WHERE ID = ?")) {
+                    ps.setInt(1, objectId);
+                    try (ResultSet rs = ps.executeQuery()) {
+                        if (rs.next()) {
+                            int t = rs.getInt("DatasetType");
+                            return rs.wasNull() ? null : t;
+                        }
+                    }
+                }
+                break;
+            case "system":
+                try (PreparedStatement ps = conn.prepareStatement("SELECT Type FROM system WHERE ID = ?")) {
+                    ps.setInt(1, objectId);
+                    try (ResultSet rs = ps.executeQuery()) {
+                        if (rs.next()) {
+                            int t = rs.getInt("Type");
+                            return rs.wasNull() ? null : t;
+                        }
+                    }
+                }
+                break;
+            case "process":
+                try (PreparedStatement ps = conn.prepareStatement("SELECT type FROM process WHERE id = ?")) {
+                    ps.setInt(1, objectId);
+                    try (ResultSet rs = ps.executeQuery()) {
+                        if (rs.next()) {
+                            int t = rs.getInt("type");
+                            return rs.wasNull() ? null : t;
+                        }
+                    }
+                }
+                break;
+            default:
+                break;
+        }
+        return null;
+    }
+
     private Map<String, Object> saveCustomFieldValues(Map<String, Object> data, int userId) throws SQLException {
-        return saveCustomFieldValues(data, userId, true);
+        return saveCustomFieldValues(data, userId, true, false);
     }
 
     /**
      * When {@code validateMandatory} is false, skips mandatory-field validation (used only for trusted
      * server-side materialization of metadata defaults on new objects).
      */
-    private Map<String, Object> saveCustomFieldValues(Map<String, Object> data, int userId, boolean validateMandatory) throws SQLException {
+    private Map<String, Object> saveCustomFieldValues(Map<String, Object> data, int userId, boolean validateMandatory,
+                                                      boolean isAdmin) throws SQLException {
         Map<String, Object> response = new HashMap<>();
         
         try (Connection conn = DatabaseConnection.getConnection()) {
@@ -847,6 +946,7 @@ public class CustomFieldServlet extends HttpServlet {
 
                 String modulePrimary = getModulePrimaryName(conn, moduleId);
                 String facetKey = CustomFieldPendingFacetHelper.toFacetChangesKeyFromModulePrimaryName(modulePrimary);
+                ensureDfcrAutoCrForCustomFieldSave(conn, facetKey, canonicalObjectId, userId, isAdmin);
                 int dataObjectId = CustomFieldPendingFacetHelper.resolveEffectiveFacetObjectId(
                         conn, moduleId, facetKey, canonicalObjectId, null, true);
 
@@ -1032,7 +1132,7 @@ public class CustomFieldServlet extends HttpServlet {
             payload.put("facetId", facetPrimary);
             payload.put("objectId", attributeId);
             payload.put("values", values);
-            Map<String, Object> result = servlet.saveCustomFieldValues(payload, userId, false);
+            Map<String, Object> result = servlet.saveCustomFieldValues(payload, userId, false, false);
             if (Boolean.FALSE.equals(result.get("success"))) {
                 System.err.println("materializeAttributeDefaultsIfNoDataYet: " + result.get("error"));
             }

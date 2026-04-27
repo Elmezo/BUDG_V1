@@ -4,7 +4,9 @@ import com.example.budg_v2.dao.FacetChangesDAO;
 import com.example.budg_v2.dao.GlossaryXGlossaryDAO;
 import com.example.budg_v2.database.DatabaseConnection;
 import com.example.budg_v2.model.GlossaryXGlossary;
+import com.example.budg_v2.service.DFCRService;
 import com.example.budg_v2.service.SegmentValidationService;
+import com.example.budg_v2.util.UserContextUtil;
 import com.example.budg_v2.util.JsonUtil;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
@@ -229,6 +231,19 @@ public class GlossaryXGlossaryServlet extends HttpServlet {
             if (req.getSession(false) != null && req.getSession().getAttribute("userId") != null) {
                 userId = (Integer) req.getSession().getAttribute("userId");
             }
+            int authUserId = UserContextUtil.getCurrentUserId(req);
+            if (authUserId > 0) {
+                userId = authUserId;
+            }
+
+            if (userId > 0) {
+                try {
+                    boolean isAdmin = UserContextUtil.isCurrentUserAdmin(req);
+                    new DFCRService().ensureEditAutoCrIfMissing("Glossary", GLOSSARY_FACET_TYPE, sourceGlossaryId, null, userId, isAdmin);
+                } catch (Exception e) {
+                    logger.warn("[GlossaryXGlossary] DFCR ensure before relationship create: {}", e.getMessage());
+                }
+            }
             
             // Check for active CR and get cloned glossary ID (like Impact tab)
             Integer activeCrId = null;
@@ -360,6 +375,25 @@ public class GlossaryXGlossaryServlet extends HttpServlet {
                         "Update would create an invalid relationship: a glossary cannot relate to itself.", 400);
                 return;
             }
+
+            int sourceGlossaryIdForCr = existingRelationship.getSourceGlossaryId();
+            try {
+                Integer originalSource = facetChangesDAO.getOriginalObjectId("glossary", sourceGlossaryIdForCr);
+                if (originalSource != null) {
+                    sourceGlossaryIdForCr = originalSource;
+                }
+            } catch (SQLException e) {
+                logger.warn("Error resolving original glossary for CR on update: {}", e.getMessage());
+            }
+            int userIdPut = UserContextUtil.getCurrentUserId(req);
+            if (userIdPut > 0) {
+                try {
+                    boolean isAdmin = UserContextUtil.isCurrentUserAdmin(req);
+                    new DFCRService().ensureEditAutoCrIfMissing("Glossary", GLOSSARY_FACET_TYPE, sourceGlossaryIdForCr, null, userIdPut, isAdmin);
+                } catch (Exception e) {
+                    logger.warn("[GlossaryXGlossary] DFCR ensure before relationship update: {}", e.getMessage());
+                }
+            }
             
             existingRelationship.setLastUpdateDatetime(LocalDateTime.now());
             
@@ -403,11 +437,31 @@ public class GlossaryXGlossaryServlet extends HttpServlet {
                 JsonUtil.sendErrorResponse(resp.getWriter(), "Relationship not found", 404);
                 return;
             }
+
+            int sourceGlossaryIdForCr = relationship.getSourceGlossaryId();
+            try {
+                Integer originalSource = facetChangesDAO.getOriginalObjectId("glossary", sourceGlossaryIdForCr);
+                if (originalSource != null) {
+                    sourceGlossaryIdForCr = originalSource;
+                }
+            } catch (SQLException e) {
+                logger.warn("Error resolving original glossary for CR: {}", e.getMessage());
+            }
+
+            int userId = UserContextUtil.getCurrentUserId(req);
+            if (userId > 0) {
+                try {
+                    boolean isAdmin = UserContextUtil.isCurrentUserAdmin(req);
+                    new DFCRService().ensureEditAutoCrIfMissing("Glossary", GLOSSARY_FACET_TYPE, sourceGlossaryIdForCr, null, userId, isAdmin);
+                } catch (Exception e) {
+                    logger.warn("[GlossaryXGlossary] DFCR ensure before relationship delete: {}", e.getMessage());
+                }
+            }
             
             // Check if source glossary has an active automatic CR (pending changes only work with automatic CRs)
             Integer activeCrId = null;
             try {
-                activeCrId = facetChangesDAO.getActiveAutomaticChangeRequestId(GLOSSARY_FACET_TYPE, relationship.getSourceGlossaryId());
+                activeCrId = facetChangesDAO.getActiveAutomaticChangeRequestId(GLOSSARY_FACET_TYPE, sourceGlossaryIdForCr);
             } catch (SQLException e) {
                 logger.warn("Error checking for active CR: {}", e.getMessage());
             }
@@ -418,7 +472,7 @@ public class GlossaryXGlossaryServlet extends HttpServlet {
                 // For now, we'll delete it directly if it's in the mapping
                 try {
                     String areaKey = "relationships#glossary_x_glossary";
-                    Integer mappedId = facetChangesDAO.getNObjectId("glossary", relationship.getSourceGlossaryId(), areaKey, activeCrId);
+                    Integer mappedId = facetChangesDAO.getNObjectId("glossary", sourceGlossaryIdForCr, areaKey, activeCrId);
                     
                     if (mappedId != null && mappedId == id) {
                         // This is a pending relationship - delete it

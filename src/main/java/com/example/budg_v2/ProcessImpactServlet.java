@@ -648,14 +648,29 @@ public class ProcessImpactServlet extends HttpServlet {
                 }
                 relationships.add(relMap);
             }
+
+            int dfcrUserId = com.example.budg_v2.util.UserContextUtil.getCurrentUserId(request);
+            Integer processType = null;
+            try {
+                com.example.budg_v2.service.ProcessService processService = new com.example.budg_v2.service.ProcessService();
+                com.example.budg_v2.model.Process process = processService.getProcessById(processId);
+                processType = process != null ? process.getType() : null;
+            } catch (Exception ignored) {
+            }
+            boolean isAdmin = com.example.budg_v2.util.UserContextUtil.isCurrentUserAdmin(request);
+            Integer activeCrId = dfcrUserId > 0
+                    ? new com.example.budg_v2.service.DFCRService().ensureEditAutoCrIfMissing(
+                            "Process", PROCESS_FACET_ID, processId, processType, dfcrUserId, isAdmin)
+                    : null;
             
             // Handle pending changes for predecessor relationships (process_x_process)
             // Check for active CR and get cloned process ID (like Impact tab)
-            Integer activeCrId = null;
             int processIdToUse = processId; // Default to original ID
             
             try {
-                activeCrId = facetChangesDAO.getActiveAutomaticChangeRequestId(PROCESS_FACET_ID, processId);
+                if (activeCrId == null) {
+                    activeCrId = facetChangesDAO.getActiveAutomaticChangeRequestId(PROCESS_FACET_ID, processId);
+                }
                 if (activeCrId != null) {
                     // Get or create cloned process (like Impact tab does)
                     try (Connection conn = DatabaseConnection.getConnection()) {
@@ -1077,26 +1092,17 @@ public class ProcessImpactServlet extends HttpServlet {
         int[] result = new int[]{processId, 0}; // [processIdToUse, activeCrId]
         
         try {
-            // Check for active CR and auto-create if needed via DFCR
-            // Only check for automatic CRs for pending changes
-            Integer activeCrId = facetChangesDAO.getActiveAutomaticChangeRequestId(PROCESS_FACET_ID, processId);
-            
-            if (activeCrId == null) {
-                // No active CR - check if DFCR should auto-create one
-                try {
-                    boolean isAdmin = com.example.budg_v2.util.UserContextUtil.isCurrentUserAdmin(request);
-                    com.example.budg_v2.service.ProcessService processService = new com.example.budg_v2.service.ProcessService();
-                    com.example.budg_v2.model.Process process = processService.getProcessById(processId);
-                    Integer processType = process != null ? process.getType() : null;
-                    com.example.budg_v2.service.DFCRService dfcrService = new com.example.budg_v2.service.DFCRService();
-                    Integer autoCrId = dfcrService.applyDefaultsOnEdit("Process", processId, processType, userId, isAdmin);
-                    if (autoCrId != null) {
-                        activeCrId = autoCrId;
-                    }
-                } catch (Exception e) {
-                    System.err.println("[ProcessImpactServlet] Error checking/creating DFCR CR: " + e.getMessage());
-                }
+            Integer processType = null;
+            try {
+                com.example.budg_v2.service.ProcessService processService = new com.example.budg_v2.service.ProcessService();
+                com.example.budg_v2.model.Process process = processService.getProcessById(processId);
+                processType = process != null ? process.getType() : null;
+            } catch (Exception ignored) {
+                // facet-level DFCR still applies when type is unknown
             }
+            boolean isAdmin = com.example.budg_v2.util.UserContextUtil.isCurrentUserAdmin(request);
+            Integer activeCrId = new com.example.budg_v2.service.DFCRService().ensureEditAutoCrIfMissing(
+                    "Process", PROCESS_FACET_ID, processId, processType, userId, isAdmin);
             
             if (activeCrId != null) {
                 // Object is under revision - use cloned process ID

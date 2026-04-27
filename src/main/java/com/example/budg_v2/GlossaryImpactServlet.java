@@ -1,6 +1,7 @@
 package com.example.budg_v2;
 
 import com.example.budg_v2.database.DatabaseConnection;
+import com.example.budg_v2.service.DFCRService;
 import com.example.budg_v2.service.GlossaryImpactService;
 import com.example.budg_v2.util.CorsUtil;
 import com.example.budg_v2.util.ImpactSegmentValidationUtil;
@@ -32,6 +33,7 @@ import java.util.Map;
 
 @WebServlet("/api/glossary-impact/*")
 public class GlossaryImpactServlet extends HttpServlet {
+    private static final int GLOSSARY_FACET_TYPE = 12;
     private static final Logger logger = LoggerFactory.getLogger(GlossaryImpactServlet.class);
     private final GlossaryImpactService glossaryImpactService;
     private final Gson gson = new Gson();
@@ -211,7 +213,7 @@ public class GlossaryImpactServlet extends HttpServlet {
                 try {
                     com.example.budg_v2.dao.FacetChangesDAO facetChangesDAO = new com.example.budg_v2.dao.FacetChangesDAO();
                     // Only check for automatic CRs for pending changes
-                    Integer activeCrId = facetChangesDAO.getActiveAutomaticChangeRequestId(12, glossaryId); // 12 is GLOSSARY_FACET_ID
+                    Integer activeCrId = facetChangesDAO.getActiveAutomaticChangeRequestId(GLOSSARY_FACET_TYPE, glossaryId);
                     if (activeCrId != null) {
                         // Check for impact-specific mapping first
                         Integer nObjectId = facetChangesDAO.getNObjectId("glossary", glossaryId, "impact#glossary_X_product", activeCrId);
@@ -250,7 +252,7 @@ public class GlossaryImpactServlet extends HttpServlet {
                 try {
                     com.example.budg_v2.dao.FacetChangesDAO facetChangesDAO = new com.example.budg_v2.dao.FacetChangesDAO();
                     // Only check for automatic CRs for pending changes
-                    Integer activeCrId = facetChangesDAO.getActiveAutomaticChangeRequestId(12, glossaryId); // 12 is GLOSSARY_FACET_ID
+                    Integer activeCrId = facetChangesDAO.getActiveAutomaticChangeRequestId(GLOSSARY_FACET_TYPE, glossaryId);
                     if (activeCrId != null) {
                         // Check for impact-specific mapping first
                         Integer nObjectId = facetChangesDAO.getNObjectId("glossary", glossaryId, "impact#glossary_X_client", activeCrId);
@@ -370,6 +372,15 @@ public class GlossaryImpactServlet extends HttpServlet {
             if (!PermissionCheckUtil.checkEditPermissionWithStakeholder(request, response, "Glossary", originalGlossaryId)) {
                 return; // Response already sent
             }
+
+            if (userId > 0) {
+                try {
+                    boolean isAdmin = UserContextUtil.isCurrentUserAdmin(request);
+                    new DFCRService().ensureEditAutoCrIfMissing("Glossary", GLOSSARY_FACET_TYPE, originalGlossaryId, null, userId, isAdmin);
+                } catch (Exception e) {
+                    logger.warn("[GlossaryImpact] DFCR ensure before product impact save: {}", e.getMessage());
+                }
+            }
             
             JsonElement relationshipsElement = jsonObject.get("relationships");
             
@@ -381,7 +392,7 @@ public class GlossaryImpactServlet extends HttpServlet {
             
             // Check if this object has an active auto-created CR (only automatic CRs use pending changes)
             com.example.budg_v2.dao.FacetChangesDAO facetChangesDAO = new com.example.budg_v2.dao.FacetChangesDAO();
-            Integer activeCrId = facetChangesDAO.getActiveAutomaticChangeRequestId(12, originalGlossaryId); // 12 is GLOSSARY_FACET_ID
+            Integer activeCrId = facetChangesDAO.getActiveAutomaticChangeRequestId(GLOSSARY_FACET_TYPE, originalGlossaryId);
             int glossaryIdToUse = originalGlossaryId;
             
             if (activeCrId != null) {
@@ -467,6 +478,15 @@ public class GlossaryImpactServlet extends HttpServlet {
             if (!PermissionCheckUtil.checkEditPermissionWithStakeholder(request, response, "Glossary", originalGlossaryId)) {
                 return; // Response already sent
             }
+
+            if (userId > 0) {
+                try {
+                    boolean isAdmin = UserContextUtil.isCurrentUserAdmin(request);
+                    new DFCRService().ensureEditAutoCrIfMissing("Glossary", GLOSSARY_FACET_TYPE, originalGlossaryId, null, userId, isAdmin);
+                } catch (Exception e) {
+                    logger.warn("[GlossaryImpact] DFCR ensure before client impact save: {}", e.getMessage());
+                }
+            }
             
             JsonElement relationshipsElement = jsonObject.get("relationships");
             
@@ -478,7 +498,7 @@ public class GlossaryImpactServlet extends HttpServlet {
             
             // Check if this object has an active auto-created CR (only automatic CRs use pending changes)
             com.example.budg_v2.dao.FacetChangesDAO facetChangesDAO = new com.example.budg_v2.dao.FacetChangesDAO();
-            Integer activeCrId = facetChangesDAO.getActiveAutomaticChangeRequestId(12, originalGlossaryId); // 12 is GLOSSARY_FACET_ID
+            Integer activeCrId = facetChangesDAO.getActiveAutomaticChangeRequestId(GLOSSARY_FACET_TYPE, originalGlossaryId);
             int glossaryIdToUse = originalGlossaryId;
             
             if (activeCrId != null) {

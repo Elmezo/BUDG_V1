@@ -1,6 +1,7 @@
 package com.example.budg_v2;
 
 import com.example.budg_v2.bulk.common.BulkPathUtil;
+import com.example.budg_v2.service.DFCRService;
 import com.example.budg_v2.util.CorsUtil;
 import com.example.budg_v2.util.PermissionCheckUtil;
 import com.example.budg_v2.util.UserContextUtil;
@@ -213,6 +214,24 @@ public class DatasetValuesServlet extends HttpServlet {
         }
         return null;
     }
+
+    private Integer getDatasetType(int datasetId) {
+        try (Connection conn = DatabaseConnection.getConnection()) {
+            String sql = "SELECT DatasetType FROM dataset WHERE ID = ?";
+            try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+                stmt.setInt(1, datasetId);
+                try (ResultSet rs = stmt.executeQuery()) {
+                    if (rs.next()) {
+                        int typeId = rs.getInt("DatasetType");
+                        return rs.wasNull() ? null : typeId;
+                    }
+                }
+            }
+        } catch (Exception e) {
+            logger.warn("Error getting dataset type for id {}: {}", datasetId, e.getMessage());
+        }
+        return null;
+    }
     
     private void handleGetMetadata(int datasetId, HttpServletResponse resp) throws SQLException, IOException {
         Map<String, Object> map = new HashMap<>();
@@ -372,6 +391,15 @@ public class DatasetValuesServlet extends HttpServlet {
                 || "Cancel on Warning".equalsIgnoreCase(errorHandling);
         String metadataJson = req.getParameter("metadata");
         int userId = UserContextUtil.getCurrentUserId(req);
+
+        if (userId > 0) {
+            try {
+                boolean isAdmin = UserContextUtil.isCurrentUserAdmin(req);
+                new DFCRService().ensureEditAutoCrIfMissing("Data Set", DATASET_FACET_TYPE, datasetId, getDatasetType(datasetId), userId, isAdmin);
+            } catch (Exception e) {
+                logger.warn("[DatasetValues] DFCR ensure before save values: {}", e.getMessage());
+            }
+        }
         
         // Check for active CR and get cloned dataset ID (like Impact tab)
         Integer activeCrId = null;
