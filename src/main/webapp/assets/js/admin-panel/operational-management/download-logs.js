@@ -31,13 +31,13 @@ function showDownloadLogsContent(contentArea) {
                             </div>
                             <div class="card-title-wrapper">
                                 <h3>${T('adminPanel.downloadLogs.systemLogsArchive', 'System Logs Archive')}</h3>
-                                <p class="card-subtitle">${T('adminPanel.downloadLogs.cardSubtitle', 'Download a formatted ZIP organized into errors, application, and combined logs')}</p>
+                                <p class="card-subtitle">${T('adminPanel.downloadLogs.cardSubtitle', 'Download a formatted ZIP organized into error logs and non-error logs')}</p>
                             </div>
                         </div>
                     </div>
                     <div class="card-body">
                         <div class="log-info-section">
-                            <p class="info-description">${T('adminPanel.downloadLogs.infoDescription', 'The ZIP contains formatted logs only. Each type includes by-day files and one all-days file, with literal \\n separators expanded into real line breaks.')}</p>
+                            <p class="info-description">${T('adminPanel.downloadLogs.infoDescription', 'The ZIP contains formatted logs only. Errors are separated from the combined non-error logs, and each type includes by-day files plus one all-days file.')}</p>
                             
                             <div class="log-types-grid">
                                 <div class="log-type-card">
@@ -52,24 +52,13 @@ function showDownloadLogsContent(contentArea) {
                                 </div>
                                 
                                 <div class="log-type-card">
-                                    <div class="log-type-icon app">
-                                        <i class="fas fa-file-alt"></i>
-                                    </div>
-                                    <div class="log-type-content">
-                                        <h4>${T('adminPanel.downloadLogs.applicationLogs', 'Application Logs')}</h4>
-                                        <p class="log-type-pattern">application/by-day + application-all-days.log</p>
-                                        <p class="log-type-desc">${T('adminPanel.downloadLogs.applicationLogsDesc', 'Full application logs from prod_app files')}</p>
-                                    </div>
-                                </div>
-                                
-                                <div class="log-type-card">
                                     <div class="log-type-icon audit">
                                         <i class="fas fa-shield-alt"></i>
                                     </div>
                                     <div class="log-type-content">
                                         <h4>${T('adminPanel.downloadLogs.combinedLogs', 'Combined Logs')}</h4>
                                         <p class="log-type-pattern">combined/by-day + combined-all-days.log</p>
-                                        <p class="log-type-desc">${T('adminPanel.downloadLogs.combinedLogsDesc', 'Unified logs from application, error, and audit sources')}</p>
+                                        <p class="log-type-desc">${T('adminPanel.downloadLogs.combinedLogsDesc', 'Unified non-error logs from application and audit sources')}</p>
                                     </div>
                                 </div>
                             </div>
