@@ -215,6 +215,11 @@ function getRowValueForColumn(row, columnKey) {
 function normalizeSegmentAliasesInRows(data, normalizedCategory) {
     if (!Array.isArray(data) || data.length === 0) return;
 
+    // Active Tasks table uses lowercase "segments" + "owner"; do not fold into "Segment" (would break display).
+    if (normalizedCategory === 'activeTasks') {
+        return;
+    }
+
     if (normalizedCategory === 'interface') {
         data.forEach((row) => {
             if (!row || typeof row !== 'object') return;
@@ -1480,10 +1485,10 @@ function createActiveTasksTable(data, category) {
                     }
                     break;
                 case 'owner':
-                    cellContent = task.owner || 'Unassigned';
+                    cellContent = task.owner || task.Owner || 'Unassigned';
                     break;
                 case 'segments':
-                    cellContent = task.segments || 'Not Assigned';
+                    cellContent = task.segments || task.Segments || task.Segment || 'Not Assigned';
                     break;
                 case 'actions':
                     // Action buttons based on decisionOptions

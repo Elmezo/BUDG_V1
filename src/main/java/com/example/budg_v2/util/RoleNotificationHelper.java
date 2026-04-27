@@ -67,6 +67,32 @@ public class RoleNotificationHelper {
      * @param conn Database connection
      * @return Object name or null if not found
      */
+    /**
+     * Maps a type label parsed from a ChangeRequest Reference (text before the numeric id)
+     * to a facet configuration key for lookups and object links, or null if unknown.
+     */
+    public static String resolveFacetKeyFromTypeLabel(String typePart) {
+        if (typePart == null) {
+            return null;
+        }
+        String t = typePart.trim();
+        if (t.isEmpty()) {
+            return null;
+        }
+        for (String key : FACET_CONFIG.keySet()) {
+            if (key.equalsIgnoreCase(t)) {
+                return key;
+            }
+        }
+        if ("Dataset".equalsIgnoreCase(t) || "DataSet".equalsIgnoreCase(t)) {
+            return "Data Set";
+        }
+        if ("System Interface".equalsIgnoreCase(t) || "System-Interface".equalsIgnoreCase(t)) {
+            return "Interface";
+        }
+        return null;
+    }
+
     public static String getObjectName(String facetType, int objectId, Connection conn) throws SQLException {
         FacetConfig config = FACET_CONFIG.get(facetType);
         if (config == null) {

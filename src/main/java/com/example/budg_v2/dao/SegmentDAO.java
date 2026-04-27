@@ -972,6 +972,35 @@ public class SegmentDAO {
         return null;
     }
 
+    /**
+     * Public display name for a segment, using an existing connection (no extra pool checkout).
+     * Enterprise (1) is always "Enterprise" (aligns with {@link #getSegmentById}).
+     *
+     * @return segment name, "Enterprise" for id 1, "Segment {id}" if the row is missing, or null
+     *         for non-positive {@code segmentId} (callers that need a label should use
+     *         "Not Assigned" when null)
+     */
+    public String getSegmentNameById(int segmentId, Connection conn) throws SQLException {
+        if (segmentId == 1) {
+            return "Enterprise";
+        }
+        if (segmentId <= 0) {
+            return null;
+        }
+        String name = getSegmentName(conn, segmentId);
+        return name != null ? name : "Segment " + segmentId;
+    }
+
+    /**
+     * Public display name for a segment.
+     * @see #getSegmentNameById(int, Connection)
+     */
+    public String getSegmentNameById(int segmentId) throws SQLException {
+        try (Connection c = DatabaseConnection.getConnection()) {
+            return getSegmentNameById(segmentId, c);
+        }
+    }
+
     private String getUserFullNameForAudit(Connection conn, int userId) throws SQLException {
         String sql = "SELECT CONCAT(First_Name, ' ', Last_Name) AS fullName FROM people WHERE ID = ?";
         try (PreparedStatement ps = conn.prepareStatement(sql)) {

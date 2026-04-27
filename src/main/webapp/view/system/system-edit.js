@@ -873,6 +873,31 @@
                     window.showNotification(msg('system.edit.messages.noChangesToSaveInTab', null, 'No changes to save in this tab.'), 'info');
                 } else { alert(msg('system.edit.messages.noChangesToSaveInTab', null, 'No changes to save in this tab.')); }
                 window._systemSaving = false;
+                if (closeAfter && id) {
+                    if (window.currentLockManager) {
+                        await window.currentLockManager.releaseLock();
+                    }
+                    window.location.href = `/view/system/${id}`;
+                }
+                return;
+            }
+
+            // Workflow tab: object workflow editor saves via its own button
+            if (activeTab === 'workflow') {
+                const m = msg('system.edit.messages.workflowUseEditorSave', null,
+                    'Use Save workflow in the workflow section to save workflow changes.');
+                if (!closeAfter) {
+                    if (typeof window.showNotification === 'function') {
+                        window.showNotification(m, 'info');
+                    } else { alert(m); }
+                }
+                window._systemSaving = false;
+                if (closeAfter && id) {
+                    if (window.currentLockManager) {
+                        await window.currentLockManager.releaseLock();
+                    }
+                    window.location.href = `/view/system/${id}`;
+                }
                 return;
             }
 
@@ -2327,7 +2352,8 @@
             'summary': document.getElementById('systemEditContainer'),
             'relationships': document.getElementById('relationshipsTab'),
             'stakeholders': document.getElementById('stakeholdersTab'),
-            'impact': document.getElementById('impactTab')
+            'impact': document.getElementById('impactTab'),
+            'workflow': document.getElementById('workflowTab')
         };
 
         // Set active tab based on URL parameter
@@ -2390,6 +2416,15 @@
                                 window.initImpactEdit(id, editViewMode);
                             }, 100);
                         }
+                    } else if (tabName === 'workflow') {
+                        const wid = parseId();
+                        if (wid && window.ObjectWorkflowEdit) {
+                            window.ObjectWorkflowEdit.ensureInitialized({
+                                rootId: 'systemObjectWorkflowRoot',
+                                facetType: 'system',
+                                objectId: wid
+                            });
+                        }
                     }
                 }
             });
@@ -2413,7 +2448,8 @@
                 'summary': document.getElementById('systemEditContainer'),
                 'relationships': document.getElementById('relationshipsTab'),
                 'stakeholders': document.getElementById('stakeholdersTab'),
-                'impact': document.getElementById('impactTab')
+                'impact': document.getElementById('impactTab'),
+                'workflow': document.getElementById('workflowTab')
             };
 
             // Hide all tab contents
@@ -2446,6 +2482,15 @@
                             }
                         }
                     }
+                } else if (activeTabName === 'workflow') {
+                    const wid = parseId();
+                    if (wid && window.ObjectWorkflowEdit) {
+                        window.ObjectWorkflowEdit.ensureInitialized({
+                            rootId: 'systemObjectWorkflowRoot',
+                            facetType: 'system',
+                            objectId: wid
+                        });
+                    }
                 }
             }
         }
@@ -2470,6 +2515,8 @@
         switch (activeTab) {
             case 'relationships':
                 return false; // No editable data to save in this tab
+            case 'workflow':
+                return false; // Workflow editor handles its own persistence
             case 'stakeholders':
                 if (window.SystemStakeholderEdit && window.SystemStakeholderEdit.hasDataChanged) {
                     return window.SystemStakeholderEdit.hasDataChanged();

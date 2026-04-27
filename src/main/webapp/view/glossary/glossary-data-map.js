@@ -682,6 +682,88 @@
         }
     }
 
+    function getDatasetRelationshipField(rel, keys) {
+        if (!rel || !Array.isArray(keys)) return '';
+        for (var i = 0; i < keys.length; i++) {
+            var value = rel[keys[i]];
+            if (value !== undefined && value !== null && String(value).trim() !== '') {
+                return String(value);
+            }
+        }
+        return '';
+    }
+
+    function getGlossaryDataMapScopeKey() {
+        var currentSystemIds = getCurrentSystemIdsForGlossaryMap();
+        return [
+            GlossaryDataMapState.mapType || '',
+            Array.from(currentSystemIds).sort().join(','),
+            Array.from(GlossaryDataMapState.overlayDatasets.keys()).sort().join(',')
+        ].join('|');
+    }
+
+    function getCurrentSystemIdsForGlossaryMap() {
+        var out = new Set();
+        if (GlossaryDataMapState.network) {
+            GlossaryDataMapState.network.nodes().forEach(function (node) {
+                var nd = node.data();
+                if (nd && nd.isSystem && nd.isCurrent && nd.systemId != null) {
+                    out.add(String(nd.systemId));
+                }
+            });
+        }
+        if (out.size === 0 && GlossaryDataMapState.directlyLinkedSystems && GlossaryDataMapState.directlyLinkedSystems.size > 0) {
+            GlossaryDataMapState.directlyLinkedSystems.forEach(function (sid) { out.add(String(sid)); });
+        }
+        return out;
+    }
+
+    function getRelatedDatasetsForGlossaryDataMap(seedDatasetIds) {
+        var related = new Set();
+        var seed = new Set(Array.from(seedDatasetIds || []).map(function (id) { return String(id); }));
+        (GlossaryDataMapState.datasetRelationships || []).forEach(function (rel) {
+            var srcDid = getDatasetRelationshipField(rel, ['sourceDatasetId', 'sourceDataSetId', 'Source_DatasetID']);
+            var tgtDid = getDatasetRelationshipField(rel, ['targetDatasetId', 'targetDataSetId', 'Target_DatasetID']);
+            if (!srcDid || !tgtDid) return;
+            if (seed.has(srcDid) && !seed.has(tgtDid)) related.add(tgtDid);
+            if (seed.has(tgtDid) && !seed.has(srcDid)) related.add(srcDid);
+        });
+        return related;
+    }
+
+    function ensureGlossaryDatasetScope() {
+        var key = getGlossaryDataMapScopeKey();
+        if (GlossaryDataMapState._glossaryDatasetScope && GlossaryDataMapState._glossaryDatasetScope.key === key) {
+            return GlossaryDataMapState._glossaryDatasetScope.scope;
+        }
+
+        var currentSystemIds = getCurrentSystemIdsForGlossaryMap();
+        var currentDatasetIds = new Set();
+        currentSystemIds.forEach(function (sid) {
+            var ids = GlossaryDataMapState.overlayDatasets.get(String(sid));
+            if (ids) {
+                ids.forEach(function (did) { currentDatasetIds.add(String(did)); });
+            }
+        });
+
+        var scope = {
+            currentSystemIds: currentSystemIds,
+            currentDatasetIds: currentDatasetIds,
+            relatedDatasetIds: getRelatedDatasetsForGlossaryDataMap(currentDatasetIds)
+        };
+        GlossaryDataMapState._glossaryDatasetScope = { key: key, scope: scope };
+        return scope;
+    }
+
+    function isDatasetAllowedForGlossary(scope, datasetId, systemId) {
+        if (!scope) return false;
+        var did = String(datasetId || '');
+        var sid = String(systemId || '');
+        if (!did || !sid) return false;
+        if (scope.currentSystemIds.has(sid)) return scope.currentDatasetIds.has(did);
+        return scope.relatedDatasetIds.has(did);
+    }
+
     // Fetch overlay data for a system
     async function fetchOverlayDataForSystem(systemId, overlayType) {
         try {
@@ -770,8 +852,10 @@
                     const glossaries = [];
                     const seenSysG = new Set();
                     const sysDatasets = GlossaryDataMapState.overlayDatasets.get(String(systemId));
+                    const glossaryScope = ensureGlossaryDatasetScope();
                     if (sysDatasets) {
                         for (const datasetId of sysDatasets) {
+                            if (!isDatasetAllowedForGlossary(glossaryScope, datasetId, systemId)) continue;
                             // 1) Dataset's own glossary
                             const dataset = GlossaryDataMapState.datasetsData.get(String(datasetId));
                             if (dataset && dataset.glossaryId) {
@@ -966,10 +1050,16 @@
                     }
                     return [];
                 case 'glossary': {
+                    const datasetData = GlossaryDataMapState.datasetsData.get(String(datasetId));
+                    const datasetSystemId = datasetData ? String(datasetData.systemId || datasetData.masterSource || datasetData.MasterSource || '') : '';
+                    const glossaryScope = ensureGlossaryDatasetScope();
+                    if (!isDatasetAllowedForGlossary(glossaryScope, datasetId, datasetSystemId)) {
+                        return [];
+                    }
                     const glossaryTerms = [];
                     const seenG = new Set();
                     // 1) Dataset's own glossary term
-                    const ds = GlossaryDataMapState.datasetsData.get(String(datasetId));
+                    const ds = datasetData;
                     if (ds && ds.glossaryId) {
                         try {
                             const glossary = await window.BUDG_API_SERVICE.getGlossaryById(ds.glossaryId);

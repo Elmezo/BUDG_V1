@@ -8,8 +8,12 @@ import org.slf4j.LoggerFactory;
 
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+
+import com.example.budg_v2.util.RoleNotificationHelper;
+import java.sql.Connection;
 
 /**
  * Service for sending workflow SLA notifications
@@ -18,6 +22,12 @@ import java.util.Map;
 public class WorkflowNotificationService {
 
     private static final Logger logger = LoggerFactory.getLogger(WorkflowNotificationService.class);
+
+    /** Markers (section sign) so the notification panel can insert safe links; stripped in email plain text. */
+    private static final String M_CR_S = "\u00A7CR\u00A7";
+    private static final String M_CR_E = "\u00A7/CR\u00A7";
+    private static final String M_OBJ_S = "\u00A7OBJ\u00A7";
+    private static final String M_OBJ_E = "\u00A7/OBJ\u00A7";
 
     private final WorkflowNotificationRuleService ruleService;
     private final WorkflowNotificationDAO notificationDAO;
@@ -682,24 +692,198 @@ public class WorkflowNotificationService {
         return overdueDays + " days";
     }
 
+    private static final class CrNotificationContext {
+        final int changeRequestId;
+        final String crName;
+        final Integer objectId;
+        final String facetType;
+        final String objectTypeLabel;
+        final String objectName;
+        final boolean canLinkObject;
+
+        private CrNotificationContext(int changeRequestId, String crName, Integer objectId, String facetType,
+                String objectTypeLabel, String objectName, boolean canLinkObject) {
+            this.changeRequestId = changeRequestId;
+            this.crName = crName;
+            this.objectId = objectId;
+            this.facetType = facetType;
+            this.objectTypeLabel = objectTypeLabel != null ? objectTypeLabel : "";
+            this.objectName = objectName != null ? objectName : "";
+            this.canLinkObject = canLinkObject;
+        }
+    }
+
+    private static class ParsedRef {
+        final int objectId;
+        final String typePart;
+
+        private ParsedRef(int objectId, String typePart) {
+            this.objectId = objectId;
+            this.typePart = typePart;
+        }
+    }
+
+    private String sanitizeForMarkers(String s) {
+        if (s == null) {
+            return "";
+        }
+        return s.replace(String.valueOf('\u00A7'), "");
+    }
+
+    private String stripLinkMarkersForEmail(String message) {
+        if (message == null) {
+            return null;
+        }
+        return message.replace(M_CR_S, "").replace(M_CR_E, "")
+                .replace(M_OBJ_S, "").replace(M_OBJ_E, "");
+    }
+
+    private ParsedRef parseChangeRequestReference(String reference) {
+        if (reference == null) {
+            return null;
+        }
+        String t = reference.trim();
+        if (t.isEmpty()) {
+            return null;
+        }
+        String[] parts = t.split("\\s+");
+        if (parts.length < 2) {
+            return null;
+        }
+        String idStr = parts[parts.length - 1];
+        if (!idStr.matches("\\d+")) {
+            return null;
+        }
+        int objectId = Integer.parseInt(idStr);
+        String typePart = String.join(" ", Arrays.copyOfRange(parts, 0, parts.length - 1));
+        if (typePart.isEmpty()) {
+            return null;
+        }
+        return new ParsedRef(objectId, typePart);
+    }
+
+    private CrNotificationContext buildCrNotificationContext(int changeRequestId) throws SQLException {
+        ChangeRequest cr = changeRequestDAO.getChangeRequestById(changeRequestId);
+        if (cr == null) {
+            return new CrNotificationContext(changeRequestId, "Change Request #" + changeRequestId, null, null, "", "",
+                    false);
+        }
+        String primary = cr.getPrimaryName();
+        String crName = (primary != null && !primary.isBlank()) ? primary.trim() : "Change Request #" + changeRequestId;
+        ParsedRef pr = parseChangeRequestReference(cr.getReference());
+        if (pr == null) {
+            return new CrNotificationContext(changeRequestId, crName, null, null, "", "", false);
+        }
+        String facetKey = RoleNotificationHelper.resolveFacetKeyFromTypeLabel(pr.typePart);
+        String typeLabel = facetKey != null ? facetKey : pr.typePart;
+        if (facetKey == null) {
+            String objectName = pr.typePart + " #" + pr.objectId;
+            return new CrNotificationContext(changeRequestId, crName, null, null, typeLabel, objectName, false);
+        }
+        String objectName;
+        try (Connection conn = com.example.budg_v2.database.DatabaseConnection.getConnection()) {
+            String resolved = RoleNotificationHelper.getObjectName(facetKey, pr.objectId, conn);
+            objectName = (resolved != null && !resolved.isBlank()) ? resolved
+                    : (pr.typePart + " #" + pr.objectId);
+        }
+        return new CrNotificationContext(changeRequestId, crName, pr.objectId, facetKey, typeLabel, objectName, true);
+    }
+
+    private String buildCrRaisedMessage(int raisedByUserId, CrNotificationContext ctx) {
+        String actor = getUserName(raisedByUserId);
+        String crSafe = sanitizeForMarkers(ctx.crName);
+        if (ctx.canLinkObject) {
+            String objectSafe = sanitizeForMarkers(ctx.objectName);
+            return "A Change Request has been raised by " + actor + " against " + ctx.objectTypeLabel + " item "
+                    + M_OBJ_S + objectSafe + M_OBJ_E + ". " + M_CR_S + crSafe + M_CR_E + ".";
+        }
+        if (!ctx.objectName.isEmpty()) {
+            return "A Change Request has been raised by " + actor + " against " + ctx.objectTypeLabel + " item "
+                    + ctx.objectName + ". " + M_CR_S + crSafe + M_CR_E + ".";
+        }
+        return "A Change Request has been raised by " + actor + ". " + M_CR_S + crSafe + M_CR_E + ".";
+    }
+
+    private String buildCrStartMessage(int startedByUserId, CrNotificationContext ctx) {
+        String crSafe = sanitizeForMarkers(ctx.crName);
+        return getUserName(startedByUserId) + " has started change request " + M_CR_S + crSafe + M_CR_E + ".";
+    }
+
+    private String buildStepCompletionMessage(WorkflowTask task, String decision, int completedByUserId,
+            CrNotificationContext ctx) {
+        String dec = decision != null ? decision.toLowerCase() : "completed";
+        String action;
+        if (dec.contains("reject")) {
+            action = "rejected";
+        } else if (dec.contains("rework")) {
+            action = "reworked";
+        } else {
+            action = "completed";
+        }
+        String actor = getUserName(completedByUserId);
+        String crSafe = sanitizeForMarkers(ctx.crName);
+        String tname = task.getName() != null ? task.getName() : "task";
+        if (ctx.canLinkObject) {
+            String objectSafe = sanitizeForMarkers(ctx.objectName);
+            return actor + " has " + action + " step '" + tname + "' for change request " + M_CR_S + crSafe + M_CR_E
+                    + " against " + ctx.objectTypeLabel + " item " + M_OBJ_S + objectSafe + M_OBJ_E + ".";
+        }
+        if (!ctx.objectName.isEmpty()) {
+            return actor + " has " + action + " step '" + tname + "' for change request " + M_CR_S + crSafe + M_CR_E
+                    + " against " + ctx.objectTypeLabel + " item " + ctx.objectName + ".";
+        }
+        return actor + " has " + action + " step '" + tname + "' for change request " + M_CR_S + crSafe + M_CR_E + ".";
+    }
+
+    private String stepCompletionTitle(String decision) {
+        if (decision == null) {
+            return "Workflow Step Completed";
+        }
+        String d = decision.toLowerCase();
+        if (d.contains("reject")) {
+            return "Workflow Step Rejected";
+        }
+        if (d.contains("rework")) {
+            return "Workflow Step Reworked";
+        }
+        return "Workflow Step Completed";
+    }
+
+    private Integer objectIdForNotification(CrNotificationContext ctx) {
+        if (ctx.canLinkObject) {
+            return ctx.objectId;
+        }
+        return null;
+    }
+
+    private String facetTypeForNotification(CrNotificationContext ctx) {
+        if (ctx.canLinkObject) {
+            return ctx.facetType;
+        }
+        return null;
+    }
+
     /**
      * Send notification when a CR is first raised/created.
      * Notifies the person who raised it and all stakeholders of the object.
      */
     public void sendCrRaisedNotification(int changeRequestId, int raisedByUserId) {
         try {
-            String title = "New Change Request Raised";
-            String message = "Change Request #" + changeRequestId + " has been raised.";
+            CrNotificationContext ctx = buildCrNotificationContext(changeRequestId);
+            String title = "Change Request Created";
+            String message = buildCrRaisedMessage(raisedByUserId, ctx);
+            Integer oid = objectIdForNotification(ctx);
+            String facet = facetTypeForNotification(ctx);
 
             // Notify person who raised it
-            createDirectNotification(changeRequestId, raisedByUserId, "CR_RAISED", title, message, null);
+            createDirectNotification(changeRequestId, raisedByUserId, "CR_RAISED", title, message, null, oid, facet);
 
             // Notify all stakeholders (skip raisedByUserId to avoid duplicate)
             List<Map<String, Object>> stakeholders = stakeholderDAO.getStakeholdersForChangeRequest(changeRequestId);
             for (Map<String, Object> stakeholder : stakeholders) {
                 Integer userId = (Integer) stakeholder.get("userId");
                 if (userId != null && userId != raisedByUserId) {
-                    createDirectNotification(changeRequestId, userId, "CR_RAISED", title, message, null);
+                    createDirectNotification(changeRequestId, userId, "CR_RAISED", title, message, null, oid, facet);
                 }
             }
 
@@ -725,13 +909,16 @@ public class WorkflowNotificationService {
             Integer changeRequestId = instance.getChangeRequestId();
             Integer creatorId = getChangeRequestCreatorId(changeRequestId);
 
-            String title = "Change Request Workflow Started";
-            String message = "Workflow for Change Request #" + changeRequestId + " has been started.";
+            CrNotificationContext ctx = buildCrNotificationContext(changeRequestId);
+            String title = "Change Request Started";
+            String message = buildCrStartMessage(startedByUserId, ctx);
+            Integer oid = objectIdForNotification(ctx);
+            String facet = facetTypeForNotification(ctx);
 
             if (creatorId != null && creatorId > 0) {
-                createDirectNotification(changeRequestId, creatorId, "CR_START", title, message, 0);
+                createDirectNotification(changeRequestId, creatorId, "CR_START", title, message, 0, oid, facet);
             } else {
-                createDirectNotification(changeRequestId, startedByUserId, "CR_START", title, message, 0);
+                createDirectNotification(changeRequestId, startedByUserId, "CR_START", title, message, 0, oid, facet);
             }
 
             // Notify ALL stakeholders — excludedUserIds is intentionally ignored so every
@@ -740,7 +927,7 @@ public class WorkflowNotificationService {
             for (Map<String, Object> stakeholder : stakeholders) {
                 Integer userId = (Integer) stakeholder.get("userId");
                 if (userId != null && (creatorId == null || !userId.equals(creatorId))) {
-                    createDirectNotification(changeRequestId, userId, "CR_START", title, message, null);
+                    createDirectNotification(changeRequestId, userId, "CR_START", title, message, null, oid, facet);
                 }
             }
 
@@ -762,10 +949,11 @@ public class WorkflowNotificationService {
                 return;
 
             Integer changeRequestId = instance.getChangeRequestId();
-            String title = "Workflow Step " + (decision != null && decision.toLowerCase().contains("reject") ? "Rejected" : "Completed");
-            String message = String.format("Step '%s' for Change Request #%d was %s.",
-                    task.getName(), changeRequestId,
-                    decision != null ? decision.toLowerCase() : "completed");
+            String title = stepCompletionTitle(decision);
+            CrNotificationContext ctx = buildCrNotificationContext(changeRequestId);
+            String message = buildStepCompletionMessage(task, decision, completedByUserId, ctx);
+            Integer oid = objectIdForNotification(ctx);
+            String facet = facetTypeForNotification(ctx);
 
             // Track who has been notified to avoid duplicates
             List<Integer> notified = new ArrayList<>();
@@ -773,7 +961,7 @@ public class WorkflowNotificationService {
             // Notify CR creator
             Integer creatorId = getChangeRequestCreatorId(changeRequestId);
             if (creatorId != null && creatorId > 0) {
-                createDirectNotification(changeRequestId, creatorId, "STEP_COMPLETED", title, message, task.getId());
+                createDirectNotification(changeRequestId, creatorId, "STEP_COMPLETED", title, message, task.getId(), oid, facet);
                 notified.add(creatorId);
             }
 
@@ -782,14 +970,14 @@ public class WorkflowNotificationService {
             for (Map<String, Object> stakeholder : stakeholders) {
                 Integer userId = (Integer) stakeholder.get("userId");
                 if (userId != null && !notified.contains(userId)) {
-                    createDirectNotification(changeRequestId, userId, "STEP_COMPLETED", title, message, task.getId());
+                    createDirectNotification(changeRequestId, userId, "STEP_COMPLETED", title, message, task.getId(), oid, facet);
                     notified.add(userId);
                 }
             }
 
             // Notify person who completed/rejected the step (if not already notified)
             if (!notified.contains(completedByUserId)) {
-                createDirectNotification(changeRequestId, completedByUserId, "STEP_COMPLETED", title, message, task.getId());
+                createDirectNotification(changeRequestId, completedByUserId, "STEP_COMPLETED", title, message, task.getId(), oid, facet);
                 notified.add(completedByUserId);
             }
 
@@ -1175,6 +1363,11 @@ public class WorkflowNotificationService {
 
     private void createDirectNotification(Integer changeRequestId, Integer recipientUserId, String eventType,
             String title, String message, Integer taskId) throws SQLException {
+        createDirectNotification(changeRequestId, recipientUserId, eventType, title, message, taskId, null, null);
+    }
+
+    private void createDirectNotification(Integer changeRequestId, Integer recipientUserId, String eventType,
+            String title, String message, Integer taskId, Integer objectId, String facetType) throws SQLException {
         if (recipientUserId == null)
             return;
 
@@ -1188,6 +1381,8 @@ public class WorkflowNotificationService {
         notification.setChannel("ui");
         notification.setCategory("workflow"); // Workflow notifications are always in workflow category
         notification.setRead(false);
+        notification.setObjectId(objectId);
+        notification.setFacetType(facetType);
 
         notificationDAO.create(notification);
 
@@ -1223,6 +1418,8 @@ public class WorkflowNotificationService {
                 emailNotif.setCategory("workflow"); // Workflow notifications are always in workflow category
                 emailNotif.setRead(false);
                 emailNotif.setEmailSent(false);
+                emailNotif.setObjectId(objectId);
+                emailNotif.setFacetType(facetType);
 
                 Long id = notificationDAO.create(emailNotif);
 
@@ -1347,7 +1544,7 @@ public class WorkflowNotificationService {
         // Content
         html.append("<div class='content'>");
         html.append("<div class='title'>").append(escapeHtml(title)).append("</div>");
-        html.append("<div class='message'>").append(escapeHtml(message)).append("</div>");
+        html.append("<div class='message'>").append(escapeHtml(stripLinkMarkersForEmail(message))).append("</div>");
         
         if (changeRequestId != null) {
             html.append("<div class='button-container'>");

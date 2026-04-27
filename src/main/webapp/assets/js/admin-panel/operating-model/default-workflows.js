@@ -735,6 +735,9 @@ function validateBpmnElementNames() {
 
     // Validate End Events
     const endEvents = allElements.filter(el => el.type === 'bpmn:EndEvent');
+    if (endEvents.length === 0) {
+        errors.push(dfwT('bpmnErrNoEndEvent', 'The workflow must contain at least one End Event.'));
+    }
     endEvents.forEach(event => {
         const name = event.businessObject?.name || '';
         if (!name || name.trim() === '') {

@@ -1,5 +1,6 @@
 package com.example.budg_v2.listener;
 
+import com.example.budg_v2.dao.ProcessDefinitionObjectScopeDAO;
 import com.example.budg_v2.dao.SegmentDAO;
 import com.example.budg_v2.database.DatabaseConnection;
 import com.example.budg_v2.util.AxonLogger;
@@ -100,6 +101,14 @@ public class ApplicationInitializer implements ServletContextListener {
         } catch (Exception e) {
             logger.error("Failed to ensure process_definition_id column exists in changerequest table", e);
             // Don't fail startup - workflow linking may have issues
+        }
+
+        // Object-private workflow scope table
+        try (Connection conn = DatabaseConnection.getConnection()) {
+            ProcessDefinitionObjectScopeDAO.ensureTableExists(conn);
+            logger.info("process_definition_object_scope table verification completed");
+        } catch (Exception e) {
+            logger.error("Failed to ensure process_definition_object_scope table exists", e);
         }
         
         // Initialize default workflows for all facets

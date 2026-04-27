@@ -33,7 +33,7 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 /**
  * Service for handling Dataset migration operations
- * Generates ZIP files with Excel exports and manifest.json.
+ * Generates ZIP files with Excel exports and {@link EnvironmentMigrationConstants#MANIFEST_FILE}.
  * <p>
  * <b>Export scopes (product choice)</b>
  * <ul>
@@ -638,7 +638,7 @@ public class DatasetMigrationService {
                     zos.closeEntry();
                 }
 
-                // Generate manifest.json
+                // Generate Manifest.json (array of { targetRef, fileEntry })
                 JsonArray manifestArray = new JsonArray();
                 for (ManifestEntry entry : manifestEntries) {
                     JsonObject entryObj = new JsonObject();
@@ -647,7 +647,7 @@ public class DatasetMigrationService {
                     manifestArray.add(entryObj);
                 }
 
-                zos.putNextEntry(new ZipEntry("manifest.json"));
+                zos.putNextEntry(new ZipEntry(EnvironmentMigrationConstants.MANIFEST_FILE));
                 zos.write(gson.toJson(manifestArray).getBytes(StandardCharsets.UTF_8));
                 zos.closeEntry();
 
@@ -664,7 +664,7 @@ public class DatasetMigrationService {
     }
 
     /**
-     * Axon-style full environment ZIP: full-tenant export, stable workbook names, {@code metadata.json}.
+     * BUDG full environment ZIP: full-tenant export, stable workbook names, {@code metadata.json}.
      *
      * @param sourceFacet UI facet (normalized); must be bulk-migrate-allowed
      * @param environmentHostHint optional server label for metadata (may be null)

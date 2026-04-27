@@ -1631,14 +1631,14 @@ function initQuickFilters(facetId) {
         ],
         // changerequeststatus: 1=Pending Start, 2=Running, 3=Paused, 4=Completed, 5=Cancelled
         'CHANGE_REQUESTS': [
-            { label: 'Pending Start', field: 'type', value: 1 },
-            { label: 'Running',       field: 'type', value: 2 },
-            { label: 'Completed',     field: 'type', value: 4 }
+            { label: 'Pending Start', field: 'status', value: 1 },
+            { label: 'Running',       field: 'status', value: 2 },
+            { label: 'Completed',     field: 'status', value: 4 }
         ],
         'CHANGE_REQUEST': [
-            { label: 'Pending Start', field: 'type', value: 1 },
-            { label: 'Running',       field: 'type', value: 2 },
-            { label: 'Completed',     field: 'type', value: 4 }
+            { label: 'Pending Start', field: 'status', value: 1 },
+            { label: 'Running',       field: 'status', value: 2 },
+            { label: 'Completed',     field: 'status', value: 4 }
         ]
     };
     

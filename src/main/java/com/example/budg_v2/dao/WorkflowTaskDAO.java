@@ -2,6 +2,7 @@ package com.example.budg_v2.dao;
 
 import com.example.budg_v2.database.DatabaseConnection;
 import com.example.budg_v2.model.WorkflowTask;
+import com.example.budg_v2.service.SegmentAccessService;
 
 import java.sql.*;
 import java.util.ArrayList;
@@ -519,9 +520,10 @@ public class WorkflowTaskDAO {
     }
 
     /**
-     * Find all active tasks for a specific user
-     * Returns tasks where user is assigned directly or has matching role in Change Request
-     * 
+     * Find all active tasks visible to a user: pending/in-progress tasks whose segment the user can access
+     * (see {@link SegmentAccessService#hasSegmentAccess(int, int)}), plus all tasks for Super Admins.
+     * Segment is resolved from the Change Request, then from the source object, matching CR creation rules.
+     *
      * @param userId User ID to filter tasks for
      * @return List of task data maps with all required fields for Active Tasks view
      */
@@ -564,11 +566,13 @@ public class WorkflowTaskDAO {
                 "              OR (UPPER(cs.PrimaryName) NOT LIKE '%COMPLETED%' " +
                 "                  AND UPPER(cs.PrimaryName) NOT LIKE '%CANCELLED%' " +
                 "                  AND UPPER(cs.PrimaryName) NOT LIKE '%CANCELED%')))) " +
+                // Do not list gateway "Decision" tasks (WorkflowRuntimeService creates them with Name='Decision' and Bpmn_Node_Id = exclusive gateway)
+                "AND NOT (t.Name = 'Decision' AND t.Bpmn_Node_Id IS NOT NULL) " +
                 "ORDER BY COALESCE(t.Due_At, t.Due_Date) ASC";
 
         try (Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
-
+            SegmentDAO segmentDAO = new SegmentDAO();
             try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
                     java.util.Map<String, Object> taskData = new java.util.HashMap<>();
@@ -641,6 +645,7 @@ public class WorkflowTaskDAO {
                                 String normalizedType = facetRaw.toLowerCase()
                                         .replace(" ", "-").replace("_", "-");
 
+                                taskData.put("crFacetType", facetRaw);
                                 taskData.put("objectType", displayType);
                                 taskData.put("objectId", objectId);
                                 taskData.put("objectTypeNormalized", normalizedType);
@@ -675,26 +680,59 @@ public class WorkflowTaskDAO {
                         taskData.put("owner", "Unassigned");
                     }
 
-                    // Segments
-                    taskData.put("segments", "Enterprise");
-
-                    // Filter: include only if user is directly assigned OR has matching role
-                    boolean shouldInclude = false;
-                    int taskIdValue = (Integer) taskData.get("taskId");
-                    String roleName = (String) taskData.get("roleName");
-                    boolean hasAssignedTo = assignedToPresent;
-                    boolean hasRoleName = roleName != null && !roleName.trim().isEmpty();
-
-                    if (hasAssignedTo && assignedTo == userId) {
-                        shouldInclude = true;
-                    } else if (hasChangeRequestId && hasRoleName) {
+                    // Segments: prefer Change Request's segment, then source object's segment (same as CR creation)
+                    int resolvedSegmentId = -1;
+                    if (hasChangeRequestId) {
                         try {
-                            shouldInclude = com.example.budg_v2.util.WorkflowAuthorizationUtil
-                                    .checkUserHasRoleForTask(userId, changeRequestId, roleName);
+                            resolvedSegmentId = segmentDAO.getObjectSegmentId(changeRequestId, "ChangeRequest", conn);
                         } catch (Exception e) {
-                            shouldInclude = false;
-                            System.err.println("[WorkflowTaskDAO] Error checking role for task " + taskIdValue + ": " + e.getMessage());
+                            System.err.println("[WorkflowTaskDAO] Error resolving CR segment for task " + taskData.get("taskId") + ": " + e.getMessage());
                         }
+                    }
+                    if (resolvedSegmentId <= 0 && taskData.containsKey("objectId") && taskData.containsKey("crFacetType")) {
+                        String objectTypeForSeg = facetTypeToObjectTypeForSegment((String) taskData.get("crFacetType"));
+                        if (objectTypeForSeg != null) {
+                            int oid = ((Number) taskData.get("objectId")).intValue();
+                            try {
+                                resolvedSegmentId = segmentDAO.getObjectSegmentId(oid, objectTypeForSeg, conn);
+                            } catch (Exception e) {
+                                System.err.println("[WorkflowTaskDAO] Error resolving object segment for task " + taskData.get("taskId") + ": " + e.getMessage());
+                            }
+                        }
+                    }
+
+                    String segmentLabel;
+                    int accessSegmentId;
+                    if (resolvedSegmentId > 0) {
+                        try {
+                            segmentLabel = segmentDAO.getSegmentNameById(resolvedSegmentId, conn);
+                        } catch (Exception e) {
+                            segmentLabel = "Not Assigned";
+                            System.err.println("[WorkflowTaskDAO] getSegmentNameById failed: " + e.getMessage());
+                        }
+                        if (segmentLabel == null) {
+                            segmentLabel = "Not Assigned";
+                        }
+                        accessSegmentId = resolvedSegmentId;
+                    } else {
+                        segmentLabel = "Not Assigned";
+                        // No segment on record: treat as Enterprise for ACL (same as default CR segment)
+                        accessSegmentId = 1;
+                    }
+                    taskData.put("segmentId", resolvedSegmentId > 0 ? resolvedSegmentId : null);
+                    taskData.put("segments", segmentLabel);
+
+                    // Filter: user must have access to the task's segment (or be Super Admin)
+                    boolean shouldInclude;
+                    try {
+                        if (SegmentAccessService.isSuperAdmin(userId)) {
+                            shouldInclude = true;
+                        } else {
+                            shouldInclude = SegmentAccessService.hasSegmentAccess(userId, accessSegmentId);
+                        }
+                    } catch (SQLException e) {
+                        shouldInclude = false;
+                        System.err.println("[WorkflowTaskDAO] segment access check failed for user " + userId + ": " + e.getMessage());
                     }
 
                     if (shouldInclude) {
@@ -710,6 +748,41 @@ public class WorkflowTaskDAO {
     /**
      * Map a raw facet type string (from CR Reference) to a clean display label.
      */
+    /**
+     * Map facet type from CR reference (e.g. "dataset", "System") to {@link SegmentDAO} object type.
+     * Aligns with {@code ChangeRequestServlet#facetTypeToObjectType} for segment resolution.
+     */
+    private String facetTypeToObjectTypeForSegment(String facetType) {
+        if (facetType == null || facetType.trim().isEmpty()) {
+            return null;
+        }
+        String normalized = facetType.toLowerCase().trim()
+                .replace("-", "").replace("_", "").replace(" ", "");
+        return switch (normalized) {
+            case "dataset", "datasets" -> "Dataset";
+            case "system", "systems" -> "System";
+            case "glossary", "glossaries" -> "Glossary";
+            case "process", "processes" -> "Process";
+            case "project", "projects" -> "Project";
+            case "product", "products" -> "Product";
+            case "policy", "policies" -> "Policy";
+            case "attribute", "attributes" -> "Dataset";
+            case "interface", "interfaces", "systeminterface" -> "SystemInterface";
+            case "capability", "capabilities" -> "Capability";
+            case "client", "clients" -> "Client";
+            case "committee", "committees" -> "Committee";
+            case "legalentity", "legal" -> "LegalEntity";
+            case "businessarea" -> "BusinessArea";
+            case "regulation", "regulations" -> "Regulation";
+            case "regulator", "regulators" -> "Regulator";
+            case "regulatorytheme" -> "RegulatoryTheme";
+            case "geography", "geographies" -> "Geography";
+            case "orgunit" -> "OrgUnit";
+            case "people", "person" -> "People";
+            default -> null;
+        };
+    }
+
     private String toDisplayObjectType(String facetRaw) {
         if (facetRaw == null) return "Unknown";
         return switch (facetRaw.toLowerCase().trim()) {

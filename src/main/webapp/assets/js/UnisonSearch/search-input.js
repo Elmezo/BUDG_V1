@@ -768,7 +768,8 @@ async function loadCategoryDataFromUnisonResults(category) {
             }
 
             if (data && data.length > 0) {
-                // Apply any display-only filter conditions (not sent to backend) client-side.
+                // Apply display-only and normal filter conditions client-side when rows are hydrated
+                // from Unison/traversal (defensive: backend ID set and rendered rows can diverge).
                 const beforeLen = data.length;
                 const filteredData = applyDisplayFiltersToRows(category, data);
                 data = filteredData;
@@ -2645,7 +2646,7 @@ async function updateAllFacets(unisonResults, activeCategory) {
             }
 
             if (data && data.length > 0) {
-                // Same as loadCategoryDataFromUnisonResults: apply client-only display filters (isDisplayFilter)
+                // Same as loadCategoryDataFromUnisonResults: apply display + isFilterCondition row filters
                 // after fetchFacetDataByIds. updateAllFacets used to skip this, so People profile filters
                 // never affected the table after Apply / Unison refresh.
                 let displayData = data;
@@ -5294,9 +5295,10 @@ function mergeUnisonPartialIntoFetchedRows(partialRows, fetchedRows, category) {
 }
 
 /**
- * Apply any isDisplayFilter conditions to a row array for a given category.
- * These conditions are stored in searchConditions but are NOT sent to the backend.
- * Instead they are applied here, client-side, to the rows already fetched.
+ * Apply unmuted filter conditions (isDisplayFilter and/or isFilterCondition) to a row array
+ * for a given category. isDisplayFilter rows are not sent to the backend; isFilterCondition
+ * rows usually are, but this pass also applies them defensively when facet/hydration rows
+ * can include IDs outside the backend-filtered set.
  *
  * @param {string} category  - e.g. 'people'
  * @param {Array}  rows      - the fetched row objects for this category
@@ -5309,15 +5311,19 @@ function applyDisplayFiltersToRows(category, rows) {
             ? window.searchConditions
             : searchConditions;
     if (!conditionsSource || conditionsSource.length === 0) {
-        console.log('[DisplayFilter][DEBUG] no conditions (module len=' +
+        console.log('[RowFilter][DEBUG] no conditions (module len=' +
             (searchConditions ? searchConditions.length : 0) + ' window len=' +
             (typeof window !== 'undefined' && window.searchConditions ? window.searchConditions.length : 'n/a') + ')');
         return rows;
     }
 
-    // Collect all display-filter conditions targeting this category
-    const dfConditions = conditionsSource.filter(c =>
-        c.isDisplayFilter && !c.muted && searchConditionCategoryMatches(c.category, category) && c.filters && Object.keys(c.filters).length > 0
+    // Display-only filters plus normal filter-created conditions for this category (e.g. Glossary lifecycle)
+    const rowFilterConditions = conditionsSource.filter(c =>
+        !c.muted &&
+        searchConditionCategoryMatches(c.category, category) &&
+        c.filters &&
+        Object.keys(c.filters).length > 0 &&
+        (c.isDisplayFilter || c.isFilterCondition)
     );
     const moduleVsWindowMismatch =
         typeof window !== 'undefined' &&
@@ -5325,10 +5331,10 @@ function applyDisplayFiltersToRows(category, rows) {
         searchConditions &&
         window.searchConditions !== searchConditions &&
         window.searchConditions.length !== searchConditions.length;
-    console.log('[DisplayFilter] checking category=' + category + ' | conditions count=' + conditionsSource.length +
-        ' | dfConditions found=' + dfConditions.length +
+    console.log('[RowFilter] checking category=' + category + ' | conditions count=' + conditionsSource.length +
+        ' | rowFilterConditions found=' + rowFilterConditions.length +
         (moduleVsWindowMismatch ? ' | WARN: window.searchConditions length differs from module searchConditions' : ''));
-    console.log('[DisplayFilter][DEBUG]', {
+    console.log('[RowFilter][DEBUG]', {
         targetCategory: category,
         usingSource: conditionsSource === window.searchConditions ? 'window.searchConditions' : 'module searchConditions',
         conditions: conditionsSource.map(c => ({
@@ -5341,15 +5347,18 @@ function applyDisplayFiltersToRows(category, rows) {
             filterKeys: c.filters ? Object.keys(c.filters) : [],
             query: c.query != null ? String(c.query).slice(0, 80) : ''
         })),
-        dfSkipReason: conditionsSource
+        rowFilterSkipReason: conditionsSource
             .filter(c => c.filters && Object.keys(c.filters).length > 0 && searchConditionCategoryMatches(c.category, category) && !c.muted)
             .map(c => ({
                 id: c.id,
                 isDisplayFilter: !!c.isDisplayFilter,
-                note: c.isDisplayFilter ? 'ok' : 'has filters but isDisplayFilter=false (merge path or bug)'
+                isFilterCondition: !!c.isFilterCondition,
+                note: (c.isDisplayFilter || c.isFilterCondition)
+                    ? 'included in row filters'
+                    : 'skipped: neither isDisplayFilter nor isFilterCondition'
             }))
     });
-    if (dfConditions.length === 0) return rows;
+    if (rowFilterConditions.length === 0) return rows;
 
     // Build lookup maps from activeFilters:
     //   fieldColumnMap[fieldId]      → DB column name   (e.g. 'System_Role')
@@ -5379,15 +5388,15 @@ function applyDisplayFiltersToRows(category, rows) {
         });
     }
 
-    console.log('[DisplayFilter] Applying display filters to', category, 'rows:', rows.length,
-        '| dfConditions:', dfConditions.map(c => c.filters),
+    console.log('[RowFilter] Applying row filters to', category, 'rows:', rows.length,
+        '| rowFilterConditions:', rowFilterConditions.map(c => c.filters),
         '| fieldColumnMap:', fieldColumnMap,
         '| fieldNameMap:', fieldNameMap,
         '| filterValueLabelsMap:', filterValueLabelsMap,
         '| sampleRow keys:', rows[0] ? Object.keys(rows[0]).slice(0, 20) : []);
 
     let filtered = rows;
-    dfConditions.forEach(cond => {
+    rowFilterConditions.forEach(cond => {
         Object.entries(cond.filters).forEach(([fieldId, value]) => {
             if (cond.displayFilterSnapshots) {
                 const snap = cond.displayFilterSnapshots[String(fieldId)] || cond.displayFilterSnapshots[fieldId];
@@ -5439,7 +5448,7 @@ function applyDisplayFiltersToRows(category, rows) {
             // The display field name (e.g. 'Profile Name') to use as fallback
             const displayFieldName = fieldNameMap[fieldId] || null;
 
-            console.log('[DisplayFilter] col=' + col + ' allowed IDs=' + JSON.stringify(Array.from(allowed)) +
+            console.log('[RowFilter] col=' + col + ' allowed IDs=' + JSON.stringify(Array.from(allowed)) +
                 ' allowedNames=' + JSON.stringify(Array.from(allowedNames)) +
                 ' displayFieldName=' + displayFieldName +
                 ' | sample row[col]=' + (rows[0] ? (rows[0][col] ?? rows[0][col.toLowerCase()] ?? rows[0][col.toUpperCase()]) : 'N/A') +
@@ -5462,7 +5471,7 @@ function applyDisplayFiltersToRows(category, rows) {
             });
         });
     });
-    console.log('[DisplayFilter] Result:', filtered.length, '/', rows.length, 'rows kept');
+    console.log('[RowFilter] Result:', filtered.length, '/', rows.length, 'rows kept');
     return filtered;
 }
 
@@ -5613,6 +5622,7 @@ async function applyFiltersAndSearch() {
         searchConditions.forEach(condition => {
             if (searchConditionCategoryMatches(condition.category, category) && !condition.muted) {
                 condition.filters = { ...condition.filters, ...filtersObj };
+                condition.isFilterCondition = true; // so applyDisplayFiltersToRows can prune hydrated rows
                 addedToExisting = true;
             }
         });

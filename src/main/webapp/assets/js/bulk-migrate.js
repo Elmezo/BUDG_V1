@@ -186,6 +186,10 @@
                 selectedFacets.add(selectionData.facet);
             }
 
+            // Enable Download as soon as we have a valid source selection (do not wait for
+            // available-facets metadata; renderRelatedObjects may early-return when facets is empty).
+            updateDownloadButton();
+
             // If "Migrate All Objects" mode, select all facets (will be done after loading available facets)
 
         } catch (e) {
@@ -411,11 +415,14 @@
                 }
                 console.error('[BulkMigrate] Error loading facets:', facetsResponse.status, errorMessage);
                 showError(tr('bulkMigrate.errLoadFacets', { message: errorMessage }));
+                // Keep Download usable for source-only export when selection was already valid.
+                updateDownloadButton();
             }
 
         } catch (e) {
             console.error('[BulkMigrate] Error loading options:', e);
             showError(tr('bulkMigrate.errLoadOptions', { message: e.message }));
+            updateDownloadButton();
         }
     }
 
@@ -423,6 +430,8 @@
         relatedObjectsGrid.innerHTML = '';
 
         if (availableFacets.length === 0) {
+            updateSelectAllCheckbox();
+            updateDownloadButton();
             return;
         }
 

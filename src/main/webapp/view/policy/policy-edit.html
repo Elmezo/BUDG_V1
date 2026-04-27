@@ -116,6 +116,7 @@
                         <button class="tab" data-tab="components" data-i18n="tab.components">COMPONENTS</button>
                         <button class="tab" data-tab="stakeholders" data-i18n="tab.stakeholders">STAKEHOLDERS</button>
                         <button class="tab" data-tab="impact" data-i18n="tab.impact">IMPACT</button>
+                        <button class="tab" data-tab="workflow" data-i18n="tab.workflow">WORKFLOW</button>
                     </div>
                 </div>
                 <div class="content-body">
@@ -787,13 +788,8 @@
                 </div>
 
                 <!-- Workflow Tab -->
-                <div id="workflowTab" class="tab-content">
-                    <div class="form-container">
-                        <div class="form-section">
-                            <h3 class="section-title">WORKFLOW</h3>
-                            <div class="empty">Workflow management will be displayed here</div>
-                        </div>
-                    </div>
+                <div id="workflowTab" class="tab-content" style="display:none;">
+                    <div id="policyObjectWorkflowRoot"></div>
                 </div>
                 </div>
             </div>
@@ -843,6 +839,11 @@
     <script src="policy-stakeholder-edit.js"></script>
     <script src="policy-impact-edit.js"></script>
     <script src="../../assets/js/advanced-rich-text-editor.js"></script>
+    <link rel="stylesheet" href="../../assets/js/libs/bpmn-js/assets/bpmn-font/css/bpmn.css">
+    <link rel="stylesheet" href="../../assets/js/libs/bpmn-js/assets/bpmn-js.css">
+    <link rel="stylesheet" href="../../assets/js/libs/bpmn-js/assets/diagram-js.css">
+    <script src="../../assets/js/libs/bpmn-js/bpmn-modeler.production.min.js"></script>
+    <script src="../../view/workflow-edit.js"></script>
     <script src="policy-edit.js"></script>
 </body>
 </html>

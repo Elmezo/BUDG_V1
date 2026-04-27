@@ -77,6 +77,7 @@
                     <button class="tab" data-tab="relationships" data-i18n="tab.relationships">RELATIONSHIPS</button>
                     <button class="tab" data-tab="stakeholders" data-i18n="tab.stakeholders">STAKEHOLDERS</button>
                     <button class="tab" data-tab="impact" data-i18n="tab.impact">IMPACT</button>
+                    <button class="tab" data-tab="workflow" data-i18n="tab.workflow">WORKFLOW</button>
                 </div>
             </div>
             <div class="content-body">
@@ -248,6 +249,10 @@
                 
                 <!-- Stakeholders Tab -->
                 <div id="committeeStakeholdersContainer" class="view-grid" style="display:none;"></div>
+
+                <div id="committeeWorkflowContainer" class="view-grid" style="display:none;">
+                    <div id="committeeObjectWorkflowRoot"></div>
+                </div>
                 
                 <!-- Impact Tab -->
                 <div id="impactTab" class="tab-content" style="display:none;">
@@ -325,6 +330,11 @@
     <script src="../../view/committee/committee-impact-edit.js"></script>
 
     <script src="../../assets/js/advanced-rich-text-editor.js"></script>
+    <link rel="stylesheet" href="../../assets/js/libs/bpmn-js/assets/bpmn-font/css/bpmn.css">
+    <link rel="stylesheet" href="../../assets/js/libs/bpmn-js/assets/bpmn-js.css">
+    <link rel="stylesheet" href="../../assets/js/libs/bpmn-js/assets/diagram-js.css">
+    <script src="../../assets/js/libs/bpmn-js/bpmn-modeler.production.min.js"></script>
+    <script src="../../view/workflow-edit.js"></script>
     <script src="../../assets/js/hierarchy-helper.js"></script>
     <script src="../../view/committee/committee-edit.js"></script>
     <script src="../../assets/js/header.js"></script>

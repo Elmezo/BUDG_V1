@@ -62,6 +62,7 @@
                 <button class="tab active" data-tab="summary" data-i18n="tab.summary">SUMMARY</button>
                 <button class="tab" data-tab="stakeholders" data-i18n="tab.stakeholders">STAKEHOLDERS</button>
                 <button class="tab" data-tab="impact" data-i18n="tab.impact">IMPACT</button>
+                <button class="tab" data-tab="workflow" data-i18n="tab.workflow">WORKFLOW</button>
             </div>
         </div>
 
@@ -320,6 +321,10 @@
             </div>
             
             <!-- Impact Tab -->
+            <div id="workflowTab" class="tab-content" style="display: none;">
+                <div id="systemInterfaceObjectWorkflowRoot"></div>
+            </div>
+
             <div id="impactTab" class="tab-content" style="display: none;">
                 <div id="impact" class="relationships-container">
                     <div class="relationships-sub-tabs">
@@ -393,6 +398,11 @@
 <script src="../../view/components/document-table-component.js"></script>
 <script src="../../view/system-interface/system-interface-documents-init.js"></script>
 <script src="../../assets/js/advanced-rich-text-editor.js"></script>
+<link rel="stylesheet" href="../../assets/js/libs/bpmn-js/assets/bpmn-font/css/bpmn.css">
+<link rel="stylesheet" href="../../assets/js/libs/bpmn-js/assets/bpmn-js.css">
+<link rel="stylesheet" href="../../assets/js/libs/bpmn-js/assets/diagram-js.css">
+<script src="../../assets/js/libs/bpmn-js/bpmn-modeler.production.min.js"></script>
+<script src="../../view/workflow-edit.js"></script>
 <script src="../../view/system-interface/system-interface-edit.js"></script>
 <script src="../../view/system-interface/interface-stakeholder-edit.js"></script>
 <script src="../../view/system-interface/interface-impact-edit.js"></script>

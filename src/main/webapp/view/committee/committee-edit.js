@@ -479,6 +479,15 @@ document.addEventListener('DOMContentLoaded', async function() {
             case 'impact':
                 // Impact tab is initialized when tab is clicked
                 break;
+            case 'workflow':
+                if (entityId && window.ObjectWorkflowEdit) {
+                    window.ObjectWorkflowEdit.ensureInitialized({
+                        rootId: 'committeeObjectWorkflowRoot',
+                        facetType: 'committee',
+                        objectId: parseInt(entityId, 10)
+                    });
+                }
+                break;
             case 'view':
                 // Main committee details (Summary) - already loaded
                 break;
@@ -1293,7 +1302,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         });
 
         try {
-            if (activeTab === 'relationships') {
+            if (activeTab === 'relationships' || activeTab === 'workflow') {
                 showSuccessMessage(window.I18n ? window.I18n.t('regulation.messages.noDataToSaveOnTab') : 'No data to save on this tab', false);
                 restoreButtons();
                 return true;

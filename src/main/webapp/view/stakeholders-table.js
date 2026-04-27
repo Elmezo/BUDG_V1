@@ -169,8 +169,8 @@ class StakeholdersTable {
             // Load lookup data for edit mode
             await this.loadLookupData();
 
-            // Also try to load people from existing stakeholders data
-            await this.loadPeopleFromExistingStakeholders();
+            // Per-role person lists from role_assignment APIs (no global people merge)
+            await this.prefetchRoleAssignmentCaches();
 
             this.render();
 
@@ -216,37 +216,8 @@ class StakeholdersTable {
                 this.roles = [];
             }
 
-            // Load people data
-            try {
-                const peopleResponse = await window.BUDG_API_SERVICE.getPeople();
-                const rawPeople = Array.isArray(peopleResponse) ? peopleResponse : (peopleResponse?.data || []);
-                this.people = rawPeople.map(p => {
-                    const id = p.id ?? p.ID ?? p.ipid ?? p.peopleId ?? p.people_id;
-                    const first = p.First_Name ?? p.firstName ?? p.FirstName ?? p.first_name ?? p.first;
-                    const last = p.Last_Name ?? p.lastName ?? p.LastName ?? p.last_name ?? p.last;
-                    const name = p.name ?? p.fullName ?? p.displayName ?? p.personName ?? p.person_name ?? [first, last].filter(Boolean).join(' ');
-                    const orgUnitId = p.Org_Unit_ID ?? p.orgUnitId ?? p.org_unit_id;
-                    return { id, First_Name: first, Last_Name: last, name, Org_Unit_ID: orgUnitId };
-                });
-            } catch (error) {
-                console.warn('Failed to load people, using empty array:', error);
-                this.people = [];
-            }
-
-            // If no people loaded, try to extract from roles data
-            if (this.people.length === 0 && this.roles.length > 0) {
-                this.extractPeopleFromRoles();
-            }
-
-            // If still no people, try to get from stakeholders data
-            if (this.people.length === 0) {
-                await this.extractPeopleFromStakeholdersData();
-            }
-
-            // If still no people, try to get from existing stakeholders
-            if (this.people.length === 0) {
-                await this.loadPeopleFromExistingStakeholders();
-            }
+            // Person dropdowns use per-role caches only (see prefetchRoleAssignmentCaches / updatePeopleFromRole).
+            this.people = [];
 
             // Load statuses
             try {
@@ -297,104 +268,19 @@ class StakeholdersTable {
         }
     }
 
-    extractPeopleFromRoles() {
-        try {
-            const allPeople = [];
-
-            this.roles.forEach(role => {
-                if (role.users) {
-                    const people = this.extractPeopleFromUsers(role.users);
-                    allPeople.push(...people);
-                }
-                if (role.people) {
-                    const people = this.extractPeopleFromUsers(role.people);
-                    allPeople.push(...people);
-                }
-                if (role.assignedUsers) {
-                    const people = this.extractPeopleFromUsers(role.assignedUsers);
-                    allPeople.push(...people);
-                }
-            });
-
-            // Remove duplicates
-            const uniquePeople = allPeople.filter((person, index, self) =>
-                self.findIndex(p => p.id === person.id) === index
-            );
-
-            if (uniquePeople.length > 0) {
-                console.log('Extracted people from roles:', uniquePeople);
-                this.people = [...this.people, ...uniquePeople];
+    /** Populate rolePeopleByRoleId from role-assignment APIs for all roles present on loaded stakeholders. */
+    async prefetchRoleAssignmentCaches() {
+        const roleIds = [...new Set(
+            this.stakeholders.map(s => s.roleId).filter(id => id != null && String(id).trim() !== '')
+        )];
+        await Promise.all(roleIds.map(async (rid) => {
+            try {
+                this.rolePeopleByRoleId[rid] = await this.getUsersByRoleFromAPI(rid);
+            } catch (e) {
+                console.warn('[StakeholdersTable] prefetch role people failed for role', rid, e);
+                this.rolePeopleByRoleId[rid] = [];
             }
-        } catch (error) {
-            console.warn('Failed to extract people from roles:', error);
-        }
-    }
-
-    async extractPeopleFromStakeholdersData() {
-        try {
-            const stakeholdersData = await this.getStakeholdersData();
-            if (stakeholdersData && Array.isArray(stakeholdersData)) {
-                const peopleFromStakeholders = stakeholdersData
-                    .filter(s => s.peopleId || s.people_id || s.ipid)
-                    .map(s => ({
-                        id: s.peopleId || s.people_id || s.ipid,
-                        First_Name: s.firstName || s.First_Name || s.personFirstName,
-                        Last_Name: s.lastName || s.Last_Name || s.personLastName,
-                        name: s.name || s.personName || s.person_name,
-                        Org_Unit_ID: s.orgUnitId || s.Org_Unit_ID || s.org_unit_id
-                    }))
-                    .filter((person, index, self) =>
-                        person.id && self.findIndex(p => p.id === person.id) === index
-                    );
-
-                if (peopleFromStakeholders.length > 0) {
-                    this.people = [...this.people, ...peopleFromStakeholders];
-                }
-            }
-        } catch (error) {
-            console.warn('Failed to extract people from stakeholders data:', error);
-        }
-    }
-
-    async loadPeopleFromExistingStakeholders() {
-        try {
-            // Extract people IDs from existing stakeholders
-            const existingPeopleIds = this.stakeholders
-                .map(s => s.peopleId)
-                .filter(id => id)
-                .map(id => parseInt(id));
-
-            // Existing people IDs from stakeholders
-
-            // If we have existing people IDs but no people data, try to fetch them
-            if (existingPeopleIds.length > 0 && this.people.length === 0) {
-                console.log('No people data loaded, trying to fetch from existing stakeholders');
-
-                // Try to get people data from the stakeholders API response
-                const stakeholdersData = await this.getStakeholdersData();
-                if (stakeholdersData && Array.isArray(stakeholdersData)) {
-                    // Extract people information from stakeholders data
-                    const peopleFromStakeholders = stakeholdersData
-                        .filter(s => s.peopleId || s.people_id || s.ipid)
-                        .map(s => ({
-                            id: s.peopleId || s.people_id || s.ipid,
-                            First_Name: s.firstName || s.First_Name || s.personFirstName,
-                            Last_Name: s.lastName || s.Last_Name || s.personLastName,
-                            name: s.name || s.personName || s.person_name,
-                            Org_Unit_ID: s.orgUnitId || s.Org_Unit_ID || s.org_unit_id
-                        }))
-                        .filter((person, index, self) =>
-                            person.id && self.findIndex(p => p.id === person.id) === index
-                        );
-
-                    if (peopleFromStakeholders.length > 0) {
-                        this.people = [...this.people, ...peopleFromStakeholders];
-                    }
-                }
-            }
-        } catch (error) {
-            console.warn('Failed to load people from existing stakeholders:', error);
-        }
+        }));
     }
 
     async getStakeholdersData() {
@@ -907,8 +793,11 @@ class StakeholdersTable {
                 const role = this.roles.find(r => r.id == value);
                 this.stakeholders[index].role = role ? (role.primaryname || role.name) : '';
             } else if (field === 'peopleId') {
-                const person = this.people.find(p => p.id == value);
-                this.stakeholders[index].name = person ? `${person.First_Name} ${person.Last_Name}` : '';
+                const rid = this.stakeholders[index].roleId;
+                const rolePeople = Array.isArray(this.rolePeopleByRoleId[rid]) ? this.rolePeopleByRoleId[rid] : [];
+                const person = rolePeople.find(p => String(p.id) === String(value))
+                    || this.people.find(p => String(p.id) === String(value));
+                this.stakeholders[index].name = person ? this.getPersonDisplayName(person) : '';
             } else if (field === 'statusId') {
                 const status = this.statuses.find(s => s.id == value);
                 this.stakeholders[index].roleAccepted = status ? (status.primaryname || status.name) : 'True';
@@ -927,7 +816,10 @@ class StakeholdersTable {
 
     async updateOrgUnitFromPeople(index, peopleId) {
         try {
-            const person = this.people.find(p => p.id == peopleId);
+            const rid = this.stakeholders[index]?.roleId;
+            const rolePeople = rid != null ? (this.rolePeopleByRoleId[rid] || []) : [];
+            const person = rolePeople.find(p => String(p.id) === String(peopleId))
+                || this.people.find(p => String(p.id) === String(peopleId));
             if (person && person.Org_Unit_ID) {
                 // Fetch org unit name from the person's org unit ID
                 const orgUnit = await window.BUDG_API_SERVICE.getOrgUnitById(person.Org_Unit_ID);
@@ -967,40 +859,6 @@ class StakeholdersTable {
                 console.warn('Failed to get users from role_assignment API:', error);
             }
 
-            // Fallback methods if API doesn't work
-            if (assignedPeople.length === 0) {
-                // Method 1: Try to get users from the role object itself
-                const role = this.roles.find(r => r.id == roleId);
-                if (role) {
-                    console.log('Found role object:', role);
-
-                    // Check if role has users property
-                    if (role.users) {
-                        console.log('Role has users property:', role.users);
-                        assignedPeople = this.extractPeopleFromUsers(role.users);
-                    }
-                    // Check if role has people property
-                    else if (role.people) {
-                        console.log('Role has people property:', role.people);
-                        assignedPeople = this.extractPeopleFromUsers(role.people);
-                    }
-                    // Check if role has assignedUsers property
-                    else if (role.assignedUsers) {
-                        console.log('Role has assignedUsers property:', role.assignedUsers);
-                        assignedPeople = this.extractPeopleFromUsers(role.assignedUsers);
-                    }
-                }
-
-                // Method 2: If still no people found, try to get people from existing stakeholders with same role
-                if (assignedPeople.length === 0) {
-                    console.log('Trying to get people from existing stakeholders with same role');
-                    const existingStakeholders = this.originalStakeholders.filter(s => s.roleId == roleId);
-                    const existingPeopleIds = existingStakeholders.map(s => s.peopleId).filter(id => id);
-                    assignedPeople = this.people.filter(person => existingPeopleIds.includes(parseInt(person.id)));
-                }
-
-            }
-
             console.log('Final assigned people for role:', assignedPeople);
             // Cache per role id to use during re-rendering
             this.rolePeopleByRoleId[roleId] = assignedPeople;
@@ -1010,84 +868,6 @@ class StakeholdersTable {
             console.error('Failed to fetch people from role:', error);
             // Fallback to showing all people
             this.updatePeopleDropdown(index, []);
-        }
-    }
-
-    extractPeopleFromUsers(users) {
-        if (!users) return [];
-
-        let userIds = [];
-
-        if (typeof users === 'string') {
-            try {
-                // Try to parse as JSON array
-                userIds = JSON.parse(users);
-            } catch (e) {
-                // If not JSON, try to parse as comma-separated
-                userIds = users.replace(/[\[\]]/g, '').split(',').map(id => parseInt(id.trim())).filter(id => !isNaN(id));
-            }
-        } else if (Array.isArray(users)) {
-            userIds = users;
-        }
-
-        if (!Array.isArray(userIds)) return [];
-
-        const uniqueUserIds = [...new Set(userIds)];
-        console.log('Extracted user IDs:', uniqueUserIds);
-
-        return this.people.filter(person => uniqueUserIds.includes(parseInt(person.id)));
-    }
-
-    extractUserIds(users) {
-        if (!users) return [];
-
-        if (typeof users === 'string') {
-            try {
-                return JSON.parse(users);
-            } catch (e) {
-                return users.replace(/[\[\]]/g, '').split(',').map(id => parseInt(id.trim())).filter(id => !isNaN(id));
-            }
-        } else if (Array.isArray(users)) {
-            return users;
-        }
-
-        return [];
-    }
-
-    getPeopleFromRolesData(roleId) {
-        try {
-            const role = this.roles.find(r => r.id == roleId);
-            if (!role) return [];
-
-            const allPeople = [];
-
-            // Check if role has users property
-            if (role.users) {
-                const people = this.extractPeopleFromUsers(role.users);
-                allPeople.push(...people);
-            }
-
-            // Check if role has people property
-            if (role.people) {
-                const people = this.extractPeopleFromUsers(role.people);
-                allPeople.push(...people);
-            }
-
-            // Check if role has assignedUsers property
-            if (role.assignedUsers) {
-                const people = this.extractPeopleFromUsers(role.assignedUsers);
-                allPeople.push(...people);
-            }
-
-            // Remove duplicates
-            const uniquePeople = allPeople.filter((person, index, self) =>
-                self.findIndex(p => p.id === person.id) === index
-            );
-
-            return uniquePeople;
-        } catch (error) {
-            console.warn('Failed to get people from roles data:', error);
-            return [];
         }
     }
 

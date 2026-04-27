@@ -8,6 +8,9 @@
 
     const WorkflowView = {
         currentModuleId: null,
+        /** When set with currentObjectId, workflows are loaded via /api/object_workflows (view mode) to include object-private definitions. */
+        currentFacetType: null,
+        currentObjectId: null,
         workflows: [],
         selectedWorkflow: null,
         bpmnViewer: null,
@@ -20,9 +23,16 @@
          * Initialize the workflow view component
          * @param {number} moduleId - The ID of the current module
          * @param {string} containerId - The ID of the container element
+         * @param {string} [facetType] - Facet key (e.g. glossary) for object-scoped workflow merge
+         * @param {number} [objectId] - Object instance id for object-scoped workflow merge
          */
-        initialize: async function (moduleId, containerId) {
+        initialize: async function (moduleId, containerId, facetType, objectId) {
             this.currentModuleId = moduleId;
+            this.currentFacetType = facetType != null && facetType !== '' ? String(facetType) : null;
+            this.currentObjectId = objectId != null && objectId !== '' ? parseInt(objectId, 10) : null;
+            if (this.currentObjectId != null && Number.isNaN(this.currentObjectId)) {
+                this.currentObjectId = null;
+            }
 
             const container = document.getElementById(containerId);
             if (!container) {
@@ -47,77 +57,100 @@
          * Render the workflow view component HTML
          */
         render: function (container) {
-            const t = (k) => (window.I18n && window.I18n.t(k)) || k;
+            const t = (k, p) => (window.I18n && window.I18n.t(k, p)) || k;
             const w = {
                 selectWorkflow: t('workflowView.selectWorkflow'),
+                processDetails: t('workflowView.processDetails'),
                 workflowLabel: t('workflowView.workflowLabel'),
                 workflowRequired: t('workflowView.workflowRequired'),
                 selectPlaceholder: t('workflowView.selectPlaceholder'),
                 processName: t('workflowView.processName'),
                 description: t('workflowView.description'),
                 workflowDiagram: t('workflowView.workflowDiagram'),
+                diagramSubtitle: t('workflowView.diagramSubtitle'),
                 loadingWorkflow: t('workflowView.loadingWorkflow'),
                 noWorkflowsAvailable: t('workflowView.noWorkflowsAvailable'),
                 elementProperties: t('workflowView.elementProperties'),
-                close: t('workflowView.close')
+                close: t('workflowView.close'),
+                fitView: t('workflowView.fitView'),
+                showProperties: t('workflowView.showProperties'),
+                hideProperties: t('workflowView.hideProperties')
             };
             container.innerHTML = `
-                <div class="workflow-view-component">
-                    <!-- Workflow Selection Section -->
-                    <div class="view-section">
-                        <div class="section-title">${w.selectWorkflow}</div>
-                        <div class="workflow-select-container">
-                            <label for="workflowSelectDropdown">${w.workflowLabel} <span class="required">${w.workflowRequired}</span></label>
-                            <select id="workflowSelectDropdown" class="workflow-select">
-                                <option value="">${w.selectPlaceholder}</option>
-                            </select>
-                        </div>
+                <div class="workflow-view-component wv-root">
+                    <div id="workflowLoadingState" class="wv-state wv-state-loading" style="display: none;">
+                        <i class="fas fa-spinner fa-spin" aria-hidden="true"></i>
+                        <span>${w.loadingWorkflow}</span>
                     </div>
-
-                    <!-- Workflow Details Section (hidden initially) -->
-                    <div id="workflowDetailsSection" class="view-section" style="display: none;">
-                        <div class="workflow-details">
-                            <div class="detail-row">
-                                <label>${w.processName}</label>
-                                <span id="workflowProcessName" class="detail-value"></span>
-                            </div>
-                            <div class="detail-row">
-                                <label>${w.description}</label>
-                                <span id="workflowDescription" class="detail-value"></span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Workflow Diagram Section (hidden initially) -->
-                    <div id="workflowDiagramSection" class="view-section" style="display: none;">
-                        <div class="section-title">${w.workflowDiagram}</div>
-                        <div class="bpmn-viewer-container">
-                            <div id="bpmnViewerCanvas" class="bpmn-canvas"></div>
-                            <!-- Properties Panel -->
-                            <div id="bpmn-properties-panel" class="bpmn-properties-tabs-links" style="display: none;">
-                                <div class="properties-header properties-panel-drag-handle">
-                                    <h4>${w.elementProperties}</h4>
-                                    <div style="display: flex; align-items: center; gap: 0.5rem;">
-                                        <i class="fas fa-grip-vertical" style="color: #999; cursor: move;"></i>
-                                        <button id="closePropertiesBtn" class="close-btn" title="${w.close}">
-                                            <i class="fas fa-times"></i>
-                                        </button>
-                                    </div>
-                                </div>
-                                <div id="propertiesContent" class="properties-content"></div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Loading State -->
-                    <div id="workflowLoadingState" class="loading-state" style="display: none;">
-                        <i class="fas fa-spinner fa-spin"></i> ${w.loadingWorkflow}
-                    </div>
-
-                    <!-- Empty State -->
-                    <div id="workflowEmptyState" class="empty-state" style="display: none;">
-                        <i class="fas fa-project-diagram"></i>
+                    <div id="workflowEmptyState" class="wv-state wv-state-empty" style="display: none;">
+                        <i class="fas fa-project-diagram" aria-hidden="true"></i>
                         <p>${w.noWorkflowsAvailable}</p>
+                    </div>
+                    <div id="workflowMainStack" class="wv-main-stack" style="display: none;">
+                        <div class="wv-card wv-card-select">
+                            <div class="wv-card-head">
+                                <span class="wv-card-kicker">${w.selectWorkflow}</span>
+                                <h3 class="wv-card-title">${w.workflowLabel}</h3>
+                            </div>
+                            <div class="wv-card-body">
+                                <label class="wv-label" for="workflowSelectDropdown">${w.workflowLabel} <span class="required">${w.workflowRequired}</span></label>
+                                <select id="workflowSelectDropdown" class="workflow-select wv-select">
+                                    <option value="">${w.selectPlaceholder}</option>
+                                </select>
+                                <p id="workflowMetaHint" class="wv-hint" style="display: none;"></p>
+                            </div>
+                        </div>
+                        <div id="workflowDetailsSection" class="wv-card wv-card-details" style="display: none;">
+                            <div class="wv-card-head">
+                                <span class="wv-card-kicker">${w.processDetails}</span>
+                                <h3 class="wv-card-title" id="workflowDetailsTitle"></h3>
+                            </div>
+                            <div class="wv-card-body">
+                                <dl class="wv-dl">
+                                    <div class="wv-dl-row">
+                                        <dt>${w.processName}</dt>
+                                        <dd id="workflowProcessName" class="wv-dd"></dd>
+                                    </div>
+                                    <div class="wv-dl-row">
+                                        <dt>${w.description}</dt>
+                                        <dd id="workflowDescription" class="wv-dd wv-dd-multiline"></dd>
+                                    </div>
+                                </dl>
+                            </div>
+                        </div>
+                        <div id="workflowDiagramSection" class="wv-card wv-card-diagram" style="display: none;">
+                            <div class="wv-card-head wv-card-head-row">
+                                <div class="wv-card-head-text">
+                                    <span class="wv-card-kicker">${w.workflowDiagram}</span>
+                                    <h3 class="wv-card-title">${w.diagramSubtitle}</h3>
+                                </div>
+                                <div class="wv-toolbar" role="toolbar" aria-label="${w.workflowDiagram}">
+                                    <button type="button" id="wvFitViewBtn" class="btn btn-sm btn-outline-secondary">${w.fitView}</button>
+                                    <button type="button" id="wvTogglePropsBtn" class="btn btn-sm btn-outline-secondary" aria-expanded="false">${w.showProperties}</button>
+                                </div>
+                            </div>
+                            <div class="bpmn-viewer-container">
+                                <div id="bpmnViewerSlot" class="bpmn-viewer-slot">
+                                    <div id="bpmnViewerCanvas" class="bpmn-canvas"></div>
+                                </div>
+                                <div id="wvDiagramError" class="wv-diagram-error" style="display: none;" role="alert"></div>
+                                <div id="bpmn-properties-panel" class="bpmn-properties-tabs-links" style="display: none;">
+                                    <div class="properties-header properties-panel-drag-handle">
+                                        <div class="wv-prop-head-text">
+                                            <span class="wv-prop-kicker">${w.elementProperties}</span>
+                                            <h4>${w.elementProperties}</h4>
+                                        </div>
+                                        <div class="wv-prop-head-actions">
+                                            <i class="fas fa-grip-vertical" aria-hidden="true"></i>
+                                            <button type="button" id="closePropertiesBtn" class="close-btn" title="${w.close}" aria-label="${w.close}">
+                                                <i class="fas fa-times" aria-hidden="true"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div id="propertiesContent" class="properties-content"></div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             `;
@@ -140,150 +173,269 @@
             const styles = document.createElement('style');
             styles.id = 'workflow-view-styles';
             styles.textContent = `
-                .workflow-view-component {
+                .workflow-view-component.wv-root {
                     width: 100%;
+                    display: flex;
+                    flex-direction: column;
+                    gap: 1rem;
                 }
 
-                .workflow-view-component .view-section {
-                    margin-bottom: 1.5rem;
+                .workflow-view-component .wv-main-stack {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 1rem;
                 }
 
-                .workflow-view-component .section-title {
-                    font-size: 0.875rem;
+                .workflow-view-component .wv-card {
+                    background: var(--background-primary, #fff);
+                    border: 1px solid var(--border-color, #e9ecef);
+                    border-radius: 8px;
+                    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+                    overflow: hidden;
+                }
+
+                .workflow-view-component .wv-card-head {
+                    padding: 0.875rem 1.125rem 0.5rem;
+                    border-bottom: 1px solid var(--border-color, #eef0f2);
+                    background: var(--background-secondary, #fafbfc);
+                }
+
+                .workflow-view-component .wv-card-head-row {
+                    display: flex;
+                    flex-wrap: wrap;
+                    align-items: flex-start;
+                    justify-content: space-between;
+                    gap: 0.75rem 1rem;
+                }
+
+                .workflow-view-component .wv-card-head-text {
+                    min-width: 0;
+                    flex: 1 1 12rem;
+                }
+
+                .workflow-view-component .wv-card-kicker {
+                    display: block;
+                    font-size: 0.6875rem;
                     font-weight: 600;
-                    color: var(--text-secondary, #6c757d);
-                    letter-spacing: 0.025em;
+                    letter-spacing: 0.06em;
                     text-transform: uppercase;
-                    margin-bottom: 1rem;
-                    padding-bottom: 0.5rem;
-                    border-bottom: 1px solid var(--border-color, #e9ecef);
+                    color: var(--text-secondary, #6c757d);
+                    margin-bottom: 0.25rem;
                 }
 
-                .workflow-select-container {
-                    max-width: 500px;
+                .workflow-view-component .wv-card-title {
+                    margin: 0;
+                    font-size: 1rem;
+                    font-weight: 600;
+                    color: var(--text-primary, #2c3e50);
+                    line-height: 1.35;
                 }
 
-                .workflow-select-container label {
+                .workflow-view-component .wv-card-body {
+                    padding: 1rem 1.125rem 1.125rem;
+                }
+
+                .workflow-view-component .wv-label {
                     display: block;
                     margin-bottom: 0.5rem;
                     font-weight: 500;
+                    font-size: 0.875rem;
                     color: var(--text-primary, #2c3e50);
                 }
 
-                .workflow-select-container .required {
+                .workflow-view-component .wv-label .required {
                     color: #dc3545;
                 }
 
-                .workflow-select {
+                .workflow-view-component .wv-hint {
+                    margin: 0.75rem 0 0;
+                    font-size: 0.8125rem;
+                    line-height: 1.45;
+                    color: var(--text-secondary, #6c757d);
+                }
+
+                .workflow-view-component .wv-select,
+                .workflow-view-component .workflow-select {
                     width: 100%;
+                    max-width: 32rem;
                     padding: 0.5rem 0.75rem;
                     border: 1px solid var(--border-color, #e9ecef);
-                    border-radius: 4px;
+                    border-radius: 6px;
                     font-size: 0.875rem;
                     background: var(--background-primary, #fff);
                     color: var(--text-primary, #2c3e50);
                     cursor: pointer;
-                    transition: border-color 0.2s ease;
+                    transition: border-color 0.2s ease, box-shadow 0.2s ease;
                 }
 
-                .workflow-select:hover {
+                .workflow-view-component .workflow-select:hover {
                     border-color: var(--primary-color, #248567);
                 }
 
-                .workflow-select:focus {
+                .workflow-view-component .workflow-select:focus {
                     outline: none;
                     border-color: var(--primary-color, #248567);
-                    box-shadow: 0 0 0 3px rgba(36, 133, 103, 0.1);
+                    box-shadow: 0 0 0 3px rgba(36, 133, 103, 0.12);
                 }
 
-                .workflow-details {
-                    background: var(--background-secondary, #f8f9fa);
-                    padding: 1rem;
-                    border-radius: 4px;
-                    border: 1px solid var(--border-color, #e9ecef);
+                .workflow-view-component .wv-dl {
+                    margin: 0;
+                    display: grid;
+                    gap: 0.875rem 1.25rem;
                 }
 
-                .workflow-details .detail-row {
-                    display: flex;
-                    margin-bottom: 0.75rem;
+                .workflow-view-component .wv-dl-row {
+                    display: grid;
+                    grid-template-columns: minmax(7rem, 10rem) 1fr;
+                    gap: 0.5rem 1rem;
+                    align-items: start;
                 }
 
-                .workflow-details .detail-row:last-child {
-                    margin-bottom: 0;
+                @media (max-width: 520px) {
+                    .workflow-view-component .wv-dl-row {
+                        grid-template-columns: 1fr;
+                    }
                 }
 
-                .workflow-details label {
+                .workflow-view-component .wv-dl dt {
+                    margin: 0;
+                    font-size: 0.75rem;
                     font-weight: 600;
+                    text-transform: uppercase;
+                    letter-spacing: 0.02em;
                     color: var(--text-secondary, #6c757d);
-                    min-width: 150px;
-                    margin-right: 1rem;
                 }
 
-                .workflow-details .detail-value {
+                .workflow-view-component .wv-dl dd {
+                    margin: 0;
+                }
+
+                .workflow-view-component .wv-dd {
+                    font-size: 0.9375rem;
                     color: var(--text-primary, #2c3e50);
-                    flex: 1;
+                    word-break: break-word;
                 }
 
-                .bpmn-viewer-container {
+                .workflow-view-component .wv-dd-multiline {
+                    white-space: pre-wrap;
+                }
+
+                .workflow-view-component .wv-toolbar {
+                    display: flex;
+                    flex-wrap: wrap;
+                    gap: 0.5rem;
+                    align-items: center;
+                    flex-shrink: 0;
+                }
+
+                .workflow-view-component .bpmn-viewer-container {
                     position: relative;
                     width: 100%;
-                    height: 600px;
-                    border: 1px solid var(--border-color, #e9ecef);
-                    border-radius: 4px;
+                    height: clamp(22rem, 52vh, 44rem);
+                    min-height: 20rem;
+                    border-top: 1px solid var(--border-color, #e9ecef);
                     overflow: hidden;
-                    background: #f9f9f9;
+                    background: #f4f5f7;
                 }
 
-                .bpmn-canvas {
+                .workflow-view-component .bpmn-viewer-slot {
+                    position: absolute;
+                    inset: 0;
+                }
+
+                .workflow-view-component .bpmn-canvas {
                     width: 100%;
                     height: 100%;
                 }
 
-                .bpmn-properties-tabs-links {
+                .workflow-view-component .wv-diagram-error {
                     position: absolute;
-                    right: 20px;
-                    top: 20px;
-                    width: 300px;
-                    max-height: 500px;
+                    inset: 0;
+                    display: none;
+                    align-items: center;
+                    justify-content: center;
+                    flex-direction: column;
+                    gap: 0.5rem;
+                    padding: 1.5rem;
+                    text-align: center;
+                    font-size: 0.875rem;
+                    color: var(--text-secondary, #6c757d);
+                    background: rgba(255, 255, 255, 0.92);
+                    z-index: 5;
+                }
+
+                .workflow-view-component .bpmn-properties-tabs-links {
+                    position: absolute;
+                    right: 12px;
+                    top: 12px;
+                    bottom: 12px;
+                    width: min(300px, calc(100% - 24px));
+                    max-height: none;
                     background: var(--background-primary, #fff);
                     border: 1px solid var(--border-color, #ddd);
-                    border-radius: 4px;
-                    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+                    border-radius: 8px;
+                    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
                     overflow: hidden;
                     z-index: 100;
+                    display: flex;
+                    flex-direction: column;
                 }
 
-                .bpmn-properties-tabs-links .properties-header {
+                .workflow-view-component .bpmn-properties-tabs-links .properties-header {
                     display: flex;
                     justify-content: space-between;
-                    align-items: center;
-                    padding: 0.75rem 1rem;
+                    align-items: flex-start;
+                    gap: 0.5rem;
+                    padding: 0.75rem 0.875rem;
                     background: var(--background-secondary, #f8f9fa);
                     border-bottom: 1px solid var(--border-color, #e9ecef);
+                    flex-shrink: 0;
                 }
 
-                .bpmn-properties-tabs-links .properties-header.properties-panel-drag-handle {
+                .workflow-view-component .wv-prop-head-text {
+                    min-width: 0;
+                }
+
+                .workflow-view-component .wv-prop-kicker {
+                    display: block;
+                    font-size: 0.625rem;
+                    font-weight: 600;
+                    letter-spacing: 0.06em;
+                    text-transform: uppercase;
+                    color: var(--text-secondary, #6c757d);
+                    margin-bottom: 0.125rem;
+                }
+
+                .workflow-view-component .bpmn-properties-tabs-links .properties-header.properties-panel-drag-handle {
                     cursor: move;
                     user-select: none;
                 }
 
-                .bpmn-properties-tabs-links.dragging {
-                    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
-                    opacity: 0.95;
+                .workflow-view-component .bpmn-properties-tabs-links.dragging {
+                    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.2);
+                    opacity: 0.98;
                 }
 
-                .bpmn-properties-tabs-links .properties-header .fa-grip-vertical {
+                .workflow-view-component .wv-prop-head-actions {
+                    display: flex;
+                    align-items: center;
+                    gap: 0.5rem;
+                    flex-shrink: 0;
+                }
+
+                .workflow-view-component .wv-prop-head-actions .fa-grip-vertical {
+                    color: #999;
                     cursor: move;
                 }
 
-                .bpmn-properties-tabs-links .properties-header h4 {
+                .workflow-view-component .bpmn-properties-tabs-links .properties-header h4 {
                     margin: 0;
-                    font-size: 0.875rem;
+                    font-size: 0.8125rem;
                     font-weight: 600;
                     color: var(--text-primary, #2c3e50);
                 }
 
-                .bpmn-properties-tabs-links .close-btn {
+                .workflow-view-component .bpmn-properties-tabs-links .close-btn {
                     background: none;
                     border: none;
                     padding: 0.25rem;
@@ -291,73 +443,93 @@
                     color: var(--text-secondary, #6c757d);
                     font-size: 1rem;
                     line-height: 1;
-                    transition: color 0.2s ease;
+                    border-radius: 4px;
+                    transition: color 0.2s ease, background 0.2s ease;
                 }
 
-                .bpmn-properties-tabs-links .close-btn:hover {
+                .workflow-view-component .bpmn-properties-tabs-links .close-btn:hover {
                     color: var(--text-primary, #2c3e50);
+                    background: rgba(0, 0, 0, 0.05);
                 }
 
-                .bpmn-properties-tabs-links .properties-content {
-                    padding: 1rem;
-                    max-height: 450px;
+                .workflow-view-component .bpmn-properties-tabs-links .properties-content {
+                    padding: 0.875rem 1rem;
+                    flex: 1 1 auto;
+                    min-height: 0;
                     overflow-y: auto;
                 }
 
-                .bpmn-properties-tabs-links .property-item {
+                .workflow-view-component .bpmn-properties-tabs-links .property-item {
                     margin-bottom: 0.75rem;
                     padding-bottom: 0.75rem;
                     border-bottom: 1px solid var(--border-color, #e9ecef);
                 }
 
-                .bpmn-properties-tabs-links .property-item:last-child {
+                .workflow-view-component .bpmn-properties-tabs-links .property-item:last-child {
                     border-bottom: none;
                     margin-bottom: 0;
                     padding-bottom: 0;
                 }
 
-                .bpmn-properties-tabs-links .property-label {
+                .workflow-view-component .bpmn-properties-tabs-links .property-label {
                     font-weight: 600;
-                    font-size: 0.75rem;
+                    font-size: 0.6875rem;
                     color: var(--text-secondary, #6c757d);
                     text-transform: uppercase;
                     letter-spacing: 0.025em;
                     margin-bottom: 0.25rem;
                 }
 
-                .bpmn-properties-tabs-links .property-value {
+                .workflow-view-component .bpmn-properties-tabs-links .property-value {
                     font-size: 0.875rem;
                     color: var(--text-primary, #2c3e50);
                     word-break: break-word;
                 }
 
-                .loading-state {
+                .workflow-view-component .wv-state {
                     text-align: center;
-                    padding: 3rem 2rem;
+                    padding: 2.5rem 1.5rem;
                     color: var(--text-muted, #6b7280);
+                    border: 1px dashed var(--border-color, #e9ecef);
+                    border-radius: 8px;
+                    background: var(--background-secondary, #fafbfc);
                 }
 
-                .loading-state i {
-                    margin-right: 0.5rem;
-                    font-size: 1.25rem;
+                .workflow-view-component .wv-state-loading {
+                    flex-direction: row;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 0.5rem;
                 }
 
-                .empty-state {
-                    text-align: center;
-                    padding: 3rem 2rem;
-                    color: var(--text-muted, #6b7280);
+                .workflow-view-component .wv-state-empty {
+                    flex-direction: column;
+                    align-items: center;
+                    justify-content: center;
                 }
 
-                .empty-state i {
-                    font-size: 3rem;
-                    margin-bottom: 1rem;
+                .workflow-view-component .wv-state-loading i {
+                    font-size: 1.125rem;
+                }
+
+                .workflow-view-component .wv-state-empty i {
+                    font-size: 2.5rem;
+                    margin-bottom: 0.75rem;
                     display: block;
-                    color: #ccc;
+                    color: #ced4da;
                 }
 
-                .empty-state p {
+                .workflow-view-component .wv-state-empty p {
                     margin: 0;
                     font-size: 0.875rem;
+                    max-width: 24rem;
+                    margin-left: auto;
+                    margin-right: auto;
+                }
+
+                [dir="rtl"] .workflow-view-component .bpmn-properties-tabs-links {
+                    right: auto;
+                    left: 12px;
                 }
             `;
             document.head.appendChild(styles);
@@ -370,11 +542,31 @@
             const workflowSelect = container.querySelector('#workflowSelectDropdown');
             if (workflowSelect) {
                 workflowSelect.addEventListener('change', (e) => {
-                    const workflowId = parseInt(e.target.value);
+                    const workflowId = parseInt(e.target.value, 10);
                     if (workflowId) {
                         this.loadWorkflowDetails(workflowId);
                     } else {
                         this.hideWorkflowDetails();
+                    }
+                });
+            }
+
+            const fitBtn = container.querySelector('#wvFitViewBtn');
+            if (fitBtn) {
+                fitBtn.addEventListener('click', () => this.zoomFitView());
+            }
+
+            const togglePropsBtn = container.querySelector('#wvTogglePropsBtn');
+            if (togglePropsBtn) {
+                togglePropsBtn.addEventListener('click', () => {
+                    const panel = document.getElementById('bpmn-properties-panel');
+                    if (!panel) return;
+                    const visible = panel.style.display !== 'none';
+                    if (visible) {
+                        this.hidePropertiesPanel();
+                    } else if (document.getElementById('propertiesContent') && document.getElementById('propertiesContent').innerHTML.trim()) {
+                        panel.style.display = 'flex';
+                        this.syncPropertiesToolbar(true);
                     }
                 });
             }
@@ -393,19 +585,68 @@
             }, 100);
         },
 
+        /** Fit BPMN canvas to viewport (read-only viewer). */
+        zoomFitView: function () {
+            if (!this.bpmnViewer) return;
+            try {
+                const canvas = this.bpmnViewer.get('canvas');
+                canvas.zoom('fit-viewport');
+            } catch (e) {
+                console.warn('[WorkflowView] zoomFitView failed:', e);
+            }
+        },
+
+        /** Keep toolbar toggle label in sync with panel visibility. */
+        syncPropertiesToolbar: function (panelOpen) {
+            const btn = document.getElementById('wvTogglePropsBtn');
+            if (!btn) return;
+            const t = (k, p) => (window.I18n && window.I18n.t(k, p)) || k;
+            btn.textContent = panelOpen ? t('workflowView.hideProperties') : t('workflowView.showProperties');
+            btn.setAttribute('aria-expanded', panelOpen ? 'true' : 'false');
+        },
+
+        clearDiagramError: function () {
+            const err = document.getElementById('wvDiagramError');
+            const slot = document.getElementById('bpmnViewerSlot');
+            if (err) {
+                err.style.display = 'none';
+                err.textContent = '';
+            }
+            if (slot) slot.style.display = '';
+        },
+
+        showDiagramError: function (message) {
+            const err = document.getElementById('wvDiagramError');
+            const slot = document.getElementById('bpmnViewerSlot');
+            if (slot) slot.style.display = 'none';
+            if (err) {
+                err.textContent = message;
+                err.style.display = 'flex';
+            }
+        },
+
         /**
          * Load workflows for the current module
          */
         loadWorkflows: async function () {
             const loadingState = document.getElementById('workflowLoadingState');
             const emptyState = document.getElementById('workflowEmptyState');
-            const selectContainer = document.querySelector('.workflow-select-container');
+            const mainStack = document.getElementById('workflowMainStack');
 
-            if (loadingState) loadingState.style.display = 'block';
-            if (selectContainer) selectContainer.style.display = 'none';
+            if (loadingState) loadingState.style.display = 'flex';
+            if (emptyState) emptyState.style.display = 'none';
+            if (mainStack) mainStack.style.display = 'none';
 
             try {
-                const response = await fetch(`/api/process_definitions?entityId=${this.currentModuleId}`);
+                let url;
+                if (this.currentFacetType && this.currentObjectId != null) {
+                    url = '/api/object_workflows?mode=view&facetType=' + encodeURIComponent(this.currentFacetType) +
+                        '&objectId=' + encodeURIComponent(String(this.currentObjectId)) +
+                        '&entityId=' + encodeURIComponent(String(this.currentModuleId));
+                } else {
+                    url = `/api/process_definitions?entityId=${this.currentModuleId}`;
+                }
+                const response = await fetch(url);
 
                 if (!response.ok) {
                     throw new Error('Failed to load workflows');
@@ -419,24 +660,26 @@
                 if (loadingState) loadingState.style.display = 'none';
 
                 if (this.workflows.length === 0) {
-                    if (emptyState) emptyState.style.display = 'block';
-                    if (selectContainer) selectContainer.style.display = 'none';
+                    if (emptyState) emptyState.style.display = 'flex';
+                    if (mainStack) mainStack.style.display = 'none';
                 } else {
                     if (emptyState) emptyState.style.display = 'none';
-                    if (selectContainer) selectContainer.style.display = 'block';
+                    if (mainStack) mainStack.style.display = 'flex';
                     this.populateWorkflowSelect();
                 }
 
             } catch (error) {
                 console.error('Error loading workflows:', error);
                 if (loadingState) loadingState.style.display = 'none';
+                const errMsg = (window.I18n && window.I18n.t('workflowView.workflowsLoadError')) || 'Failed to load workflows';
                 if (emptyState) {
                     emptyState.innerHTML = `
-                        <i class="fas fa-exclamation-triangle"></i>
-                        <p>Failed to load workflows</p>
+                        <i class="fas fa-exclamation-triangle" aria-hidden="true"></i>
+                        <p>${this.escapeHtml(errMsg)}</p>
                     `;
-                    emptyState.style.display = 'block';
+                    emptyState.style.display = 'flex';
                 }
+                if (mainStack) mainStack.style.display = 'none';
             }
         },
 
@@ -457,23 +700,35 @@
             const select = document.getElementById('workflowSelectDropdown');
             if (!select) return;
 
-            // Clear existing options except the first one
-            select.innerHTML = '<option value="">Select a workflow...</option>';
+            const t = (k, p) => (window.I18n && window.I18n.t(k, p)) || k;
+            const placeholder = t('workflowView.selectPlaceholder');
+            select.innerHTML = '<option value="">' + this.escapeHtml(placeholder) + '</option>';
 
-            // Add workflow options
             this.workflows.forEach(workflow => {
                 const option = document.createElement('option');
                 option.value = workflow.id;
                 option.textContent = workflow.primaryName;
                 select.appendChild(option);
             });
+
+            const hint = document.getElementById('workflowMetaHint');
+            if (hint) {
+                const n = this.workflows.length;
+                const countLine = t('workflowView.workflowCount', { count: n });
+                let text = countLine;
+                if (this.currentFacetType && this.currentObjectId != null) {
+                    text += ' ' + t('workflowView.combinedListHint');
+                }
+                hint.textContent = text;
+                hint.style.display = 'block';
+            }
         },
 
         /**
          * Load and display workflow details
          */
         loadWorkflowDetails: async function (workflowId) {
-            const workflow = this.workflows.find(wf => wf.id === workflowId);
+            const workflow = this.workflows.find(wf => Number(wf.id) === Number(workflowId));
             if (!workflow) return;
 
             this.selectedWorkflow = workflow;
@@ -484,7 +739,9 @@
             const descriptionEl = document.getElementById('workflowDescription');
 
             if (processNameEl) processNameEl.textContent = workflow.primaryName;
-            if (descriptionEl) descriptionEl.textContent = workflow.description;
+            if (descriptionEl) descriptionEl.textContent = workflow.description || '';
+            const detailsTitle = document.getElementById('workflowDetailsTitle');
+            if (detailsTitle) detailsTitle.textContent = workflow.primaryName || '';
             if (detailsSection) detailsSection.style.display = 'block';
 
             // Load BPMN diagram
@@ -501,6 +758,8 @@
             if (detailsSection) detailsSection.style.display = 'none';
             if (diagramSection) diagramSection.style.display = 'none';
 
+            this.clearDiagramError();
+            this.hidePropertiesPanel();
             this.destroyBpmnViewer();
             this.selectedWorkflow = null;
         },
@@ -510,6 +769,9 @@
          */
         loadBpmnDiagram: async function (workflowId) {
             const diagramSection = document.getElementById('workflowDiagramSection');
+            const errMsg = (window.I18n && window.I18n.t('workflowView.diagramLoadError')) || 'Failed to load workflow diagram';
+
+            this.clearDiagramError();
 
             try {
                 // Fetch BPMN XML with cache-busting timestamp to ensure fresh data
@@ -556,16 +818,9 @@
 
             } catch (error) {
                 console.error('Error loading BPMN diagram:', error);
-                if (diagramSection) {
-                    diagramSection.innerHTML = `
-                        <div class="section-title">WORKFLOW DIAGRAM</div>
-                        <div class="empty-state">
-                            <i class="fas fa-exclamation-triangle"></i>
-                            <p>Failed to load workflow diagram</p>
-                        </div>
-                    `;
-                    diagramSection.style.display = 'block';
-                }
+                if (diagramSection) diagramSection.style.display = 'block';
+                this.destroyBpmnViewer();
+                this.showDiagramError(errMsg);
             }
         },
 
@@ -633,6 +888,11 @@
 
             const canvasElement = document.getElementById('bpmnViewerCanvas');
             if (!canvasElement) return;
+
+            if (canvasElement.dataset.wvPanInit === 'true') {
+                return;
+            }
+            canvasElement.dataset.wvPanInit = 'true';
 
             const bpmnCanvas = this.bpmnViewer.get('canvas');
             let isDragging = false;
@@ -752,16 +1012,21 @@
 
             if (!propertiesPanel || !propertiesContent) return;
 
-            console.log('[WorkflowView] Element clicked:', element);
-            console.log('[WorkflowView] Element ID:', element.id);
-            console.log('[WorkflowView] Element type:', element.type);
-            console.log('[WorkflowView] Business object:', element.businessObject);
-
+            const t = (k, p) => (window.I18n && window.I18n.t(k, p)) || k;
             const businessObject = element.businessObject;
             let propertiesHtml = '';
 
             const savedProperties = this.getElementProperties(businessObject);
             const savedPropKeys = new Set(Object.keys(savedProperties));
+
+            if (element.type) {
+                propertiesHtml += `
+                    <div class="property-item">
+                        <div class="property-label">${this.escapeHtml(t('workflowView.elementType'))}</div>
+                        <div class="property-value">${this.escapeHtml(this.getFriendlyElementType(element.type))}</div>
+                    </div>
+                `;
+            }
 
             // Element Name
             if (businessObject && businessObject.name) {
@@ -904,7 +1169,8 @@
             });
 
             propertiesContent.innerHTML = propertiesHtml;
-            propertiesPanel.style.display = 'block';
+            propertiesPanel.style.display = 'flex';
+            this.syncPropertiesToolbar(true);
         },
 
         /**
@@ -1111,6 +1377,7 @@
             if (propertiesPanel) {
                 propertiesPanel.style.display = 'none';
             }
+            this.syncPropertiesToolbar(false);
         },
 
         /**
@@ -1140,7 +1407,7 @@
             let initialLeft = 0;
             let initialTop = 0;
             
-            // Store initial position (right: 20px, top: 20px)
+            // Store initial position (right: 12px, top: 12px) — matches diagram card CSS
             let panelLeft = null;
             let panelTop = null;
             let hasBeenDragged = false;
@@ -1151,9 +1418,8 @@
                 if (parent && !hasBeenDragged) {
                     const parentRect = parent.getBoundingClientRect();
                     const panelRect = panel.getBoundingClientRect();
-                    // Calculate from right: 20px, top: 20px
-                    panelLeft = parentRect.width - panelRect.width - 20;
-                    panelTop = 20;
+                    panelLeft = parentRect.width - panelRect.width - 12;
+                    panelTop = 12;
                 }
             }
             
@@ -1179,8 +1445,8 @@
                 
                 // If panel hasn't been dragged, use initial position
                 if (!hasBeenDragged) {
-                    panelLeft = parentRect.width - rect.width - 20;
-                    panelTop = 20;
+                    panelLeft = parentRect.width - rect.width - 12;
+                    panelTop = 12;
                     // Set initial position using left/top instead of right/top
                     panel.style.right = 'auto';
                     panel.style.left = panelLeft + 'px';
@@ -1252,14 +1518,16 @@
             
             // Mark as initialized
             panel.dataset.dragInitialized = 'true';
-            
-            console.log('[WorkflowView] Properties panel drag functionality initialized');
         },
 
         /**
          * Destroy BPMN viewer instance
          */
         destroyBpmnViewer: function () {
+            const canvasEl = document.getElementById('bpmnViewerCanvas');
+            if (canvasEl) {
+                delete canvasEl.dataset.wvPanInit;
+            }
             if (this.bpmnViewer) {
                 this.bpmnViewer.destroy();
                 this.bpmnViewer = null;
