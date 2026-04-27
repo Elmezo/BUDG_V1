@@ -102,6 +102,9 @@ function normalizeVisibleColumns(visibleColumns, allColumns, normalizedCategory)
 
 function getRowValueForColumn(row, columnKey) {
     if (!row || !columnKey) return undefined;
+    if (columnKey === 'System Role' || columnKey === 'System_Role' || columnKey === 'system_role' || columnKey === 'systemRole') {
+        return row['System Role'] ?? row['Profile Name'] ?? row.profileName ?? row.profile_name ?? row.roleName ?? row.role_name ?? row.System_Role;
+    }
     if (Object.prototype.hasOwnProperty.call(row, columnKey)) {
         return row[columnKey];
     }
@@ -726,6 +729,10 @@ function createDynamicTable(data, category) {
     // Detect custom field columns from data that are not in the standard allowed lists.
     // The backend enriches results with CF values as additional keys in each row.
     const INTERNAL_COLUMNS = new Set(['ID', 'id', 'systemImpact', 'relatedCRs', 'activeTasks', 'segments']);
+    const categoryInternalColumns = new Set(INTERNAL_COLUMNS);
+    if (normalizedCategory === 'people') {
+        ['System_Role', 'system_role', 'systemRole', 'Org Unit Ref', 'Org_Unit_Ref'].forEach(key => categoryInternalColumns.add(key));
+    }
     const normalizeCustomKey = (key) => key.toString().toLowerCase().replace(/[\s._-]+/g, '');
     const aliasToCanonical = {
         primaryname: 'name',
@@ -753,7 +760,7 @@ function createDynamicTable(data, category) {
         if (existingCanonicalKeys.has(canonicalizeKey(key))) {
             return;
         }
-        if (!columns.includes(key) && !INTERNAL_COLUMNS.has(key) &&
+        if (!columns.includes(key) && !categoryInternalColumns.has(key) &&
             !key.endsWith('_ID') && !key.endsWith('_id') &&
             typeof data[0][key] !== 'object') {
             columns.push(key);
