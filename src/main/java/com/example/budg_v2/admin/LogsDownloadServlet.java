@@ -607,12 +607,13 @@ public class LogsDownloadServlet extends HttpServlet {
     }
 
     /**
-     * Some deployed log files contain the two characters "\n" between JSON events
-     * instead of a real newline. Split those boundaries without touching "\n" inside
-     * a JSON message unless it is followed by the next timestamp object.
+     * Some deployed log files contain escaped "\n" or "\r\n" between JSON events
+     * instead of real newlines. Split those boundaries without touching escaped
+     * line breaks inside a JSON message unless they are followed by the next
+     * timestamp object.
      */
     private static List<String> splitLogEvents(String line) {
-        return Arrays.asList(line.split("\\\\n(?=\\s*\\{\\s*\"timestamp\")"));
+        return Arrays.asList(line.split("(?:\\\\r)?\\\\n(?=\\s*\\{\\s*\"@?timestamp\")"));
     }
 
     private void writeJsonLogBlock(Writer writer, JsonObject o, String sourceFileName) throws IOException {
@@ -718,9 +719,20 @@ public class LogsDownloadServlet extends HttpServlet {
     private void writeNonJsonBlock(Writer writer, String line) throws IOException {
         writer.write("================================================================================\n");
         writer.write("[RAW LINE — not valid JSON]\n");
-        writer.write(line);
+        writer.write(expandEscapedControlCharacters(line));
         writer.write('\n');
         writer.write("================================================================================\n");
+    }
+
+    private static String expandEscapedControlCharacters(String text) {
+        if (text == null) {
+            return "";
+        }
+        return text
+                .replace("\\r\\n", "\n")
+                .replace("\\n", "\n")
+                .replace("\\r", "\n")
+                .replace("\\t", "    ");
     }
 
     private static String firstString(JsonObject o, String... names) {
