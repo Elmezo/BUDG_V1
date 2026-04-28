@@ -1,10 +1,13 @@
 package com.example.budg_v2;
 
 import com.example.budg_v2.constants.ActivityLogConstants;
+import com.example.budg_v2.dao.FacetChangesDAO;
 import com.example.budg_v2.database.DatabaseConnection;
+import com.example.budg_v2.service.DFCRService;
 import com.example.budg_v2.service.PermissionService;
 import com.example.budg_v2.util.ActivityLogHelper;
 import com.example.budg_v2.util.CorsUtil;
+import com.example.budg_v2.util.CustomFieldPendingFacetHelper;
 import com.example.budg_v2.util.PermissionCheckUtil;
 import com.example.budg_v2.util.UserContextUtil;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -85,10 +88,11 @@ public class CustomFieldServlet extends HttpServlet {
                 return;
             }
             
-            // GET /api/custom-fields/data?facetId=X&objectId=Y
+            // GET /api/custom-fields/data?facetId=X&objectId=Y[&view=changes]
             if ("data".equals(pathParts[0])) {
                 String facetId = req.getParameter("facetId");
                 String objectIdParam = req.getParameter("objectId");
+                String viewParam = req.getParameter("view");
                 
                 if (facetId == null || objectIdParam == null) {
                     sendError(resp, "facetId and objectId are required", HttpServletResponse.SC_BAD_REQUEST);
@@ -96,7 +100,19 @@ public class CustomFieldServlet extends HttpServlet {
                 }
                 
                 int objectId = Integer.parseInt(objectIdParam);
-                List<Map<String, Object>> values = getCustomFieldValues(facetId, objectId);
+                List<Map<String, Object>> values;
+                try (Connection conn = DatabaseConnection.getConnection()) {
+                    Integer moduleId = getModuleIdByFacetName(conn, facetId);
+                    if (moduleId == null) {
+                        values = new ArrayList<>();
+                    } else {
+                        String modulePrimary = getModulePrimaryName(conn, moduleId);
+                        String facetKey = CustomFieldPendingFacetHelper.toFacetChangesKeyFromModulePrimaryName(modulePrimary);
+                        int effectiveId = CustomFieldPendingFacetHelper.resolveEffectiveFacetObjectId(
+                                conn, moduleId, facetKey, objectId, viewParam, false);
+                        values = getCustomFieldValuesForModule(conn, moduleId, effectiveId);
+                    }
+                }
                 Map<String, Object> response = Map.of("success", true, "data", values);
                 objectMapper.writeValue(resp.getWriter(), response);
                 return;
@@ -217,7 +233,8 @@ public class CustomFieldServlet extends HttpServlet {
                     }
                 }
                 
-                Map<String, Object> result = saveCustomFieldValues(requestData, userId);
+                Map<String, Object> result = saveCustomFieldValues(requestData, userId, true,
+                        UserContextUtil.isCurrentUserAdmin(req));
                 if ((Boolean) result.get("success")) {
                     resp.setStatus(HttpServletResponse.SC_OK);
                 } else {
@@ -764,49 +781,146 @@ public class CustomFieldServlet extends HttpServlet {
     // ============= DATA OPERATIONS =============
 
     private List<Map<String, Object>> getCustomFieldValues(String facetId, int objectId) throws SQLException {
-        List<Map<String, Object>> values = new ArrayList<>();
-        
         try (Connection conn = DatabaseConnection.getConnection()) {
             Integer moduleId = getModuleIdByFacetName(conn, facetId);
             if (moduleId == null) {
-                return values;
+                return new ArrayList<>();
             }
+            return getCustomFieldValuesForModule(conn, moduleId, objectId);
+        }
+    }
 
-            // Get all data rows directly (not grouped) to handle multiselect properly
-            String sql = """
+    private List<Map<String, Object>> getCustomFieldValuesForModule(Connection conn, int moduleId, int facetObjectId) throws SQLException {
+        List<Map<String, Object>> values = new ArrayList<>();
+        String sql = """
                 SELECT cfd.Custom_Field_Metadata_ID, cfd.Custom_Field_Enum_ID, cfd.Custom_Field_Value, cfm.DataType
                 FROM Custom_Field_Data cfd
                 INNER JOIN Custom_Field_Metadata cfm ON cfd.Custom_Field_Metadata_ID = cfm.ID
                 WHERE cfm.Module_ID = ? AND cfd.Facet_Object_ID = ?
                 ORDER BY cfd.Custom_Field_Metadata_ID, cfd.Custom_Field_Enum_ID
-            """;
-            try (PreparedStatement stmt = conn.prepareStatement(sql)) {
-                stmt.setInt(1, moduleId);
-                stmt.setInt(2, objectId);
-                try (ResultSet rs = stmt.executeQuery()) {
-                    while (rs.next()) {
-                        Map<String, Object> value = new HashMap<>();
-                        value.put("metadataId", rs.getInt("Custom_Field_Metadata_ID"));
-                        Integer enumId = rs.getObject("Custom_Field_Enum_ID") != null ? rs.getInt("Custom_Field_Enum_ID") : null;
-                        value.put("enumId", enumId);
-                        value.put("value", rs.getString("Custom_Field_Value"));
-                        values.add(value);
-                    }
+                """;
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, moduleId);
+            stmt.setInt(2, facetObjectId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    Map<String, Object> value = new HashMap<>();
+                    value.put("metadataId", rs.getInt("Custom_Field_Metadata_ID"));
+                    Integer enumId = rs.getObject("Custom_Field_Enum_ID") != null ? rs.getInt("Custom_Field_Enum_ID") : null;
+                    value.put("enumId", enumId);
+                    value.put("value", rs.getString("Custom_Field_Value"));
+                    values.add(value);
                 }
             }
         }
         return values;
     }
 
+    /**
+     * First save from the Custom Fields tab should create the same automatic edit CR as the summary tab
+     * for Glossary, Data Set, System, and Process (only).
+     */
+    private static void ensureDfcrAutoCrForCustomFieldSave(Connection conn, String facetKey, int canonicalObjectId,
+                                                           int userId, boolean isAdmin) {
+        if (userId <= 0 || facetKey == null) {
+            return;
+        }
+        String fk = facetKey.toLowerCase().trim();
+        if (!"glossary".equals(fk) && !"dataset".equals(fk) && !"system".equals(fk) && !"process".equals(fk)) {
+            return;
+        }
+        try {
+            FacetChangesDAO facetDao = new FacetChangesDAO();
+            Integer moduleFacetTypeId = facetDao.getFacetId(fk);
+            if (moduleFacetTypeId == null) {
+                return;
+            }
+            String dfcrFacetName;
+            switch (fk) {
+                case "glossary":
+                    dfcrFacetName = "Glossary";
+                    break;
+                case "dataset":
+                    dfcrFacetName = "Data Set";
+                    break;
+                case "system":
+                    dfcrFacetName = "System";
+                    break;
+                case "process":
+                    dfcrFacetName = "Process";
+                    break;
+                default:
+                    return;
+            }
+            Integer typeId = loadDfcrObjectTypeId(conn, fk, canonicalObjectId);
+            new DFCRService().ensureEditAutoCrIfMissing(dfcrFacetName, moduleFacetTypeId, canonicalObjectId, typeId, userId, isAdmin);
+        } catch (Exception e) {
+            System.err.println("[CustomFieldServlet] DFCR ensure before custom field save: " + e.getMessage());
+        }
+    }
+
+    private static Integer loadDfcrObjectTypeId(Connection conn, String facetKey, int objectId) throws SQLException {
+        switch (facetKey.toLowerCase().trim()) {
+            case "glossary":
+                try (PreparedStatement ps = conn.prepareStatement("SELECT Type FROM glossary WHERE ID = ?")) {
+                    ps.setInt(1, objectId);
+                    try (ResultSet rs = ps.executeQuery()) {
+                        if (rs.next()) {
+                            int t = rs.getInt("Type");
+                            return rs.wasNull() ? null : t;
+                        }
+                    }
+                }
+                break;
+            case "dataset":
+                try (PreparedStatement ps = conn.prepareStatement("SELECT DatasetType FROM dataset WHERE ID = ?")) {
+                    ps.setInt(1, objectId);
+                    try (ResultSet rs = ps.executeQuery()) {
+                        if (rs.next()) {
+                            int t = rs.getInt("DatasetType");
+                            return rs.wasNull() ? null : t;
+                        }
+                    }
+                }
+                break;
+            case "system":
+                try (PreparedStatement ps = conn.prepareStatement("SELECT Type FROM system WHERE ID = ?")) {
+                    ps.setInt(1, objectId);
+                    try (ResultSet rs = ps.executeQuery()) {
+                        if (rs.next()) {
+                            int t = rs.getInt("Type");
+                            return rs.wasNull() ? null : t;
+                        }
+                    }
+                }
+                break;
+            case "process":
+                try (PreparedStatement ps = conn.prepareStatement("SELECT type FROM process WHERE id = ?")) {
+                    ps.setInt(1, objectId);
+                    try (ResultSet rs = ps.executeQuery()) {
+                        if (rs.next()) {
+                            int t = rs.getInt("type");
+                            return rs.wasNull() ? null : t;
+                        }
+                    }
+                }
+                break;
+            default:
+                break;
+        }
+        return null;
+    }
+
     private Map<String, Object> saveCustomFieldValues(Map<String, Object> data, int userId) throws SQLException {
-        return saveCustomFieldValues(data, userId, true);
+        return saveCustomFieldValues(data, userId, true, false);
     }
 
     /**
      * When {@code validateMandatory} is false, skips mandatory-field validation (used only for trusted
      * server-side materialization of metadata defaults on new objects).
      */
-    private Map<String, Object> saveCustomFieldValues(Map<String, Object> data, int userId, boolean validateMandatory) throws SQLException {
+    private Map<String, Object> saveCustomFieldValues(Map<String, Object> data, int userId, boolean validateMandatory,
+                                                      boolean isAdmin) throws SQLException {
         Map<String, Object> response = new HashMap<>();
         
         try (Connection conn = DatabaseConnection.getConnection()) {
@@ -819,6 +933,7 @@ public class CustomFieldServlet extends HttpServlet {
                     response.put("error", "objectId is required");
                     return response;
                 }
+                final int canonicalObjectId = objectId;
                 @SuppressWarnings("unchecked")
                 List<Map<String, Object>> values = (List<Map<String, Object>>) data.get("values");
 
@@ -828,6 +943,12 @@ public class CustomFieldServlet extends HttpServlet {
                     response.put("error", "Facet not found");
                     return response;
                 }
+
+                String modulePrimary = getModulePrimaryName(conn, moduleId);
+                String facetKey = CustomFieldPendingFacetHelper.toFacetChangesKeyFromModulePrimaryName(modulePrimary);
+                ensureDfcrAutoCrForCustomFieldSave(conn, facetKey, canonicalObjectId, userId, isAdmin);
+                int dataObjectId = CustomFieldPendingFacetHelper.resolveEffectiveFacetObjectId(
+                        conn, moduleId, facetKey, canonicalObjectId, null, true);
 
                 if (validateMandatory) {
                     Map<Integer, CustomFieldValidationMeta> metadataById = loadModuleCustomFieldValidationMeta(conn, moduleId);
@@ -841,11 +962,11 @@ public class CustomFieldServlet extends HttpServlet {
                 }
 
                 // Load current values before any delete (for facet history diff)
-                Map<Integer, Map<String, String>> oldValues = loadCurrentCustomFieldValues(conn, moduleId, objectId);
+                Map<Integer, Map<String, String>> oldValues = loadCurrentCustomFieldValues(conn, moduleId, dataObjectId);
                 Map<Integer, Map<String, String>> newValues = buildNewCustomFieldValueMap(conn, values, moduleId);
 
                 // Create audit records
-                createAuditRecordsForObject(conn, moduleId, objectId, userId);
+                createAuditRecordsForObject(conn, moduleId, dataObjectId, userId);
 
                 // Delete audit records first (to avoid foreign key constraint violation)
                 // Delete audit records that reference the data records we're about to delete
@@ -856,7 +977,7 @@ public class CustomFieldServlet extends HttpServlet {
                     WHERE cfm.Module_ID = ? AND cfd.Facet_Object_ID = ?
                 """)) {
                     stmt.setInt(1, moduleId);
-                    stmt.setInt(2, objectId);
+                    stmt.setInt(2, dataObjectId);
                     stmt.executeUpdate();
                 }
 
@@ -867,7 +988,7 @@ public class CustomFieldServlet extends HttpServlet {
                     WHERE cfm.Module_ID = ? AND cfd.Facet_Object_ID = ?
                 """)) {
                     stmt.setInt(1, moduleId);
-                    stmt.setInt(2, objectId);
+                    stmt.setInt(2, dataObjectId);
                     stmt.executeUpdate();
                 }
 
@@ -903,7 +1024,7 @@ public class CustomFieldServlet extends HttpServlet {
                                 if (enumId != null) {
                                     stmt.setInt(1, metadataId);
                                     stmt.setInt(2, enumId);
-                                    stmt.setInt(3, objectId);
+                                    stmt.setInt(3, dataObjectId);
                                     stmt.setNull(4, Types.LONGVARCHAR);
                                     stmt.setInt(5, userId);
                                     stmt.addBatch();
@@ -912,7 +1033,7 @@ public class CustomFieldServlet extends HttpServlet {
                                 String normalized = (value != null && "true".equalsIgnoreCase(value.trim())) ? "true" : "false";
                                 stmt.setInt(1, metadataId);
                                 stmt.setNull(2, Types.INTEGER);
-                                stmt.setInt(3, objectId);
+                                stmt.setInt(3, dataObjectId);
                                 stmt.setString(4, normalized);
                                 stmt.setInt(5, userId);
                                 stmt.addBatch();
@@ -920,7 +1041,7 @@ public class CustomFieldServlet extends HttpServlet {
                                 if (value != null && !value.trim().isEmpty()) {
                                     stmt.setInt(1, metadataId);
                                     stmt.setNull(2, Types.INTEGER);
-                                    stmt.setInt(3, objectId);
+                                    stmt.setInt(3, dataObjectId);
                                     stmt.setString(4, value);
                                     stmt.setInt(5, userId);
                                     stmt.addBatch();
@@ -949,11 +1070,11 @@ public class CustomFieldServlet extends HttpServlet {
                         if (oldVal == null) oldVal = "";
                         if (newVal == null) newVal = "";
                         if (newRow == null) {
-                            insertFacetAuditRecordForCustomField(conn, auditTable, objectDisplayName, objectId, "Removed", fieldName, oldVal, null, author);
+                            insertFacetAuditRecordForCustomField(conn, auditTable, objectDisplayName, canonicalObjectId, "Removed", fieldName, oldVal, null, author);
                         } else if (oldRow == null) {
-                            insertFacetAuditRecordForCustomField(conn, auditTable, objectDisplayName, objectId, "Added", fieldName, null, newVal, author);
+                            insertFacetAuditRecordForCustomField(conn, auditTable, objectDisplayName, canonicalObjectId, "Added", fieldName, null, newVal, author);
                         } else if (!oldVal.equals(newVal)) {
-                            insertFacetAuditRecordForCustomField(conn, auditTable, objectDisplayName, objectId, "Changed", fieldName, oldVal, newVal, author);
+                            insertFacetAuditRecordForCustomField(conn, auditTable, objectDisplayName, canonicalObjectId, "Changed", fieldName, oldVal, newVal, author);
                         }
                     }
                 }
@@ -1011,7 +1132,7 @@ public class CustomFieldServlet extends HttpServlet {
             payload.put("facetId", facetPrimary);
             payload.put("objectId", attributeId);
             payload.put("values", values);
-            Map<String, Object> result = servlet.saveCustomFieldValues(payload, userId, false);
+            Map<String, Object> result = servlet.saveCustomFieldValues(payload, userId, false, false);
             if (Boolean.FALSE.equals(result.get("success"))) {
                 System.err.println("materializeAttributeDefaultsIfNoDataYet: " + result.get("error"));
             }

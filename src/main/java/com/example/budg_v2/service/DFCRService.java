@@ -420,6 +420,29 @@ public class DFCRService {
     }
 
     /**
+     * If no active automatic edit CR exists yet for this object, run DFCR edit rules to create one.
+     * Use this at the start of non-summary save handlers (impact, relationships, values, attributes, etc.)
+     * so the first change from any tab creates the same auto CR as a summary save.
+     *
+     * @param facetNameForDfcr   facet name for DFCR settings lookup (e.g. "Glossary", "Data Set", "System", "Process")
+     * @param moduleFacetTypeId  module facet id used by {@link com.example.budg_v2.dao.FacetChangesDAO#getActiveAutomaticChangeRequestId}
+     */
+    public Integer ensureEditAutoCrIfMissing(String facetNameForDfcr, int moduleFacetTypeId, int objectId,
+                                             Integer objectTypeId, int userId, boolean isAdmin) {
+        try {
+            com.example.budg_v2.dao.FacetChangesDAO dao = new com.example.budg_v2.dao.FacetChangesDAO();
+            Integer existing = dao.getActiveAutomaticChangeRequestId(moduleFacetTypeId, objectId);
+            if (existing != null) {
+                return existing;
+            }
+            return applyDefaultsOnEdit(facetNameForDfcr, objectId, objectTypeId, userId, isAdmin);
+        } catch (Exception e) {
+            logger.warn("[DFCR EDIT] ensureEditAutoCrIfMissing failed for {} id={}: {}", facetNameForDfcr, objectId, e.getMessage());
+            return null;
+        }
+    }
+
+    /**
      * Create an auto-generated change request based on DF_CR settings
      * 
      * @param dfcr The facet-level DFCR settings (for fallback values)

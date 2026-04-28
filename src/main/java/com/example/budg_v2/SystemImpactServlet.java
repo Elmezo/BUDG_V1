@@ -2,6 +2,7 @@ package com.example.budg_v2;
 
 import com.example.budg_v2.dao.FacetChangesDAO;
 import com.example.budg_v2.database.DatabaseConnection;
+import com.example.budg_v2.service.DFCRService;
 import com.example.budg_v2.service.SystemImpactService;
 import com.example.budg_v2.util.CorsUtil;
 import com.example.budg_v2.util.ImpactSegmentValidationUtil;
@@ -410,6 +411,15 @@ public class SystemImpactServlet extends HttpServlet {
             if (!PermissionCheckUtil.checkEditPermissionWithStakeholder(request, response, "System", systemId)) {
                 return; // Response already sent
             }
+
+            if (userId > 0) {
+                try {
+                    boolean isAdmin = UserContextUtil.isCurrentUserAdmin(request);
+                    new DFCRService().ensureEditAutoCrIfMissing("System", SYSTEM_FACET_ID, systemId, getSystemType(systemId), userId, isAdmin);
+                } catch (Exception e) {
+                    System.err.println("[SystemImpactServlet] DFCR ensure before product impact save: " + e.getMessage());
+                }
+            }
             
             JsonElement relationshipsElement = jsonData.get("relationships");
             
@@ -515,6 +525,15 @@ public class SystemImpactServlet extends HttpServlet {
             if (!PermissionCheckUtil.checkEditPermissionWithStakeholder(request, response, "System", systemId)) {
                 return; // Response already sent
             }
+
+            if (userId > 0) {
+                try {
+                    boolean isAdmin = UserContextUtil.isCurrentUserAdmin(request);
+                    new DFCRService().ensureEditAutoCrIfMissing("System", SYSTEM_FACET_ID, systemId, getSystemType(systemId), userId, isAdmin);
+                } catch (Exception e) {
+                    System.err.println("[SystemImpactServlet] DFCR ensure before client impact save: " + e.getMessage());
+                }
+            }
             
             JsonElement relationshipsElement = jsonData.get("relationships");
             
@@ -605,6 +624,15 @@ public class SystemImpactServlet extends HttpServlet {
             // Check edit permission + stakeholder status
             if (!PermissionCheckUtil.checkEditPermissionWithStakeholder(request, response, "System", systemId)) {
                 return; // Response already sent
+            }
+
+            if (userId > 0) {
+                try {
+                    boolean isAdmin = UserContextUtil.isCurrentUserAdmin(request);
+                    new DFCRService().ensureEditAutoCrIfMissing("System", SYSTEM_FACET_ID, systemId, getSystemType(systemId), userId, isAdmin);
+                } catch (Exception e) {
+                    System.err.println("[SystemImpactServlet] DFCR ensure before legal impact save: " + e.getMessage());
+                }
             }
             JsonElement relationshipsElement = jsonData.get("relationships");
             
@@ -728,6 +756,24 @@ public class SystemImpactServlet extends HttpServlet {
         Map<String, Object> error = new HashMap<>();
         error.put("error", message);
         response.getWriter().write(gson.toJson(error));
+    }
+
+    private Integer getSystemType(int systemId) {
+        try (Connection conn = DatabaseConnection.getConnection()) {
+            String sql = "SELECT Type FROM system WHERE ID = ?";
+            try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+                stmt.setInt(1, systemId);
+                try (ResultSet rs = stmt.executeQuery()) {
+                    if (rs.next()) {
+                        int type = rs.getInt("Type");
+                        return rs.wasNull() ? null : type;
+                    }
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("[SystemImpactServlet] Error getting system type: " + e.getMessage());
+        }
+        return null;
     }
 
     /**

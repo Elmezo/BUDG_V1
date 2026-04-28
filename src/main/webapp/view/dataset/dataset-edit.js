@@ -794,7 +794,8 @@
                     facetId: 'Dataset',
                     containerId: 'customFieldsContainer',
                     mode: 'edit',
-                    objectId: id
+                    objectId: id,
+                    view: editViewMode === 'changes' ? 'changes' : null
                 });
                 console.log('Custom fields initialized:', window.customFieldsContext);
             } catch (error) {
@@ -1143,6 +1144,9 @@
                 const impactTab = document.getElementById('impactTab');
                 if (impactTab) impactTab.style.display = 'none';
 
+                const workflowTab = document.getElementById('workflowTab');
+                if (workflowTab) workflowTab.style.display = 'none';
+
                 // Show selected tab
                 if (tabName === 'details') {
                     const datasetEditContainer = document.getElementById('datasetEditContainer');
@@ -1212,6 +1216,16 @@
                         if (window.initImpactEdit && typeof window.initImpactEdit === 'function') {
                             window.initImpactEdit(id, editViewMode);
                         }
+                    }
+                } else if (tabName === 'workflow') {
+                    const workflowTabEl = document.getElementById('workflowTab');
+                    if (workflowTabEl) workflowTabEl.style.display = 'block';
+                    if (window.ObjectWorkflowEdit) {
+                        window.ObjectWorkflowEdit.ensureInitialized({
+                            rootId: 'datasetObjectWorkflowRoot',
+                            facetType: 'dataset',
+                            objectId: id
+                        });
                     }
                 }
             });

@@ -835,13 +835,14 @@ class Dashboard {
                 const deleteDisabledAttr = isMainDashboard ? 'disabled' : '';
                 const cloneDisabledClass = isMainDashboard ? 'disabled' : '';
                 const cloneDisabledAttr = isMainDashboard ? 'disabled' : '';
-                const sharingDisabledClass = isMainDashboard ? 'disabled' : '';
-                const sharingDisabledAttr = isMainDashboard ? 'disabled' : '';
-                
                 // Check if current user is the owner of the dashboard
                 const currentUserId = this.currentUser ? (this.currentUser.id || this.currentUser.ID) : null;
                 const isOwner = isMainDashboard || (currentUserId && this.dashboardOwnerId && 
                     parseInt(currentUserId) === parseInt(this.dashboardOwnerId));
+                const canModifySharing = !isMainDashboard && currentUserId && this.dashboardOwnerId &&
+                    parseInt(currentUserId) === parseInt(this.dashboardOwnerId);
+                const sharingDisabledClass = canModifySharing ? '' : 'disabled';
+                const sharingDisabledAttr = canModifySharing ? '' : 'disabled';
                 const newWidgetDisabledClass = isOwner ? '' : 'disabled';
                 const newWidgetDisabledAttr = isOwner ? '' : 'disabled';
                 
@@ -1901,7 +1902,15 @@ class Dashboard {
         if (this.currentDashboardId === null) {
             return;
         }
-        
+        const currentUserId = this.currentUser ? (this.currentUser.id || this.currentUser.ID) : null;
+        if (this.dashboardOwnerId != null && currentUserId != null &&
+            parseInt(currentUserId, 10) !== parseInt(this.dashboardOwnerId, 10)) {
+            alert((window.I18n && window.I18n.t)
+                ? window.I18n.t('dashboard.sharing.onlyOwnerCanModify')
+                : 'You can only change sharing for dashboards you own. This dashboard was shared with you.');
+            return;
+        }
+
         console.log('Opening sharing modal for dashboard:', this.currentDashboardId);
         await this.openSharingModal();
     }
@@ -1919,24 +1928,37 @@ class Dashboard {
                 credentials: 'include'
             });
 
-            if (response.ok) {
-                const sharingInfo = await response.json();
-                this.populateSharingModal(sharingInfo);
-            } else {
-                console.error('Failed to load sharing info');
-                // Set default to stop sharing
-                document.getElementById('stopSharing').checked = true;
+            if (!response.ok) {
+                console.error('Failed to load sharing info', response.status);
+                let msg = (window.I18n && window.I18n.t)
+                    ? window.I18n.t('dashboard.sharing.loadSharingFailed')
+                    : 'Could not load sharing settings. Please try again.';
+                try {
+                    const errBody = await response.json();
+                    if (errBody && errBody.error) {
+                        msg = errBody.error;
+                    }
+                } catch (e) { /* ignore */ }
+                alert(msg);
+                return;
             }
 
-            // Setup modal event listeners
+            const sharingInfo = await response.json();
+            if (sharingInfo.isOwner === false || sharingInfo.isOwner === 'false' || sharingInfo.isOwner === 0) {
+                alert((window.I18n && window.I18n.t)
+                    ? window.I18n.t('dashboard.sharing.onlyOwnerCanModify')
+                    : 'You can only change sharing for dashboards you own. This dashboard was shared with you.');
+                return;
+            }
+
+            this.populateSharingModal(sharingInfo);
             this.setupSharingModalListeners();
-            
-            // Show modal
             modal.style.display = 'block';
-            
         } catch (error) {
             console.error('Error opening sharing modal:', error);
-            alert('Failed to load sharing settings. Please try again.');
+            alert((window.I18n && window.I18n.t)
+                ? window.I18n.t('dashboard.sharing.loadSharingFailed')
+                : 'Could not load sharing settings. Please try again.');
         }
     }
 

@@ -1299,7 +1299,8 @@
         const tabContents = {
             'summary': document.getElementById('summaryTab'),
             'stakeholders': document.getElementById('stakeholdersTab'),
-            'impact': document.getElementById('impactTab')
+            'impact': document.getElementById('impactTab'),
+            'workflow': document.getElementById('workflowTab')
         };
 
         tabs.forEach(function(btn) {
@@ -1320,10 +1321,12 @@
                 const form = document.getElementById('interfaceEditForm');
                 const stakeholdersContainer = document.getElementById('interfaceStakeholdersContainer');
                 const impactTab = document.getElementById('impactTab');
+                const workflowTabEl = document.getElementById('workflowTab');
                 
                 if (form) form.style.display = 'block';
                 if (stakeholdersContainer) stakeholdersContainer.style.display = 'none';
                 if (impactTab) impactTab.style.display = 'none';
+                if (workflowTabEl) workflowTabEl.style.display = 'none';
                 
                 if (tabName === 'stakeholders') {
                     // Show stakeholders container and hide form
@@ -1333,6 +1336,9 @@
                     // Show impact tab and hide form
                     if (form) form.style.display = 'none';
                     if (impactTab) impactTab.style.display = 'block';
+                } else if (tabName === 'workflow') {
+                    if (form) form.style.display = 'none';
+                    if (workflowTabEl) workflowTabEl.style.display = 'block';
                 }
                 
                 if (tabContents[tabName]) {
@@ -1474,10 +1480,12 @@
         const form = document.getElementById('interfaceEditForm');
         const stakeholdersContainer = document.getElementById('interfaceStakeholdersContainer');
         const impactTab = document.getElementById('impactTab');
+        const workflowTabEl = document.getElementById('workflowTab');
         
         if (form) form.style.display = 'block';
         if (stakeholdersContainer) stakeholdersContainer.style.display = 'none';
         if (impactTab) impactTab.style.display = 'none';
+        if (workflowTabEl) workflowTabEl.style.display = 'none';
         
         switch(tabName) {
             case 'stakeholders':
@@ -1499,6 +1507,17 @@
                 if (window.initImpactEdit) {
                     window.initImpactEdit(id);
                     // setupImpactSubTabs will handle subtab activation from URL
+                }
+                break;
+            case 'workflow':
+                if (form) form.style.display = 'none';
+                if (workflowTabEl) workflowTabEl.style.display = 'block';
+                if (window.ObjectWorkflowEdit) {
+                    window.ObjectWorkflowEdit.ensureInitialized({
+                        rootId: 'systemInterfaceObjectWorkflowRoot',
+                        facetType: 'system-interface',
+                        objectId: id
+                    });
                 }
                 break;
             case 'summary':
@@ -2067,7 +2086,7 @@
         
         // For stakeholders and impact tabs, skip form validation
         // They have their own validation logic
-        if (tabName === 'stakeholders' || tabName === 'impact') {
+        if (tabName === 'stakeholders' || tabName === 'impact' || tabName === 'workflow') {
             console.log('Skipping form validation for tab:', tabName);
             return true;
         }
@@ -2140,6 +2159,12 @@
         buttons.forEach(b => { 
             if (b) b.disabled = true; 
         });
+
+        if (activeTab === 'workflow') {
+            showMessage('Save workflows from the workflow editor.', 'info');
+            buttons.forEach(b => { if (b) b.disabled = false; });
+            return;
+        }
         
         let convertedPayload = null;
         

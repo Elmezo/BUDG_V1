@@ -1282,9 +1282,9 @@ document.addEventListener('DOMContentLoaded', async function() {
                 if (targetContainer) {
                     // Set display based on container type
                     // Stakeholders container should be block, others should be grid
-                    if (tabName === 'stakeholders') {
+                    if (tabName === 'stakeholders' || tabName === 'workflow') {
                         targetContainer.style.display = 'block';
-                        console.log('Container display set to block (stakeholders)');
+                        console.log('Container display set to block (stakeholders/workflow)');
                     } else {
                         targetContainer.style.display = 'grid';
                         console.log('Container display set to grid');
@@ -1342,6 +1342,15 @@ document.addEventListener('DOMContentLoaded', async function() {
                 break;
             case 'summary':
                 // Handle summary tab if it exists separately
+                break;
+            case 'workflow':
+                if (window.ObjectWorkflowEdit && entityId) {
+                    window.ObjectWorkflowEdit.ensureInitialized({
+                        rootId: 'clientObjectWorkflowRoot',
+                        facetType: 'client',
+                        objectId: parseInt(entityId, 10)
+                    });
+                }
                 break;
             default:
                 // Handle other tabs if needed

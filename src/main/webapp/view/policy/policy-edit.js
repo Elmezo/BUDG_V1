@@ -927,6 +927,15 @@ function setupTabSwitching() {
                     }
                     void window.initImpactEdit(policyId);
                 }
+            } else if (tabName === 'workflow') {
+                const policyId = parseId();
+                if (policyId && window.ObjectWorkflowEdit) {
+                    window.ObjectWorkflowEdit.ensureInitialized({
+                        rootId: 'policyObjectWorkflowRoot',
+                        facetType: 'policy',
+                        objectId: policyId
+                    });
+                }
             }
             } else {
                 console.error('Tab content not found for:', tabName);

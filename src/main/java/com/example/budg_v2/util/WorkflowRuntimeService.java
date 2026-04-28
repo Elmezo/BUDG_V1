@@ -623,6 +623,8 @@ public class WorkflowRuntimeService {
         // Check if any next node is an end event
         boolean workflowCompleted = false;
         boolean changesAlreadyApplied = false; // Track if changes were already applied by end event commitChanges
+        // When the reached end event explicitly sets commitChanges=false, never apply on auto-complete — discard instead
+        boolean workflowEndDeclinesCommit = false;
         for (String nodeId : nextNodeIds) {
             Element nextElement = BpmnParser.findElementById(doc, nodeId);
             if (nextElement != null) {
@@ -679,6 +681,10 @@ public class WorkflowRuntimeService {
                         logger.error("Failed to apply pending changes for CR: {}", instance.getChangeRequestId(), e);
                         // Don't fail workflow completion if applying changes fails
                     }
+                } else if ("false".equalsIgnoreCase(commitChanges) || "0".equals(commitChanges)) {
+                    workflowEndDeclinesCommit = true;
+                    logger.info("End event {} has commitChanges=false — pending changes will be discarded (not applied) for CR {}",
+                            nodeId, instance.getChangeRequestId());
                 }
 
                 break;
@@ -791,6 +797,18 @@ public class WorkflowRuntimeService {
                             if (changesAlreadyApplied) {
                                 logger.info("ℹ️ [AUTO-COMPLETE] Changes already snapshotted and applied by end event commitChanges for CR {} - skipping duplicate snapshot/apply",
                                         instance.getChangeRequestId());
+                            } else if (workflowEndDeclinesCommit) {
+                                try {
+                                    logger.info("🔄 [AUTO-COMPLETE] End event declined commit — discarding pending changes for CR {}",
+                                            instance.getChangeRequestId());
+                                    com.example.budg_v2.service.FacetChangesService facetChangesService = new com.example.budg_v2.service.FacetChangesService();
+                                    facetChangesService.discardChangesForCR(instance.getChangeRequestId());
+                                    logger.info("✅ [AUTO-COMPLETE] Discarded pending changes for CR {} (commitChanges=false on end event)",
+                                            instance.getChangeRequestId());
+                                } catch (Exception e) {
+                                    logger.error("Error discarding pending changes for auto-completed CR {}: {}",
+                                            instance.getChangeRequestId(), e.getMessage(), e);
+                                }
                             } else {
                                 // Check for pending changes and apply them (same as Complete button)
                                 try {
@@ -857,14 +875,26 @@ public class WorkflowRuntimeService {
                         // Even if auto-complete is disabled, update CR status to "Completed" when workflow completes
                         // (but don't apply pending changes - user must click Complete button for that)
                         try {
-                            logger.info("🔄 [WORKFLOW COMPLETED] Updating CR {} status to Completed (auto-complete disabled, pending changes will be applied manually)",
-                                    instance.getChangeRequestId());
+                            logger.info("🔄 [WORKFLOW COMPLETED] Updating CR {} status to Completed (auto-complete disabled{})",
+                                    instance.getChangeRequestId(),
+                                    workflowEndDeclinesCommit ? ", discarding pending changes (end event commitChanges=false)" : ", pending changes will be applied manually");
                             
                             com.example.budg_v2.dao.ChangeRequestDAO changeRequestDAO = new com.example.budg_v2.dao.ChangeRequestDAO();
                             com.example.budg_v2.model.ChangeRequest cr = changeRequestDAO
                                     .getChangeRequestById(instance.getChangeRequestId());
                             
                             if (cr != null) {
+                                if (workflowEndDeclinesCommit) {
+                                    try {
+                                        com.example.budg_v2.service.FacetChangesService facetChangesService = new com.example.budg_v2.service.FacetChangesService();
+                                        facetChangesService.discardChangesForCR(instance.getChangeRequestId());
+                                        logger.info("✅ [WORKFLOW COMPLETED] Discarded pending changes for CR {} (commitChanges=false on end event)",
+                                                instance.getChangeRequestId());
+                                    } catch (Exception discardEx) {
+                                        logger.error("❌ [WORKFLOW COMPLETED] Error discarding pending changes for CR {}: {}",
+                                                instance.getChangeRequestId(), discardEx.getMessage(), discardEx);
+                                    }
+                                }
                                 Integer completedStatusId = changeRequestDAO.getStatusIdByName("Completed");
                                 if (completedStatusId != null) {
                                     cr.setCrStatusId(completedStatusId);

@@ -32,6 +32,8 @@ import java.util.Map;
 @WebServlet({"/api/Attribute-stakeholder/*", "/api/Attribute/stakeholder/lookup"})
 public class AttributeStakeholderServlet extends HttpServlet {
     private static final long serialVersionUID = 1L;
+    /** Module facet id for dataset (same as DatasetServlet / FacetChangesDAO). */
+    private static final int DATASET_FACET_TYPE = 11;
     private static final Logger logger = LoggerFactory.getLogger(AttributeStakeholderServlet.class);
     private Gson gson = new Gson();
     @SuppressWarnings("unused")
@@ -654,23 +656,39 @@ public class AttributeStakeholderServlet extends HttpServlet {
         return people;
     }
 
-    // Get attributes by dataset ID
+    // Get attributes by dataset ID (includes attributes on pending clone when an auto CR is active)
     private List<JsonObject> getAttributesByDataset(Connection conn, int datasetId) throws SQLException {
-        String sql = """
-            SELECT 
-                a.ID AS AttributeID,
-                a.PrimaryName AS AttributeName,
-                a.CreatedBy AS CreatedBy_ID
-            FROM attribute a
-            WHERE a.Dataset_ID = ?
-            AND a.DeletedDatetime IS NULL
-            ORDER BY a.PrimaryName
-            """;
+        java.util.List<Integer> datasetIds = new java.util.ArrayList<>();
+        datasetIds.add(datasetId);
+        try {
+            Integer activeCrId = facetChangesDAO.getActiveAutomaticChangeRequestId(DATASET_FACET_TYPE, datasetId);
+            if (activeCrId != null) {
+                Integer cloneId = facetChangesDAO.getNObjectId("dataset", datasetId, "summary", activeCrId);
+                if (cloneId != null && cloneId != datasetId) {
+                    datasetIds.add(cloneId);
+                }
+            }
+        } catch (SQLException e) {
+            logger.warn("Could not resolve cloned dataset for attribute stakeholder lookup (dataset {}): {}", datasetId, e.getMessage());
+        }
+
+        StringBuilder placeholders = new StringBuilder();
+        for (int i = 0; i < datasetIds.size(); i++) {
+            if (i > 0) {
+                placeholders.append(',');
+            }
+            placeholders.append('?');
+        }
+        String sql = "SELECT a.ID AS AttributeID, a.PrimaryName AS AttributeName, a.CreatedBy AS CreatedBy_ID "
+                + "FROM attribute a WHERE a.Dataset_ID IN (" + placeholders + ") AND a.DeletedDatetime IS NULL "
+                + "ORDER BY a.PrimaryName";
 
         List<JsonObject> attributes = new ArrayList<>();
 
         try (PreparedStatement stmt = conn.prepareStatement(sql)) {
-            stmt.setInt(1, datasetId);
+            for (int i = 0; i < datasetIds.size(); i++) {
+                stmt.setInt(i + 1, datasetIds.get(i));
+            }
 
             try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {

@@ -878,7 +878,8 @@ function showEditControls() {
                         facetId: 'Dataset',
                         containerId: 'datasetViewContainer',
                         objectId: id,
-                        title: window.I18n?.t('dataset.messages.customFields') || 'CUSTOM FIELDS'
+                        title: window.I18n?.t('dataset.messages.customFields') || 'CUSTOM FIELDS',
+                        view: view === 'changes' ? 'changes' : null
                     });
                 } catch (error) {
                     console.error('Error rendering custom fields:', error);

@@ -499,9 +499,13 @@
 
             if (response.ok) {
                 const result = await response.json();
-                
-                // After creating a CR, automatically open edit mode
-                window.location.href = `/view/change-request/change-request-edit.html?id=${result.id}`;
+                const id = result.id;
+                // Save → stay in edit workflow; Save & Close → read-only view
+                if (closeAfterSave) {
+                    window.location.href = `/view/change-request/change-request-view.html?id=${id}`;
+                } else {
+                    window.location.href = `/view/change-request/change-request-edit.html?id=${id}`;
+                }
             } else {
                 const error = await response.json().catch(() => ({ error: 'Failed to save change request' }));
                 alert('Error: ' + (error.error || 'Failed to save change request'));

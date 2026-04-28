@@ -116,6 +116,7 @@
                     <button class="tab" data-tab="relationshipsTab" data-i18n="tab.relationships">RELATIONSHIPS</button>
                     <button class="tab" data-tab="stakeholdersTab" data-i18n="tab.stakeholders">STAKEHOLDERS</button>
                     <button class="tab" data-tab="impactTab" data-i18n="tab.impact">IMPACT</button>
+                    <button class="tab" data-tab="workflowTab" data-i18n="tab.workflow">WORKFLOW</button>
                 </div>
             </div>
             <div class="content-body">
@@ -412,6 +413,10 @@
                         </div>
                     </div>
                 </div>
+
+                <div class="tab-content" id="workflowTab">
+                    <div id="productObjectWorkflowRoot"></div>
+                </div>
             </div>
         </div>
     </main>
@@ -454,6 +459,11 @@
 <script src="product-stakeholder-edit.js"></script>
 <script src="product-impact-edit.js"></script>
 <script src="../../assets/js/advanced-rich-text-editor.js"></script>
+    <link rel="stylesheet" href="../../assets/js/libs/bpmn-js/assets/bpmn-font/css/bpmn.css">
+    <link rel="stylesheet" href="../../assets/js/libs/bpmn-js/assets/bpmn-js.css">
+    <link rel="stylesheet" href="../../assets/js/libs/bpmn-js/assets/diagram-js.css">
+    <script src="../../assets/js/libs/bpmn-js/bpmn-modeler.production.min.js"></script>
+    <script src="../../view/workflow-edit.js"></script>
 <script src="product-edit.js"></script>
 </body>
 </html>

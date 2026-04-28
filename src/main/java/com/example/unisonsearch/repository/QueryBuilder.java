@@ -2039,6 +2039,7 @@ public class QueryBuilder {
 						"    ou.ID AS 'Org Unit_ID',\n" +
 						"    s.PrimaryName AS 'BUDG Status',\n" +
 						"    r.primaryname AS 'Profile Name',\n" +
+						"    r.primaryname AS 'System Role',\n" +
 						"    p.System_Role AS System_Role,\n" +
 						"    p.last_User_LogIn AS 'Last Login',\n" +
 						"    ls.Primary_Name AS Lifecycle,\n" +
@@ -2483,48 +2484,46 @@ public class QueryBuilder {
 	}
 	
 	/**
-	 * Get the status table alias used in SQL queries for a given module.
-	 * Most modules use alias 's' for status table, but system uses 'st'.
-	 * 
-	 * @param module The module name
-	 * @return The status table alias, or null if module doesn't have status
+	 * BUDG status table name + alias as used in {@code getSqlForModule} / {@code buildModuleSql} SQL
+	 * (e.g. {@code LEFT JOIN status s}, {@code LEFT JOIN status st} for system,
+	 * {@code LEFT JOIN regulation_status rs} for regulation).
 	 */
-	private String getStatusAliasForModule(String module) {
+	private record StatusTableJoinInModule(String table, String alias) {
+	}
+
+	/**
+	 * Which status table / alias a module's list SQL uses for the main "BUDG Status" display column.
+	 */
+	private StatusTableJoinInModule getStatusTableJoinInModule(String module) {
 		if (module == null) {
 			return null;
 		}
-		
 		String normalized = module.trim().toLowerCase();
-		
-		// Modules that don't have status (based on BulkDeleteDAO comments)
 		if ("geography".equals(normalized) || "regulator".equals(normalized)) {
 			return null;
 		}
-		
-		// System module uses 'st' as status alias (see getSqlForModule)
 		if ("system".equals(normalized)) {
-			return "st";
+			return new StatusTableJoinInModule("status", "st");
 		}
-		
-		// Most modules use 's' as status alias
-		return "s";
+		if ("regulation".equals(normalized)) {
+			return new StatusTableJoinInModule("regulation_status", "rs");
+		}
+		return new StatusTableJoinInModule("status", "s");
 	}
-	
+
 	/**
-	 * Check if the SQL query has a status join with the given alias.
-	 * 
-	 * @param sql The SQL query
-	 * @param statusAlias The status table alias to check for
-	 * @return true if status join exists, false otherwise
+	 * True if the SQL has a (LEFT) JOIN from the main entity to this status table with the given alias.
 	 */
-	private boolean hasStatusJoin(String sql, String statusAlias) {
-		if (sql == null || statusAlias == null) {
+	private boolean hasStatusTableJoin(String sql, String statusTable, String statusAlias) {
+		if (sql == null || statusTable == null || statusAlias == null) {
 			return false;
 		}
-		
-		// Check for LEFT JOIN status or JOIN status with the alias
-		String pattern = "JOIN\\s+STATUS\\s+" + statusAlias.toUpperCase();
-		return Pattern.compile(pattern, Pattern.CASE_INSENSITIVE).matcher(sql).find();
+		// e.g. LEFT JOIN status s, LEFT JOIN regulation_status rs (flexible whitespace)
+		String t = java.util.regex.Pattern.quote(statusTable);
+		String a = java.util.regex.Pattern.quote(statusAlias);
+		// Matches "LEFT JOIN table alias ON" and "JOIN table alias ON" (subpattern of LEFT JOIN is fine)
+		String p = "JOIN[\\s]+" + t + "[\\s]+" + a + "[\\s]+ON";
+		return Pattern.compile(p, Pattern.CASE_INSENSITIVE | Pattern.DOTALL).matcher(sql).find();
 	}
 
 	/**
@@ -2608,11 +2607,12 @@ public class QueryBuilder {
 		if (searchGroupsJson != null && searchGroupsDefineEntityStatusFilter(module, searchGroupsJson)) {
 			return sql;
 		}
-		String statusAlias = getStatusAliasForModule(module);
-		if (statusAlias == null || !hasStatusJoin(sql, statusAlias)) {
+		StatusTableJoinInModule join = getStatusTableJoinInModule(module);
+		if (join == null || !hasStatusTableJoin(sql, join.table(), join.alias())) {
 			return sql;
 		}
-		String frag = "(" + statusAlias + ".PrimaryName IS NULL OR " + statusAlias + ".PrimaryName != 'Deleted')";
+		String a = join.alias();
+		String frag = "(" + a + ".PrimaryName IS NULL OR " + a + ".PrimaryName != 'Deleted')";
 		return insertWhereClause(sql, frag);
 	}
 
@@ -2673,10 +2673,11 @@ public class QueryBuilder {
 		// When deferWebUserDeletedStatusNameFilter is true (Unison searchGroups path), this is applied later so
 		// explicit Status dropdown filters can include Deleted / Pending Review without being negated here.
 		if (!deferWebUserDeletedStatusNameFilter && !isAdminOrSuperAdmin(userId)) {
-			String statusAlias = getStatusAliasForModule(module);
-			if (statusAlias != null && hasStatusJoin(sql, statusAlias)) {
-				// Filter out objects where status.PrimaryName = 'Deleted'
-				condition = "(" + condition + " AND (" + statusAlias + ".PrimaryName IS NULL OR " + statusAlias + ".PrimaryName != 'Deleted'))";
+			StatusTableJoinInModule statusJoin = getStatusTableJoinInModule(module);
+			if (statusJoin != null && hasStatusTableJoin(sql, statusJoin.table(), statusJoin.alias())) {
+				String a = statusJoin.alias();
+				// Filter out objects where status / regulation_status .PrimaryName = 'Deleted'
+				condition = "(" + condition + " AND (" + a + ".PrimaryName IS NULL OR " + a + ".PrimaryName != 'Deleted'))";
 			}
 		}
 		
@@ -3677,6 +3678,7 @@ public class QueryBuilder {
 					case "people" -> "p.status_id";
 					case "org-unit", "orgunit" -> "ou.status_id";
 					case "regulatory-theme", "regulatorytheme" -> "rt.Status_ID";
+					case "change-request", "changerequest", "change_request" -> "cr.CR_StatusID";
 					default -> {
 						// Try to get table alias and use status column
 						String tableAlias = getTableAliasForModule(module);

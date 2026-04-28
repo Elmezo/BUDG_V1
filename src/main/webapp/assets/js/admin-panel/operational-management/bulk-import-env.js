@@ -1,5 +1,5 @@
 /**
- * Bulk Import ENV: upload encrypted .bsnap or legacy ZIP to TableSnapshotServlet (/api/table-snapshot/import), merge or replace.
+ * Bulk Import ENV: upload .zip (BUDG budg_env package) to /api/import-env, or encrypted .bsnap (table snapshot) to /api/table-snapshot/import.
  */
 
 function escapeBulkEnvHtml(s) {
@@ -16,7 +16,8 @@ function showBulkImportEnvContent(contentArea) {
     const T = typeof adminT === 'function' ? adminT : function (k, f) { return f; };
     updateSystemTitle(
         T('adminPanel.bulkImportEnv.title', 'Bulk Import ENV'),
-        T('adminPanel.bulkImportEnv.subtitle', 'Import a table snapshot ZIP (metadata.json + JSONL per table)'));
+        T('adminPanel.bulkImportEnv.subtitle',
+            'Import a migration .zip (metadata.json + Manifest.json + Excel) or a table snapshot .bsnap (encrypted).'));
 
     contentArea.innerHTML = `
         <div class="bulk-import-env-container" style="padding: 0;">
@@ -27,7 +28,7 @@ function showBulkImportEnvContent(contentArea) {
                     </button>
                     <div>
                         <h1 style="margin: 0; color: white; font-size: 28px; font-weight: 600;">${T('adminPanel.bulkImportEnv.title', 'Bulk Import ENV')}</h1>
-                        <p style="margin: 5px 0 0 0; color: rgba(255, 255, 255, 0.8); font-size: 14px;">${T('adminPanel.bulkImportEnv.subtitle', 'Import a table snapshot ZIP (metadata.json + JSONL per table)')}</p>
+                        <p style="margin: 5px 0 0 0; color: rgba(255, 255, 255, 0.8); font-size: 14px;">${T('adminPanel.bulkImportEnv.subtitle', 'Import a migration .zip (metadata.json + Manifest.json + Excel) or a table snapshot .bsnap (encrypted).')}</p>
                     </div>
                 </div>
                 <div style="display: flex; gap: 10px;">
@@ -68,9 +69,9 @@ function showBulkImportEnvContent(contentArea) {
 
                 <div id="envDropZone" class="env-snapshot-dropzone" style="background-color: #e8f4f8; padding: 24px; border-radius: 8px; margin-bottom: 30px; border: 2px dashed #bdc3c7; transition: border-color 0.15s ease, background-color 0.15s ease;">
                     <h3 style="margin: 0 0 8px 0; color: #2c3e50; font-size: 16px; font-weight: 600;">${T('adminPanel.bulkImportEnv.uploadFile', 'Upload snapshot')}</h3>
-                    <p style="margin: 0 0 16px 0; color: #546e7a; font-size: 13px;">${T('adminPanel.bulkImportEnv.dropHint', 'Drag and drop a file here, or use Choose File.')}</p>
+                    <p style="margin: 0 0 16px 0; color: #546e7a; font-size: 13px;">${T('adminPanel.bulkImportEnv.dropHint', '.zip = migration package from Bulk Migrate; .bsnap = encrypted table snapshot export.')}</p>
                     <label style="display: block; font-weight: 500; color: #2c3e50; font-size: 14px; margin-bottom: 10px;">
-                        ${T('adminPanel.bulkImportEnv.uploadLabel', 'Encrypted snapshot (.bsnap) or legacy .zip')} <span style="color: #e74c3c;">*</span>
+                        ${T('adminPanel.bulkImportEnv.uploadLabel', 'Migration package (.zip) or encrypted table snapshot (.bsnap)')} <span style="color: #e74c3c;">*</span>
                     </label>
                     <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
                         <input type="text" id="envFileNameDisplay" readonly
@@ -167,6 +168,75 @@ function renderSnapshotImportResults(data) {
                 'Per-table details and merge warnings are in the JSON report on this job (download from My Jobs). Job ID: {jobId}{ref}.');
             const refPart = ref ? (' · ' + ref) : '';
             jobHintText.textContent = tmpl.replace(/\{jobId\}/g, String(jid)).replace(/\{ref\}/g, refPart);
+            myJobsLink.onclick = function (e) {
+                e.preventDefault();
+                fetch('/api/me', { credentials: 'include' })
+                    .then(function (r) { return r.ok ? r.json() : null; })
+                    .then(function (u) {
+                        const id = u && (u.id != null ? u.id : (u.ID != null ? u.ID : u.userId));
+                        if (id != null && id !== '') {
+                            window.location.href = '/view/people/' + id + '?tab=activity&subtab=my-jobs';
+                        } else {
+                            window.location.href = '/view/people';
+                        }
+                    })
+                    .catch(function () { window.location.href = '/view/people'; });
+            };
+        } else {
+            jobHint.style.display = 'none';
+            jobHintText.textContent = '';
+            myJobsLink.onclick = null;
+        }
+    }
+
+    resultsArea.style.display = 'block';
+}
+
+/**
+ * Show summary after POST /api/import-env (Excel migration package).
+ * @param {object} data parsed JSON body
+ * @param {function(string, string): string} T i18n helper
+ */
+function renderEnvImportResults(data, T) {
+    const summaryEl = document.getElementById('envResultsSummary');
+    const jobHint = document.getElementById('envResultsJobHint');
+    const jobHintText = document.getElementById('envResultsJobHintText');
+    const myJobsLink = document.getElementById('envOpenMyJobsLink');
+    const resultsArea = document.getElementById('envResultsArea');
+    if (!summaryEl || !resultsArea) return;
+
+    const mode = data.mode || '';
+    const jobId = data.job_id != null ? data.job_id : data.jobId;
+    const ref = data.reference_name || data.referenceName || '';
+    const totalFiles = data.total_files != null ? data.total_files : data.totalFiles;
+    const msg = data.message || '';
+
+    const lm = T('adminPanel.bulkImportEnv.summaryMode', 'Mode');
+    const lj = T('adminPanel.bulkImportEnv.summaryJobId', 'Job ID');
+    const lr = T('adminPanel.bulkImportEnv.summaryReference', 'Reference');
+    const lf = T('adminPanel.bulkImportEnv.summaryFiles', 'Workbooks');
+    let html = '<strong>' + escapeBulkEnvHtml(lm) + ':</strong> ' + escapeBulkEnvHtml(mode);
+    if (jobId != null && String(jobId) !== '') {
+        html += ' &nbsp;|&nbsp; <strong>' + escapeBulkEnvHtml(lj) + ':</strong> ' + escapeBulkEnvHtml(String(jobId));
+    }
+    if (ref) {
+        html += ' &nbsp;|&nbsp; <strong>' + escapeBulkEnvHtml(lr) + ':</strong> ' + escapeBulkEnvHtml(String(ref));
+    }
+    if (totalFiles != null && String(totalFiles) !== '') {
+        html += ' &nbsp;|&nbsp; <strong>' + escapeBulkEnvHtml(lf) + ':</strong> ' + escapeBulkEnvHtml(String(totalFiles));
+    }
+    summaryEl.innerHTML = html;
+    if (msg) {
+        summaryEl.innerHTML += '<p style="margin:12px 0 0 0;">' + escapeBulkEnvHtml(msg) + '</p>';
+    }
+
+    if (jobHint && jobHintText && myJobsLink) {
+        if (jobId != null && String(jobId) !== '') {
+            jobHint.style.display = 'block';
+            const tmpl = T('adminPanel.bulkImportEnv.myJobsEnvHint',
+                'Track ENV import progress in My Jobs. Job ID: {jobId}{ref}.');
+            const refPart = ref ? (' · ' + ref) : '';
+            jobHintText.textContent = tmpl.replace(/\{jobId\}/g, String(jobId)).replace(/\{ref\}/g, refPart);
             myJobsLink.onclick = function (e) {
                 e.preventDefault();
                 fetch('/api/me', { credentials: 'include' })
@@ -351,7 +421,11 @@ function initBulkImportEnv() {
             formData.append('file', file);
             formData.append('mode', mode);
 
-            const response = await fetch('/api/table-snapshot/import', {
+            const lowName = file.name.toLowerCase();
+            const isEnvZip = lowName.endsWith('.zip');
+            const importUrl = isEnvZip ? '/api/import-env' : '/api/table-snapshot/import';
+
+            const response = await fetch(importUrl, {
                 method: 'POST',
                 body: formData,
                 credentials: 'include'
@@ -365,16 +439,30 @@ function initBulkImportEnv() {
             }
 
             if (response.ok && data.status === 'success') {
-                if (typeof showToastNotification === 'function') {
-                    showToastNotification(
-                        T('adminPanel.bulkImportEnv.successToast', 'Table snapshot import completed.'),
-                        'success');
+                if (isEnvZip) {
+                    if (typeof showToastNotification === 'function') {
+                        showToastNotification(
+                            T('adminPanel.bulkImportEnv.successToastEnv', 'Environment migration import completed.'),
+                            'success');
+                    }
+                    statusEl.innerHTML = '<div style="background:#d4edda;border:1px solid #c3e6cb;color:#155724;padding:15px;border-radius:4px;">'
+                        + '<strong>' + T('adminPanel.bulkImportEnv.successTitle', 'Success') + '</strong>'
+                        + '<p style="margin:8px 0 0 0;">' + T('adminPanel.bulkImportEnv.successBodyEnv',
+                            'Import finished. Summary is below; open My Jobs to track the background job.') + '</p></div>';
+                    statusEl.style.display = 'block';
+                    renderEnvImportResults(data, T);
+                } else {
+                    if (typeof showToastNotification === 'function') {
+                        showToastNotification(
+                            T('adminPanel.bulkImportEnv.successToast', 'Table snapshot import completed.'),
+                            'success');
+                    }
+                    statusEl.innerHTML = '<div style="background:#d4edda;border:1px solid #c3e6cb;color:#155724;padding:15px;border-radius:4px;">'
+                        + '<strong>' + T('adminPanel.bulkImportEnv.successTitle', 'Success') + '</strong>'
+                        + '<p style="margin:8px 0 0 0;">' + T('adminPanel.bulkImportEnv.successBodySnapshot', 'Import finished. Summary is shown below; open My Jobs for the full JSON report.') + '</p></div>';
+                    statusEl.style.display = 'block';
+                    renderSnapshotImportResults(data);
                 }
-                statusEl.innerHTML = '<div style="background:#d4edda;border:1px solid #c3e6cb;color:#155724;padding:15px;border-radius:4px;">'
-                    + '<strong>' + T('adminPanel.bulkImportEnv.successTitle', 'Success') + '</strong>'
-                    + '<p style="margin:8px 0 0 0;">' + T('adminPanel.bulkImportEnv.successBodySnapshot', 'Import finished. Summary is shown below; open My Jobs for the full JSON report.') + '</p></div>';
-                statusEl.style.display = 'block';
-                renderSnapshotImportResults(data);
                 fileInput.value = '';
                 nameDisplay.value = noFile;
                 nameDisplay.style.color = '#95a5a6';

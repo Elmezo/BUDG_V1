@@ -1573,7 +1573,8 @@ function switchTab(tabName) {
         'summaryContainer',
         'relationshipsContainer',
         'stakeholdersContainer',
-        'impactContainer'
+        'impactContainer',
+        'workflowContainer'
     ];
     
     containers.forEach(containerId => {
@@ -1612,6 +1613,17 @@ function switchTab(tabName) {
                         });
                     } else {
                         console.error('No glossary ID found when switching to relationships tab');
+                    }
+                }
+
+                if (tabName === 'workflow' && window.ObjectWorkflowEdit) {
+                    const glossaryId = parseId();
+                    if (glossaryId) {
+                        window.ObjectWorkflowEdit.ensureInitialized({
+                            rootId: 'glossaryObjectWorkflowRoot',
+                            facetType: 'glossary',
+                            objectId: glossaryId
+                        });
                     }
                 }
             } else {
@@ -1684,7 +1696,8 @@ async function initializePage() {
                     facetId: 'Glossary',
                     containerId: 'customFieldsContainer',
                     mode: 'edit',
-                    objectId: id
+                    objectId: id,
+                    view: editViewMode === 'changes' ? 'changes' : null
                 });
                 console.log('Custom fields initialized:', window.customFieldsContext);
             } catch (error) {

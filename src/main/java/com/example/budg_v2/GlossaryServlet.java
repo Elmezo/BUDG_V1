@@ -491,7 +491,8 @@ public class GlossaryServlet extends HttpServlet {
             }
 
             try {
-                data.put("aliases", glossaryDAO.getGlossaryAliases(id));
+                // Use glossaryIdToLoad so view=changes returns aliases from the cloned row, not the original
+                data.put("aliases", glossaryDAO.getGlossaryAliases(glossaryIdToLoad));
             } catch (SQLException aliasError) {
                 data.put("aliases", new ArrayList<>());
             }

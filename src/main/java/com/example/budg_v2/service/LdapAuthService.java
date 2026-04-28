@@ -41,6 +41,7 @@ public class LdapAuthService {
      */
     public Map<String, Object> authenticateUser(String username, String password) throws LdapConnectionException {
         LdapSettings settings = getSettings();
+        String maskedUsername = maskPrincipalForLog(username);
         
         if (!settings.isLdapEnabled()) {
             logger.debug("LDAP authentication is disabled");
@@ -54,7 +55,7 @@ public class LdapAuthService {
 
             // Build user search filter using configured filter pattern
             String userSearchFilter = buildUserSearchFilter(settings.getUserSearchFilter(), username);
-            logger.debug("Using search filter: {} for username: {}", userSearchFilter, username);
+            logger.debug("Using LDAP search filter for user: {}", maskedUsername);
 
             SearchRequest searchRequest = new SearchRequest(
                     settings.getUserSearchBase(),
@@ -66,7 +67,7 @@ public class LdapAuthService {
             SearchResult searchResult = connection.search(searchRequest);
 
             if (searchResult.getEntryCount() == 0) {
-                logger.warn("User not found in LDAP: {}", username);
+                logger.warn("User not found in LDAP: {}", maskedUsername);
                 return null;
             }
 
@@ -83,15 +84,15 @@ public class LdapAuthService {
                 if (bindResult.getResultCode() == ResultCode.SUCCESS) {
                     // Authentication successful - extract user information
                     Map<String, Object> userInfo = extractUserInfo(userEntry, userConnection);
-                    logger.info("LDAP authentication successful for user: {}", username);
+                    logger.info("LDAP authentication successful for user: {}", maskedUsername);
                     return userInfo;
                 } else {
-                    logger.warn("LDAP authentication failed for user: {} - {}", username, bindResult.getResultString());
+                    logger.warn("LDAP authentication failed for user: {} - {}", maskedUsername, bindResult.getResultString());
                     return null;
                 }
 
             } catch (LDAPException e) {
-                logger.warn("LDAP authentication failed for user: {} - {}", username, e.getMessage());
+                logger.warn("LDAP authentication failed for user: {} - {}", maskedUsername, e.getMessage());
                 return null;
             } finally {
                 if (userConnection != null) {
@@ -114,7 +115,7 @@ public class LdapAuthService {
                     e
                 );
             } else if (e.getResultCode() == ResultCode.TIMEOUT) {
-                logger.error("LDAP connection timeout for user: {} - {}", username, e.getMessage(), e);
+                logger.error("LDAP connection timeout for user: {} - {}", maskedUsername, e.getMessage(), e);
                 throw new LdapConnectionException(
                     LdapConnectionException.ErrorType.TIMEOUT,
                     String.format("Connection to LDAP server at %s:%d timed out.", settings.getHost(), settings.getPort()),
@@ -124,7 +125,7 @@ public class LdapAuthService {
                 );
             } else {
                 // Other LDAP errors - could be server unavailable
-                logger.error("LDAP authentication error for user: {} - {}", username, e.getMessage(), e);
+                logger.error("LDAP authentication error for user: {} - {}", maskedUsername, e.getMessage(), e);
                 throw new LdapConnectionException(
                     LdapConnectionException.ErrorType.SERVER_UNAVAILABLE,
                     String.format("LDAP server at %s:%d is not available. Error: %s", settings.getHost(), settings.getPort(), e.getMessage()),
@@ -148,7 +149,7 @@ public class LdapAuthService {
                 errorType = LdapConnectionException.ErrorType.UNKNOWN_ERROR;
             }
             
-            logger.error("Unexpected error during LDAP authentication for user: {}", username, e);
+            logger.error("Unexpected error during LDAP authentication for user: {}", maskedUsername, e);
             throw new LdapConnectionException(
                 errorType,
                 String.format("Failed to connect to LDAP server at %s:%d. Error: %s", settings.getHost(), settings.getPort(), e.getMessage()),
@@ -199,7 +200,7 @@ public class LdapAuthService {
             }
 
         } catch (Exception e) {
-            logger.warn("Error retrieving groups for user: {}", userDn, e);
+            logger.warn("Error retrieving groups for LDAP user DN", e);
         }
 
         return groups;
@@ -244,7 +245,7 @@ public class LdapAuthService {
             }
 
         } catch (Exception e) {
-            logger.warn("Error retrieving group DNs for user: {}", userDn, e);
+            logger.warn("Error retrieving group DNs for LDAP user DN", e);
         }
 
         return groupDns;
@@ -347,7 +348,7 @@ public class LdapAuthService {
                         "LDAP bind failed: " + bindResult.getResultString());
                 }
                 
-                logger.debug("Successfully bound to LDAP server with bindDn: {}", settings.getBindDn());
+                logger.debug("Successfully bound to LDAP server with configured bind DN");
             }
             
             logger.debug("Successfully connected to LDAP server at {}:{}", host, port);
@@ -557,5 +558,19 @@ public class LdapAuthService {
                 connection.close();
             }
         }
+    }
+
+    private static String maskPrincipalForLog(String value) {
+        if (value == null || value.isBlank()) {
+            return "unknown";
+        }
+        String trimmed = value.trim();
+        int at = trimmed.indexOf('@');
+        if (at > 0) {
+            String local = trimmed.substring(0, at);
+            String domain = trimmed.substring(at + 1);
+            return local.substring(0, Math.min(1, local.length())) + "***@" + domain;
+        }
+        return trimmed.substring(0, Math.min(1, trimmed.length())) + "***";
     }
 }

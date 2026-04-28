@@ -439,6 +439,12 @@
             if (window.initImpactEdit) {
                 window.initImpactEdit(currentRegulationId);
             }
+        } else if (tabName === 'workflow' && currentRegulationId && window.ObjectWorkflowEdit) {
+            window.ObjectWorkflowEdit.ensureInitialized({
+                rootId: 'regulationObjectWorkflowRoot',
+                facetType: 'regulation',
+                objectId: currentRegulationId
+            });
         }
         activeTab = tabName;
     }

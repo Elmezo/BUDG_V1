@@ -173,8 +173,10 @@
 
         async loadAttributes() {
             try {
-                // Fetch attributes to know what columns are needed for template
-                const resp = await window.BUDG_API_SERVICE.get(`/dataset/${this.datasetId}/attributes`);
+                // Fetch attributes to know what columns are needed for template.
+                // Under an active auto CR, new/updated attributes may live on the cloned dataset — include them when view=changes.
+                const viewQs = this.view === 'changes' ? '?view=changes' : '';
+                const resp = await window.BUDG_API_SERVICE.get(`/dataset/${this.datasetId}/attributes${viewQs}`);
                 const attributes = resp || [];
                 
                 // Normalize attribute data structure to handle different API response formats

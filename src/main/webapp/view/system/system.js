@@ -719,7 +719,8 @@
                         facetId: 'System',
                         containerId: 'systemViewContainer',
                         objectId: id,
-                        title: 'CUSTOM FIELDS'
+                        title: 'CUSTOM FIELDS',
+                        view: viewToUse === 'changes' ? 'changes' : null
                     });
                 } catch (error) {
                     console.error('Error rendering custom fields:', error);

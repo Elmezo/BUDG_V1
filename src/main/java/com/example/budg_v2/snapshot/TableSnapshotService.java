@@ -1,5 +1,6 @@
 package com.example.budg_v2.snapshot;
 
+import com.example.budg_v2.bulk.EnvironmentMigrationConstants;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
@@ -265,8 +266,22 @@ public class TableSnapshotService {
         if (metaHolder == null) {
             throw new IOException(TableSnapshotConstants.METADATA_FILE + " not found in ZIP");
         }
-        JsonObject meta = JsonParser.parseString(new String(metaHolder.bytes, StandardCharsets.UTF_8))
-                .getAsJsonObject();
+        String metaText = new String(metaHolder.bytes, StandardCharsets.UTF_8);
+        JsonElement metaRoot = JsonParser.parseString(metaText);
+        if (!metaRoot.isJsonObject()) {
+            throw new IOException("metadata.json must be a JSON object for a table_snapshot package");
+        }
+        JsonObject meta = metaRoot.getAsJsonObject();
+        if (meta.has("packageType") && meta.get("packageType").isJsonPrimitive()) {
+            String pt = meta.get("packageType").getAsString();
+            if (EnvironmentMigrationConstants.PACKAGE_TYPE.equals(pt)) {
+                throw new IOException(
+                        "This ZIP is a BUDG environment migration package (packageType budg_env). "
+                                + "Upload .zip files from this screen to import via /api/import-env. "
+                                + "Encrypted .bsnap files are table snapshots (packageType "
+                                + TableSnapshotConstants.PACKAGE_TYPE + ") only.");
+            }
+        }
         validateMetadata(meta);
 
         JsonArray tables = meta.getAsJsonArray("tables");
@@ -279,7 +294,11 @@ public class TableSnapshotService {
             st.execute("SET FOREIGN_KEY_CHECKS=0");
             if (replaceMode) {
                 for (int i = 0; i < tables.size(); i++) {
-                    JsonObject tmeta = tables.get(i).getAsJsonObject();
+                    JsonElement te = tables.get(i);
+                    if (!te.isJsonObject()) {
+                        throw new IOException("metadata.json tables[" + i + "] must be a JSON object");
+                    }
+                    JsonObject tmeta = te.getAsJsonObject();
                     String tableName = tmeta.get("name").getAsString();
                     if (!tableExistsAsBase(conn, schema, tableName)) {
                         logger.warn("Replace: skip truncate, table missing: {}", tableName);
@@ -295,7 +314,11 @@ public class TableSnapshotService {
             }
 
             for (int i = 0; i < tables.size(); i++) {
-                JsonObject tmeta = tables.get(i).getAsJsonObject();
+                JsonElement te = tables.get(i);
+                if (!te.isJsonObject()) {
+                    throw new IOException("metadata.json tables[" + i + "] must be a JSON object");
+                }
+                JsonObject tmeta = te.getAsJsonObject();
                 String tableName = tmeta.get("name").getAsString();
                 String dataEntry = tmeta.has("dataEntry")
                         ? tmeta.get("dataEntry").getAsString()
@@ -389,13 +412,20 @@ public class TableSnapshotService {
                         new InputStreamReader(new java.io.ByteArrayInputStream(jsonlBytes), StandardCharsets.UTF_8))) {
             String line;
             int inBatch = 0;
+            int jsonlLineNo = 0;
             while ((line = reader.readLine()) != null) {
                 line = line.trim();
                 if (line.isEmpty()) {
                     continue;
                 }
+                jsonlLineNo++;
                 rowsAttempted++;
-                JsonObject row = JsonParser.parseString(line).getAsJsonObject();
+                JsonElement parsedRow = JsonParser.parseString(line);
+                if (!parsedRow.isJsonObject()) {
+                    throw new IOException("Invalid JSONL line " + jsonlLineNo + " for table " + tableName
+                            + ": each non-empty line must be one JSON object");
+                }
+                JsonObject row = parsedRow.getAsJsonObject();
                 for (int c = 0; c < columns.size(); c++) {
                     String col = columns.get(c);
                     int stype = liveTypes.get(col);
@@ -587,8 +617,8 @@ public class TableSnapshotService {
                 || meta.get("formatVersion").getAsInt() != TableSnapshotConstants.FORMAT_VERSION) {
             throw new IOException("Unsupported formatVersion; expected " + TableSnapshotConstants.FORMAT_VERSION);
         }
-        if (!meta.has("tables")) {
-            throw new IOException("metadata.json missing tables array");
+        if (!meta.has("tables") || !meta.get("tables").isJsonArray()) {
+            throw new IOException("metadata.json missing tables array or tables is not a JSON array");
         }
     }
 

@@ -131,9 +131,10 @@ public class CRStakeholderServlet extends HttpServlet {
                     stakeholders = new java.util.ArrayList<>();
                 }
             } else {
-                // For manual CRs, get stakeholders from cr_stakeholders table
-                logger.info("Fetching stakeholders for manual CR {} from cr_stakeholders table", crId);
-                stakeholders = crStakeholderDAO.getStakeholdersForChangeRequest(crId);
+                // Manual CR: persisted cr_stakeholders plus live rows from the source object
+                String reference = changeRequest.getReference();
+                logger.info("Fetching stakeholders for manual CR {} (cr_stakeholders + source: {})", crId, reference);
+                stakeholders = crStakeholderDAO.getStakeholdersForManualChangeRequest(crId, reference);
             }
             
             logger.info("Found {} stakeholders for CR {} (isAutoCR: {})", stakeholders.size(), crId, isAutoCR);

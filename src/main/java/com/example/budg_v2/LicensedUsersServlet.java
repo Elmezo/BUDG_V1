@@ -35,13 +35,44 @@ public class LicensedUsersServlet extends HttpServlet {
             // الاتصال بقاعدة البيانات باستخدام DatabaseConnection
             conn = DatabaseConnection.getConnection();
 
-            // استعلام SQL للحصول على البيانات مع JOIN
-            String sql = "SELECT p.First_Name, p.Last_Name, r.primaryname as User_Type " +
+            // Super Admin, Admin, or Web User with at least one Edit permission (direct ipid or via role_assignment)
+            String editPermSub = "(SELECT id FROM permission_names WHERE LOWER(TRIM(Name)) = 'edit' LIMIT 1)";
+            String sql = "SELECT p.First_Name, p.Last_Name, r.primaryname AS User_Type " +
                     "FROM people p " +
                     "LEFT JOIN role r ON p.System_Role = r.id " +
                     "LEFT JOIN status s ON p.status_id = s.ID " +
                     "WHERE p.Deleted_date IS NULL " +
                     "AND (s.primaryname IS NULL OR (LOWER(s.primaryname) != 'inactive' AND LOWER(s.primaryname) != 'deleted')) " +
+                    "AND ( " +
+                    "  LOWER(REPLACE(REPLACE(REPLACE(COALESCE(r.primaryname, ''), ' ', ''), '_', ''), '-', '')) IN ('superadmin', 'suberadmin', 'admin') " +
+                    "  OR ( " +
+                    "    LOWER(REPLACE(REPLACE(REPLACE(COALESCE(r.primaryname, ''), ' ', ''), '_', ''), '-', '')) = 'webuser' " +
+                    "    AND ( " +
+                    "      EXISTS ( " +
+                    "        SELECT 1 FROM permissions perm_e " +
+                    "        WHERE perm_e.ipid = p.ID " +
+                    "        AND ( " +
+                    "          perm_e.permission = " + editPermSub + " " +
+                    "          OR (perm_e.permissions_json IS NOT NULL " +
+                    "            AND JSON_CONTAINS(perm_e.permissions_json, CAST(" + editPermSub + " AS CHAR), '$')) " +
+                    "        ) " +
+                    "      ) " +
+                    "      OR EXISTS ( " +
+                    "        SELECT 1 FROM role_assignment ra " +
+                    "        JOIN permissions perm_e ON perm_e.Object_Role_ID = ra.objectroleid " +
+                    "        WHERE ( " +
+                    "          JSON_CONTAINS(ra.users, CAST(p.ID AS CHAR), '$') " +
+                    "          OR JSON_CONTAINS(ra.users, CONCAT('\"', p.ID, '\"'), '$') " +
+                    "        ) " +
+                    "        AND ( " +
+                    "          perm_e.permission = " + editPermSub + " " +
+                    "          OR (perm_e.permissions_json IS NOT NULL " +
+                    "            AND JSON_CONTAINS(perm_e.permissions_json, CAST(" + editPermSub + " AS CHAR), '$')) " +
+                    "        ) " +
+                    "      ) " +
+                    "    ) " +
+                    "  ) " +
+                    ") " +
                     "ORDER BY p.ID";
 
             stmt = conn.prepareStatement(sql);

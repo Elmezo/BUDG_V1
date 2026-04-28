@@ -234,6 +234,15 @@
             case 'summary':
                 // Already loaded in main load function
                 break;
+            case 'workflow':
+                if (window.ObjectWorkflowEdit) {
+                    window.ObjectWorkflowEdit.ensureInitialized({
+                        rootId: 'capabilityObjectWorkflowRoot',
+                        facetType: 'capability',
+                        objectId: id
+                    });
+                }
+                break;
             default:
                 // Handle other tabs if needed
                 break;

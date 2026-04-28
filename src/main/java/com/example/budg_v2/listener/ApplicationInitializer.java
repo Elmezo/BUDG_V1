@@ -1,5 +1,6 @@
 package com.example.budg_v2.listener;
 
+import com.example.budg_v2.dao.ProcessDefinitionObjectScopeDAO;
 import com.example.budg_v2.dao.SegmentDAO;
 import com.example.budg_v2.database.DatabaseConnection;
 import com.example.budg_v2.util.AxonLogger;
@@ -100,6 +101,14 @@ public class ApplicationInitializer implements ServletContextListener {
         } catch (Exception e) {
             logger.error("Failed to ensure process_definition_id column exists in changerequest table", e);
             // Don't fail startup - workflow linking may have issues
+        }
+
+        // Object-private workflow scope table
+        try (Connection conn = DatabaseConnection.getConnection()) {
+            ProcessDefinitionObjectScopeDAO.ensureTableExists(conn);
+            logger.info("process_definition_object_scope table verification completed");
+        } catch (Exception e) {
+            logger.error("Failed to ensure process_definition_object_scope table exists", e);
         }
         
         // Initialize default workflows for all facets
@@ -212,24 +221,22 @@ public class ApplicationInitializer implements ServletContextListener {
         // Validate key length (minimum 32 bytes = 256 bits)
         byte[] keyBytes = jwtSecret.getBytes();
         if (keyBytes.length < 32) {
-            String errorMsg = String.format(
+            String errorMsg =
                 "\n" +
                 "═══════════════════════════════════════════════════════════════\n" +
                 "  CRITICAL ERROR: JWT_SECRET_KEY is too short!\n" +
                 "═══════════════════════════════════════════════════════════════\n" +
                 "\n" +
                 "JWT_SECRET_KEY must be at least 32 bytes (256 bits) for security.\n" +
-                "Current length: %d bytes\n" +
+                "Configured key is below the minimum required length.\n" +
                 "\n" +
                 "Please generate a longer key (64+ bytes recommended).\n" +
-                "═══════════════════════════════════════════════════════════════\n",
-                keyBytes.length
-            );
+                "═══════════════════════════════════════════════════════════════\n";
             logger.error(errorMsg);
-            throw new IllegalStateException("JWT_SECRET_KEY must be at least 32 bytes (256 bits). Current length: " + keyBytes.length + " bytes");
+            throw new IllegalStateException("JWT_SECRET_KEY must be at least 32 bytes (256 bits)");
         }
         
-        logger.info("JWT_SECRET_KEY validated successfully (length: {} bytes)", keyBytes.length);
+        logger.info("JWT_SECRET_KEY validated successfully");
     }
 
     /**

@@ -897,6 +897,15 @@ function loadTabContent(tabName) {
                 window.loadProjectData(id);
             }
             break;
+        case 'workflow':
+            if (window.ObjectWorkflowEdit) {
+                window.ObjectWorkflowEdit.ensureInitialized({
+                    rootId: 'projectObjectWorkflowRoot',
+                    facetType: 'project',
+                    objectId: id
+                });
+            }
+            break;
         case 'summary':
             // Main project details (Summary) - already loaded
             break;

@@ -208,10 +208,14 @@
         return data.data;
     }
 
-    async function fetchValues(facetId, objectId) {
+    async function fetchValues(facetId, objectId, viewMode) {
         if (objectId == null) return [];
         const mappedFacetId = await mapFacetName(facetId);
-        const response = await fetch(`${API_BASE}/data?facetId=${encodeURIComponent(mappedFacetId)}&objectId=${objectId}`, { credentials: 'include' });
+        let url = `${API_BASE}/data?facetId=${encodeURIComponent(mappedFacetId)}&objectId=${objectId}`;
+        if (viewMode === 'changes') {
+            url += '&view=changes';
+        }
+        const response = await fetch(url, { credentials: 'include' });
         if (!response.ok) throw new Error('Failed to load custom field values');
         const data = await response.json();
         if (!data.success || !Array.isArray(data.data)) {
@@ -761,6 +765,7 @@
 
         const mode = options.mode || 'create';
         const objectId = options.objectId != null ? options.objectId : null;
+        const viewMode = options.view || null;
 
         container.innerHTML = '';
         container.classList.add('custom-field-container');
@@ -782,7 +787,7 @@
             let valueMap = {};
             if (objectId != null) {
                 try {
-                    const values = await fetchValues(facetId, objectId);
+                    const values = await fetchValues(facetId, objectId, viewMode);
                     valueMap = {};
                     // Group values by metadataId, handling multiselect (multiple enumIds)
                     values.forEach(entry => {
@@ -935,10 +940,11 @@
             ? document.getElementById(options.containerId)
             : options.container || null;
         const title = options.title || 'CUSTOM FIELDS';
+        const viewMode = options.view || null;
 
         try {
             const metadataList = await fetchMetadata(facetId, objectId);
-            const values = await fetchValues(facetId, objectId);
+            const values = await fetchValues(facetId, objectId, viewMode);
             
             // Group values by metadataId, handling multiselect (multiple enumIds)
             // Only include entries that have actual saved values (not empty strings)

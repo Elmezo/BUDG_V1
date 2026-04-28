@@ -3,10 +3,13 @@ package com.example.budg_v2;
 import com.example.budg_v2.dao.AttributeDAO;
 import com.example.budg_v2.dao.FacetChangesDAO;
 import com.example.budg_v2.dao.SegmentDAO;
+import com.example.budg_v2.database.DatabaseConnection;
+import com.example.budg_v2.service.DFCRService;
 import com.example.budg_v2.service.SegmentValidationService;
 import com.example.budg_v2.util.CorsUtil;
 import com.example.budg_v2.util.JsonUtil;
 import com.example.budg_v2.util.PermissionCheckUtil;
+import com.example.budg_v2.util.UserContextUtil;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import jakarta.servlet.annotation.WebServlet;
@@ -147,6 +150,16 @@ public class AttributeServlet extends HttpServlet {
             // Check edit permission + stakeholder status
             if (!PermissionCheckUtil.checkEditPermissionWithStakeholder(request, response, "Data Sets", datasetId)) {
                 return; // Response already sent
+            }
+
+            int currentUserId = UserContextUtil.getCurrentUserId(request);
+            if (currentUserId > 0) {
+                try {
+                    boolean isAdmin = UserContextUtil.isCurrentUserAdmin(request);
+                    new DFCRService().ensureEditAutoCrIfMissing("Data Set", DATASET_FACET_TYPE, datasetId, getDatasetType(datasetId), currentUserId, isAdmin);
+                } catch (Exception e) {
+                    System.err.println("[AttributeServlet] DFCR ensure before attribute create: " + e.getMessage());
+                }
             }
             
             // Check for active CR and get cloned dataset ID (like Impact tab)
@@ -316,6 +329,16 @@ public class AttributeServlet extends HttpServlet {
             // Check edit permission + stakeholder status
             if (!PermissionCheckUtil.checkEditPermissionWithStakeholder(request, response, "Data Sets", datasetId)) {
                 return; // Response already sent
+            }
+
+            int currentUserId = UserContextUtil.getCurrentUserId(request);
+            if (currentUserId > 0) {
+                try {
+                    boolean isAdmin = UserContextUtil.isCurrentUserAdmin(request);
+                    new DFCRService().ensureEditAutoCrIfMissing("Data Set", DATASET_FACET_TYPE, datasetId, getDatasetType(datasetId), currentUserId, isAdmin);
+                } catch (Exception e) {
+                    System.err.println("[AttributeServlet] DFCR ensure before attribute update: " + e.getMessage());
+                }
             }
             
             // Check for active CR and get cloned dataset ID (like Impact tab)
@@ -592,6 +615,24 @@ public class AttributeServlet extends HttpServlet {
                     }
                 }
             }
+        }
+        return null;
+    }
+
+    private Integer getDatasetType(int datasetId) {
+        try (java.sql.Connection conn = DatabaseConnection.getConnection()) {
+            String sql = "SELECT DatasetType FROM dataset WHERE ID = ?";
+            try (java.sql.PreparedStatement stmt = conn.prepareStatement(sql)) {
+                stmt.setInt(1, datasetId);
+                try (java.sql.ResultSet rs = stmt.executeQuery()) {
+                    if (rs.next()) {
+                        int typeId = rs.getInt("DatasetType");
+                        return rs.wasNull() ? null : typeId;
+                    }
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("[AttributeServlet] Error getting dataset type: " + e.getMessage());
         }
         return null;
     }

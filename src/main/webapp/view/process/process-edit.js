@@ -1992,7 +1992,7 @@ function switchTab(tabName) {
     if (selectedTab) selectedTab.classList.add('active');
 
     // Get all 4 tab-content panels by their known IDs
-    const tabIds = ['summary', 'components', 'stakeholders', 'impact'];
+    const tabIds = ['summary', 'components', 'stakeholders', 'impact', 'workflow'];
     const tabPanels = tabIds.map(id => document.getElementById(id)).filter(Boolean);
 
     // Hide all tab panels
@@ -2031,6 +2031,14 @@ function switchTab(tabName) {
             container.style.display = 'block';
             loadProcessComponents(id, container);
         }
+    }
+
+    if (tabName === 'workflow' && window.ObjectWorkflowEdit && id) {
+        window.ObjectWorkflowEdit.ensureInitialized({
+            rootId: 'processObjectWorkflowRoot',
+            facetType: 'process',
+            objectId: id
+        });
     }
 
     // Restore form data for the new tab
@@ -2682,7 +2690,8 @@ async function initializePage() {
                     facetId: 'Process',
                     containerId: 'customFieldsContainer',
                     mode: 'edit',
-                    objectId: id
+                    objectId: id,
+                    view: editViewMode === 'changes' ? 'changes' : null
                 });
                 console.log('Custom fields initialized:', window.customFieldsContext);
             } catch (error) {

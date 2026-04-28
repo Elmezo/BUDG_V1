@@ -100,6 +100,7 @@
                     <button class="tab" data-tab="relationships" data-i18n="tab.relationships">RELATIONSHIPS</button>
                     <button class="tab" data-tab="stakeholders" data-i18n="tab.stakeholders">STAKEHOLDERS</button>
                     <button class="tab" data-tab="impact" data-i18n="tab.impact">IMPACT</button>
+                    <button class="tab" data-tab="workflow" data-i18n="tab.workflow">WORKFLOW</button>
                 </div>
             </div>
             <div class="content-body">
@@ -541,6 +542,10 @@
                     </div>
                 </div>
 
+                <div id="workflowTab" class="tab-panel" style="display: none;">
+                    <div id="systemObjectWorkflowRoot" class="view-section" style="grid-column:1/-1;"></div>
+                </div>
+
                 <!-- Documents Tab: same IDs as main card would duplicate DOM; documents live in Details tab card above -->
                 <div id="documentsTab" class="tab-panel" style="display: none;">
                     <p style="padding:1rem;color:var(--text-muted,#6b7280);">Documents are managed in the <strong>DOCUMENTS</strong> section on the Details tab.</p>
@@ -570,6 +575,11 @@
     <script src="../../view/system/system-documents-init.js"></script>
     <script src="../../assets/js/advanced-rich-text-editor.js"></script>
     <script src="../../assets/js/hierarchy-helper.js"></script>
+    <link rel="stylesheet" href="../../assets/js/libs/bpmn-js/assets/bpmn-font/css/bpmn.css">
+    <link rel="stylesheet" href="../../assets/js/libs/bpmn-js/assets/bpmn-js.css">
+    <link rel="stylesheet" href="../../assets/js/libs/bpmn-js/assets/diagram-js.css">
+    <script src="../../assets/js/libs/bpmn-js/bpmn-modeler.production.min.js"></script>
+    <script src="../../view/workflow-edit.js"></script>
     <script src="../../view/system/system-edit.js"></script>
     <script src="../../view/system/system-stakeholder.js"></script>
     <script src="../../view/system/system-stakeholder-edit.js"></script>

@@ -83,8 +83,9 @@
         async loadSampleSet() {
             const t = (k) => (window.I18n && window.I18n.t(k)) || k;
             try {
-                // 1. Fetch Attributes for headers
-                const attributes = await window.BUDG_API_SERVICE.get(`/dataset/${this.datasetId}/attributes`) || [];
+                // 1. Fetch Attributes for headers (include pending-clone attributes when viewing changes)
+                const viewQs = this.view === 'changes' ? '?view=changes' : '';
+                const attributes = await window.BUDG_API_SERVICE.get(`/dataset/${this.datasetId}/attributes${viewQs}`) || [];
 
                 // 2. Fetch Sample Values
                 // TODO: Replace with actual API call
