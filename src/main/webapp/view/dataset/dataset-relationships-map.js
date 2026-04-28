@@ -1684,6 +1684,29 @@
                 embWarn('[DATASET-MAP] Failed to finalise highlight cache:', cacheErr);
             }
 
+            try {
+                const focusNodeIds = new Set();
+                if (isDatasetLineage) {
+                    if (DatasetMapState.datasetId != null) focusNodeIds.add(String(DatasetMapState.datasetId));
+                } else if (DatasetMapState.network) {
+                    DatasetMapState.network.nodes().forEach(function (node) {
+                        const m = node.data('meta') || {};
+                        if (node.data('isCurrent') && m.systemId) focusNodeIds.add(String(m.systemId));
+                    });
+                }
+                const _hcacheDr = getOverlayHighlightCache();
+                if (window.MapOverlayHighlight && typeof window.MapOverlayHighlight.sortOverlayDataByRelevance === 'function') {
+                    window.MapOverlayHighlight.sortOverlayDataByRelevance({
+                        overlayType: overlayType,
+                        overlayData: overlayData,
+                        cache: _hcacheDr,
+                        getItemId: getOverlayItemId,
+                        getItemText: getOverlayItemText,
+                        focusNodeIds: focusNodeIds
+                    });
+                }
+            } catch (sortErr) { /* non-fatal */ }
+
             // Render overlay panels
             renderOverlayPanels(overlayType, overlayData);
             

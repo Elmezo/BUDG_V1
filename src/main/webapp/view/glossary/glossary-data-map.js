@@ -695,6 +695,29 @@
                 embWarn('[GLOSSARY-DATA-MAP] Failed to finalise highlight cache:', cacheErr);
             }
 
+            try {
+                const focusNodeIds = new Set();
+                if (GlossaryDataMapState.network) {
+                    GlossaryDataMapState.network.nodes().forEach(function (node) {
+                        const d = node.data();
+                        if (!d || !d.isCurrent) return;
+                        if (d.isSystem && d.systemId) focusNodeIds.add(String(d.systemId));
+                        if (d.isDataset) focusNodeIds.add(String(node.id()));
+                    });
+                }
+                const _hcacheGd = getOverlayHighlightCache();
+                if (window.MapOverlayHighlight && typeof window.MapOverlayHighlight.sortOverlayDataByRelevance === 'function') {
+                    window.MapOverlayHighlight.sortOverlayDataByRelevance({
+                        overlayType: overlayType,
+                        overlayData: overlayData,
+                        cache: _hcacheGd,
+                        getItemId: getOverlayItemId,
+                        getItemText: getOverlayItemText,
+                        focusNodeIds: focusNodeIds
+                    });
+                }
+            } catch (sortErr) { /* non-fatal */ }
+
             // Render overlay panels (key by node id: systemId for system nodes, dataset_${id} for dataset nodes)
             renderOverlayPanels(overlayType, overlayData);
             

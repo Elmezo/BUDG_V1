@@ -1116,6 +1116,7 @@
 }
 
 .map-node-overlay-item {
+    position: relative;
     padding: 0.4rem 0.75rem;
     border-bottom: 1px solid var(--border-color, #e5e7eb);
     cursor: pointer;
@@ -1432,6 +1433,64 @@
     height: 1px;
     background: var(--border-color, #e5e7eb);
     margin: 0.25rem 0;
+}
+
+/* Overlay row — Go To Object */
+.map-node-overlay-item--simple {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding-right: 4px;
+}
+
+.map-overlay-item-label {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.map-overlay-go-cell {
+    width: 28px;
+    min-width: 28px;
+    padding: 2px 4px !important;
+    vertical-align: middle;
+    text-align: center;
+}
+
+.map-overlay-go-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+    padding: 2px 4px;
+    border-radius: 4px;
+    color: var(--text-secondary, #6b7280);
+    opacity: 0;
+    transition: opacity 0.15s ease;
+    pointer-events: none;
+}
+
+.map-node-overlay-item:hover .map-overlay-go-btn {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.map-overlay-go-btn:hover {
+    color: var(--primary-color, #248567);
+    background: var(--surface-hover, rgba(36, 133, 103, 0.08));
+}
+
+.map-overlay-table .map-overlay-go-btn {
+    opacity: 0.55;
+    pointer-events: auto;
+}
+
+.map-overlay-table tr.map-node-overlay-item:hover .map-overlay-go-btn {
+    opacity: 1;
 }
 
 /* Map Stats */

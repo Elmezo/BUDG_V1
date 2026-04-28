@@ -1873,6 +1873,25 @@
             try { console.warn('[PROCESS-DATA-MAP] Failed to finalise highlight cache:', cacheErr); } catch (e) { /* noop */ }
         }
 
+        try {
+            var focusNodeIdsProc = new Set();
+            nodeIds.forEach(function (nid) {
+                var meta = ProcessDataMapState.nodeMeta.get(String(nid));
+                if (meta && meta.isImpact) focusNodeIdsProc.add(String(nid));
+            });
+            var _hcacheProc = getOverlayHighlightCache();
+            if (window.MapOverlayHighlight && typeof window.MapOverlayHighlight.sortOverlayDataByRelevance === 'function') {
+                window.MapOverlayHighlight.sortOverlayDataByRelevance({
+                    overlayType: overlayType,
+                    overlayData: overlayData,
+                    cache: _hcacheProc,
+                    getItemId: getOverlayItemId,
+                    getItemText: getOverlayItemText,
+                    focusNodeIds: focusNodeIdsProc
+                });
+            }
+        } catch (sortErr) { /* non-fatal */ }
+
         renderOverlayPanels(overlayType, overlayData);
     }
 

@@ -227,9 +227,192 @@
         return related;
     }
 
+    /** Adjacency for attribute relationship edges (undirected). */
+    function buildAttributeAdjacencyMap(attributeRels) {
+        var adj = new Map();
+        (attributeRels || []).forEach(function (rel) {
+            var a = normId(rel && rel.sourceAttributeId);
+            var b = normId(rel && rel.targetAttributeId);
+            if (!a || !b || a === b) return;
+            if (!adj.has(a)) adj.set(a, new Set());
+            if (!adj.has(b)) adj.set(b, new Set());
+            adj.get(a).add(b);
+            adj.get(b).add(a);
+        });
+        return adj;
+    }
+
+    /**
+     * Direct glossary neighbors: glossaries attached to anchor nodes adjacent to
+     * any anchor carrying glossaryId (excluding glossaryId itself).
+     */
+    function getDirectGlossaryNeighborIds(glossaryId, glossaryToAnchors, anchorGraph, anchorToGlossaries) {
+        var gid = normId(glossaryId);
+        var out = new Set();
+        if (!gid || !glossaryToAnchors || !anchorGraph || !anchorToGlossaries) return out;
+        var anchors = glossaryToAnchors.get(gid);
+        if (!anchors || typeof anchors.forEach !== 'function') return out;
+        anchors.forEach(function (ak) {
+            var neigh = anchorGraph.get(ak);
+            if (!neigh || typeof neigh.forEach !== 'function') return;
+            neigh.forEach(function (otherKey) {
+                if (!otherKey || otherKey === ak) return;
+                var glossHere = anchorToGlossaries.get(otherKey);
+                if (!glossHere || typeof glossHere.forEach !== 'function') return;
+                glossHere.forEach(function (g) {
+                    var gs = normId(g);
+                    if (gs && gs !== gid) out.add(gs);
+                });
+            });
+        });
+        return out;
+    }
+
+    function normalizeOverlayPanelItems(val) {
+        if (val == null) return [];
+        if (Array.isArray(val)) return val;
+        if (val.items && Array.isArray(val.items)) return val.items;
+        return [];
+    }
+
+    /**
+     * Sort overlay rows so related / cross-panel items appear first (page 1).
+     * Mutates overlayData values in place (arrays or { items } objects).
+     *
+     * @param {object} params
+     */
+    function sortOverlayDataByRelevance(params) {
+        var overlayType = params && params.overlayType;
+        var overlayData = params && params.overlayData;
+        var cache = params && params.cache;
+        var getItemId = params && params.getItemId;
+        var getItemText = params && params.getItemText;
+        var focusNodeIds = params && params.focusNodeIds;
+
+        if (!overlayData || typeof overlayData.forEach !== 'function') return;
+        if (typeof getItemId !== 'function' || typeof getItemText !== 'function') return;
+
+        if (overlayType === 'description' || overlayType === 'custom-fields') return;
+
+        var focus = focusNodeIds && typeof focusNodeIds.has === 'function' ? focusNodeIds : new Set();
+        var hasFocus = focus.size > 0;
+
+        var datasetGraph = cache && cache.datasetGraph;
+        var attributeRels = cache && cache.attributeRels;
+        var glossaryToAnchors = cache && cache.glossaryToAnchors;
+        var anchorGraph = cache && cache.anchorGraph;
+        var anchorToGlossaries = cache && cache.anchorToGlossaries;
+
+        var attrAdj = buildAttributeAdjacencyMap(attributeRels);
+
+        var crossPanelIndex = new Map();
+        overlayData.forEach(function (val, nodeKey) {
+            var items = normalizeOverlayPanelItems(val);
+            items.forEach(function (item) {
+                var id = normId(getItemId(overlayType, item));
+                if (!id) return;
+                if (!crossPanelIndex.has(id)) crossPanelIndex.set(id, new Set());
+                crossPanelIndex.get(id).add(String(nodeKey));
+            });
+        });
+
+        var focusItemIds = new Set();
+        if (hasFocus) {
+            overlayData.forEach(function (val, nodeKey) {
+                if (!focus.has(String(nodeKey))) return;
+                normalizeOverlayPanelItems(val).forEach(function (item) {
+                    var id = normId(getItemId(overlayType, item));
+                    if (id) focusItemIds.add(id);
+                });
+            });
+        }
+
+        var isBfsOverlay = overlayType === 'datasets' || overlayType === 'attributes' ||
+            overlayType === 'linking-attributes' || overlayType === 'glossary';
+
+        function neighborIdsForItem(itemId) {
+            var iid = normId(itemId);
+            if (!iid) return new Set();
+            if (overlayType === 'datasets') {
+                var ng = datasetGraph && datasetGraph.get(iid);
+                if (!ng) return new Set();
+                var s = new Set();
+                ng.forEach(function (x) { s.add(String(x)); });
+                return s;
+            }
+            if (overlayType === 'attributes' || overlayType === 'linking-attributes') {
+                var na = attrAdj.get(iid);
+                return na ? new Set(Array.from(na).map(String)) : new Set();
+            }
+            if (overlayType === 'glossary') {
+                return getDirectGlossaryNeighborIds(iid, glossaryToAnchors, anchorGraph, anchorToGlossaries);
+            }
+            return new Set();
+        }
+
+        function rankForRow(nodeKey, item) {
+            var itemId = normId(getItemId(overlayType, item));
+            var nameKey = String(getItemText(overlayType, item) || '').toLowerCase();
+
+            if (!itemId) return { rank: 0, nameKey: nameKey };
+
+            if (isBfsOverlay) {
+                var neigh = neighborIdsForItem(itemId);
+                if (!neigh || neigh.size === 0) return { rank: 0, nameKey: nameKey };
+                if (hasFocus && focus.has(String(nodeKey)) && focusItemIds.size > 0) {
+                    var cross = false;
+                    neigh.forEach(function (nid) {
+                        if (!focusItemIds.has(String(nid))) cross = true;
+                    });
+                    if (cross) return { rank: 2, nameKey: nameKey };
+                }
+                return { rank: 1, nameKey: nameKey };
+            }
+
+            var panels = crossPanelIndex.get(itemId);
+            if (!panels || panels.size === 0) return { rank: 0, nameKey: nameKey };
+            if (hasFocus && focus.has(String(nodeKey))) {
+                var outside = false;
+                panels.forEach(function (pid) {
+                    if (!focus.has(String(pid))) outside = true;
+                });
+                if (outside) return { rank: 2, nameKey: nameKey };
+            }
+            if (panels.size >= 2) return { rank: 1, nameKey: nameKey };
+            return { rank: 0, nameKey: nameKey };
+        }
+
+        overlayData.forEach(function (val, nodeKey) {
+            var items = normalizeOverlayPanelItems(val);
+            if (!items.length) return;
+
+            var decorated = items.map(function (item, idx) {
+                return { item: item, idx: idx, r: rankForRow(nodeKey, item) };
+            });
+
+            decorated.sort(function (a, b) {
+                if (b.r.rank !== a.r.rank) return b.r.rank - a.r.rank;
+                var cmp = String(a.r.nameKey || '').localeCompare(String(b.r.nameKey || ''));
+                if (cmp !== 0) return cmp;
+                return a.idx - b.idx;
+            });
+
+            var sorted = decorated.map(function (d) { return d.item; });
+
+            if (Array.isArray(val)) {
+                val.length = 0;
+                sorted.forEach(function (x) { val.push(x); });
+            } else if (val && typeof val === 'object' && Array.isArray(val.items)) {
+                val.items = sorted;
+            } else {
+                overlayData.set(nodeKey, sorted);
+            }
+        });
+    }
+
     if (typeof window !== 'undefined') {
         window.MapOverlayHighlight = {
-            __version: 1,
+            __version: 2,
             normId: normId,
             dsKey: dsKey,
             attrKey: attrKey,
@@ -237,7 +420,8 @@
             findAllRelatedDatasets: findAllRelatedDatasets,
             findAllRelatedAttributes: findAllRelatedAttributes,
             findAllRelatedGlossaries: findAllRelatedGlossaries,
-            buildAnchorGraph: buildAnchorGraph
+            buildAnchorGraph: buildAnchorGraph,
+            sortOverlayDataByRelevance: sortOverlayDataByRelevance
         };
     }
 })();
