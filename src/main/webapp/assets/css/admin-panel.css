@@ -10582,7 +10582,15 @@
     border-top: 1px solid var(--border-color);
 }
 
-.download-logs-button {
+.logs-action-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 1rem;
+}
+
+.download-logs-button,
+.delete-logs-button {
     min-width: 220px;
     padding: 1rem 2rem;
     font-size: 1rem;
@@ -10601,13 +10609,130 @@
     box-shadow: 0 6px 16px rgba(36, 133, 103, 0.35);
 }
 
-.download-logs-button:disabled {
+.delete-logs-button {
+    background: var(--danger-color, #dc3545);
+    border-color: var(--danger-color, #dc3545);
+    color: #fff;
+    box-shadow: 0 4px 12px rgba(220, 53, 69, 0.25);
+}
+
+.delete-logs-button:hover:not(:disabled) {
+    transform: translateY(-2px);
+    background: var(--danger-hover, #c82333);
+    border-color: var(--danger-hover, #c82333);
+    box-shadow: 0 6px 16px rgba(220, 53, 69, 0.35);
+}
+
+.download-logs-button:disabled,
+.delete-logs-button:disabled {
     opacity: 0.7;
     cursor: not-allowed;
 }
 
-.download-logs-button i {
+.download-logs-button i,
+.delete-logs-button i {
     font-size: 1.1rem;
+}
+
+.last-deleted-log-user {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: 0.82rem;
+}
+
+.logs-delete-modal-overlay {
+    position: fixed;
+    inset: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    background: rgba(0, 0, 0, 0.45);
+    z-index: 10000;
+}
+
+.logs-delete-modal-overlay.active {
+    display: flex;
+}
+
+.logs-delete-modal {
+    width: min(560px, 100%);
+    background: var(--background-primary, #fff);
+    color: var(--text-primary, #1f2937);
+    border: 1px solid var(--border-color, #e5e7eb);
+    border-radius: 14px;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
+    overflow: hidden;
+}
+
+.logs-delete-modal-header,
+.logs-delete-modal-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--border-color, #e5e7eb);
+}
+
+.logs-delete-modal-footer {
+    border-top: 1px solid var(--border-color, #e5e7eb);
+    border-bottom: 0;
+    justify-content: flex-end;
+}
+
+.logs-delete-modal-header h3 {
+    margin: 0;
+    font-size: 1.1rem;
+}
+
+.logs-delete-modal-close {
+    border: 0;
+    background: transparent;
+    color: var(--text-secondary);
+    font-size: 1.6rem;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.logs-delete-modal-body {
+    padding: 1.25rem;
+}
+
+.logs-delete-warning {
+    margin-top: 0;
+    color: var(--danger-color, #dc3545);
+    font-weight: 600;
+}
+
+.logs-delete-note {
+    color: var(--text-secondary);
+}
+
+.logs-delete-step label {
+    display: block;
+    margin: 0.75rem 0 0.4rem;
+    font-weight: 600;
+}
+
+.logs-delete-step input {
+    width: 100%;
+    padding: 0.75rem 0.9rem;
+    border: 1px solid var(--border-color, #d1d5db);
+    border-radius: 8px;
+    background: var(--background-secondary, #fff);
+    color: var(--text-primary, #111827);
+}
+
+.logs-delete-phrase {
+    margin: 0.75rem 0;
+    padding: 0.9rem 1rem;
+    border: 1px dashed var(--danger-color, #dc3545);
+    border-radius: 8px;
+    background: rgba(220, 53, 69, 0.08);
+    color: var(--text-primary);
+    font-weight: 700;
+    user-select: none;
 }
 
 /* Download Status */
@@ -10705,7 +10830,9 @@
         grid-template-columns: 1fr;
     }
     
-    .download-logs-button {
+    .logs-action-buttons,
+    .download-logs-button,
+    .delete-logs-button {
         width: 100%;
     }
     

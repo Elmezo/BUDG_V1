@@ -132,10 +132,10 @@ public class EnvFileLoader {
                 // Parse KEY=value format
                 int equalsIndex = line.indexOf('=');
                 if (equalsIndex <= 0) {
-                    logger.warn("Invalid line in .env file (line {}): {}", lineNumber, line);
+                    logger.warn("Invalid line in .env file (line {})", lineNumber);
                     // Special logging for JWT_SECRET_KEY to help diagnose
                     if (line.contains("JWT_SECRET_KEY")) {
-                        logger.error("JWT_SECRET_KEY line found but could not be parsed! Line: [{}], equalsIndex: {}", line, equalsIndex);
+                        logger.error("JWT_SECRET_KEY line found but could not be parsed (line {}, equalsIndex: {})", lineNumber, equalsIndex);
                     }
                     continue;
                 }
@@ -156,7 +156,7 @@ public class EnvFileLoader {
                     logger.debug("Loaded from .env: {} = {} (hidden)", key, value.length() > 0 ? "***" : "empty");
                     // Special logging for JWT_SECRET_KEY to help diagnose issues
                     if ("JWT_SECRET_KEY".equals(key)) {
-                        logger.info("JWT_SECRET_KEY loaded from .env file (length: {} bytes)", value.getBytes().length);
+                        logger.info("JWT_SECRET_KEY loaded from .env file");
                     }
                 } else {
                     logger.debug("Skipping .env value for {} (already set in environment)", key);

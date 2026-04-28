@@ -98,7 +98,7 @@ public class JwtUtil {
         
         // Log only that key was loaded (not the actual value)
         if (!usingDevKey) {
-            logger.info("JWT secret key loaded successfully (length: {} bytes)", key.length);
+            logger.info("JWT secret key loaded successfully");
         }
         
         return key;

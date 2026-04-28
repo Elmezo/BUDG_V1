@@ -4488,6 +4488,7 @@ public class UnisonSearchService {
                     ou.ID AS 'Org Unit_ID',
                     s.PrimaryName AS 'BUDG Status',
                     r.primaryname AS 'Profile Name',
+                    r.primaryname AS 'System Role',
                     p.System_Role AS System_Role,
                     p.last_User_LogIn AS 'Last Login',
                     ls.Primary_Name AS Lifecycle,

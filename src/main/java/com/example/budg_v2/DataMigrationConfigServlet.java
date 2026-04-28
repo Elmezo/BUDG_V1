@@ -244,80 +244,70 @@ public class DataMigrationConfigServlet extends HttpServlet {
      */
     private boolean isAdminOrSuperAdmin(HttpServletRequest request) {
         //system.out.println("[DataMigrationConfigServlet] ====== isAdminOrSuperAdmin called ======");
-        logger.info("[DataMigrationConfigServlet] Checking admin access...");
+        logger.debug("[DataMigrationConfigServlet] Checking admin access...");
         
         // First try UserContextUtil
         //system.out.println("[DataMigrationConfigServlet] Trying UserContextUtil.isCurrentUserAdmin()...");
         boolean isAdminViaUtil = UserContextUtil.isCurrentUserAdmin(request);
         //system.out.println("[DataMigrationConfigServlet] UserContextUtil.isCurrentUserAdmin() returned: " + isAdminViaUtil);
-        logger.info("[DataMigrationConfigServlet] UserContextUtil.isCurrentUserAdmin() returned: " + isAdminViaUtil);
+        logger.debug("[DataMigrationConfigServlet] UserContextUtil.isCurrentUserAdmin() returned: {}", isAdminViaUtil);
         
         if (isAdminViaUtil) {
             //system.out.println("[DataMigrationConfigServlet] ✅ User is admin via UserContextUtil");
-            logger.info("[DataMigrationConfigServlet] User is admin via UserContextUtil");
+            logger.debug("[DataMigrationConfigServlet] User is admin via UserContextUtil");
             return true;
         }
         
         // Fallback: parse JWT token directly (like MeServlet does)
         //system.out.println("[DataMigrationConfigServlet] Falling back to JWT token parsing...");
-        logger.info("[DataMigrationConfigServlet] Falling back to JWT token parsing...");
+        logger.debug("[DataMigrationConfigServlet] Falling back to JWT token parsing");
         try {
             Cookie[] cookies = request.getCookies();
-            //system.out.println("[DataMigrationConfigServlet] Cookies count: " + (cookies != null ? cookies.length : 0));
-            logger.info("[DataMigrationConfigServlet] Cookies count: " + (cookies != null ? cookies.length : 0));
-            
-            if (cookies != null) {
-                for (Cookie c : cookies) {
-                    logger.debug("Cookie: {}", c.getName());
-                }
-            }
+            logger.debug("[DataMigrationConfigServlet] Cookies present: {}", cookies != null);
             
             String token = getCookie(request, "ACCESS_TOKEN");
-            //system.out.println("[DataMigrationConfigServlet] ACCESS_TOKEN cookie found: " + (token != null ? "yes (length: " + token.length() + ")" : "no"));
-            logger.info("[DataMigrationConfigServlet] Token found: " + (token != null ? "yes (length: " + token.length() + ")" : "no"));
+            logger.debug("[DataMigrationConfigServlet] Access token present: {}", token != null && !token.isEmpty());
             
             if (token != null && !token.isEmpty()) {
                 //system.out.println("[DataMigrationConfigServlet] Parsing JWT token...");
-                logger.info("[DataMigrationConfigServlet] Parsing JWT token...");
+                logger.debug("[DataMigrationConfigServlet] Parsing JWT token");
                 JWTClaimsSet claims = JwtUtil.parseAndValidate(token);
                 String role = claims.getStringClaim("role");
                 //system.out.println("[DataMigrationConfigServlet] Role from JWT: '" + role + "'");
-                logger.info("[DataMigrationConfigServlet] Role from JWT: '" + role + "'");
+                logger.debug("[DataMigrationConfigServlet] Role claim present: {}", role != null && !role.trim().isEmpty());
                 
                 if (role != null && !role.trim().isEmpty()) {
-                    String normalizedRole = role.trim().toLowerCase().replace('_', ' ').replace('-', ' ');
                     //system.out.println("[DataMigrationConfigServlet] Normalized role: '" + normalizedRole + "'");
-                    logger.info("[DataMigrationConfigServlet] Normalized role: '" + normalizedRole + "'");
+                    logger.debug("[DataMigrationConfigServlet] Normalized role key present");
                     
                     boolean isAdmin = AppRoleNames.isAdminOrSuperAdminName(role);
                     
                     //system.out.println("[DataMigrationConfigServlet] Is admin based on JWT: " + isAdmin);
-                    logger.info("[DataMigrationConfigServlet] Is admin based on JWT: " + isAdmin);
+                    logger.debug("[DataMigrationConfigServlet] Is admin based on JWT: {}", isAdmin);
                     
                     if (isAdmin) {
                         //system.out.println("[DataMigrationConfigServlet] ✅ User is admin/super admin based on JWT token");
-                        logger.info("[DataMigrationConfigServlet] ✅ User is admin/super admin based on JWT token");
+                        logger.debug("[DataMigrationConfigServlet] User is admin/super admin based on JWT token");
                         return true;
                     } else {
                         //system.out.println("[DataMigrationConfigServlet] ❌ Role '" + normalizedRole + "' is not admin");
-                        logger.warn("[DataMigrationConfigServlet] ❌ Role '" + normalizedRole + "' is not admin");
+                        logger.warn("[DataMigrationConfigServlet] JWT role is not admin");
                     }
                 } else {
                     //system.out.println("[DataMigrationConfigServlet] ❌ Role is null or empty in JWT");
-                    logger.warn("[DataMigrationConfigServlet] ❌ Role is null or empty in JWT");
+                    logger.warn("[DataMigrationConfigServlet] Role is null or empty in JWT");
                 }
             } else {
                 //system.out.println("[DataMigrationConfigServlet] ❌ No ACCESS_TOKEN cookie found");
-                logger.warn("[DataMigrationConfigServlet] ❌ No ACCESS_TOKEN cookie found");
+                logger.warn("[DataMigrationConfigServlet] No access token cookie found");
             }
         } catch (Exception e) {
             //system.out.println("[DataMigrationConfigServlet] ❌ Exception during JWT parsing: " + e.getMessage());
-            e.printStackTrace();
-            logger.error("[DataMigrationConfigServlet] ❌ Exception during JWT parsing: " + e.getMessage(), e);
+            logger.error("[DataMigrationConfigServlet] Exception during JWT parsing", e);
         }
         
         //system.out.println("[DataMigrationConfigServlet] ❌ User is NOT admin - returning false");
-        logger.info("[DataMigrationConfigServlet] User is NOT admin");
+        logger.debug("[DataMigrationConfigServlet] User is NOT admin");
         return false;
     }
     
