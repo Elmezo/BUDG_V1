@@ -558,11 +558,12 @@
         try {
             switch (overlayType) {
                 case 'description':
-                    // Get description from cached capability data
-                    if (CapabilityMapState.capabilityData?.description) {
+                    // The cached `capabilityData` belongs to the OPENED capability only;
+                    // for any other capability node we must fetch its own description.
+                    if (CapabilityMapState.capabilityData?.description &&
+                        String(capabilityId) === String(CapabilityMapState.capabilityId)) {
                         return [{ name: 'Description', value: CapabilityMapState.capabilityData.description }];
                     }
-                    // Try to fetch from API
                     try {
                         const resp = await fetch(`/api/capabilities/${capabilityId}`, { credentials: 'include' });
                         if (resp.ok) {
@@ -645,10 +646,189 @@
         }
     }
 
+    // ─────────────────────────────────────────────────────────────────────────
+    // Cross-panel transitive highlight cache. Capability map has only system-
+    // level overlays (no datasets/attributes panels), so we build the cache by
+    // fetching datasets, attributes and dataset-relationships for the systems
+    // surfaced in the overlay. This keeps highlightOverlayItem's BFS branches
+    // consistent with the other six maps. Only overlay-load code is touched.
+    // ─────────────────────────────────────────────────────────────────────────
+    function getOverlayHighlightCache() {
+        if (!CapabilityMapState._overlayHighlightCache) {
+            CapabilityMapState._overlayHighlightCache = {
+                datasetGraph: new Map(),
+                attributeRels: [],
+                attributeOwnerMap: new Map(),
+                glossaryToAnchors: new Map(),
+                anchorToGlossaries: new Map(),
+                anchorGraph: null
+            };
+        }
+        return CapabilityMapState._overlayHighlightCache;
+    }
+
+    function resetOverlayHighlightCache() {
+        CapabilityMapState._overlayHighlightCache = {
+            datasetGraph: new Map(),
+            attributeRels: [],
+            attributeOwnerMap: new Map(),
+            glossaryToAnchors: new Map(),
+            anchorToGlossaries: new Map(),
+            anchorGraph: null
+        };
+    }
+
+    if (!CapabilityMapState._datasetRelationshipsByDatasetId) {
+        CapabilityMapState._datasetRelationshipsByDatasetId = new Map();
+    }
+    if (!CapabilityMapState._datasetsBySystemIdCache) {
+        CapabilityMapState._datasetsBySystemIdCache = new Map();
+    }
+    if (!CapabilityMapState._attributesByDatasetIdCache) {
+        CapabilityMapState._attributesByDatasetIdCache = new Map();
+    }
+
+    function recordHighlightGlossaryAnchor(anchorKey, glossaryId) {
+        if (!anchorKey || glossaryId == null) return;
+        var cache = getOverlayHighlightCache();
+        var gid = String(glossaryId).trim();
+        if (!gid) return;
+        if (!cache.glossaryToAnchors.has(gid)) cache.glossaryToAnchors.set(gid, new Set());
+        cache.glossaryToAnchors.get(gid).add(anchorKey);
+        if (!cache.anchorToGlossaries.has(anchorKey)) cache.anchorToGlossaries.set(anchorKey, new Set());
+        cache.anchorToGlossaries.get(anchorKey).add(gid);
+    }
+
+    async function fetchDatasetsBySystemCached(systemId) {
+        var sid = String(systemId);
+        if (!sid) return [];
+        var cache = CapabilityMapState._datasetsBySystemIdCache;
+        if (cache.has(sid)) return cache.get(sid);
+        var rows = [];
+        try {
+            var r = await fetch('/api/system/' + encodeURIComponent(sid) + '/dataset', { credentials: 'include' });
+            if (r.ok) {
+                var json = await r.json();
+                rows = Array.isArray(json?.data) ? json.data : (Array.isArray(json) ? json : []);
+            }
+        } catch (e) { /* ignore */ }
+        cache.set(sid, rows);
+        return rows;
+    }
+
+    async function fetchAttributesByDatasetCached(datasetId) {
+        var did = String(datasetId);
+        if (!did) return [];
+        var cache = CapabilityMapState._attributesByDatasetIdCache;
+        if (cache.has(did)) return cache.get(did);
+        var rows = [];
+        try {
+            var r = await fetch('/api/attribute/' + encodeURIComponent(did), { credentials: 'include' });
+            if (r.ok) {
+                var json = await r.json();
+                rows = Array.isArray(json?.data) ? json.data : (Array.isArray(json) ? json : []);
+            }
+        } catch (e) { /* ignore */ }
+        cache.set(did, rows);
+        return rows;
+    }
+
+    async function fetchDatasetRelationshipsCached(datasetId) {
+        var did = String(datasetId);
+        if (!did) return [];
+        var cache = CapabilityMapState._datasetRelationshipsByDatasetId;
+        if (cache.has(did)) return cache.get(did);
+        var rels = [];
+        try {
+            var r = await fetch('/api/dataset-relationships/' + encodeURIComponent(did), { credentials: 'include' });
+            if (r.ok) {
+                var json = await r.json();
+                var inbound = Array.isArray(json?.inbound) ? json.inbound : [];
+                var outbound = Array.isArray(json?.outbound) ? json.outbound : [];
+                rels = [].concat(inbound, outbound);
+            }
+        } catch (e) { /* ignore */ }
+        cache.set(did, rels);
+        return rels;
+    }
+
+    async function buildHighlightCacheForSystems(systemIds) {
+        var helper = window.MapOverlayHighlight;
+        var cache = getOverlayHighlightCache();
+        var datasetGraph = cache.datasetGraph;
+        var attributeRels = cache.attributeRels;
+        var attributeOwnerMap = cache.attributeOwnerMap;
+
+        function addEdge(graph, a, b) {
+            if (!a || !b || a === b) return;
+            if (!graph.has(a)) graph.set(a, new Set());
+            if (!graph.has(b)) graph.set(b, new Set());
+            graph.get(a).add(b);
+            graph.get(b).add(a);
+        }
+        function strField(rel, keys) {
+            for (var i = 0; i < keys.length; i++) {
+                var v = rel && rel[keys[i]];
+                if (v !== null && v !== undefined && String(v).trim() !== '') return String(v);
+            }
+            return '';
+        }
+
+        // 1) Datasets per system; capture dataset glossary anchors as we go.
+        var datasetIdsToProcess = new Set();
+        var datasetLists = await Promise.all(Array.from(systemIds).map(fetchDatasetsBySystemCached));
+        datasetLists.forEach(function (rows) {
+            (rows || []).forEach(function (d) {
+                if (!d) return;
+                var did = d.id != null ? d.id : (d.datasetId != null ? d.datasetId : d.dataset_id);
+                if (did == null) return;
+                datasetIdsToProcess.add(String(did));
+                var gid = d.glossaryId != null ? d.glossaryId : (d.glossary_id != null ? d.glossary_id : d.Glossary_ID);
+                if (helper && gid != null) recordHighlightGlossaryAnchor(helper.dsKey(did), gid);
+            });
+        });
+
+        // 2) Attributes per dataset (records ownership + attribute-level glossary anchors).
+        var attrLists = await Promise.all(Array.from(datasetIdsToProcess).map(fetchAttributesByDatasetCached));
+        var datasetIdArr = Array.from(datasetIdsToProcess);
+        attrLists.forEach(function (rows, idx) {
+            var did = datasetIdArr[idx];
+            (rows || []).forEach(function (a) {
+                if (!a) return;
+                var aid = a.id != null ? a.id : a.ID;
+                if (aid == null) return;
+                attributeOwnerMap.set(String(aid), String(did));
+                var gid = a.glossaryId != null ? a.glossaryId : (a.glossary_id != null ? a.glossary_id : a.Glossary_ID);
+                if (helper && gid != null) recordHighlightGlossaryAnchor(helper.attrKey(aid), gid);
+            });
+        });
+
+        // 3) Dataset/attribute relationships from /api/dataset-relationships.
+        var relLists = await Promise.all(Array.from(datasetIdsToProcess).map(fetchDatasetRelationshipsCached));
+        relLists.forEach(function (rels) {
+            (rels || []).forEach(function (rel) {
+                var srcDs = strField(rel, ['sourceDatasetId', 'sourceDataSetId', 'Source_DatasetID', 'source_dataset_id']);
+                var tgtDs = strField(rel, ['targetDatasetId', 'targetDataSetId', 'Target_DatasetID', 'target_dataset_id']);
+                var srcAttr = strField(rel, ['sourceAttributeId', 'Source_AttributeID', 'source_attribute_id']);
+                var tgtAttr = strField(rel, ['targetAttributeId', 'Target_AttributeID', 'target_attribute_id']);
+                if (srcDs && tgtDs) addEdge(datasetGraph, srcDs, tgtDs);
+                if (srcAttr && tgtAttr) attributeRels.push({ sourceAttributeId: srcAttr, targetAttributeId: tgtAttr });
+                if (srcAttr && srcDs) attributeOwnerMap.set(srcAttr, srcDs);
+                if (tgtAttr && tgtDs) attributeOwnerMap.set(tgtAttr, tgtDs);
+            });
+        });
+
+        if (helper && typeof helper.buildAnchorGraph === 'function') {
+            cache.anchorGraph = helper.buildAnchorGraph(datasetGraph, attributeRels, attributeOwnerMap);
+        }
+    }
+
     // Load overlay data for all visible nodes
     async function loadOverlayData(overlayType) {
         if (!CapabilityMapState.network) return;
-        
+        // Reset highlight cache; populated below once overlay items are known.
+        resetOverlayHighlightCache();
+
         const nodes = CapabilityMapState.network.nodes();
         embLog('[CAPABILITY-MAP] Loading overlay data:', overlayType, 'for', nodes.length, 'nodes');
         
@@ -692,10 +872,43 @@
                     embWarn(`[CAPABILITY-MAP] Failed to load ${overlayType} for capability ${capabilityId}:`, error);
                 }
             }));
-            
+
+            // For glossary/system overlays, build the cross-panel highlight cache
+            // by collecting every system surfaced in any capability panel and
+            // walking its datasets/attributes/relationships.
+            if (overlayType === 'glossary' || overlayType === 'systems') {
+                try {
+                    const systemIdSet = new Set();
+                    if (overlayType === 'systems') {
+                        overlayData.forEach(function (rows) {
+                            (rows || []).forEach(function (s) {
+                                if (!s) return;
+                                var sid = s.id != null ? s.id : (s.systemId != null ? s.systemId : s.system_id);
+                                if (sid != null) systemIdSet.add(String(sid));
+                            });
+                        });
+                    } else {
+                        // For glossary overlay, fetch each capability's systems list
+                        // (independently of the active glossary panel data) so we can
+                        // anchor glossaries to datasets/attributes within those systems.
+                        const sysLists = await Promise.all(nodeCapabilityPairs.map(function (p) {
+                            return fetchOverlayDataForCapability(p.capabilityId, 'systems');
+                        }));
+                        sysLists.forEach(function (rows) {
+                            (rows || []).forEach(function (s) {
+                                if (!s) return;
+                                var sid = s.id != null ? s.id : (s.systemId != null ? s.systemId : s.system_id);
+                                if (sid != null) systemIdSet.add(String(sid));
+                            });
+                        });
+                    }
+                    await buildHighlightCacheForSystems(systemIdSet);
+                } catch (e) { /* non-fatal */ }
+            }
+
             // Render overlay panels
             renderOverlayPanels(overlayType, overlayData);
-            
+
         } catch (error) {
             console.error('[CAPABILITY-MAP] Error loading overlay data:', error);
         }
@@ -1042,37 +1255,52 @@
     function highlightOverlayItem(overlayType, item, sourceNodeId) {
         const overlayContainer = CapabilityMapState.canvas?.querySelector('.map-overlay-container');
         if (!overlayContainer) return;
-        
+
         const itemId = getOverlayItemId(overlayType, item);
         const itemText = getOverlayItemText(overlayType, item);
-        
+
         embLog('[CAPABILITY-MAP] Highlighting overlay item:', overlayType, 'Value:', itemText, 'ID:', itemId);
-        
+
+        const helper = window.MapOverlayHighlight;
+        const cache = CapabilityMapState._overlayHighlightCache;
+        let relatedDatasetIds = null;
+        let relatedAttributeIds = null;
+        let relatedGlossaryIds = null;
+        if (helper && cache) {
+            if (overlayType === 'datasets' && itemId) {
+                relatedDatasetIds = helper.findAllRelatedDatasets(itemId, cache.datasetGraph);
+            } else if ((overlayType === 'attributes' || overlayType === 'linking-attributes') && itemId) {
+                relatedAttributeIds = helper.findAllRelatedAttributes(itemId, cache.attributeRels);
+            } else if (overlayType === 'glossary' && itemId) {
+                relatedGlossaryIds = helper.findAllRelatedGlossaries(itemId, cache.glossaryToAnchors, cache.anchorGraph, cache.anchorToGlossaries);
+            }
+        }
+
         // Remove previous highlights
         overlayContainer.querySelectorAll('.map-node-overlay-item').forEach(row => {
             row.classList.remove('highlighted-source', 'highlighted-related');
         });
-        
+
         // Find and highlight matching items
         overlayContainer.querySelectorAll('.map-node-overlay-item').forEach(row => {
             const panel = row.closest('.map-node-overlay-panel');
             const isSource = panel?.getAttribute('data-node-id') === sourceNodeId;
-            
+
             let shouldHighlight = false;
-            
-            // ID-based matching
-            if (itemId) {
-                const rowItemId = row.dataset.itemId ? String(row.dataset.itemId) : null;
-                if (rowItemId && rowItemId === String(itemId)) {
-                    shouldHighlight = true;
-                }
+            const rowItemId = row.dataset.itemId ? String(row.dataset.itemId) : '';
+
+            if (itemId && rowItemId && rowItemId === String(itemId)) {
+                shouldHighlight = true;
             }
-            
-            // Value-based matching
+
             if (!shouldHighlight && row.dataset.overlayValue === itemText) {
                 shouldHighlight = true;
             }
-            
+
+            if (!shouldHighlight && relatedDatasetIds && rowItemId && relatedDatasetIds.has(rowItemId)) shouldHighlight = true;
+            if (!shouldHighlight && relatedAttributeIds && rowItemId && relatedAttributeIds.has(rowItemId)) shouldHighlight = true;
+            if (!shouldHighlight && relatedGlossaryIds && rowItemId && relatedGlossaryIds.has(rowItemId)) shouldHighlight = true;
+
             if (shouldHighlight) {
                 if (isSource) row.classList.add('highlighted-source');
                 else row.classList.add('highlighted-related');

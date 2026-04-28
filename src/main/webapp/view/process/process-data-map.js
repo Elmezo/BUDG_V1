@@ -762,18 +762,54 @@
         if (!overlayContainer) return;
         const itemId = getOverlayItemId(overlayType, item);
         const itemText = getDataMapOverlayItemText(overlayType, item);
+
+        // Cross-panel transitive BFS via shared helpers. Note: 'dataset' (singular)
+        // and 'datasets' overlays both target dataset rows.
+        const helper = window.MapOverlayHighlight;
+        const hcache = getOverlayHighlightCache();
+        let datasetRelatedIds = null;
+        let attributeRelatedIds = null;
+        let glossaryRelatedIds = null;
+        if ((overlayType === 'datasets' || overlayType === 'dataset') && itemId && helper && hcache && hcache.datasetGraph) {
+            datasetRelatedIds = helper.findAllRelatedDatasets(String(itemId), hcache.datasetGraph);
+        }
+        if ((overlayType === 'attributes' || overlayType === 'linking-attributes') && itemId && helper && hcache && Array.isArray(hcache.attributeRels)) {
+            attributeRelatedIds = helper.findAllRelatedAttributes(String(itemId), hcache.attributeRels);
+        }
+        if (overlayType === 'glossary' && itemId && helper && hcache && hcache.anchorGraph) {
+            glossaryRelatedIds = helper.findAllRelatedGlossaries(
+                String(itemId),
+                hcache.glossaryToAnchors,
+                hcache.anchorGraph,
+                hcache.anchorToGlossaries
+            );
+        }
+
         overlayContainer.querySelectorAll('.map-node-overlay-item').forEach(el => {
             el.classList.remove('highlighted-source', 'highlighted-related');
         });
         overlayContainer.querySelectorAll('.map-node-overlay-item').forEach(el => {
             const panel = el.closest('.map-node-overlay-panel');
             const isSource = panel?.getAttribute('data-node-id') === sourceNodeId;
+            const elItemId = el.dataset.itemId ? String(el.dataset.itemId) : null;
             let shouldHighlight = false;
-            if (itemId && el.dataset.itemId && String(el.dataset.itemId) === String(itemId)) shouldHighlight = true;
+            if (itemId && elItemId && elItemId === String(itemId)) shouldHighlight = true;
             if (!shouldHighlight && (el.dataset.overlayValue || '').trim() === (itemText || '').trim()) shouldHighlight = true;
             if (shouldHighlight) {
                 if (isSource) el.classList.add('highlighted-source');
                 else el.classList.add('highlighted-related');
+                return;
+            }
+            if (datasetRelatedIds && elItemId && datasetRelatedIds.has(elItemId)) {
+                el.classList.add('highlighted-related');
+                return;
+            }
+            if (attributeRelatedIds && elItemId && attributeRelatedIds.has(elItemId)) {
+                el.classList.add('highlighted-related');
+                return;
+            }
+            if (glossaryRelatedIds && elItemId && glossaryRelatedIds.has(elItemId)) {
+                el.classList.add('highlighted-related');
             }
         });
         applyOverlayRelatedNodeAndEdgeHighlights(overlayContainer, sourceNodeId);
@@ -1233,9 +1269,132 @@
         requestAnimationFrame(() => requestAnimationFrame(updateOverlayPositions));
     }
 
+    // ─────────────────────────────────────────────────────────────────────────
+    // Cross-panel transitive highlight cache. Built from datasetRelationships +
+    // glossary records collected as the per-system / per-dataset overlay loops
+    // populate `impactDatasetIdToAttributes`. Touch overlay loading only.
+    // ─────────────────────────────────────────────────────────────────────────
+    function getOverlayHighlightCache() {
+        if (!ProcessDataMapState._overlayHighlightCache) {
+            ProcessDataMapState._overlayHighlightCache = {
+                datasetGraph: new Map(),
+                attributeRels: [],
+                attributeOwnerMap: new Map(),
+                glossaryToAnchors: new Map(),
+                anchorToGlossaries: new Map(),
+                anchorGraph: null
+            };
+        }
+        return ProcessDataMapState._overlayHighlightCache;
+    }
+
+    function resetOverlayHighlightCache() {
+        ProcessDataMapState._overlayHighlightCache = {
+            datasetGraph: new Map(),
+            attributeRels: [],
+            attributeOwnerMap: new Map(),
+            glossaryToAnchors: new Map(),
+            anchorToGlossaries: new Map(),
+            anchorGraph: null
+        };
+    }
+
+    function rebuildHighlightCacheFromRelationships() {
+        var cache = getOverlayHighlightCache();
+        var datasetGraph = new Map();
+        var attributeRels = [];
+        var attributeOwnerMap = new Map();
+
+        function addEdge(graph, a, b) {
+            if (!a || !b || a === b) return;
+            if (!graph.has(a)) graph.set(a, new Set());
+            if (!graph.has(b)) graph.set(b, new Set());
+            graph.get(a).add(b);
+            graph.get(b).add(a);
+        }
+        function strField(rel, keys) {
+            for (var i = 0; i < keys.length; i++) {
+                var v = rel && rel[keys[i]];
+                if (v !== null && v !== undefined && String(v).trim() !== '') return String(v);
+            }
+            return '';
+        }
+
+        (ProcessDataMapState.datasetRelationships || []).forEach(function (rel) {
+            var srcDs = strField(rel, ['sourceDatasetId', 'sourceDataSetId', 'Source_DatasetID']);
+            var tgtDs = strField(rel, ['targetDatasetId', 'targetDataSetId', 'Target_DatasetID']);
+            var srcAttr = strField(rel, ['sourceAttributeId', 'Source_AttributeID']);
+            var tgtAttr = strField(rel, ['targetAttributeId', 'Target_AttributeID']);
+            if (srcDs && tgtDs) addEdge(datasetGraph, srcDs, tgtDs);
+            if (srcAttr && tgtAttr) attributeRels.push({ sourceAttributeId: srcAttr, targetAttributeId: tgtAttr });
+            if (srcAttr && srcDs) attributeOwnerMap.set(srcAttr, srcDs);
+            if (tgtAttr && tgtDs) attributeOwnerMap.set(tgtAttr, tgtDs);
+        });
+
+        cache.datasetGraph = datasetGraph;
+        cache.attributeRels = attributeRels;
+        cache.attributeOwnerMap = attributeOwnerMap;
+
+        if (window.MapOverlayHighlight && typeof window.MapOverlayHighlight.buildAnchorGraph === 'function') {
+            cache.anchorGraph = window.MapOverlayHighlight.buildAnchorGraph(datasetGraph, attributeRels, attributeOwnerMap);
+        }
+    }
+
+    function recordHighlightGlossaryAnchor(anchorKey, glossaryId) {
+        if (!anchorKey || glossaryId == null) return;
+        var cache = getOverlayHighlightCache();
+        var gid = String(glossaryId).trim();
+        if (!gid) return;
+        if (!cache.glossaryToAnchors.has(gid)) cache.glossaryToAnchors.set(gid, new Set());
+        cache.glossaryToAnchors.get(gid).add(anchorKey);
+        if (!cache.anchorToGlossaries.has(anchorKey)) cache.anchorToGlossaries.set(anchorKey, new Set());
+        cache.anchorToGlossaries.get(anchorKey).add(gid);
+    }
+
+    /** Walk all currently-known dataset->attribute mappings and record the
+     *  glossary anchors they imply. Cheap: it iterates state.impactDatasetIdToAttributes
+     *  which is populated on demand by the overlay loaders themselves. Called at
+     *  the end of every loadOverlayData. */
+    function captureGlossaryAnchorsFromState() {
+        var helper = window.MapOverlayHighlight;
+        if (!helper) return;
+        var cache = getOverlayHighlightCache();
+        ProcessDataMapState.impactDatasetIdToAttributes.forEach(function (attrs, datasetId) {
+            if (!Array.isArray(attrs)) return;
+            attrs.forEach(function (attr) {
+                if (!attr) return;
+                var aid = attr.id != null ? attr.id : (attr.ID != null ? attr.ID : attr.attribute_id);
+                if (aid != null) cache.attributeOwnerMap.set(String(aid), String(datasetId));
+                var gid = attr.glossaryId != null ? attr.glossaryId : (attr.glossary_id != null ? attr.glossary_id : attr.Glossary_ID);
+                if (aid != null && gid != null) recordHighlightGlossaryAnchor(helper.attrKey(aid), gid);
+            });
+        });
+        // Dataset-level glossary from linkedDatasets / impactSystemIdToDatasets.
+        ProcessDataMapState.linkedDatasets.forEach(function (info, datasetId) {
+            var ds = info && info.dataset;
+            if (!ds) return;
+            var gid = ds.glossaryId != null ? ds.glossaryId : (ds.glossary_id != null ? ds.glossary_id : ds.Glossary_ID);
+            if (gid != null) recordHighlightGlossaryAnchor(helper.dsKey(datasetId), gid);
+        });
+        ProcessDataMapState.impactSystemIdToDatasets.forEach(function (datasets) {
+            if (!Array.isArray(datasets)) return;
+            datasets.forEach(function (d) {
+                if (!d) return;
+                var did = d.id != null ? d.id : (d.datasetId != null ? d.datasetId : d.dataset_id);
+                var gid = d.glossaryId != null ? d.glossaryId : (d.glossary_id != null ? d.glossary_id : d.Glossary_ID);
+                if (did != null && gid != null) recordHighlightGlossaryAnchor(helper.dsKey(did), gid);
+            });
+        });
+    }
+
     async function loadOverlayData(overlayType) {
         const network = ProcessDataMapState.network;
         if (!network) return;
+        // Reset and rebuild the cross-panel highlight cache from the latest
+        // dataset relationships. Glossary anchors are recorded after the
+        // per-system / per-dataset overlay loops below run.
+        resetOverlayHighlightCache();
+        rebuildHighlightCacheFromRelationships();
         const overlayData = new Map();
         const isSystemLineage = ProcessDataMapState.mapType === 'system-lineage';
         const nodeIds = network.nodes().map(n => n.data('id'));
@@ -1306,7 +1465,8 @@
                                 )));
                             }
                         } catch (e) { }
-                        // Attributes overlay: show all attributes for this system (no filter)
+                        // Black systems: keep only attributes that have a relationship with the orange (Impact) attributes.
+                        items = items.filter(a => ProcessDataMapState.attributeIdsWithLinks.has(String(a.id)));
                     }
                 } else if (!isSystemLineage && meta.datasetId) {
                     const info = ProcessDataMapState.linkedDatasets.get(meta.datasetId);
@@ -1359,28 +1519,69 @@
                 if (!meta) continue;
                 let items = [];
                 if (isSystemLineage && meta.systemId) {
-                    const impactAttrs = ProcessDataMapState.impactSystemIdToAttributeIds.get(meta.systemId) || [];
-                    const datasetIds = ProcessDataMapState.impactSystemIdToDatasetIds.get(meta.systemId) || [];
-                    let allAttrs = impactAttrs.slice();
-                    for (const did of datasetIds) {
-                        if (ProcessDataMapState.impactDatasetIdToAttributes.has(did)) allAttrs = allAttrs.concat(ProcessDataMapState.impactDatasetIdToAttributes.get(did));
-                        else {
-                            try {
-                                const r = await fetch(`/api/attribute/${did}`, { credentials: 'include' });
-                                const json = r.ok ? await r.json() : null;
-                                const arr = Array.isArray(json?.data) ? json.data : (Array.isArray(json) ? json : []);
-                                const mapped = arr.map(a => (
-                                    normAttr ? normAttr(a, { datasetId: String(did) }) : {
-                                        id: a.id || a.ID,
-                                        name: a['Name attribute'] || a.name || a.primaryName || '',
-                                        glossaryId: a.glossaryId ?? a.glossary_id ?? a.Glossary_ID,
-                                        glossaryName: a['Glossary Name attribute'] || a.glossaryName || a.glossary_name || a.GlossaryName || ''
-                                    }
-                                ));
-                                ProcessDataMapState.impactDatasetIdToAttributes.set(did, mapped);
-                                allAttrs = allAttrs.concat(mapped);
-                            } catch (e) { }
+                    let allAttrs = [];
+                    if (meta.isImpact) {
+                        const impactAttrs = ProcessDataMapState.impactSystemIdToAttributeIds.get(meta.systemId) || [];
+                        const datasetIds = ProcessDataMapState.impactSystemIdToDatasetIds.get(meta.systemId) || [];
+                        allAttrs = impactAttrs.slice();
+                        for (const did of datasetIds) {
+                            if (ProcessDataMapState.impactDatasetIdToAttributes.has(did)) allAttrs = allAttrs.concat(ProcessDataMapState.impactDatasetIdToAttributes.get(did));
+                            else {
+                                try {
+                                    const r = await fetch(`/api/attribute/${did}`, { credentials: 'include' });
+                                    const json = r.ok ? await r.json() : null;
+                                    const arr = Array.isArray(json?.data) ? json.data : (Array.isArray(json) ? json : []);
+                                    const mapped = arr.map(a => (
+                                        normAttr ? normAttr(a, { datasetId: String(did) }) : {
+                                            id: a.id || a.ID,
+                                            name: a['Name attribute'] || a.name || a.primaryName || '',
+                                            glossaryId: a.glossaryId ?? a.glossary_id ?? a.Glossary_ID,
+                                            glossaryName: a['Glossary Name attribute'] || a.glossaryName || a.glossary_name || a.GlossaryName || ''
+                                        }
+                                    ));
+                                    ProcessDataMapState.impactDatasetIdToAttributes.set(did, mapped);
+                                    allAttrs = allAttrs.concat(mapped);
+                                } catch (e) { }
+                            }
                         }
+                    } else {
+                        // Black systems: load all attributes from this system's datasets so we can filter to the linked ones.
+                        try {
+                            const linkApi = window.BUDG_API_SERVICE;
+                            let sysDatasets = [];
+                            if (linkApi && typeof linkApi.getSystemDatasets === 'function') {
+                                const res = await linkApi.getSystemDatasets(meta.systemId).catch(() => null);
+                                const data = res?.data ?? res;
+                                sysDatasets = Array.isArray(data) ? data : (Array.isArray(data?.data) ? data.data : []);
+                            } else {
+                                const r = await fetch(`/api/system-data/${meta.systemId}/datasets`, { credentials: 'include' });
+                                const json = r.ok ? await r.json() : null;
+                                sysDatasets = Array.isArray(json?.data) ? json.data : (Array.isArray(json) ? json : []);
+                            }
+                            for (const sd of sysDatasets) {
+                                const did = sd.id ?? sd.datasetId ?? sd.dataset_id;
+                                if (!did) continue;
+                                if (ProcessDataMapState.impactDatasetIdToAttributes.has(did)) {
+                                    allAttrs = allAttrs.concat(ProcessDataMapState.impactDatasetIdToAttributes.get(did));
+                                    continue;
+                                }
+                                try {
+                                    const r2 = await fetch(`/api/attribute/${did}`, { credentials: 'include' });
+                                    const j2 = r2.ok ? await r2.json() : null;
+                                    const arr = Array.isArray(j2?.data) ? j2.data : (Array.isArray(j2) ? j2 : []);
+                                    const mapped = arr.map(a => (
+                                        normAttr ? normAttr(a, { datasetId: String(did) }) : {
+                                            id: a.id || a.ID,
+                                            name: a['Name attribute'] || a.name || a.primaryName || '',
+                                            glossaryId: a.glossaryId ?? a.glossary_id ?? a.Glossary_ID,
+                                            glossaryName: a['Glossary Name attribute'] || a.glossaryName || a.glossary_name || a.GlossaryName || ''
+                                        }
+                                    ));
+                                    ProcessDataMapState.impactDatasetIdToAttributes.set(did, mapped);
+                                    allAttrs = allAttrs.concat(mapped);
+                                } catch (e) { }
+                            }
+                        } catch (e) { }
                     }
                     items = allAttrs.filter(a => ProcessDataMapState.attributeIdsWithLinks.has(String(a.id)));
                 } else if (!isSystemLineage && meta.datasetId) {
@@ -1477,8 +1678,56 @@
                             });
                         } catch (e) { }
                     } else {
-                        // Black systems: unknown (system vs attribute glossaries may differ).
-                        glossaryItems.push({ glossaryName: 'Unknown (system vs attribute glossaries may differ)', glossaryRefNumber: '' });
+                        // Black systems: only glossaries of attributes that have a relationship with the orange (Impact) attributes.
+                        try {
+                            const blackApi = window.BUDG_API_SERVICE;
+                            let blackSysDatasets = [];
+                            if (blackApi && typeof blackApi.getSystemDatasets === 'function') {
+                                const blackRes = await blackApi.getSystemDatasets(meta.systemId).catch(() => null);
+                                const blackData = blackRes?.data ?? blackRes;
+                                blackSysDatasets = Array.isArray(blackData) ? blackData : (Array.isArray(blackData?.data) ? blackData.data : []);
+                            } else {
+                                const blackRes = await fetch(`/api/system-data/${meta.systemId}/datasets`, { credentials: 'include' });
+                                const blackJson = blackRes.ok ? await blackRes.json() : null;
+                                blackSysDatasets = Array.isArray(blackJson?.data) ? blackJson.data : (Array.isArray(blackJson) ? blackJson : []);
+                            }
+                            const blackSeenG = new Set();
+                            for (const sd of blackSysDatasets) {
+                                const did = sd.id ?? sd.datasetId ?? sd.dataset_id;
+                                if (!did) continue;
+                                if (!ProcessDataMapState.impactDatasetIdToAttributes.has(did)) {
+                                    try {
+                                        const r = await fetch(`/api/attribute/${did}`, { credentials: 'include' });
+                                        const json = r.ok ? await r.json() : null;
+                                        const arr = Array.isArray(json?.data) ? json.data : (Array.isArray(json) ? json : []);
+                                        ProcessDataMapState.impactDatasetIdToAttributes.set(did, arr.map(a => (
+                                            normAttr ? normAttr(a, { datasetId: String(did) }) : {
+                                                id: a.id || a.ID,
+                                                name: a['Name attribute'] || a.name || a.primaryName || '',
+                                                glossaryId: a.glossaryId ?? a.glossary_id ?? a.Glossary_ID,
+                                                glossaryName: a['Glossary Name attribute'] || a.glossaryName || a.glossary_name || a.GlossaryName || ''
+                                            }
+                                        )));
+                                    } catch (e) { ProcessDataMapState.impactDatasetIdToAttributes.set(did, []); }
+                                }
+                                (ProcessDataMapState.impactDatasetIdToAttributes.get(did) || []).forEach(a => {
+                                    if (!ProcessDataMapState.attributeIdsWithLinks.has(String(a.id))) return;
+                                    if (a.glossaryId == null || !a.glossaryName) return;
+                                    const key = String(a.glossaryId);
+                                    if (blackSeenG.has(key)) return;
+                                    blackSeenG.add(key);
+                                    glossaryItems.push({
+                                        glossaryName: a.glossaryName,
+                                        glossaryRefNumber: '',
+                                        glossaryId: a.glossaryId,
+                                        id: a.glossaryId,
+                                        name: a.glossaryName,
+                                        glossary: a.glossaryName,
+                                        source: 'attribute'
+                                    });
+                                });
+                            }
+                        } catch (e) { }
                     }
                 } else if (!isSystemLineage && meta.datasetId) {
                     const info = ProcessDataMapState.linkedDatasets.get(meta.datasetId);
@@ -1607,6 +1856,23 @@
         } else {
             network.nodes().forEach(node => overlayData.set(String(node.data('id')), null));
         }
+
+        // Finalise the unified anchor graph using the glossary anchors that
+        // the overlay loops have populated into the state caches.
+        try {
+            captureGlossaryAnchorsFromState();
+            var _hcache = getOverlayHighlightCache();
+            if (window.MapOverlayHighlight && typeof window.MapOverlayHighlight.buildAnchorGraph === 'function') {
+                _hcache.anchorGraph = window.MapOverlayHighlight.buildAnchorGraph(
+                    _hcache.datasetGraph || new Map(),
+                    _hcache.attributeRels || [],
+                    _hcache.attributeOwnerMap || new Map()
+                );
+            }
+        } catch (cacheErr) {
+            try { console.warn('[PROCESS-DATA-MAP] Failed to finalise highlight cache:', cacheErr); } catch (e) { /* noop */ }
+        }
+
         renderOverlayPanels(overlayType, overlayData);
     }
 

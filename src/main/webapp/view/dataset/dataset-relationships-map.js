@@ -803,22 +803,131 @@
         }
 
         var relatedDatasetIds = new Set();
+        // For non-current datasets, build the set of attribute IDs that are linked
+        // (via dataset-attribute relationships) to one of the current system's datasets.
+        // Key: datasetId (string), Value: Set<attributeId (string)>
+        var linkedAttributeIdsByDataset = new Map();
+        function addLinkedAttr(did, aid) {
+            var didStr = String(did || '');
+            var aidStr = aid != null ? String(aid) : '';
+            if (!didStr || !aidStr) return;
+            if (currentDatasetIds.has(didStr)) return; // current's attrs are unrestricted
+            if (!linkedAttributeIdsByDataset.has(didStr)) {
+                linkedAttributeIdsByDataset.set(didStr, new Set());
+            }
+            linkedAttributeIdsByDataset.get(didStr).add(aidStr);
+        }
         (DatasetMapState.datasetRelationships || []).forEach(function (rel) {
             var srcDid = relDatasetId(rel, ['sourceDatasetId', 'sourceDataSetId', 'Source_DatasetID']);
             var tgtDid = relDatasetId(rel, ['targetDatasetId', 'targetDataSetId', 'Target_DatasetID']);
             if (!srcDid || !tgtDid) return;
             if (currentDatasetIds.has(srcDid) && !currentDatasetIds.has(tgtDid)) relatedDatasetIds.add(tgtDid);
             if (currentDatasetIds.has(tgtDid) && !currentDatasetIds.has(srcDid)) relatedDatasetIds.add(srcDid);
+
+            var srcAid = rel && (rel.sourceAttributeId != null ? rel.sourceAttributeId : rel.Source_AttributeID);
+            var tgtAid = rel && (rel.targetAttributeId != null ? rel.targetAttributeId : rel.Target_AttributeID);
+            if (currentDatasetIds.has(srcDid) && !currentDatasetIds.has(tgtDid)) {
+                addLinkedAttr(tgtDid, tgtAid);
+            }
+            if (currentDatasetIds.has(tgtDid) && !currentDatasetIds.has(srcDid)) {
+                addLinkedAttr(srcDid, srcAid);
+            }
         });
 
         var scope = {
             currentSystemId: currentSystemId,
             currentDatasetIds: currentDatasetIds,
             relatedDatasetIds: relatedDatasetIds,
-            datasetsBySystem: datasetsBySystem
+            datasetsBySystem: datasetsBySystem,
+            linkedAttributeIdsByDataset: linkedAttributeIdsByDataset
         };
         DatasetMapState._glossaryDatasetScope = { key: key, scope: scope };
         return scope;
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Cross-panel transitive highlight cache. Built from DatasetMapState.datasetRelationships
+    // (which already mixes dataset and attribute level info). Populated lazily
+    // alongside the existing glossary scope on every overlay load.
+    // ─────────────────────────────────────────────────────────────────────────
+    function getOverlayHighlightCache() {
+        if (!DatasetMapState._overlayHighlightCache) {
+            DatasetMapState._overlayHighlightCache = {
+                datasetGraph: new Map(),
+                attributeRels: [],
+                attributeOwnerMap: new Map(),
+                glossaryToAnchors: new Map(),
+                anchorToGlossaries: new Map(),
+                anchorGraph: null
+            };
+        }
+        return DatasetMapState._overlayHighlightCache;
+    }
+
+    function resetOverlayHighlightCache() {
+        DatasetMapState._overlayHighlightCache = {
+            datasetGraph: new Map(),
+            attributeRels: [],
+            attributeOwnerMap: new Map(),
+            glossaryToAnchors: new Map(),
+            anchorToGlossaries: new Map(),
+            anchorGraph: null
+        };
+    }
+
+    function rebuildHighlightCacheFromRelationships() {
+        const cache = getOverlayHighlightCache();
+        const helper = window.MapOverlayHighlight;
+        const rels = DatasetMapState.datasetRelationships || [];
+        const datasetGraph = new Map();
+        const attributeRels = [];
+        const attributeOwnerMap = new Map();
+
+        function addEdge(graph, a, b) {
+            if (!a || !b || a === b) return;
+            if (!graph.has(a)) graph.set(a, new Set());
+            if (!graph.has(b)) graph.set(b, new Set());
+            graph.get(a).add(b);
+            graph.get(b).add(a);
+        }
+        function getStr(rel, keys) {
+            for (let i = 0; i < keys.length; i++) {
+                const v = rel && rel[keys[i]];
+                if (v !== null && v !== undefined && String(v).trim() !== '') return String(v);
+            }
+            return '';
+        }
+
+        rels.forEach(rel => {
+            const srcDs = getStr(rel, ['sourceDatasetId', 'sourceDataSetId', 'Source_DatasetID', 'source_dataset_id']);
+            const tgtDs = getStr(rel, ['targetDatasetId', 'targetDataSetId', 'Target_DatasetID', 'target_dataset_id']);
+            const srcAttr = getStr(rel, ['sourceAttributeId', 'Source_AttributeID', 'source_attribute_id']);
+            const tgtAttr = getStr(rel, ['targetAttributeId', 'Target_AttributeID', 'target_attribute_id']);
+
+            if (srcDs && tgtDs) addEdge(datasetGraph, srcDs, tgtDs);
+            if (srcAttr && tgtAttr) attributeRels.push({ sourceAttributeId: srcAttr, targetAttributeId: tgtAttr });
+            if (srcAttr && srcDs) attributeOwnerMap.set(srcAttr, srcDs);
+            if (tgtAttr && tgtDs) attributeOwnerMap.set(tgtAttr, tgtDs);
+        });
+
+        cache.datasetGraph = datasetGraph;
+        cache.attributeRels = attributeRels;
+        cache.attributeOwnerMap = attributeOwnerMap;
+
+        if (helper && typeof helper.buildAnchorGraph === 'function') {
+            cache.anchorGraph = helper.buildAnchorGraph(datasetGraph, attributeRels, attributeOwnerMap);
+        }
+    }
+
+    function recordHighlightGlossaryAnchor(anchorKey, glossaryId) {
+        if (!anchorKey || glossaryId == null) return;
+        const cache = getOverlayHighlightCache();
+        const gid = String(glossaryId).trim();
+        if (!gid) return;
+        if (!cache.glossaryToAnchors.has(gid)) cache.glossaryToAnchors.set(gid, new Set());
+        cache.glossaryToAnchors.get(gid).add(anchorKey);
+        if (!cache.anchorToGlossaries.has(anchorKey)) cache.anchorToGlossaries.set(anchorKey, new Set());
+        cache.anchorToGlossaries.get(anchorKey).add(gid);
     }
 
     function isDatasetAllowedInDatasetMapGlossary(scope, datasetId, systemId) {
@@ -828,6 +937,19 @@
         if (!did || !sid) return false;
         if (sid === scope.currentSystemId) return scope.currentDatasetIds.has(did);
         return scope.relatedDatasetIds.has(did);
+    }
+
+    // For a non-current dataset, return true only if the attribute is in the
+    // linked-to-current set. Current-system datasets pass through (all attrs).
+    function isAttributeAllowedInDatasetMapGlossary(scope, datasetId, attributeId) {
+        if (!scope) return false;
+        var did = String(datasetId || '');
+        var aid = attributeId != null ? String(attributeId) : '';
+        if (!did) return false;
+        if (scope.currentDatasetIds && scope.currentDatasetIds.has(did)) return true;
+        if (!aid) return false;
+        var linked = scope.linkedAttributeIdsByDataset && scope.linkedAttributeIdsByDataset.get(did);
+        return !!(linked && linked.has(aid));
     }
     
     // Fetch overlay data for a dataset
@@ -975,12 +1097,14 @@
                 }
 
                 case 'glossary': {
-                    if (DatasetMapState.mapType === 'system-lineage') {
-                        var dsInfo = DatasetMapState.linkedDatasets?.get(String(datasetId));
-                        var dsSystemId = dsInfo && dsInfo.systemId != null ? String(dsInfo.systemId) : '';
-                        if (!isDatasetAllowedInDatasetMapGlossary(ensureDatasetMapGlossaryScope(), datasetId, dsSystemId)) {
-                            return [];
-                        }
+                    var glossaryDsScope = ensureDatasetMapGlossaryScope();
+                    var dsInfoForScope = DatasetMapState.linkedDatasets?.get(String(datasetId));
+                    var dsSystemIdForScope = dsInfoForScope && dsInfoForScope.systemId != null ? String(dsInfoForScope.systemId) : '';
+                    var datasetIsCurrent = !!(glossaryDsScope && glossaryDsScope.currentDatasetIds && glossaryDsScope.currentDatasetIds.has(String(datasetId)));
+                    // Apply the glossary scope in both system-lineage and dataset-lineage maps so non-chain
+                    // datasets do not bleed unrelated glossaries into the overlay.
+                    if (!isDatasetAllowedInDatasetMapGlossary(glossaryDsScope, datasetId, dsSystemIdForScope)) {
+                        return [];
                     }
                     const glossaryTerms = [];
                     const seen = new Set();
@@ -1002,18 +1126,32 @@
                             seen.add(dsGlossaryName);
                             glossaryTerms.push({ name: dsGlossaryName, glossary: dsGlossaryName, id: dsGlossaryId, glossaryId: dsGlossaryId, source: 'dataset' });
                         }
+                        if (window.MapOverlayHighlight && dsGlossaryId != null) {
+                            recordHighlightGlossaryAnchor(window.MapOverlayHighlight.dsKey(datasetId), dsGlossaryId);
+                        }
                     } catch (e) { /* ignore */ }
-                    // 2) Glossary terms from attributes
+                    // 2) Glossary terms from attributes — for non-current datasets,
+                    // restrict to attributes linked to current via dataset relationships in both map modes.
                     try {
                         const resp = await fetch(`/api/attribute/${datasetId}`, { credentials: 'include' });
                         if (resp.ok) {
                             const data = await resp.json();
-                            const attrs = Array.isArray(data?.data) ? data.data : (Array.isArray(data) ? data : []);
+                            let attrs = Array.isArray(data?.data) ? data.data : (Array.isArray(data) ? data : []);
+                            if (!datasetIsCurrent) {
+                                attrs = attrs.filter(a => isAttributeAllowedInDatasetMapGlossary(glossaryDsScope, datasetId, a && (a.id != null ? a.id : (a.ID != null ? a.ID : a.attribute_id))));
+                            }
                             attrs.forEach(attr => {
+                                const aid = attr && (attr.id != null ? attr.id : (attr.ID != null ? attr.ID : attr.attribute_id));
+                                if (aid != null) {
+                                    getOverlayHighlightCache().attributeOwnerMap.set(String(aid), String(datasetId));
+                                }
                                 const gName = adapter.extractGlossaryNameFromAttr(attr);
+                                const gId = attr.glossaryId || attr.glossary_id || attr.Glossary_ID;
+                                if (window.MapOverlayHighlight && aid != null && gId != null) {
+                                    recordHighlightGlossaryAnchor(window.MapOverlayHighlight.attrKey(aid), gId);
+                                }
                                 if (gName && !seen.has(gName)) {
                                     seen.add(gName);
-                                    const gId = attr.glossaryId || attr.glossary_id || attr.Glossary_ID;
                                     glossaryTerms.push({ name: gName, glossary: gName, id: gId, glossaryId: gId, source: 'attribute' });
                                 }
                             });
@@ -1231,11 +1369,13 @@
                     const glossaryTerms = [];
                     const seenGlossary = new Set();
                     try {
-                        let sysGlossaryDatasets = DatasetMapState.linkedDatasets
-                            ? Array.from(DatasetMapState.linkedDatasets.entries()).filter(([, info]) => String(info.systemId) === String(systemId)).map(([did]) => did)
-                            : [];
                         const glossaryScope = ensureDatasetMapGlossaryScope();
-                        sysGlossaryDatasets = sysGlossaryDatasets.filter(did => isDatasetAllowedInDatasetMapGlossary(glossaryScope, did, systemId));
+                        const systemIdStr = String(systemId);
+                        const isCurrentSystem = !!(glossaryScope && systemIdStr === glossaryScope.currentSystemId);
+                        let sysGlossaryDatasets = DatasetMapState.linkedDatasets
+                            ? Array.from(DatasetMapState.linkedDatasets.entries()).filter(([, info]) => String(info.systemId) === systemIdStr).map(([did]) => did)
+                            : [];
+                        sysGlossaryDatasets = sysGlossaryDatasets.filter(did => isDatasetAllowedInDatasetMapGlossary(glossaryScope, did, systemIdStr));
                         for (const did of sysGlossaryDatasets) {
                             // 1) Dataset's own glossary
                             try {
@@ -1255,18 +1395,32 @@
                                     seenGlossary.add(dsGName);
                                     glossaryTerms.push({ name: dsGName, glossary: dsGName, id: dsGId, glossaryId: dsGId, source: 'dataset' });
                                 }
+                                if (window.MapOverlayHighlight && dsGId != null) {
+                                    recordHighlightGlossaryAnchor(window.MapOverlayHighlight.dsKey(did), dsGId);
+                                }
                             } catch (e) { /* skip */ }
-                            // 2) Glossary terms from attributes
+                            // 2) Glossary terms from attributes — for non-current systems,
+                            // only include attributes linked to current via dataset relationships.
                             try {
                                 const attrResp = await fetch(`/api/attribute/${did}`, { credentials: 'include' });
                                 if (attrResp.ok) {
                                     const attrData = await attrResp.json();
-                                    const attrs = Array.isArray(attrData?.data) ? attrData.data : (Array.isArray(attrData) ? attrData : []);
+                                    let attrs = Array.isArray(attrData?.data) ? attrData.data : (Array.isArray(attrData) ? attrData : []);
+                                    if (!isCurrentSystem) {
+                                        attrs = attrs.filter(a => isAttributeAllowedInDatasetMapGlossary(glossaryScope, did, a && (a.id != null ? a.id : (a.ID != null ? a.ID : a.attribute_id))));
+                                    }
                                     attrs.forEach(attr => {
+                                        const aid = attr && (attr.id != null ? attr.id : (attr.ID != null ? attr.ID : attr.attribute_id));
+                                        if (aid != null) {
+                                            getOverlayHighlightCache().attributeOwnerMap.set(String(aid), String(did));
+                                        }
                                         const gName = adapter.extractGlossaryNameFromAttr(attr);
+                                        const gId = attr.glossaryId || attr.glossary_id || attr.Glossary_ID;
+                                        if (window.MapOverlayHighlight && aid != null && gId != null) {
+                                            recordHighlightGlossaryAnchor(window.MapOverlayHighlight.attrKey(aid), gId);
+                                        }
                                         if (gName && !seenGlossary.has(gName)) {
                                             seenGlossary.add(gName);
-                                            const gId = attr.glossaryId || attr.glossary_id || attr.Glossary_ID;
                                             glossaryTerms.push({ name: gName, glossary: gName, id: gId, glossaryId: gId, source: 'attribute' });
                                         }
                                     });
@@ -1456,7 +1610,13 @@
         const isDatasetLineage = DatasetMapState.mapType === 'dataset-lineage';
         
         embLog('[DATASET-MAP] Loading overlay data:', overlayType, 'for', nodes.length, 'nodes, mapType:', DatasetMapState.mapType);
-        
+
+        // Reset and rebuild the cross-panel highlight cache from the latest
+        // dataset relationships. Glossary anchors will be recorded as the
+        // glossary fetch loops below run.
+        resetOverlayHighlightCache();
+        rebuildHighlightCacheFromRelationships();
+
         try {
             const overlayData = new Map();
             
@@ -1508,7 +1668,22 @@
             
             // Store overlay data in state
             DatasetMapState.overlayData = overlayData;
-            
+
+            // Finalise the unified anchor graph now that glossary anchors and
+            // attribute owners have been populated by the per-item glossary fetch.
+            try {
+                const _hcache = getOverlayHighlightCache();
+                if (window.MapOverlayHighlight && typeof window.MapOverlayHighlight.buildAnchorGraph === 'function') {
+                    _hcache.anchorGraph = window.MapOverlayHighlight.buildAnchorGraph(
+                        _hcache.datasetGraph || new Map(),
+                        _hcache.attributeRels || [],
+                        _hcache.attributeOwnerMap || new Map()
+                    );
+                }
+            } catch (cacheErr) {
+                embWarn('[DATASET-MAP] Failed to finalise highlight cache:', cacheErr);
+            }
+
             // Render overlay panels
             renderOverlayPanels(overlayType, overlayData);
             
@@ -2061,18 +2236,41 @@
             row.classList.remove('highlighted-source', 'highlighted-related');
         });
 
+        // Cross-panel transitive BFS for datasets and glossary overlays.
+        var helper = window.MapOverlayHighlight;
+        var hcache = getOverlayHighlightCache();
+        var datasetRelatedIds = null;
+        var glossaryRelatedIds = null;
+        if (overlayType === 'datasets' && itemId && helper && hcache && hcache.datasetGraph) {
+            datasetRelatedIds = helper.findAllRelatedDatasets(String(itemId), hcache.datasetGraph);
+        }
+        if (overlayType === 'glossary' && itemId && helper && hcache && hcache.anchorGraph) {
+            glossaryRelatedIds = helper.findAllRelatedGlossaries(
+                String(itemId),
+                hcache.glossaryToAnchors,
+                hcache.anchorGraph,
+                hcache.anchorToGlossaries
+            );
+        }
+
         overlayContainer.querySelectorAll('.map-node-overlay-item').forEach(function(row) {
             var panel = row.closest('.map-node-overlay-panel');
             var isSource = panel?.getAttribute('data-node-id') === sourceNodeId;
+            var rowItemId = row.dataset.itemId ? String(row.dataset.itemId) : null;
             var shouldHighlight = false;
-            if (itemId) {
-                var rowItemId = row.dataset.itemId ? String(row.dataset.itemId) : null;
-                if (rowItemId && rowItemId === String(itemId)) shouldHighlight = true;
-            }
+            if (itemId && rowItemId && rowItemId === String(itemId)) shouldHighlight = true;
             if (!shouldHighlight && row.dataset.overlayValue === itemText) shouldHighlight = true;
             if (shouldHighlight) {
                 if (isSource) row.classList.add('highlighted-source');
                 else row.classList.add('highlighted-related');
+                return;
+            }
+            if (datasetRelatedIds && rowItemId && datasetRelatedIds.has(rowItemId)) {
+                row.classList.add('highlighted-related');
+                return;
+            }
+            if (glossaryRelatedIds && rowItemId && glossaryRelatedIds.has(rowItemId)) {
+                row.classList.add('highlighted-related');
             }
         });
         applyOverlayRelatedNodeAndEdgeHighlights(overlayContainer, sourceNodeId);
@@ -2082,7 +2280,9 @@
     function highlightAttributeRelationships(overlayContainer, clickedAttributeId, sourceNodeId) {
         var relationships = DatasetMapState.datasetRelationships || [];
         var clickedAttrIdStr = String(clickedAttributeId);
-        var relatedAttributeIds = findAllRelatedAttributes(clickedAttrIdStr, relationships);
+        var relatedAttributeIds = (window.MapOverlayHighlight && typeof window.MapOverlayHighlight.findAllRelatedAttributes === 'function')
+            ? window.MapOverlayHighlight.findAllRelatedAttributes(clickedAttrIdStr, relationships)
+            : new Set();
 
         overlayContainer.querySelectorAll('.map-node-overlay-item').forEach(function(el) {
             el.classList.remove('highlighted-source', 'highlighted-related');
@@ -2120,41 +2320,7 @@
         });
     }
 
-    function findAllRelatedAttributes(clickedAttributeId, relationships) {
-        const related = new Set();
-        const visited = new Set();
-        const queue = [String(clickedAttributeId)];
-        const normalizedRels = (relationships || [])
-            .map(rel => ({
-                source: String(rel.sourceAttributeId || ''),
-                target: String(rel.targetAttributeId || '')
-            }))
-            .filter(rel => rel.source && rel.target && rel.source !== 'undefined' && rel.target !== 'undefined');
-        while (queue.length > 0) {
-            const currentId = String(queue.shift());
-            if (visited.has(currentId)) continue;
-            visited.add(currentId);
-            normalizedRels.forEach(rel => {
-                if (rel.source === currentId && rel.target && !visited.has(rel.target)) {
-                    related.add(rel.target);
-                    queue.push(rel.target);
-                }
-            });
-            normalizedRels.forEach(rel => {
-                if (rel.target === currentId && rel.source && !visited.has(rel.source)) {
-                    related.add(rel.source);
-                    queue.push(rel.source);
-                    normalizedRels.forEach(rel2 => {
-                        if (rel2.source === rel.source && rel2.target && rel2.target !== currentId && !visited.has(rel2.target)) {
-                            related.add(rel2.target);
-                            queue.push(rel2.target);
-                        }
-                    });
-                }
-            });
-        }
-        return related;
-    }
+    // findAllRelatedAttributes lives in window.MapOverlayHighlight (shared helper).
 
     function updateOverlayPositions() {
         const overlayContainer = DatasetMapState.canvas?.querySelector('.map-overlay-container');

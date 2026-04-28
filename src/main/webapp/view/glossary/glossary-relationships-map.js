@@ -796,7 +796,13 @@
         if (!GlossaryRelationshipsMapState.network) return;
         
         embLog('[GLOSSARY-RELATIONSHIPS-MAP] Loading overlay data:', overlayType);
-        
+
+        // Reset and rebuild the cross-panel highlight cache from the latest
+        // relationship data. Glossary anchors are recorded as the per-system /
+        // per-dataset glossary fetch loops below run.
+        resetOverlayHighlightCache();
+        rebuildHighlightCacheFromRelationships();
+
         try {
             const overlayData = new Map();
             
@@ -864,7 +870,22 @@
                     }
                 }));
             }
-            
+
+            // Finalise the unified anchor graph after glossary anchors and
+            // attribute owners have been populated by the per-item glossary fetch.
+            try {
+                var _hcache = getOverlayHighlightCache();
+                if (window.MapOverlayHighlight && typeof window.MapOverlayHighlight.buildAnchorGraph === 'function') {
+                    _hcache.anchorGraph = window.MapOverlayHighlight.buildAnchorGraph(
+                        _hcache.datasetGraph || new Map(),
+                        _hcache.attributeRels || [],
+                        _hcache.attributeOwnerMap || new Map()
+                    );
+                }
+            } catch (cacheErr) {
+                embWarn('[GLOSSARY-RELATIONSHIPS-MAP] Failed to finalise highlight cache:', cacheErr);
+            }
+
             // Render overlay panels
             renderOverlayPanels(overlayType, overlayData);
             
@@ -922,18 +943,37 @@
         });
 
         var relatedDatasetIds = new Set();
+        // Build the set of attribute IDs (per non-current dataset) that are linked
+        // via dataset relationships to attributes in the current systems' datasets.
+        var linkedAttributeIdsByDataset = new Map();
+        function addLinkedAttr(did, aid) {
+            var didStr = String(did || '');
+            var aidStr = aid != null ? String(aid) : '';
+            if (!didStr || !aidStr) return;
+            if (currentDatasetIds.has(didStr)) return;
+            if (!linkedAttributeIdsByDataset.has(didStr)) {
+                linkedAttributeIdsByDataset.set(didStr, new Set());
+            }
+            linkedAttributeIdsByDataset.get(didStr).add(aidStr);
+        }
         (GlossaryRelationshipsMapState.datasetRelationships || []).forEach(function (rel) {
             var srcDid = getRelDatasetId(rel, ['sourceDatasetId', 'sourceDataSetId', 'Source_DatasetID']);
             var tgtDid = getRelDatasetId(rel, ['targetDatasetId', 'targetDataSetId', 'Target_DatasetID']);
             if (!srcDid || !tgtDid) return;
             if (currentDatasetIds.has(srcDid) && !currentDatasetIds.has(tgtDid)) relatedDatasetIds.add(tgtDid);
             if (currentDatasetIds.has(tgtDid) && !currentDatasetIds.has(srcDid)) relatedDatasetIds.add(srcDid);
+
+            var srcAid = rel && (rel.sourceAttributeId != null ? rel.sourceAttributeId : rel.Source_AttributeID);
+            var tgtAid = rel && (rel.targetAttributeId != null ? rel.targetAttributeId : rel.Target_AttributeID);
+            if (currentDatasetIds.has(srcDid) && !currentDatasetIds.has(tgtDid)) addLinkedAttr(tgtDid, tgtAid);
+            if (currentDatasetIds.has(tgtDid) && !currentDatasetIds.has(srcDid)) addLinkedAttr(srcDid, srcAid);
         });
 
         var scope = {
             currentSystemIds: currentSystemIds,
             currentDatasetIds: currentDatasetIds,
-            relatedDatasetIds: relatedDatasetIds
+            relatedDatasetIds: relatedDatasetIds,
+            linkedAttributeIdsByDataset: linkedAttributeIdsByDataset
         };
         GlossaryRelationshipsMapState._glossaryDatasetScope = { key: key, scope: scope };
         return scope;
@@ -946,6 +986,101 @@
         if (!did || !sid) return false;
         if (scope.currentSystemIds.has(sid)) return scope.currentDatasetIds.has(did);
         return scope.relatedDatasetIds.has(did);
+    }
+
+    function isAttributeAllowedInGlossaryRelationships(scope, datasetId, attributeId) {
+        if (!scope) return false;
+        var did = String(datasetId || '');
+        var aid = attributeId != null ? String(attributeId) : '';
+        if (!did) return false;
+        if (scope.currentDatasetIds && scope.currentDatasetIds.has(did)) return true;
+        if (!aid) return false;
+        var linked = scope.linkedAttributeIdsByDataset && scope.linkedAttributeIdsByDataset.get(did);
+        return !!(linked && linked.has(aid));
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Cross-panel transitive highlight cache. Built from the existing dataset
+    // and attribute relationship arrays loaded for this map. Glossary anchors
+    // are recorded as the per-system / per-dataset glossary fetch loops run.
+    // ─────────────────────────────────────────────────────────────────────────
+    function getOverlayHighlightCache() {
+        if (!GlossaryRelationshipsMapState._overlayHighlightCache) {
+            GlossaryRelationshipsMapState._overlayHighlightCache = {
+                datasetGraph: new Map(),
+                attributeRels: [],
+                attributeOwnerMap: new Map(),
+                glossaryToAnchors: new Map(),
+                anchorToGlossaries: new Map(),
+                anchorGraph: null
+            };
+        }
+        return GlossaryRelationshipsMapState._overlayHighlightCache;
+    }
+
+    function resetOverlayHighlightCache() {
+        GlossaryRelationshipsMapState._overlayHighlightCache = {
+            datasetGraph: new Map(),
+            attributeRels: [],
+            attributeOwnerMap: new Map(),
+            glossaryToAnchors: new Map(),
+            anchorToGlossaries: new Map(),
+            anchorGraph: null
+        };
+    }
+
+    function rebuildHighlightCacheFromRelationships() {
+        var cache = getOverlayHighlightCache();
+        var datasetGraph = new Map();
+        var attributeRels = [];
+        var attributeOwnerMap = new Map();
+
+        function addEdge(graph, a, b) {
+            if (!a || !b || a === b) return;
+            if (!graph.has(a)) graph.set(a, new Set());
+            if (!graph.has(b)) graph.set(b, new Set());
+            graph.get(a).add(b);
+            graph.get(b).add(a);
+        }
+
+        (GlossaryRelationshipsMapState.datasetRelationships || []).forEach(function (rel) {
+            var srcDs = getRelDatasetId(rel, ['sourceDatasetId', 'sourceDataSetId', 'Source_DatasetID']);
+            var tgtDs = getRelDatasetId(rel, ['targetDatasetId', 'targetDataSetId', 'Target_DatasetID']);
+            var srcAttr = rel && (rel.sourceAttributeId != null ? String(rel.sourceAttributeId) : (rel.Source_AttributeID != null ? String(rel.Source_AttributeID) : ''));
+            var tgtAttr = rel && (rel.targetAttributeId != null ? String(rel.targetAttributeId) : (rel.Target_AttributeID != null ? String(rel.Target_AttributeID) : ''));
+            if (srcDs && tgtDs) addEdge(datasetGraph, srcDs, tgtDs);
+            if (srcAttr && tgtAttr) attributeRels.push({ sourceAttributeId: srcAttr, targetAttributeId: tgtAttr });
+            if (srcAttr && srcDs) attributeOwnerMap.set(srcAttr, srcDs);
+            if (tgtAttr && tgtDs) attributeOwnerMap.set(tgtAttr, tgtDs);
+        });
+
+        // The dedicated attributeRelationships array (used for attribute BFS)
+        // may carry edges that are not in datasetRelationships.
+        (GlossaryRelationshipsMapState.attributeRelationships || []).forEach(function (rel) {
+            if (!rel) return;
+            var srcAttr = rel.sourceAttributeId != null ? String(rel.sourceAttributeId) : '';
+            var tgtAttr = rel.targetAttributeId != null ? String(rel.targetAttributeId) : '';
+            if (srcAttr && tgtAttr) attributeRels.push({ sourceAttributeId: srcAttr, targetAttributeId: tgtAttr });
+        });
+
+        cache.datasetGraph = datasetGraph;
+        cache.attributeRels = attributeRels;
+        cache.attributeOwnerMap = attributeOwnerMap;
+
+        if (window.MapOverlayHighlight && typeof window.MapOverlayHighlight.buildAnchorGraph === 'function') {
+            cache.anchorGraph = window.MapOverlayHighlight.buildAnchorGraph(datasetGraph, attributeRels, attributeOwnerMap);
+        }
+    }
+
+    function recordHighlightGlossaryAnchor(anchorKey, glossaryId) {
+        if (!anchorKey || glossaryId == null) return;
+        var cache = getOverlayHighlightCache();
+        var gid = String(glossaryId).trim();
+        if (!gid) return;
+        if (!cache.glossaryToAnchors.has(gid)) cache.glossaryToAnchors.set(gid, new Set());
+        cache.glossaryToAnchors.get(gid).add(anchorKey);
+        if (!cache.anchorToGlossaries.has(anchorKey)) cache.anchorToGlossaries.set(anchorKey, new Set());
+        cache.anchorToGlossaries.get(anchorKey).add(gid);
     }
 
     // Fetch overlay data for a glossary
@@ -1017,6 +1152,9 @@
                                     const gName = dataset.glossaryName || '';
                                     glossaries.push({ id: dataset.glossaryId, name: gName, glossary: gName, glossaryId: dataset.glossaryId, source: 'dataset', _dsId: dsId });
                                 }
+                                if (window.MapOverlayHighlight) {
+                                    recordHighlightGlossaryAnchor(window.MapOverlayHighlight.dsKey(dsId), dataset.glossaryId);
+                                }
                             }
                         }
                     });
@@ -1031,24 +1169,37 @@
                             } catch (e) { /* ignore */ }
                         }
                     }
-                    // 2) Attribute-level glossary terms for each system dataset
+                    // 2) Attribute-level glossary terms for each system dataset.
+                    // For non-current systems, restrict to attributes linked via dataset
+                    // relationships to attributes in current system's datasets.
                     const sysDatasetIds = [];
                     GlossaryRelationshipsMapState.datasetsData.forEach((dataset, dsId) => {
                         const datasetSystemId = String(dataset.systemId || dataset.masterSource || dataset.MasterSource);
                         if (datasetSystemId === String(systemId)) sysDatasetIds.push(dsId);
                     });
+                    const isCurrentSystem = !!(glossaryScope && glossaryScope.currentSystemIds && glossaryScope.currentSystemIds.has(String(systemId)));
                     for (const dsId of sysDatasetIds) {
                         if (!isDatasetAllowedInGlossaryRelationships(glossaryScope, dsId, systemId)) continue;
                         try {
                             const attrResp = await fetch(`/api/attribute/${dsId}`, { credentials: 'include' });
                             if (attrResp.ok) {
                                 const attrJson = await attrResp.json();
-                                const attrs = Array.isArray(attrJson?.data) ? attrJson.data : (Array.isArray(attrJson) ? attrJson : []);
+                                let attrs = Array.isArray(attrJson?.data) ? attrJson.data : (Array.isArray(attrJson) ? attrJson : []);
+                                if (!isCurrentSystem) {
+                                    attrs = attrs.filter(a => isAttributeAllowedInGlossaryRelationships(glossaryScope, dsId, a && (a.id != null ? a.id : (a.ID != null ? a.ID : a.attribute_id))));
+                                }
                                 attrs.forEach(attr => {
+                                    const aid = attr && (attr.id != null ? attr.id : (attr.ID != null ? attr.ID : attr.attribute_id));
+                                    if (aid != null) {
+                                        getOverlayHighlightCache().attributeOwnerMap.set(String(aid), String(dsId));
+                                    }
                                     const gName = attr['Glossary Name attribute'] || attr.glossary || attr.glossaryName || attr.GlossaryName;
+                                    const gId = attr.glossaryId || attr.glossary_id || attr.Glossary_ID;
+                                    if (window.MapOverlayHighlight && aid != null && gId != null) {
+                                        recordHighlightGlossaryAnchor(window.MapOverlayHighlight.attrKey(aid), gId);
+                                    }
                                     if (gName && !seenSysG.has(gName)) {
                                         seenSysG.add(gName);
-                                        const gId = attr.glossaryId || attr.glossary_id || attr.Glossary_ID;
                                         glossaries.push({ id: gId, name: gName, glossary: gName, glossaryId: gId, source: 'attribute' });
                                     }
                                 });
@@ -1061,19 +1212,23 @@
                     return glossaries;
                 }
                     
-                case 'datasets':
+                case 'datasets': {
+                    // Per spec, Relationships Tab system/dataset lineage uses the same scoping as the Data Tab:
+                    // only datasets associated with the opened glossary (or related to it via attribute relationships).
                     const systemDatasets = [];
+                    const dsScope = ensureGlossaryRelationshipsDatasetScope();
                     GlossaryRelationshipsMapState.datasetsData.forEach((dataset, datasetId) => {
                         const datasetSystemId = String(dataset.systemId || dataset.masterSource || dataset.MasterSource);
-                        if (datasetSystemId === String(systemId)) {
-                            systemDatasets.push({
-                                id: datasetId,
-                                name: dataset.name || dataset.primaryName || dataset.PrimaryName || `Dataset ${datasetId}`,
-                                refNumber: dataset.refNumber || dataset.RefNumber || ''
-                            });
-                        }
+                        if (datasetSystemId !== String(systemId)) return;
+                        if (!isDatasetAllowedInGlossaryRelationships(dsScope, datasetId, datasetSystemId)) return;
+                        systemDatasets.push({
+                            id: datasetId,
+                            name: dataset.name || dataset.primaryName || dataset.PrimaryName || `Dataset ${datasetId}`,
+                            refNumber: dataset.refNumber || dataset.RefNumber || ''
+                        });
                     });
                     return systemDatasets;
+                }
                     
                 case 'stakeholders':
                     try {
@@ -1168,27 +1323,51 @@
                     } catch (e) { /* ignore */ }
                     return [];
 
-                case 'attributes':
+                case 'attributes': {
+                    // Scope attributes the same way as the Data Tab: only datasets/attributes
+                    // associated with (or linked to) the opened glossary contribute rows.
                     try {
-                        const API = window.BUDG_API_SERVICE;
                         const normSysA = window.OverlayRowNormalize && typeof window.OverlayRowNormalize.attributeFromApi === 'function'
                             ? window.OverlayRowNormalize.attributeFromApi : null;
-                        if (API && typeof API.getSystemAttributes === 'function') {
-                            const attrs = await API.getSystemAttributes(systemId);
-                            const raw = Array.isArray(attrs?.data) ? attrs.data : (Array.isArray(attrs) ? attrs : []);
-                            return normSysA ? raw.map(a => normSysA(a, { systemId: systemId })) : raw;
+                        const attrScope = ensureGlossaryRelationshipsDatasetScope();
+                        const isCurrentSysAttr = !!(attrScope && attrScope.currentSystemIds && attrScope.currentSystemIds.has(String(systemId)));
+                        const sysDatasetIdsForAttr = [];
+                        GlossaryRelationshipsMapState.datasetsData.forEach((dataset, dsId) => {
+                            const dsSysId = String(dataset.systemId || dataset.masterSource || dataset.MasterSource);
+                            if (dsSysId !== String(systemId)) return;
+                            if (!isDatasetAllowedInGlossaryRelationships(attrScope, dsId, dsSysId)) return;
+                            sysDatasetIdsForAttr.push(dsId);
+                        });
+                        const collected = [];
+                        for (const dsId of sysDatasetIdsForAttr) {
+                            try {
+                                const r = await fetch(`/api/attribute/${dsId}`, { credentials: 'include' });
+                                if (!r.ok) continue;
+                                const json = await r.json();
+                                let attrs = Array.isArray(json?.data) ? json.data : (Array.isArray(json) ? json : []);
+                                if (!isCurrentSysAttr) {
+                                    attrs = attrs.filter(a => isAttributeAllowedInGlossaryRelationships(attrScope, dsId, a && (a.id != null ? a.id : (a.ID != null ? a.ID : a.attribute_id))));
+                                }
+                                attrs.forEach(a => collected.push(normSysA ? normSysA(a, { datasetId: dsId, systemId: systemId }) : a));
+                            } catch (e) { /* skip */ }
                         }
+                        return collected;
                     } catch (e) { embWarn('[GLOSSARY-RELATIONSHIPS-MAP] Error fetching system attributes:', e); }
                     return [];
-                case 'linking-attributes':
+                }
+                case 'linking-attributes': {
                     try {
-                        const API = window.BUDG_API_SERVICE;
                         const normLink = window.OverlayRowNormalize && typeof window.OverlayRowNormalize.attributeFromApi === 'function'
                             ? window.OverlayRowNormalize.attributeFromApi : null;
-                        const allAttrs = API && typeof API.getSystemAttributes === 'function'
-                            ? await API.getSystemAttributes(systemId)
-                            : [];
-                        const attrsList = Array.isArray(allAttrs?.data) ? allAttrs.data : (Array.isArray(allAttrs) ? allAttrs : []);
+                        const linkScope = ensureGlossaryRelationshipsDatasetScope();
+                        const isCurrentSysLink = !!(linkScope && linkScope.currentSystemIds && linkScope.currentSystemIds.has(String(systemId)));
+                        const linkSysDatasetIds = [];
+                        GlossaryRelationshipsMapState.datasetsData.forEach((dataset, dsId) => {
+                            const dsSysId = String(dataset.systemId || dataset.masterSource || dataset.MasterSource);
+                            if (dsSysId !== String(systemId)) return;
+                            if (!isDatasetAllowedInGlossaryRelationships(linkScope, dsId, dsSysId)) return;
+                            linkSysDatasetIds.push(dsId);
+                        });
                         const linkingIds = new Set();
                         (GlossaryRelationshipsMapState.datasetRelationships || []).forEach(rel => {
                             const sid = rel.sourceAttributeId ?? rel.Source_AttributeID;
@@ -1196,10 +1375,27 @@
                             if (sid != null) linkingIds.add(String(sid));
                             if (tid != null) linkingIds.add(String(tid));
                         });
-                        const filtered = attrsList.filter(a => linkingIds.has(String(a.attributeId ?? a.id ?? a.ID ?? '')));
-                        return normLink ? filtered.map(a => normLink(a, { systemId: systemId })) : filtered;
+                        const collected = [];
+                        for (const dsId of linkSysDatasetIds) {
+                            try {
+                                const r = await fetch(`/api/attribute/${dsId}`, { credentials: 'include' });
+                                if (!r.ok) continue;
+                                const json = await r.json();
+                                let attrs = Array.isArray(json?.data) ? json.data : (Array.isArray(json) ? json : []);
+                                if (!isCurrentSysLink) {
+                                    attrs = attrs.filter(a => isAttributeAllowedInGlossaryRelationships(linkScope, dsId, a && (a.id != null ? a.id : (a.ID != null ? a.ID : a.attribute_id))));
+                                }
+                                attrs.forEach(a => {
+                                    const aid = a && (a.attributeId != null ? a.attributeId : (a.id != null ? a.id : a.ID));
+                                    if (aid == null || !linkingIds.has(String(aid))) return;
+                                    collected.push(normLink ? normLink(a, { datasetId: dsId, systemId: systemId }) : a);
+                                });
+                            } catch (e) { /* skip */ }
+                        }
+                        return collected;
                     } catch (e) { embWarn('[GLOSSARY-RELATIONSHIPS-MAP] Error fetching system linking attributes:', e); }
                     return [];
+                }
 
                 case 'data-quality':
                     try {
@@ -1248,6 +1444,7 @@
                     if (!isDatasetAllowedInGlossaryRelationships(glossaryScope, datasetId, datasetSystemId)) {
                         return [];
                     }
+                    const datasetIsCurrent = !!(glossaryScope && glossaryScope.currentDatasetIds && glossaryScope.currentDatasetIds.has(String(datasetId)));
                     const glossaryTerms = [];
                     const seenG = new Set();
                     // 1) Dataset's own glossary term
@@ -1263,18 +1460,32 @@
                                 }
                             }
                         } catch (e) { /* ignore */ }
+                        if (window.MapOverlayHighlight) {
+                            recordHighlightGlossaryAnchor(window.MapOverlayHighlight.dsKey(datasetId), datasetData.glossaryId);
+                        }
                     }
-                    // 2) Glossary terms from attributes
+                    // 2) Glossary terms from attributes — for non-current datasets,
+                    // only include attributes linked via dataset relationships to current.
                     try {
                         const attrResp = await fetch(`/api/attribute/${datasetId}`, { credentials: 'include' });
                         if (attrResp.ok) {
                             const attrJson = await attrResp.json();
-                            const attrs = Array.isArray(attrJson?.data) ? attrJson.data : (Array.isArray(attrJson) ? attrJson : []);
+                            let attrs = Array.isArray(attrJson?.data) ? attrJson.data : (Array.isArray(attrJson) ? attrJson : []);
+                            if (!datasetIsCurrent) {
+                                attrs = attrs.filter(a => isAttributeAllowedInGlossaryRelationships(glossaryScope, datasetId, a && (a.id != null ? a.id : (a.ID != null ? a.ID : a.attribute_id))));
+                            }
                             attrs.forEach(attr => {
+                                const aid = attr && (attr.id != null ? attr.id : (attr.ID != null ? attr.ID : attr.attribute_id));
+                                if (aid != null) {
+                                    getOverlayHighlightCache().attributeOwnerMap.set(String(aid), String(datasetId));
+                                }
                                 const gName = attr['Glossary Name attribute'] || attr.glossary || attr.glossaryName || attr.GlossaryName;
+                                const gId = attr.glossaryId || attr.glossary_id || attr.Glossary_ID;
+                                if (window.MapOverlayHighlight && aid != null && gId != null) {
+                                    recordHighlightGlossaryAnchor(window.MapOverlayHighlight.attrKey(aid), gId);
+                                }
                                 if (gName && !seenG.has(gName)) {
                                     seenG.add(gName);
-                                    const gId = attr.glossaryId || attr.glossary_id || attr.Glossary_ID;
                                     glossaryTerms.push({ id: gId, name: gName, glossary: gName, glossaryId: gId, source: 'attribute' });
                                 }
                             });
@@ -1516,21 +1727,44 @@
         const clickedItemId = getOverlayItemId(overlayType, item);
         const itemValue = getOverlayItemText(overlayType, item);
 
+        // Cross-panel transitive BFS for datasets and glossary overlays.
+        const helper = window.MapOverlayHighlight;
+        const hcache = getOverlayHighlightCache();
+        let datasetRelatedIds = null;
+        let glossaryRelatedIds = null;
+        if (overlayType === 'datasets' && clickedItemId && helper && hcache && hcache.datasetGraph) {
+            datasetRelatedIds = helper.findAllRelatedDatasets(String(clickedItemId), hcache.datasetGraph);
+        }
+        if (overlayType === 'glossary' && clickedItemId && helper && hcache && hcache.anchorGraph) {
+            glossaryRelatedIds = helper.findAllRelatedGlossaries(
+                String(clickedItemId),
+                hcache.glossaryToAnchors,
+                hcache.anchorGraph,
+                hcache.anchorToGlossaries
+            );
+        }
+
         overlayContainer.querySelectorAll('.map-node-overlay-item').forEach(el => {
             el.classList.remove('highlighted-source', 'highlighted-related');
         });
         overlayContainer.querySelectorAll('.map-node-overlay-item').forEach(el => {
             const panel = el.closest('.map-node-overlay-panel');
             const isSource = panel?.getAttribute('data-node-id') === sourceNodeId;
+            const elItemId = el.dataset.itemId ? String(el.dataset.itemId) : null;
             let shouldHighlight = false;
-            if (clickedItemId) {
-                const elItemId = el.dataset.itemId ? String(el.dataset.itemId) : null;
-                if (elItemId && elItemId === String(clickedItemId)) shouldHighlight = true;
-            }
+            if (clickedItemId && elItemId && elItemId === String(clickedItemId)) shouldHighlight = true;
             if (!shouldHighlight && (el.dataset.overlayValue || '').trim() === (itemValue || '').trim()) shouldHighlight = true;
             if (shouldHighlight) {
                 if (isSource) el.classList.add('highlighted-source');
                 else el.classList.add('highlighted-related');
+                return;
+            }
+            if (datasetRelatedIds && elItemId && datasetRelatedIds.has(elItemId)) {
+                el.classList.add('highlighted-related');
+                return;
+            }
+            if (glossaryRelatedIds && elItemId && glossaryRelatedIds.has(elItemId)) {
+                el.classList.add('highlighted-related');
             }
         });
         applyOverlayRelatedNodeAndEdgeHighlights(overlayContainer, sourceNodeId);
@@ -1560,7 +1794,9 @@
     function highlightAttributeRelationships(overlayContainer, clickedAttributeId, sourceNodeId) {
         const relationships = GlossaryRelationshipsMapState.attributeRelationships || [];
         const clickedAttrIdStr = String(clickedAttributeId);
-        const relatedAttributeIds = findAllRelatedAttributes(clickedAttrIdStr, relationships);
+        const relatedAttributeIds = (window.MapOverlayHighlight && typeof window.MapOverlayHighlight.findAllRelatedAttributes === 'function')
+            ? window.MapOverlayHighlight.findAllRelatedAttributes(clickedAttrIdStr, relationships)
+            : new Set();
         overlayContainer.querySelectorAll('.map-node-overlay-item').forEach(el => {
             el.classList.remove('highlighted-source', 'highlighted-related');
             const attrIdStr = (el.dataset.attributeId || el.dataset.itemId) ? String(el.dataset.attributeId || el.dataset.itemId) : null;
@@ -1573,41 +1809,7 @@
         applyOverlayRelatedNodeAndEdgeHighlights(overlayContainer, sourceNodeId);
     }
 
-    function findAllRelatedAttributes(clickedAttributeId, relationships) {
-        const related = new Set();
-        const visited = new Set();
-        const queue = [String(clickedAttributeId)];
-        const normalizedRels = (relationships || [])
-            .map(rel => ({
-                source: String(rel.sourceAttributeId || ''),
-                target: String(rel.targetAttributeId || '')
-            }))
-            .filter(rel => rel.source && rel.target && rel.source !== 'undefined' && rel.target !== 'undefined');
-        while (queue.length > 0) {
-            const currentId = String(queue.shift());
-            if (visited.has(currentId)) continue;
-            visited.add(currentId);
-            normalizedRels.forEach(rel => {
-                if (rel.source === currentId && rel.target && !visited.has(rel.target)) {
-                    related.add(rel.target);
-                    queue.push(rel.target);
-                }
-            });
-            normalizedRels.forEach(rel => {
-                if (rel.target === currentId && rel.source && !visited.has(rel.source)) {
-                    related.add(rel.source);
-                    queue.push(rel.source);
-                    normalizedRels.forEach(rel2 => {
-                        if (rel2.source === rel.source && rel2.target && rel2.target !== currentId && !visited.has(rel2.target)) {
-                            related.add(rel2.target);
-                            queue.push(rel2.target);
-                        }
-                    });
-                }
-            });
-        }
-        return related;
-    }
+    // findAllRelatedAttributes lives in window.MapOverlayHighlight (shared helper).
 
     // Get overlay title
     function getOverlayTitle(overlayType, nodeId) {

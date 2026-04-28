@@ -25,7 +25,12 @@
         }
 
         function getGlossaryScopeHelper() {
-            if (window.GlossaryOverlayScope && typeof window.GlossaryOverlayScope.createSystemScope === 'function') {
+            // Bumped contract: createSystemScope now expects collectScopeForDataset (not the old
+            // getRelatedDatasetsForDataset/getAttributeRelationshipsBetweenSystems pair). If a
+            // pre-existing helper from an older module load is on window, replace it.
+            if (window.GlossaryOverlayScope &&
+                typeof window.GlossaryOverlayScope.createSystemScope === 'function' &&
+                window.GlossaryOverlayScope.__contractVersion === 2) {
                 return window.GlossaryOverlayScope;
             }
 
@@ -35,38 +40,24 @@
                 return out;
             }
 
-            function collectRelatedDatasetIds(seedDatasetIds, relCache, getNeighbors) {
-                return Promise.all(Array.from(seedDatasetIds).map(async function (datasetId) {
-                    var did = normalizeId(datasetId);
-                    if (!did) return [];
-                    var neighbors = await getNeighbors(did, relCache);
-                    return Array.from(neighbors || []);
-                })).then(function (allNeighborLists) {
-                    var related = new Set();
-                    allNeighborLists.forEach(function (neighborList) {
-                        (neighborList || []).forEach(function (neighborId) {
-                            var nid = normalizeId(neighborId);
-                            if (nid) related.add(nid);
-                        });
-                    });
-                    return related;
-                });
-            }
-
             window.GlossaryOverlayScope = {
+                __contractVersion: 2,
                 createSystemScope: async function (params) {
                     params = params || {};
                     var currentSystemId = normalizeId(params.currentSystemId);
                     var visibleSystemIds = Array.from(new Set((params.visibleSystemIds || []).map(normalizeId).filter(Boolean)));
                     var getDatasetsForSystem = params.getDatasetsForSystem;
-                    var getRelatedDatasetsForDataset = params.getRelatedDatasetsForDataset;
-                    if (typeof getDatasetsForSystem !== 'function' || typeof getRelatedDatasetsForDataset !== 'function') {
+                    // collectScopeForDataset(datasetId, relCache) ->
+                    //   { datasetIds: Set<string>, attrLinks: Array<{datasetId, attributeId, systemId}> }
+                    var collectScopeForDataset = params.collectScopeForDataset;
+                    if (typeof getDatasetsForSystem !== 'function' || typeof collectScopeForDataset !== 'function') {
                         return {
                             currentSystemId: currentSystemId,
                             currentSystemIds: new Set(currentSystemId ? [currentSystemId] : []),
                             currentDatasetIds: new Set(),
                             relatedDatasetIds: new Set(),
-                            datasetsBySystem: new Map()
+                            datasetsBySystem: new Map(),
+                            linkedAttributeIdsBySystem: new Map()
                         };
                     }
 
@@ -77,16 +68,96 @@
                         datasetsBySystem.set(sid, normIds);
                     }
 
+                    // Reverse map: dataset id -> system id, used as fallback when a relationship
+                    // row doesn't carry the OTHER system id explicitly.
+                    var datasetToSystem = new Map();
+                    datasetsBySystem.forEach(function (dsList, sid) {
+                        (dsList || []).forEach(function (did) {
+                            var dn = normalizeId(did);
+                            if (dn && !datasetToSystem.has(dn)) datasetToSystem.set(dn, sid);
+                        });
+                    });
+
                     var currentDatasetIds = new Set(datasetsBySystem.get(currentSystemId) || []);
                     var relCache = new Map();
-                    var relatedDatasetIds = await collectRelatedDatasetIds(currentDatasetIds, relCache, getRelatedDatasetsForDataset);
+
+                    // Pull both related-dataset IDs AND linked-attribute info from a single
+                    // /api/dataset-relationships fetch per current dataset. This endpoint has
+                    // no Relation_Method IS NULL filter, so it covers interface-mediated
+                    // relationships (which is what System Lineage maps actually use).
+                    var currentDatasetIdsArr = Array.from(currentDatasetIds);
+                    var perDatasetResults = await Promise.all(currentDatasetIdsArr.map(async function (did) {
+                        var dn = normalizeId(did);
+                        if (!dn) return { srcId: '', res: null };
+                        try {
+                            return { srcId: dn, res: await collectScopeForDataset(dn, relCache) };
+                        } catch (e) {
+                            return { srcId: dn, res: null };
+                        }
+                    }));
+
+                    // Bidirectional dataset-relationship graph: for any dataset id, the set of
+                    // dataset ids it is directly related to. Used for cross-panel "related"
+                    // highlighting when a user clicks a dataset row in any panel.
+                    var datasetRelationshipsByDataset = new Map();
+                    function addBidirectionalRel(a, b) {
+                        if (!a || !b || a === b) return;
+                        if (!datasetRelationshipsByDataset.has(a)) datasetRelationshipsByDataset.set(a, new Set());
+                        if (!datasetRelationshipsByDataset.has(b)) datasetRelationshipsByDataset.set(b, new Set());
+                        datasetRelationshipsByDataset.get(a).add(b);
+                        datasetRelationshipsByDataset.get(b).add(a);
+                    }
+
+                    var relatedDatasetIds = new Set();
+                    var allAttrLinks = [];
+                    perDatasetResults.forEach(function (pair) {
+                        if (!pair || !pair.res) return;
+                        var srcId = pair.srcId;
+                        var res = pair.res;
+                        if (res.datasetIds && typeof res.datasetIds.forEach === 'function') {
+                            res.datasetIds.forEach(function (id) {
+                                var nid = normalizeId(id);
+                                if (nid) {
+                                    relatedDatasetIds.add(nid);
+                                    addBidirectionalRel(srcId, nid);
+                                }
+                            });
+                        }
+                        if (Array.isArray(res.attrLinks)) {
+                            res.attrLinks.forEach(function (link) { allAttrLinks.push(link); });
+                        }
+                    });
+
+                    // Build attribute scope: for each linked attribute, register its ID under
+                    // the OTHER side's system. Fall back to looking up the system via the
+                    // dataset->system reverse map when the rel row didn't carry systemId.
+                    var linkedAttributeIdsBySystem = new Map();
+                    function addLinked(sid, aid) {
+                        var sidStr = normalizeId(sid);
+                        var aidStr = normalizeId(aid);
+                        if (!sidStr || !aidStr || sidStr === currentSystemId) return;
+                        if (!linkedAttributeIdsBySystem.has(sidStr)) {
+                            linkedAttributeIdsBySystem.set(sidStr, new Set());
+                        }
+                        linkedAttributeIdsBySystem.get(sidStr).add(aidStr);
+                    }
+                    allAttrLinks.forEach(function (link) {
+                        if (!link) return;
+                        var sid = normalizeId(link.systemId);
+                        var did = normalizeId(link.datasetId);
+                        var aid = normalizeId(link.attributeId);
+                        if (!sid && did) sid = datasetToSystem.get(did) || '';
+                        if (sid && aid) addLinked(sid, aid);
+                    });
 
                     return {
                         currentSystemId: currentSystemId,
                         currentSystemIds: new Set(currentSystemId ? [currentSystemId] : []),
                         currentDatasetIds: currentDatasetIds,
                         relatedDatasetIds: relatedDatasetIds,
-                        datasetsBySystem: datasetsBySystem
+                        datasetsBySystem: datasetsBySystem,
+                        linkedAttributeIdsBySystem: linkedAttributeIdsBySystem,
+                        datasetRelationshipsByDataset: datasetRelationshipsByDataset
                     };
                 },
                 isDatasetInScope: function (scope, datasetId, datasetSystemId) {
@@ -98,6 +169,17 @@
                         return scope.currentDatasetIds && scope.currentDatasetIds.has(did);
                     }
                     return scope.relatedDatasetIds && scope.relatedDatasetIds.has(did);
+                },
+                isAttributeInScope: function (scope, attributeId, attributeSystemId) {
+                    if (!scope) return false;
+                    var aid = normalizeId(attributeId);
+                    var sid = normalizeId(attributeSystemId);
+                    if (!aid || !sid) return false;
+                    // Current system: include all attributes
+                    if (scope.currentSystemIds && scope.currentSystemIds.has(sid)) return true;
+                    // Other systems: only attributes linked via attribute relationships to current
+                    var linked = scope.linkedAttributeIdsBySystem && scope.linkedAttributeIdsBySystem.get(sid);
+                    return !!(linked && linked.has(aid));
                 }
             };
 
@@ -151,6 +233,26 @@
             return;
         }
 
+        // Force a fresh glossary scope on every overlay load so any cache built
+        // by an older module version (different scope contract) is discarded.
+        // The datasets overlay shares the same scope cache because it also needs
+        // current-vs-related dataset filtering for black systems.
+        if (overlayType === 'glossary' || overlayType === 'datasets') {
+            state._glossaryScopeCache = null;
+        }
+
+        // Reset the cross-panel highlight cache for every overlay load. It is
+        // re-populated below as scope, attribute relationships and glossary
+        // anchors come in. See ensureOverlayHighlightCache + populateGlossaryAnchor.
+        state._overlayHighlightCache = {
+            datasetGraph: null,
+            attributeRels: [],
+            attributeOwnerMap: new Map(),
+            glossaryToAnchors: new Map(),
+            anchorToGlossaries: new Map(),
+            anchorGraph: null
+        };
+
         if (!quiet) showLoading();
 
         try {
@@ -184,6 +286,8 @@
                 // For attributes, linking-attributes in dataset lineage, special handling
                 if (overlayType === 'attributes' || overlayType === 'linking-attributes') {
                     await loadAttributeOverlayDataForDatasets(overlayType, datasetIds, currentSystemId, overlayData);
+                } else if (overlayType === 'glossary') {
+                    await loadGlossaryOverlayDataForDatasets(datasetIds, currentSystemId, overlayData);
                 } else {
                     // Load overlay data for each dataset (dataset-specific overlays)
                     ovLog(logPrefix + ' Loading', overlayType, 'overlay for', datasetIds.length, 'datasets in Dataset Lineage');
@@ -219,9 +323,12 @@
                 if (overlayType === 'attributes' || overlayType === 'linking-attributes') {
                     await loadAttributeOverlayData(overlayType, systemIds, currentSystemId, overlayData);
                 } else {
-                    if (overlayType === 'glossary') {
-                        // Build glossary scope once per overlay load cycle and share it across
-                        // per-system fetches so we do not re-fetch dataset relationships.
+                    if (overlayType === 'glossary' || overlayType === 'datasets') {
+                        // Build the system-lineage scope (current + related dataset IDs) once
+                        // per overlay load and share it across per-system fetches so we do not
+                        // re-fetch dataset relationships. The same scope is reused by the
+                        // datasets overlay to filter black-system datasets to only those
+                        // related to the current (orange) system.
                         try {
                             await ensureSystemLineageGlossaryScope(systemIds);
                         } catch (scopeErr) {
@@ -230,18 +337,47 @@
                         }
                     }
 
+                    // Mirror the dataset graph (built by the scope) into the highlight
+                    // cache so dataset/glossary BFS can read it without going through
+                    // the scope again.
+                    if (state._glossaryScopeCache && state._glossaryScopeCache.scope &&
+                        state._glossaryScopeCache.scope.datasetRelationshipsByDataset) {
+                        state._overlayHighlightCache.datasetGraph =
+                            state._glossaryScopeCache.scope.datasetRelationshipsByDataset;
+                    }
+
+                    // Glossary overlay needs attribute relationships for its anchor graph
+                    // BFS even though it is not the attributes overlay. Fetch them once
+                    // here using the same per-pair logic loadAttributeOverlayData uses.
+                    if (overlayType === 'glossary') {
+                        try {
+                            const visibleArr = Array.from(new Set(systemIds.map(id => String(id)).filter(Boolean)));
+                            const relPromises = [];
+                            for (let i = 0; i < visibleArr.length; i++) {
+                                for (let j = i + 1; j < visibleArr.length; j++) {
+                                    relPromises.push(fetchAttributeRelationships(visibleArr[i], visibleArr[j]));
+                                    relPromises.push(fetchAttributeRelationships(visibleArr[j], visibleArr[i]));
+                                }
+                            }
+                            const rels = (await Promise.all(relPromises)).flat();
+                            state.attributeRelationships = rels;
+                            state._overlayHighlightCache.attributeRels = rels;
+                        } catch (relErr) {
+                            ovWarn(logPrefix + ' Failed to load attribute relationships for glossary highlight cache:', relErr);
+                        }
+                    }
+
                     // Load overlay data for each system based on type
                     await Promise.all(systemIds.map(async (systemId) => {
                         try {
                             // Check if system has data attributes
-                            // If overlayType is attributes, linking-attributes, glossaries, or datasets,
+                            // If overlayType is attributes, linking-attributes, or datasets,
                             // and system has no data attributes (dataAttributes = 0), skip overlay
                             const hasDataAttributes = checkSystemHasDataAttributes(systemId);
                             
                             if (!hasDataAttributes && 
                                 (overlayType === 'attributes' || 
                                  overlayType === 'linking-attributes' || 
-                                 overlayType === 'glossary' || 
                                  overlayType === 'datasets')) {
                                 // Skip overlay for systems without data attributes
                                 return;
@@ -261,6 +397,28 @@
             // Store overlay data in state
             state.overlayData = overlayData;
 
+            // Finalise the cross-panel highlight cache. Dataset graph is already
+            // populated from the scope; attributeRels is set by either the
+            // attribute overlay loader or the glossary path above; glossary anchor
+            // maps are populated by the glossary fetchers (per-system + per-dataset).
+            // Only the unified anchor graph is built lazily here so it includes
+            // every edge collected during this load.
+            try {
+                const _hcache = state._overlayHighlightCache;
+                if (_hcache && window.MapOverlayHighlight && typeof window.MapOverlayHighlight.buildAnchorGraph === 'function') {
+                    if (Array.isArray(state.attributeRelationships) && (!_hcache.attributeRels || _hcache.attributeRels.length === 0)) {
+                        _hcache.attributeRels = state.attributeRelationships;
+                    }
+                    _hcache.anchorGraph = window.MapOverlayHighlight.buildAnchorGraph(
+                        _hcache.datasetGraph || new Map(),
+                        _hcache.attributeRels || [],
+                        _hcache.attributeOwnerMap || new Map()
+                    );
+                }
+            } catch (cacheErr) {
+                ovWarn(logPrefix + ' Failed to build overlay highlight cache:', cacheErr);
+            }
+
             // Render overlay panels for each node
             renderOverlayPanels(overlayType, overlayData);
 
@@ -269,6 +427,34 @@
         } finally {
             if (!quiet) hideLoading();
         }
+    }
+
+    // Record a glossary anchor (dataset or attribute that carries the glossary).
+    // Called from the glossary fetch loops as terms are discovered, so the BFS
+    // for related-glossary highlighting can later traverse the unified anchor
+    // graph from the clicked glossary's anchors.
+    function recordGlossaryAnchor(cache, anchorKey, glossaryId) {
+        if (!cache || !anchorKey) return;
+        const helper = window.MapOverlayHighlight;
+        const gid = helper && typeof helper.normId === 'function'
+            ? helper.normId(glossaryId)
+            : String(glossaryId == null ? '' : glossaryId).trim();
+        if (!gid) return;
+        if (!cache.glossaryToAnchors.has(gid)) cache.glossaryToAnchors.set(gid, new Set());
+        cache.glossaryToAnchors.get(gid).add(anchorKey);
+        if (!cache.anchorToGlossaries.has(anchorKey)) cache.anchorToGlossaries.set(anchorKey, new Set());
+        cache.anchorToGlossaries.get(anchorKey).add(gid);
+    }
+
+    function recordAttributeOwner(cache, attributeId, datasetId) {
+        if (!cache) return;
+        const helper = window.MapOverlayHighlight;
+        const norm = helper && typeof helper.normId === 'function'
+            ? helper.normId
+            : function (v) { return String(v == null ? '' : v).trim(); };
+        const aid = norm(attributeId);
+        const did = norm(datasetId);
+        if (aid && did) cache.attributeOwnerMap.set(aid, did);
     }
 
     // Special handling for attributes and linking-attributes overlays
@@ -293,6 +479,9 @@
 
         const allRelationships = (await Promise.all(relationshipPromises)).flat();
         state.attributeRelationships = allRelationships;
+        if (state._overlayHighlightCache) {
+            state._overlayHighlightCache.attributeRels = allRelationships;
+        }
         ovLog(logPrefix + ' Loaded', allRelationships.length, 'attribute relationships across visible systems');
 
         // Build linked attribute IDs per system from all relationships
@@ -515,165 +704,231 @@
         ovLog(logPrefix + ' Final dataset attribute overlay data:', Array.from(overlayData.entries()).map(([k, v]) => [k, v.length]));
     }
 
-    // Special handling for glossary overlay in dataset lineage
-    // For all systems: show attributes attached to datasets (without parents)
-    // For orange system: show all attributes associated with attributes of datasets found in this system
-    // For black systems: show attributes associated with attributes of datasets that have links with the orange system
+    // Special handling for glossary overlay in dataset lineage.
+    // Each dataset panel gets its own glossary plus glossary terms from linked
+    // attributes and directly related datasets, so the overlay is not limited to
+    // the currently opened object.
     async function loadGlossaryOverlayDataForDatasets(datasetIds, currentSystemId, overlayData) {
-        ovLog(logPrefix + ' Loading glossary overlay for datasets:', datasetIds.length, 'datasets');
-        
-        // Group datasets by system
-        const datasetsBySystem = new Map();
-        datasetIds.forEach(datasetId => {
-            const datasetInfo = state.linkedDatasets.get(String(datasetId));
-            if (datasetInfo) {
-                const systemId = String(datasetInfo.systemId);
-                if (!datasetsBySystem.has(systemId)) {
-                    datasetsBySystem.set(systemId, []);
-                }
-                datasetsBySystem.get(systemId).push(datasetId);
+        ovLog(logPrefix + ' Loading glossary overlay for datasets:', datasetIds.length, 'datasets', 'current system:', currentSystemId);
+
+        const datasetIdSet = new Set((datasetIds || []).map(id => String(id)).filter(Boolean));
+        const relatedDatasetIdsByDataset = new Map();
+        const linkedAttributeIdsByDataset = new Map();
+        const datasetCache = new Map();
+        const attributeCache = new Map();
+
+        function addToSetMap(map, key, value) {
+            const keyStr = String(key || '');
+            const valueStr = String(value || '');
+            if (!keyStr || !valueStr || valueStr === 'undefined' || valueStr === 'null') return;
+            if (!map.has(keyStr)) map.set(keyStr, new Set());
+            map.get(keyStr).add(valueStr);
+        }
+
+        function getRelDatasetId(rel, keys) {
+            for (let i = 0; i < keys.length; i++) {
+                const value = rel && rel[keys[i]];
+                if (value !== null && value !== undefined && String(value).trim() !== '') return String(value);
+            }
+            return '';
+        }
+
+        function getRelAttributeId(rel, keys) {
+            for (let i = 0; i < keys.length; i++) {
+                const value = rel && rel[keys[i]];
+                if (value !== null && value !== undefined && String(value).trim() !== '') return String(value);
+            }
+            return '';
+        }
+
+        const attrRelsForCache = [];
+
+        (state.datasetRelationships || []).forEach(rel => {
+            const sourceDatasetId = getRelDatasetId(rel, ['sourceDatasetId', 'sourceDataSetId', 'Source_DatasetID', 'source_dataset_id']);
+            const targetDatasetId = getRelDatasetId(rel, ['targetDatasetId', 'targetDataSetId', 'Target_DatasetID', 'target_dataset_id']);
+            const sourceAttributeId = getRelAttributeId(rel, ['sourceAttributeId', 'Source_AttributeID', 'source_attribute_id']);
+            const targetAttributeId = getRelAttributeId(rel, ['targetAttributeId', 'Target_AttributeID', 'target_attribute_id']);
+
+            if (sourceDatasetId && targetDatasetId) {
+                addToSetMap(relatedDatasetIdsByDataset, sourceDatasetId, targetDatasetId);
+                addToSetMap(relatedDatasetIdsByDataset, targetDatasetId, sourceDatasetId);
+            }
+            if (sourceDatasetId && sourceAttributeId) addToSetMap(linkedAttributeIdsByDataset, sourceDatasetId, sourceAttributeId);
+            if (targetDatasetId && targetAttributeId) addToSetMap(linkedAttributeIdsByDataset, targetDatasetId, targetAttributeId);
+            if (sourceAttributeId && targetAttributeId) {
+                attrRelsForCache.push({ sourceAttributeId: sourceAttributeId, targetAttributeId: targetAttributeId });
             }
         });
-        
-        // Get all attribute relationships for finding associated attributes
-        const allAttributeRelationships = state.attributeRelationships || [];
-        ovLog(logPrefix + ' Using', allAttributeRelationships.length, 'attribute relationships for glossary overlay');
-        
-        // Collect all attributes from current system datasets (for finding associated attributes)
-        const currentSystemAttributeIds = new Set();
-        const currentSystemDatasetIds = new Set();
-        
-        // First, get all attributes for current system datasets (without parents)
-        const currentSystemDatasets = datasetsBySystem.get(currentSystemId) || [];
-        for (const datasetId of currentSystemDatasets) {
-            const datasetIdStr = String(datasetId);
-            const datasetInfo = state.linkedDatasets.get(datasetIdStr);
-            if (datasetInfo?.isLocked) {
-                continue;
-            }
-            
-            currentSystemDatasetIds.add(datasetIdStr);
-            try {
-                const attrs = await fetchAllAttributesForDataset(datasetId);
-                // Filter out attributes with parents (Parent_ID is not null)
-                const attrsWithoutParents = attrs.filter(attr => {
-                    // Check if attribute has a parent (Parent_ID field)
-                    return !attr.parentId && !attr.Parent_ID && !attr.parent_id;
-                });
-                
-                // Store attributes for current system
-                if (attrsWithoutParents.length > 0) {
-                    overlayData.set(datasetIdStr, attrsWithoutParents);
-                    attrsWithoutParents.forEach(attr => {
-                        if (attr.id) currentSystemAttributeIds.add(String(attr.id));
-                    });
-                }
-            } catch (e) {
-                ovWarn(logPrefix + ' Failed to fetch attributes for dataset', datasetId, e);
-            }
-        }
-        
-        ovLog(logPrefix + ' Current system has', currentSystemAttributeIds.size, 'attributes (without parents)');
-        
-        // For current system: get all attributes associated with its attributes
-        const associatedAttributeIds = new Set();
-        allAttributeRelationships.forEach(rel => {
-            const sourceAttrId = String(rel.sourceAttributeId || '');
-            const targetAttrId = String(rel.targetAttributeId || '');
-            
-            // If source is in current system, add target
-            if (currentSystemAttributeIds.has(sourceAttrId)) {
-                if (targetAttrId) associatedAttributeIds.add(targetAttrId);
-            }
-            // If target is in current system, add source
-            if (currentSystemAttributeIds.has(targetAttrId)) {
-                if (sourceAttrId) associatedAttributeIds.add(sourceAttrId);
-            }
-        });
-        
-        ovLog(logPrefix + ' Found', associatedAttributeIds.size, 'attributes associated with current system attributes');
-        
-        // For current system: add all associated attributes to each dataset
-        // We need to find which datasets these associated attributes belong to
-        for (const datasetId of currentSystemDatasets) {
-            const datasetIdStr = String(datasetId);
-            const existingAttrs = overlayData.get(datasetIdStr) || [];
-            
-            // Get all attributes for this dataset and filter for associated ones
-            try {
-                const allAttrs = await fetchAllAttributesForDataset(datasetId);
-                const associatedAttrs = allAttrs.filter(attr => {
-                    const attrId = String(attr.id);
-                    return associatedAttributeIds.has(attrId) && (!attr.parentId && !attr.Parent_ID && !attr.parent_id);
-                });
-                
-                // Merge with existing attributes (avoid duplicates)
-                const existingIds = new Set(existingAttrs.map(a => String(a.id)));
-                const newAttrs = associatedAttrs.filter(a => !existingIds.has(String(a.id)));
-                if (newAttrs.length > 0) {
-                    overlayData.set(datasetIdStr, [...existingAttrs, ...newAttrs]);
-                }
-            } catch (e) {
-                ovWarn(logPrefix + ' Failed to fetch associated attributes for dataset', datasetId, e);
-            }
-        }
-        
-        // For other systems: only show attributes that are linked with current system
-        for (const [systemId, datasetIds] of datasetsBySystem.entries()) {
-            if (String(systemId) === currentSystemId) {
-                continue; // Already handled
-            }
-            
-            // Find which attributes from this system are linked with current system
-            const linkedAttributeIdsForSystem = new Set();
-            
-            // Check attribute relationships to find linked attributes
-            allAttributeRelationships.forEach(rel => {
-                const sourceAttrId = String(rel.sourceAttributeId || '');
-                const targetAttrId = String(rel.targetAttributeId || '');
-                const sourceDatasetId = String(rel.sourceDatasetId || '');
-                const targetDatasetId = String(rel.targetDatasetId || '');
-                
-                // If source is from current system and target is from this system
-                if (currentSystemDatasetIds.has(sourceDatasetId) && 
-                    datasetIds.some(dsId => String(dsId) === targetDatasetId)) {
-                    if (targetAttrId) linkedAttributeIdsForSystem.add(targetAttrId);
-                }
-                // If target is from current system and source is from this system
-                if (currentSystemDatasetIds.has(targetDatasetId) && 
-                    datasetIds.some(dsId => String(dsId) === sourceDatasetId)) {
-                    if (sourceAttrId) linkedAttributeIdsForSystem.add(sourceAttrId);
-                }
-            });
-            
-            ovLog(logPrefix + ' System', systemId, 'has', linkedAttributeIdsForSystem.size, 'linked attributes');
-            
-            // For each dataset in this system, get attributes (without parents) that are linked
-            for (const datasetId of datasetIds) {
-                const datasetIdStr = String(datasetId);
-                const datasetInfo = state.linkedDatasets.get(datasetIdStr);
-                if (datasetInfo?.isLocked) {
-                    continue;
-                }
-                
-                try {
-                    const attrs = await fetchAllAttributesForDataset(datasetId);
-                    // Filter: attributes without parents AND linked with current system
-                    const linkedAttrs = attrs.filter(attr => {
-                        const attrId = String(attr.id);
-                        return linkedAttributeIdsForSystem.has(attrId) && 
-                               (!attr.parentId && !attr.Parent_ID && !attr.parent_id);
-                    });
-                    
-                    if (linkedAttrs.length > 0) {
-                        overlayData.set(datasetIdStr, linkedAttrs);
+
+        // Seed the highlight cache for dataset-lineage maps. The system-lineage
+        // path does this via the scope cache; here we have to do it manually
+        // because the dataset-lineage flow does not build a glossary scope.
+        if (state._overlayHighlightCache) {
+            if (!state._overlayHighlightCache.datasetGraph || state._overlayHighlightCache.datasetGraph.size === 0) {
+                const dsGraph = new Map();
+                relatedDatasetIdsByDataset.forEach((neighbors, did) => {
+                    if (!dsGraph.has(did)) dsGraph.set(did, new Set());
+                    if (neighbors && typeof neighbors.forEach === 'function') {
+                        neighbors.forEach(n => dsGraph.get(did).add(String(n)));
                     }
-                } catch (e) {
-                    ovWarn(logPrefix + ' Failed to fetch linked attributes for dataset', datasetId, e);
-                }
+                });
+                state._overlayHighlightCache.datasetGraph = dsGraph;
+            }
+            if (!state._overlayHighlightCache.attributeRels || state._overlayHighlightCache.attributeRels.length === 0) {
+                state._overlayHighlightCache.attributeRels = attrRelsForCache;
             }
         }
-        
+
+        async function getDataset(datasetId) {
+            const datasetIdStr = String(datasetId);
+            if (datasetCache.has(datasetIdStr)) return datasetCache.get(datasetIdStr);
+
+            const cachedInfo = state.linkedDatasets?.get(datasetIdStr);
+            if (cachedInfo?.dataset) {
+                datasetCache.set(datasetIdStr, cachedInfo.dataset);
+                return cachedInfo.dataset;
+            }
+
+            let dataset = null;
+            try {
+                const API = window.BUDG_API_SERVICE;
+                if (API && typeof API.getDatasetById === 'function') {
+                    const resp = await API.getDatasetById(datasetIdStr, null, { silent404: true });
+                    dataset = resp?.data || resp || null;
+                } else {
+                    const resp = await fetch(`/api/dataset/${encodeURIComponent(datasetIdStr)}`, { credentials: 'include' });
+                    if (resp.ok) {
+                        const json = await resp.json();
+                        dataset = json?.data || json || null;
+                    }
+                }
+            } catch (e) {
+                dataset = null;
+            }
+
+            datasetCache.set(datasetIdStr, dataset);
+            return dataset;
+        }
+
+        async function getAttributes(datasetId) {
+            const datasetIdStr = String(datasetId);
+            if (attributeCache.has(datasetIdStr)) return attributeCache.get(datasetIdStr);
+            const attrs = await fetchAllAttributesForDataset(datasetIdStr);
+            attributeCache.set(datasetIdStr, attrs);
+            return attrs;
+        }
+
+        function getDatasetGlossary(dataset) {
+            if (!dataset) return null;
+            const name = dataset.glossaryName || dataset.GlossaryName || dataset.glossary_name ||
+                dataset.primaryGlossaryName || dataset.PrimaryGlossaryName ||
+                (dataset.Glossary && isNaN(Number(dataset.Glossary)) ? dataset.Glossary : '');
+            const id = dataset.glossaryId || dataset.Glossary_ID || dataset.glossary_id ||
+                dataset.primaryGlossaryId || dataset.PrimaryGlossaryID || dataset.glossaryID || dataset.glossary;
+            if (!name && (id === null || id === undefined || id === '')) return null;
+            return { name: name, id: id };
+        }
+
+        const _highlightCache = state._overlayHighlightCache;
+        const _hh = window.MapOverlayHighlight;
+
+        function getAttributeGlossary(attr) {
+            if (!attr) return null;
+            const name = (typeof extractGlossaryNameFromAttr === 'function' ? extractGlossaryNameFromAttr(attr) : '') ||
+                attr.glossaryName || attr.GlossaryName ||
+                attr.glossary || attr['Glossary Name attribute'] || attr.glossary_name;
+            const id = attr.glossaryId || attr.glossary_id || attr.Glossary_ID || attr.glossaryID;
+            if (!name && (id === null || id === undefined || id === '')) return null;
+            return { name: name, id: id };
+        }
+
+        function addGlossaryTerm(terms, seen, glossary, source) {
+            if (!glossary || (!glossary.name && (glossary.id === null || glossary.id === undefined || glossary.id === ''))) return;
+            const key = glossary.id != null && glossary.id !== ''
+                ? `id:${String(glossary.id)}`
+                : `name:${String(glossary.name).trim().toLowerCase()}`;
+            if (seen.has(key)) return;
+            seen.add(key);
+            terms.push({
+                name: glossary.name || '',
+                glossary: glossary.name || '',
+                id: glossary.id,
+                glossaryId: glossary.id,
+                source: source
+            });
+        }
+
+        async function addDatasetGlossary(terms, seen, datasetId, source) {
+            const dataset = await getDataset(datasetId);
+            const glossary = getDatasetGlossary(dataset);
+            if (glossary && _highlightCache && _hh && glossary.id != null) {
+                recordGlossaryAnchor(_highlightCache, _hh.dsKey(datasetId), glossary.id);
+            }
+            addGlossaryTerm(terms, seen, glossary, source);
+        }
+
+        function isDatasetInCurrentSystem(datasetId) {
+            const info = state.linkedDatasets?.get(String(datasetId));
+            return !!(info && currentSystemId && String(info.systemId) === String(currentSystemId));
+        }
+
+        async function addLinkedAttributeGlossaries(terms, seen, datasetId, source, opts) {
+            const datasetIdStr = String(datasetId);
+            const linkedIds = linkedAttributeIdsByDataset.get(datasetIdStr) || new Set();
+            const attrs = await getAttributes(datasetIdStr);
+            const restrictToLinked = !!(opts && opts.restrictToLinked);
+            // For non-current datasets we ALWAYS restrict to attributes that are
+            // linked via attribute relationships; never fall back to all attrs.
+            // For current-system datasets we include every attribute.
+            const scopedAttrs = restrictToLinked
+                ? attrs.filter(attr => linkedIds.has(String(attr.id || attr.ID || attr.attribute_id || '')))
+                : (linkedIds.size > 0
+                    ? attrs.filter(attr => linkedIds.has(String(attr.id || attr.ID || attr.attribute_id || '')))
+                    : attrs);
+            scopedAttrs.forEach(attr => {
+                const aid = attr && (attr.id != null ? attr.id : (attr.ID != null ? attr.ID : attr.attribute_id));
+                if (_highlightCache && aid != null) {
+                    recordAttributeOwner(_highlightCache, aid, datasetId);
+                }
+                const glossary = getAttributeGlossary(attr);
+                if (glossary && _highlightCache && _hh && aid != null && glossary.id != null) {
+                    recordGlossaryAnchor(_highlightCache, _hh.attrKey(aid), glossary.id);
+                }
+                addGlossaryTerm(terms, seen, glossary, source);
+            });
+        }
+
+        for (const datasetId of datasetIdSet) {
+            const datasetIdStr = String(datasetId);
+            const datasetInfo = state.linkedDatasets?.get(datasetIdStr);
+            if (datasetInfo?.isLocked) continue;
+
+            const terms = [];
+            const seen = new Set();
+
+            const isCurrent = isDatasetInCurrentSystem(datasetIdStr);
+
+            await addDatasetGlossary(terms, seen, datasetIdStr, 'dataset');
+            // Current-system dataset: include all attribute glossaries.
+            // Other-system dataset: only attribute glossaries that are linked to current via relationships.
+            await addLinkedAttributeGlossaries(terms, seen, datasetIdStr, 'attribute', { restrictToLinked: !isCurrent });
+
+            const relatedIds = relatedDatasetIdsByDataset.get(datasetIdStr) || new Set();
+            for (const relatedDatasetId of relatedIds) {
+                if (!datasetIdSet.has(String(relatedDatasetId))) continue;
+                const relatedInfo = state.linkedDatasets?.get(String(relatedDatasetId));
+                if (relatedInfo?.isLocked) continue;
+                const relatedIsCurrent = isDatasetInCurrentSystem(relatedDatasetId);
+                await addDatasetGlossary(terms, seen, relatedDatasetId, 'related-dataset');
+                await addLinkedAttributeGlossaries(terms, seen, relatedDatasetId, 'related-attribute', { restrictToLinked: !relatedIsCurrent });
+            }
+
+            const enrichedTerms = await enrichGlossaryRows(terms);
+            if (enrichedTerms && enrichedTerms.length > 0) {
+                overlayData.set(datasetIdStr, enrichedTerms);
+            }
+        }
+
         ovLog(logPrefix + ' Final glossary overlay data for datasets:', Array.from(overlayData.entries()).map(([k, v]) => [k, v.length]));
     }
 
@@ -1260,15 +1515,28 @@
         }
     }
 
-    async function getDirectRelatedDatasetIds(datasetId, relCache) {
+    // Returns { datasetIds: Set<string>, attrLinks: Array<{datasetId, attributeId, systemId}> }.
+    // Reads the field names that /api/dataset-relationships actually emits:
+    // - inbound rows (backend filtered WHERE sa.Dataset_ID = ?, so OUR is source) carry the
+    //   OTHER side as targetDatasetId / Target_AttributeID + systemId.
+    // - outbound rows (backend filtered WHERE ta.Dataset_ID = ?, so OUR is target) carry the
+    //   OTHER side as sourceDatasetId / Source_AttributeID + systemId.
+    // This endpoint has NO Relation_Method IS NULL filter, so it returns interface-mediated
+    // relationships too (which is what System Lineage maps actually use).
+    async function collectLineageScopeFromDataset(datasetId, relCache) {
         var datasetIdStr = String(datasetId || '');
-        if (!datasetIdStr) return new Set();
+        if (!datasetIdStr) return { datasetIds: new Set(), attrLinks: [] };
 
         if (relCache && relCache.has(datasetIdStr)) {
-            return new Set(relCache.get(datasetIdStr));
+            var cached = relCache.get(datasetIdStr);
+            return {
+                datasetIds: new Set(cached.datasetIds),
+                attrLinks: cached.attrLinks.slice()
+            };
         }
 
-        var related = new Set();
+        var datasetIds = new Set();
+        var attrLinks = [];
         try {
             var relResp = await fetch('/api/dataset-relationships/' + encodeURIComponent(datasetIdStr), {
                 method: 'GET',
@@ -1281,20 +1549,30 @@
                 var outbound = Array.isArray(relData && relData.outbound) ? relData.outbound : [];
 
                 inbound.forEach(function (rel) {
-                    var sourceId = getRelationshipDatasetId(rel, ['sourceDatasetId', 'sourceDataSetId', 'datasetId', 'DatasetId', 'id', 'ID']);
-                    if (sourceId && sourceId !== datasetIdStr) related.add(sourceId);
+                    var otherDs = getRelationshipDatasetId(rel, ['targetDatasetId', 'targetDataSetId']);
+                    var otherAttr = getRelationshipDatasetId(rel, ['Target_AttributeID', 'targetAttributeId']);
+                    var otherSys = getRelationshipDatasetId(rel, ['systemId']);
+                    if (otherDs && otherDs !== datasetIdStr) {
+                        datasetIds.add(otherDs);
+                        if (otherAttr) attrLinks.push({ datasetId: otherDs, attributeId: otherAttr, systemId: otherSys });
+                    }
                 });
                 outbound.forEach(function (rel) {
-                    var targetId = getRelationshipDatasetId(rel, ['targetDatasetId', 'targetDataSetId', 'datasetId', 'DatasetId', 'id', 'ID']);
-                    if (targetId && targetId !== datasetIdStr) related.add(targetId);
+                    var otherDs = getRelationshipDatasetId(rel, ['sourceDatasetId', 'sourceDataSetId']);
+                    var otherAttr = getRelationshipDatasetId(rel, ['Source_AttributeID', 'sourceAttributeId']);
+                    var otherSys = getRelationshipDatasetId(rel, ['systemId']);
+                    if (otherDs && otherDs !== datasetIdStr) {
+                        datasetIds.add(otherDs);
+                        if (otherAttr) attrLinks.push({ datasetId: otherDs, attributeId: otherAttr, systemId: otherSys });
+                    }
                 });
             }
         } catch (e) {
             ovWarn(logPrefix + ' Failed to fetch dataset relationships for glossary scope', datasetIdStr, e);
         }
 
-        if (relCache) relCache.set(datasetIdStr, new Set(related));
-        return related;
+        if (relCache) relCache.set(datasetIdStr, { datasetIds: new Set(datasetIds), attrLinks: attrLinks.slice() });
+        return { datasetIds: datasetIds, attrLinks: attrLinks };
     }
 
     function buildGlossaryScopeKey(visibleSystemIds) {
@@ -1318,7 +1596,7 @@
             currentSystemId: state.systemId,
             visibleSystemIds: visibleSystemIds,
             getDatasetsForSystem: getSystemDatasetIdsForGlossary,
-            getRelatedDatasetsForDataset: getDirectRelatedDatasetIds
+            collectScopeForDataset: collectLineageScopeFromDataset
         });
 
         // Backward-compatible aliases used by existing code paths.
@@ -1344,19 +1622,39 @@
                     const stakeholders = await API.getSystemStakeholders?.(systemId) || [];
                     return Array.isArray(stakeholders?.data) ? stakeholders.data : (Array.isArray(stakeholders) ? stakeholders : []);
 
-                case 'datasets':
-                    // For system lineage: show all datasets for opened system, related datasets for others
+                case 'datasets': {
+                    // For system lineage:
+                    //   - current (orange) system: show ALL its datasets
+                    //   - other (black) systems: show only datasets that are related to the
+                    //     current system's datasets via dataset relationships (matches the
+                    //     same scope used for the glossary overlay).
+                    // In all cases dedup by id so a dataset never appears twice in the panel.
                     const datasets = await API.getSystemDatasets?.(systemId) || [];
-                    const allDatasets = Array.isArray(datasets?.data) ? datasets.data : (Array.isArray(datasets) ? datasets : []);
-                    
-                    // If this is the current system, return all datasets
-                    if (String(systemId) === String(state.systemId)) {
-                        return allDatasets;
+                    const rawList = Array.isArray(datasets?.data) ? datasets.data : (Array.isArray(datasets) ? datasets : []);
+                    const systemIdStr = String(systemId);
+                    const isCurrentSystem = systemIdStr === String(state.systemId);
+
+                    const scope = state._glossaryScopeCache && state._glossaryScopeCache.scope
+                        ? state._glossaryScopeCache.scope
+                        : null;
+                    const scopeHelper = (scope && state.mapType !== 'dataset-lineage') ? getGlossaryScopeHelper() : null;
+
+                    const seenIds = new Set();
+                    const result = [];
+                    for (let i = 0; i < rawList.length; i++) {
+                        const ds = rawList[i];
+                        if (!ds) continue;
+                        const did = getDatasetIdFromEntity(ds);
+                        if (!did) continue;
+                        if (seenIds.has(did)) continue;
+                        if (!isCurrentSystem && scope && scopeHelper) {
+                            if (!scopeHelper.isDatasetInScope(scope, did, systemIdStr)) continue;
+                        }
+                        seenIds.add(did);
+                        result.push(ds);
                     }
-                    
-                    // For other systems, return only related datasets (those with attribute links)
-                    // This will be filtered by the overlay logic
-                    return allDatasets;
+                    return result;
+                }
 
                 case 'attributes':
                 case 'linking-attributes':
@@ -1371,6 +1669,8 @@
                         const scope = state._glossaryScopeCache && state._glossaryScopeCache.scope
                             ? state._glossaryScopeCache.scope
                             : null;
+                        const scopeHelper = getGlossaryScopeHelper();
+                        const isCurrentSystem = scope && scope.currentSystemIds && scope.currentSystemIds.has(systemIdStr);
 
                         let sysDatasets = [];
                         if (scope && scope.datasetsBySystem && scope.datasetsBySystem.has(systemIdStr)) {
@@ -1379,12 +1679,17 @@
                             sysDatasets = await getSystemDatasetIdsForGlossary(systemIdStr);
                         }
 
+                        // Restrict datasets contributing glossaries to those in scope:
+                        // - current system: all its datasets
+                        // - other systems: only datasets related to current's datasets
                         if (scope) {
                             sysDatasets = sysDatasets.filter(function (did) {
-                                return getGlossaryScopeHelper().isDatasetInScope(scope, did, systemIdStr);
+                                return scopeHelper.isDatasetInScope(scope, did, systemIdStr);
                             });
                         }
 
+                        const _highlightCache = state._overlayHighlightCache;
+                        const _hh = window.MapOverlayHighlight;
                         for (const did of sysDatasets) {
                             // 1) Dataset's own glossary
                             try {
@@ -1404,18 +1709,35 @@
                                     seenGlossary.add(dsGName);
                                     glossaryTerms.push({ name: dsGName, glossary: dsGName, id: dsGId, glossaryId: dsGId, source: 'dataset' });
                                 }
+                                if (_highlightCache && _hh && dsGId != null) {
+                                    recordGlossaryAnchor(_highlightCache, _hh.dsKey(did), dsGId);
+                                }
                             } catch (e) { /* skip */ }
-                            // 2) Glossary terms from attributes
+                            // 2) Glossary terms from attributes — for non-current systems,
+                            // restrict to attributes linked via attribute relationships to current.
                             try {
                                 const attrResp = await fetch(`/api/attribute/${did}`, { credentials: 'include' });
                                 if (attrResp.ok) {
                                     const attrData = await attrResp.json();
-                                    const attrs = Array.isArray(attrData?.data) ? attrData.data : (Array.isArray(attrData) ? attrData : []);
+                                    let attrs = Array.isArray(attrData?.data) ? attrData.data : (Array.isArray(attrData) ? attrData : []);
+                                    if (scope && !isCurrentSystem) {
+                                        attrs = attrs.filter(function (a) {
+                                            const aid = a && (a.id != null ? a.id : (a.ID != null ? a.ID : a.attribute_id));
+                                            return scopeHelper.isAttributeInScope(scope, aid, systemIdStr);
+                                        });
+                                    }
                                     attrs.forEach(attr => {
+                                        const aid = attr && (attr.id != null ? attr.id : (attr.ID != null ? attr.ID : attr.attribute_id));
+                                        if (_highlightCache && aid != null) {
+                                            recordAttributeOwner(_highlightCache, aid, did);
+                                        }
                                         const gName = extractGlossaryNameFromAttr(attr);
+                                        const gId = attr.glossaryId || attr.glossary_id || attr.Glossary_ID;
+                                        if (_highlightCache && _hh && aid != null && gId != null) {
+                                            recordGlossaryAnchor(_highlightCache, _hh.attrKey(aid), gId);
+                                        }
                                         if (gName && !seenGlossary.has(gName)) {
                                             seenGlossary.add(gName);
-                                            const gId = attr.glossaryId || attr.glossary_id || attr.Glossary_ID;
                                             glossaryTerms.push({ name: gName, glossary: gName, id: gId, glossaryId: gId, source: 'attribute' });
                                         }
                                     });
@@ -1782,7 +2104,9 @@
             case 'glossary': {
                 const gName = item.glossary || item.name || '';
                 const srcLabel = item.source === 'dataset' ? 'Dataset Glossary'
-                   : item.source === 'attribute' ? 'Attribute Glossary' : '';
+                   : item.source === 'attribute' ? 'Attribute Glossary'
+                   : item.source === 'related-dataset' ? 'Related Dataset Glossary'
+                   : item.source === 'related-attribute' ? 'Related Attribute Glossary' : '';
                 return srcLabel ? `${gName} (${srcLabel})` : gName;
             }
             case 'processes':
@@ -1856,7 +2180,9 @@
                 switch (fieldId) {
                     case 'name': return v(item.glossary || item.name || item.primaryName);
                     case 'source': return item.source === 'dataset' ? 'Dataset Glossary'
-                    : item.source === 'attribute' ? 'Attribute Glossary' : '';
+                    : item.source === 'attribute' ? 'Attribute Glossary'
+                    : item.source === 'related-dataset' ? 'Related Dataset Glossary'
+                    : item.source === 'related-attribute' ? 'Related Attribute Glossary' : '';
                     case 'aliasNames':
                         if (Array.isArray(item.aliases) && item.aliases.length) return v(item.aliases.join(', '));
                         return v(item.aliasNames || item.aliases || item.alias);
@@ -1991,7 +2317,10 @@
             case 'policies':
                 return item.policyId || item.policyID || null;
             case 'datasets':
-                return item.datasetId || item.datasetID || null;
+                // getSystemDatasets returns rows with `id` (or `ID`); some other paths may
+                // emit `datasetId` / `datasetID`. Accept all so dataset rows always carry
+                // data-item-id, which cross-panel highlighting depends on.
+                return item.datasetId || item.datasetID || item.id || item.ID || item.dataSetId || null;
             case 'products':
                 return item.productId || item.productID || null;
             case 'legal-entities':
@@ -2053,13 +2382,37 @@
             return;
         }
 
+        // Cross-panel transitive highlighting via shared helpers.
+        //   - datasets : BFS over the bidirectional dataset relationship graph.
+        //     Example: Core.X relates to Black1.B and Black2.C. Clicking B should
+        //     highlight X (direct) AND C (indirect via X).
+        //   - glossary : BFS over the unified anchor graph. Clicking a glossary
+        //     row also lights up every other glossary that sits on a dataset or
+        //     attribute reachable through dataset+attribute relationships.
+        var helper = window.MapOverlayHighlight;
+        var hcache = state._overlayHighlightCache;
+        var datasetRelatedIds = null;
+        var glossaryRelatedIds = null;
+
+        if (overlayType === 'datasets' && clickedItemId && helper && hcache && hcache.datasetGraph) {
+            datasetRelatedIds = helper.findAllRelatedDatasets(String(clickedItemId), hcache.datasetGraph);
+        }
+        if (overlayType === 'glossary' && clickedItemId && helper && hcache && hcache.anchorGraph) {
+            glossaryRelatedIds = helper.findAllRelatedGlossaries(
+                String(clickedItemId),
+                hcache.glossaryToAnchors,
+                hcache.anchorGraph,
+                hcache.anchorToGlossaries
+            );
+        }
+
         overlayContainer.querySelectorAll('.map-node-overlay-item').forEach(function(el) {
             var panel = el.closest('.map-node-overlay-panel');
             var isSource = panel?.getAttribute('data-node-id') === sourceNodeId;
+            var elItemId = el.dataset.itemId ? String(el.dataset.itemId) : null;
             var shouldHighlight = false;
 
             if (clickedItemId) {
-                var elItemId = el.dataset.itemId ? String(el.dataset.itemId) : null;
                 if (elItemId && elItemId === String(clickedItemId)) shouldHighlight = true;
             }
             if (!shouldHighlight && el.dataset.overlayValue === itemValue) shouldHighlight = true;
@@ -2067,6 +2420,15 @@
             if (shouldHighlight) {
                 if (isSource) el.classList.add('highlighted-source');
                 else el.classList.add('highlighted-related');
+                return;
+            }
+
+            if (datasetRelatedIds && elItemId && datasetRelatedIds.has(elItemId)) {
+                el.classList.add('highlighted-related');
+                return;
+            }
+            if (glossaryRelatedIds && elItemId && glossaryRelatedIds.has(elItemId)) {
+                el.classList.add('highlighted-related');
             }
         });
         applyOverlayRelatedNodeAndEdgeHighlights(overlayContainer, sourceNodeId);
@@ -2107,8 +2469,10 @@
         ovLog(logPrefix + ' Total relationships available:', relationships.length);
         ovLog(logPrefix + ' Relationships with attribute IDs:', relationships.filter(r => r.sourceAttributeId || r.targetAttributeId).length);
         
-        // Find all directly and transitively related attribute IDs
-        const relatedAttributeIds = findAllRelatedAttributes(clickedAttrIdStr, relationships);
+        // Find all directly and transitively related attribute IDs (shared helper).
+        const relatedAttributeIds = (window.MapOverlayHighlight && typeof window.MapOverlayHighlight.findAllRelatedAttributes === 'function')
+            ? window.MapOverlayHighlight.findAllRelatedAttributes(clickedAttrIdStr, relationships)
+            : new Set();
         
         ovLog(logPrefix + ' Clicked attribute:', clickedAttrIdStr, 'Related attributes:', Array.from(relatedAttributeIds));
 
@@ -2150,86 +2514,11 @@
         ovLog(logPrefix + ' Highlighting complete. Total items:', totalItems, 'Source highlighted:', highlightedSource, 'Related highlighted:', highlightedRelated);
     }
 
-    // Find all attributes related to the clicked attribute (direct and transitive)
-    // Uses BFS (Breadth-First Search) to find all connected attributes transitively
-    // Handles bidirectional relationships: if A -> B exists, clicking B should highlight A
-    // Example scenario:
-    //   - Att3 > Q_Att2 (direct)
-    //   - Att3 > Q_Att3 (direct)
-    //   - Att3 > Att2 (direct)
-    //   - Att2 > Q_Att2 (direct)
-    //   - CustomerName > ServiceName (direct)
-    // When clicking Att3, should highlight:
-    //   - Q_Att2 (direct: Att3 > Q_Att2)
-    //   - Q_Att3 (direct: Att3 > Q_Att3)
-    //   - Att2 (direct: Att3 > Att2)
-    //   - Q_Att2 (transitive: Att3 > Att2 > Q_Att2, but already found directly)
-    // When clicking ServiceName, should highlight:
-    //   - CustomerName (incoming: CustomerName > ServiceName)
-    // clickedAttributeId should be a string
-    function findAllRelatedAttributes(clickedAttributeId, relationships) {
-        const related = new Set();
-        const visited = new Set();
-        const queue = [String(clickedAttributeId)];
-        
-        // Normalize all relationships to use string IDs for consistent comparison
-        const normalizedRels = relationships
-            .map(rel => ({
-                source: String(rel.sourceAttributeId || ''),
-                target: String(rel.targetAttributeId || '')
-            }))
-            .filter(rel => rel.source && rel.target && rel.source !== 'undefined' && rel.target !== 'undefined');
-        
-        ovLog(logPrefix + ' Finding related attributes for:', clickedAttributeId);
-        ovLog(logPrefix + ' Available normalized relationships:', normalizedRels.length);
-        if (normalizedRels.length > 0) {
-            ovLog(logPrefix + ' Sample relationships:', normalizedRels.slice(0, 5));
-        }
-        
-        // BFS: Start from clicked attribute and explore all connected attributes
-        while (queue.length > 0) {
-            const currentId = String(queue.shift());
-            
-            // Skip if already visited
-            if (visited.has(currentId)) continue;
-            visited.add(currentId);
-            
-            // Find all direct outgoing relationships (currentId -> target)
-            normalizedRels.forEach(rel => {
-                if (rel.source === currentId && rel.target && !visited.has(rel.target)) {
-                    related.add(rel.target);
-                    queue.push(rel.target); // Add to queue for transitive exploration
-                    ovLog(logPrefix + ' ✓ Found direct outgoing relationship:', currentId, '->', rel.target);
-                }
-            });
-            
-            // Find all incoming relationships (source -> currentId)
-            // Add the source to related set (bidirectional highlighting)
-            normalizedRels.forEach(rel => {
-                if (rel.target === currentId && rel.source && !visited.has(rel.source)) {
-                    // Add the source attribute itself to related (for bidirectional highlighting)
-                    related.add(rel.source);
-                    queue.push(rel.source); // Add to queue for transitive exploration
-                    ovLog(logPrefix + ' ✓ Found direct incoming relationship:', rel.source, '->', currentId);
-                    
-                    // Also find all attributes that this source connects to (transitive)
-                    normalizedRels.forEach(rel2 => {
-                        if (rel2.source === rel.source && 
-                            rel2.target && 
-                            rel2.target !== currentId && 
-                            !visited.has(rel2.target)) {
-                            related.add(rel2.target);
-                            queue.push(rel2.target); // Add to queue for further transitive exploration
-                            ovLog(logPrefix + ' ✓ Found transitive relationship via incoming:', currentId, '<-', rel.source, '->', rel2.target);
-                        }
-                    });
-                }
-            });
-        }
-        
-        ovLog(logPrefix + ' Total related attributes found:', related.size, Array.from(related));
-        return related;
-    }
+    // BFS for related attributes / datasets / glossaries lives in
+    // window.MapOverlayHighlight (see overlay-highlight-helpers.js). The local
+    // copies that used to live here have been removed in favour of the shared
+    // implementation; both the attribute and dataset highlight paths now go
+    // through the helper.
 
     // Update overlay panel positions on zoom/pan; hide panels whose node is filtered out or off-screen
     function updateOverlayPositions() {
