@@ -1441,6 +1441,26 @@
         try {
             await buildHighlightCacheFromVisibleDatasets();
         } catch (e) { /* non-fatal */ }
+
+        try {
+            var focusNodeIdsProj = new Set();
+            nodeIds.forEach(function (nid) {
+                var meta = ProjectDataMapState.nodeMeta.get(String(nid));
+                if (meta && meta.isImpact) focusNodeIdsProj.add(String(nid));
+            });
+            var _hcacheProj = ProjectDataMapState._overlayHighlightCache;
+            if (window.MapOverlayHighlight && typeof window.MapOverlayHighlight.sortOverlayDataByRelevance === 'function') {
+                window.MapOverlayHighlight.sortOverlayDataByRelevance({
+                    overlayType: overlayType,
+                    overlayData: overlayData,
+                    cache: _hcacheProj,
+                    getItemId: getOverlayItemId,
+                    getItemText: getDataMapOverlayItemText,
+                    focusNodeIds: focusNodeIdsProj
+                });
+            }
+        } catch (sortErr) { /* non-fatal */ }
+
         renderOverlayPanels(overlayType, overlayData);
     }
 

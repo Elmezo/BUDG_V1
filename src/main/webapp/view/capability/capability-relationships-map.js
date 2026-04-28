@@ -906,6 +906,27 @@
                 } catch (e) { /* non-fatal */ }
             }
 
+            try {
+                var focusNodeIdsCap = new Set();
+                CapabilityMapState.network.nodes().forEach(function (node) {
+                    var d = node.data();
+                    if (d && String(d.capabilityId) === String(CapabilityMapState.capabilityId)) {
+                        focusNodeIdsCap.add(String(node.id()));
+                    }
+                });
+                var _hcacheCap = CapabilityMapState._overlayHighlightCache;
+                if (window.MapOverlayHighlight && typeof window.MapOverlayHighlight.sortOverlayDataByRelevance === 'function') {
+                    window.MapOverlayHighlight.sortOverlayDataByRelevance({
+                        overlayType: overlayType,
+                        overlayData: overlayData,
+                        cache: _hcacheCap,
+                        getItemId: getOverlayItemId,
+                        getItemText: getOverlayItemText,
+                        focusNodeIds: focusNodeIdsCap
+                    });
+                }
+            } catch (sortErr) { /* non-fatal */ }
+
             // Render overlay panels
             renderOverlayPanels(overlayType, overlayData);
 

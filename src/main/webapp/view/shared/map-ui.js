@@ -14,6 +14,107 @@
  */
 
 // =============================================================================
+// SECTION 0 – MapOverlayGoTo (per-row "Go To Object" URLs for all maps)
+// =============================================================================
+(function () {
+    'use strict';
+
+    function norm(v) {
+        if (v == null || v === '') return '';
+        return String(v).trim();
+    }
+
+    function enc(id) {
+        return encodeURIComponent(String(id));
+    }
+
+    /**
+     * @param {string} overlayType
+     * @param {object} item
+     * @param {{ panelNodeId?: string, getItemId?: function(string, object): * }} [ctx]
+     * @returns {string|null}
+     */
+    function urlFor(overlayType, item, ctx) {
+        ctx = ctx || {};
+        var getItemId = ctx.getItemId;
+        var panelNodeId = ctx.panelNodeId;
+
+        var skip = ['description', 'custom-fields', 'data-quality', 'data-privacy'];
+        if (skip.indexOf(overlayType) !== -1) return null;
+
+        function idFromItem() {
+            if (typeof getItemId === 'function') {
+                var gid = getItemId(overlayType, item);
+                if (gid !== undefined && gid !== null && norm(gid) !== '') return norm(gid);
+            }
+            if (!item || typeof item !== 'object') return '';
+            return norm(item.id != null ? item.id : item.ID);
+        }
+
+        function datasetIdForAttributeRow() {
+            if (!item || typeof item !== 'object') return '';
+            var fromItem = item.datasetId != null ? item.datasetId : (item.Dataset_ID != null ? item.Dataset_ID : item.dataset_id);
+            if (norm(fromItem)) return norm(fromItem);
+            var pn = norm(panelNodeId);
+            if (!pn) return '';
+            if (pn.indexOf('dataset-') === 0) return pn.slice('dataset-'.length);
+            if (/^\d+$/.test(pn)) return pn;
+            return '';
+        }
+
+        if (overlayType === 'attributes' || overlayType === 'linking-attributes') {
+            var aid = idFromItem();
+            var did = datasetIdForAttributeRow();
+            if (!aid || !did) return null;
+            return '/view/dataset/' + enc(did) + '?tab=attribute&attributeId=' + enc(aid);
+        }
+
+        if (overlayType === 'stakeholders') {
+            var pid = '';
+            if (item && typeof item === 'object') {
+                pid = norm(item.personId != null ? item.personId : (item.PersonId != null ? item.PersonId : (item.person_id != null ? item.person_id : '')));
+            }
+            if (!pid) pid = idFromItem();
+            if (!pid) return null;
+            return '/view/people/' + enc(pid);
+        }
+
+        var baseMap = {
+            datasets: '/view/dataset/',
+            glossary: '/view/glossary/',
+            systems: '/view/system/',
+            processes: '/view/process/',
+            projects: '/view/project/',
+            policies: '/view/policy/',
+            'business-area': '/view/business-area/',
+            products: '/view/product/',
+            'legal-entities': '/view/LegalEntity/',
+            clients: '/view/client/',
+            capabilities: '/view/capability/',
+            geography: '/view/geography/'
+        };
+        var base = baseMap[overlayType];
+        if (!base) return null;
+
+        var oid = idFromItem();
+        if (!oid) return null;
+        return base + enc(oid);
+    }
+
+    function openOverlayObject(overlayType, item, ctx) {
+        var u = urlFor(overlayType, item, ctx);
+        if (u) window.open(u, '_blank');
+    }
+
+    if (typeof window !== 'undefined') {
+        window.MapOverlayGoTo = {
+            urlFor: urlFor,
+            openOverlayObject: openOverlayObject
+        };
+    }
+})();
+
+// =============================================================================
 // SECTION 1 – MapOverlayPanel
 // Source: overlay-panel.js
 // =============================================================================
@@ -241,6 +342,29 @@
         footer.appendChild(nextBtn);
         panel.appendChild(footer);
 
+        function makeGoCtx() {
+            return { panelNodeId: nodeId, getItemId: getItemId };
+        }
+
+        function appendGoButton(hostEl, item) {
+            if (!window.MapOverlayGoTo || typeof window.MapOverlayGoTo.urlFor !== 'function') return;
+            var url = window.MapOverlayGoTo.urlFor(overlayType, item, makeGoCtx());
+            if (!url) return;
+            var btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'map-overlay-go-btn';
+            btn.title = 'Go To Object';
+            btn.setAttribute('aria-label', 'Go To Object');
+            btn.innerHTML = '<i class="fas fa-external-link-alt"></i>';
+            btn.addEventListener('click', function (e) {
+                e.stopPropagation();
+                e.preventDefault();
+                window.open(url, '_blank');
+            });
+            btn.addEventListener('mousedown', function (e) { e.stopPropagation(); });
+            hostEl.appendChild(btn);
+        }
+
         function renderPage(page) {
             var visibleData  = getFilteredData();
             var totalPages   = Math.max(1, Math.ceil(visibleData.length / OVERLAY_PAGE_SIZE));
@@ -261,6 +385,11 @@
                     th.textContent   = c.label;
                     trHead.appendChild(th);
                 });
+                const thGo = document.createElement('th');
+                thGo.className = 'map-overlay-go-cell';
+                thGo.setAttribute('aria-hidden', 'true');
+                thGo.innerHTML = '&nbsp;';
+                trHead.appendChild(thGo);
                 thead.appendChild(trHead);
                 table.appendChild(thead);
                 const tbody = document.createElement('tbody');
@@ -275,11 +404,18 @@
                         tr.dataset.itemId = String(itemId);
                         if (overlayType === 'attributes' || overlayType === 'linking-attributes') tr.dataset.attributeId = String(itemId);
                     }
+                    if ((overlayType === 'attributes' || overlayType === 'linking-attributes') && item && item.datasetId != null) {
+                        tr.dataset.datasetId = String(item.datasetId);
+                    }
                     overlayColumnDefs.forEach(function (c) {
                         const td = document.createElement('td');
                         td.textContent   = getItemField(overlayType, item, c.id);
                         tr.appendChild(td);
                     });
+                    const tdGo = document.createElement('td');
+                    tdGo.className = 'map-overlay-go-cell';
+                    appendGoButton(tdGo, item);
+                    tr.appendChild(tdGo);
                     tbody.appendChild(tr);
                 });
                 table.appendChild(tbody);
@@ -290,11 +426,19 @@
                 const table = document.createElement('table');
                 table.className  = 'map-overlay-table map-overlay-table-stakeholders';
                 const thead = document.createElement('thead');
-                thead.innerHTML = '<tr>' +
-                    '<th>Name / Role</th>' +
-                    '<th>Accepted</th>' +
-                    '<th>Org Unit</th>' +
-                    '</tr>';
+                const trHeadSh = document.createElement('tr');
+                ['Name / Role', 'Accepted', 'Org Unit', ''].forEach(function (lab, idx) {
+                    const th = document.createElement('th');
+                    if (idx === 3) {
+                        th.className = 'map-overlay-go-cell';
+                        th.setAttribute('aria-hidden', 'true');
+                        th.innerHTML = '&nbsp;';
+                    } else {
+                        th.textContent = lab;
+                    }
+                    trHeadSh.appendChild(th);
+                });
+                thead.appendChild(trHeadSh);
                 table.appendChild(thead);
                 const tbody = document.createElement('tbody');
                 pageData.forEach((item, i) => {
@@ -302,10 +446,19 @@
                     const { nameRole, accepted, orgUnit } = normalizeStakeholderItem(item);
                     const tr = document.createElement('tr');
                     tr.className    = 'map-node-overlay-item';
-                    tr.innerHTML =
-                        '<td>' + escapeHtml(String(nameRole)) + '</td>' +
-                        '<td>' + escapeHtml(String(accepted))  + '</td>' +
-                        '<td>' + escapeHtml(String(orgUnit))   + '</td>';
+                    const td1 = document.createElement('td');
+                    td1.textContent = String(nameRole);
+                    const td2 = document.createElement('td');
+                    td2.textContent = String(accepted);
+                    const td3 = document.createElement('td');
+                    td3.textContent = String(orgUnit);
+                    tr.appendChild(td1);
+                    tr.appendChild(td2);
+                    tr.appendChild(td3);
+                    const tdGo = document.createElement('td');
+                    tdGo.className = 'map-overlay-go-cell';
+                    appendGoButton(tdGo, item);
+                    tr.appendChild(tdGo);
                     tr.setAttribute('data-item-index', origIndex >= 0 ? origIndex : (start + i));
                     tr.dataset.overlayValue = getItemText(overlayType, item);
                     const itemId = getItemId(overlayType, item);
@@ -323,16 +476,23 @@
                 pageData.forEach((item, i) => {
                     const origIndex = arr.indexOf(item);
                     const row = document.createElement('div');
-                    row.className  = 'map-node-overlay-item';
+                    row.className  = 'map-node-overlay-item map-node-overlay-item--simple';
                     row.setAttribute('data-item-index', origIndex >= 0 ? origIndex : (start + i));
                     const itemText = getItemText(overlayType, item);
-                    row.textContent         = itemText;
+                    const span = document.createElement('span');
+                    span.className = 'map-overlay-item-label';
+                    span.textContent = itemText;
+                    row.appendChild(span);
                     row.dataset.overlayValue = itemText;
                     const itemId = getItemId(overlayType, item);
                     if (itemId) {
                         row.dataset.itemId = String(itemId);
                         if (overlayType === 'attributes' || overlayType === 'linking-attributes') row.dataset.attributeId = String(itemId);
                     }
+                    if ((overlayType === 'attributes' || overlayType === 'linking-attributes') && item && item.datasetId != null) {
+                        row.dataset.datasetId = String(item.datasetId);
+                    }
+                    appendGoButton(row, item);
                     body.appendChild(row);
                 });
             }

@@ -419,6 +419,27 @@
                 ovWarn(logPrefix + ' Failed to build overlay highlight cache:', cacheErr);
             }
 
+            try {
+                var focusNodeIdsSL = new Set();
+                if (state.mapType === 'dataset-lineage') {
+                    if (state.datasetId != null) focusNodeIdsSL.add(String(state.datasetId));
+                } else if (state.systemId != null) {
+                    focusNodeIdsSL.add(String(state.systemId));
+                }
+                if (window.MapOverlayHighlight && typeof window.MapOverlayHighlight.sortOverlayDataByRelevance === 'function') {
+                    window.MapOverlayHighlight.sortOverlayDataByRelevance({
+                        overlayType: overlayType,
+                        overlayData: overlayData,
+                        cache: state._overlayHighlightCache,
+                        getItemId: getOverlayItemId,
+                        getItemText: getOverlayItemText,
+                        focusNodeIds: focusNodeIdsSL
+                    });
+                }
+            } catch (sortErr) {
+                ovWarn(logPrefix + ' overlay relevance sort skipped:', sortErr);
+            }
+
             // Render overlay panels for each node
             renderOverlayPanels(overlayType, overlayData);
 

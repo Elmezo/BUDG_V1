@@ -886,6 +886,34 @@
                 embWarn('[GLOSSARY-RELATIONSHIPS-MAP] Failed to finalise highlight cache:', cacheErr);
             }
 
+            try {
+                const focusNodeIds = new Set();
+                const mt = GlossaryRelationshipsMapState.mapType;
+                if (GlossaryRelationshipsMapState.network) {
+                    GlossaryRelationshipsMapState.network.nodes().forEach(function (node) {
+                        const d = node.data();
+                        if (!d || !d.isCurrent) return;
+                        if (mt === 'glossary-lineage' && d.glossaryId) focusNodeIds.add(String(d.glossaryId));
+                        else if (mt === 'system-lineage' && d.systemId) focusNodeIds.add(String(d.systemId));
+                        else if (mt === 'dataset-lineage') {
+                            var dsId = d.datasetId != null ? d.datasetId : (d.meta && d.meta.datasetId);
+                            if (dsId != null) focusNodeIds.add(String(dsId));
+                        }
+                    });
+                }
+                const _hcacheGr = getOverlayHighlightCache();
+                if (window.MapOverlayHighlight && typeof window.MapOverlayHighlight.sortOverlayDataByRelevance === 'function') {
+                    window.MapOverlayHighlight.sortOverlayDataByRelevance({
+                        overlayType: overlayType,
+                        overlayData: overlayData,
+                        cache: _hcacheGr,
+                        getItemId: getOverlayItemId,
+                        getItemText: getOverlayItemText,
+                        focusNodeIds: focusNodeIds
+                    });
+                }
+            } catch (sortErr) { /* non-fatal */ }
+
             // Render overlay panels
             renderOverlayPanels(overlayType, overlayData);
             
