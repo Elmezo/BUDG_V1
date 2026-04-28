@@ -1239,15 +1239,24 @@
             return false;
         }
         
-        const userId = currentUser.id || currentUser.userId || currentUser.ID;
-        const statusName = (changeRequest.statusName || changeRequest.StatusName || '').toLowerCase();
+        const userId = currentUser.id || currentUser.userId || currentUser.ID || currentUser.UserID;
+        const statusName = (
+            changeRequest.statusName ||
+            changeRequest.StatusName ||
+            changeRequest.axonStatus ||
+            changeRequest.AxonStatus ||
+            ''
+        ).toLowerCase();
         const isRunning = statusName.includes('running') || statusName.includes('in progress');
-        const isAutoCR = changeRequest.mandatoryWorkflow === true || changeRequest.mandatoryWorkflow === 'true';
+        const mandatoryWorkflow = changeRequest.mandatoryWorkflow ?? changeRequest.MandatoryWorkflow;
+        const isAutoCR = mandatoryWorkflow === true || mandatoryWorkflow === 'true';
         
         console.log('[CR Cancel] Checking cancel permission for user', userId, 'on CR', changeRequest.id, 'status:', statusName, 'isRunning:', isRunning, 'isAutoCR:', isAutoCR);
         
         // Check if user is the creator
-        const isCreator = (changeRequest.createdBy == userId || changeRequest.createdBy === userId);
+        const createdBy = changeRequest.createdBy ?? changeRequest.CreatedBy ?? changeRequest.created_by;
+        const isCreator = createdBy != null && userId != null &&
+            (createdBy == userId || createdBy.toString() === userId.toString());
         console.log('[CR Cancel] User is creator:', isCreator);
         
         // Check if user is a stakeholder - this check is needed for both Running and non-Running statuses
