@@ -634,6 +634,26 @@
     }
 
     async function flushCrossTabPendingChanges(activeTab) {
+        // Saving from Values should not be blocked by Attribute tab auto-save.
+        // Attribute and Values are saved via separate endpoints and can be handled independently.
+        if (activeTab === 'values') {
+            if (activeTab !== 'relationships' && window._relationshipsTableInitialized && typeof window.saveDatasetRelationships === 'function') {
+                try {
+                    const relResult = await window.saveDatasetRelationships();
+                    if (relResult && relResult.success === false) {
+                        const msg = relResult.message || 'Relationships were not saved.';
+                        showSuccessMessage(`Relationships were not saved: ${msg}`, true, true);
+                        return false;
+                    }
+                } catch (error) {
+                    const msg = error?.message || 'Relationships were not saved.';
+                    showSuccessMessage(`Relationships were not saved: ${msg}`, true, true);
+                    return false;
+                }
+            }
+            return true;
+        }
+
         if (activeTab !== 'attribute' && window._attributeTableInstance && window._attributeTableInstance.isEditMode) {
             try {
                 await window._attributeTableInstance.saveAttributes();
@@ -1203,8 +1223,11 @@
                     const relationshipsTab = document.getElementById('relationshipsTab');
                     if (relationshipsTab) relationshipsTab.style.display = 'block';
                     
-                    // Initialize relationships edit if not already done
-                    if (window.initDatasetRelationshipEdit && !window._relationshipsTableInitialized) {
+                    // Always refresh relationships on tab open to avoid stale attribute dropdowns.
+                    if (window.resetDatasetRelationshipAttributeCache) {
+                        window.resetDatasetRelationshipAttributeCache();
+                    }
+                    if (window.initDatasetRelationshipEdit) {
                         window.initDatasetRelationshipEdit(id, editViewMode);
                         window._relationshipsTableInitialized = true;
                     }

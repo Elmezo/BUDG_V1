@@ -21,6 +21,8 @@
         console.log('Initializing relationship edit for dataset:', datasetId, 'view:', view);
         currentDatasetId = datasetId;
         currentView = view; // Store view mode
+        // Reset per-dataset attribute cache on each init so newly added pending attributes appear immediately.
+        attributesByDataset.clear();
         loadRelationshipsForEdit(view);
     };
 
@@ -174,7 +176,8 @@
         }
 
         try {
-            const response = await fetch(`/api/Attribute/stakeholder/lookup?type=attributes&datasetId=${datasetId}`, {
+            const ts = Date.now();
+            const response = await fetch(`/api/Attribute/stakeholder/lookup?type=attributes&datasetId=${datasetId}&_t=${ts}`, {
                 method: 'GET',
                 credentials: 'include',
                 headers: {
@@ -200,6 +203,11 @@
             return [];
         }
     }
+
+    // Public helper for other tabs to invalidate relationship attribute cache after attribute saves.
+    window.resetDatasetRelationshipAttributeCache = function() {
+        attributesByDataset.clear();
+    };
 
     // Render editable table
     async function renderEditableRelationshipsTable() {
