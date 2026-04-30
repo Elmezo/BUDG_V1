@@ -353,6 +353,18 @@ function formatCellValue(value, fieldName, row, currentCategory) {
     // Check if it's a reference field to another entity
     const targetModule = getReferenceTargetModule(module, fieldName);
     if (targetModule) {
+        if (module === 'interface' && targetModule === 'system') {
+            const normalizedField = fieldName.toLowerCase();
+            const refId = normalizedField === 'source system short name' || normalizedField === 'source system'
+                ? (row['Source System Short Name_ID'] || row.Source_systemID || row.sourceSystemId || row.source_system_id || row.fromId)
+                : (normalizedField === 'target system short name' || normalizedField === 'target system'
+                    ? (row['Target System Short Name_ID'] || row.Target_systemID || row.targetSystemId || row.target_system_id || row.toId)
+                    : null);
+            if (refId) {
+                return createClickableLink(stringValue, targetModule, refId, fieldName, 'reference-entity');
+            }
+        }
+
         // Special handling for fields with _ID suffix
         const idFieldName = fieldName + '_ID';
         let refId = row[idFieldName];

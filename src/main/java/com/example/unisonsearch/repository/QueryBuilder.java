@@ -2065,8 +2065,10 @@ public class QueryBuilder {
 						"    i.Description AS Description,\n" +
 						"    sys1.Name AS 'Source System Short Name',\n" +
 						"    sys1.id AS 'Source System Short Name_ID',\n" +
+						"    i.Source_systemID AS Source_systemID,\n" +
 						"    sys2.Name AS 'Target System Short Name',\n" +
 						"    sys2.id AS 'Target System Short Name_ID',\n" +
+						"    i.Target_systemID AS Target_systemID,\n" +
 						"    s.PrimaryName AS 'BUDG Status',\n" +
 						"    a.Name AS Automation,\n" +
 						"    f.Name AS Frequency,\n" +

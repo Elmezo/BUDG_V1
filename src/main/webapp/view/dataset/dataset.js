@@ -774,6 +774,9 @@ function showEditControls() {
             const updatedAt = hasBeenUpdated 
                 ? (d.lastUpdated ? new Date(d.lastUpdated).toLocaleString() : '<span class="empty">-</span>')
                 : createdAt;
+            const systemValueHtml = d.systemId && d.systemName
+                ? createRelationshipLink('system', d.systemId, d.systemName)
+                : escapeHtml(d.systemName);
 
             // Create card-based layout
             const datasetContainer = `
@@ -785,7 +788,7 @@ function showEditControls() {
                         </div>
                         <div class="card-body">
                             ${renderItem(dT('label.name', 'Name'), escapeHtml(d.name), 'name')}
-                            ${renderItem(dT('label.systemShortName', 'System Short Name'), escapeHtml(d.systemName), 'systemShortName')}
+                            ${renderItem(dT('label.systemShortName', 'System Short Name'), systemValueHtml, 'systemShortName')}
                             ${renderItem(dT('label.ref', 'Ref'), escapeHtml(d.ref), 'ref')}
                             ${renderItem(dT('label.glossaryName', 'Glossary Name'), glossaryValueHtml, 'glossaryName')}
                             ${renderItem(dT('label.definition', 'Definition'), _richHtml(d.definition), 'definition')}

@@ -1148,6 +1148,13 @@ function getBulkSelectedRowQuery(rowData, category) {
     return id != null ? String(id).trim() : '';
 }
 
+function getBulkSelectedRowId(rowData) {
+    if (!rowData) return null;
+    const rawId = rowData.ID ?? rowData.id ?? rowData.Id ?? rowData.taskId ?? rowData.TaskID;
+    const numericId = Number(rawId);
+    return Number.isFinite(numericId) && numericId > 0 ? Math.floor(numericId) : null;
+}
+
 function buildBulkSelectionCondition(selectedRows, fallbackCategory) {
     if (!Array.isArray(selectedRows) || selectedRows.length === 0) return null;
 
@@ -1155,10 +1162,15 @@ function buildBulkSelectionCondition(selectedRows, fallbackCategory) {
     const resolvedCategory = rowCategory || fallbackCategory;
 
     const terms = [];
+    const ids = [];
     selectedRows.forEach(rowData => {
         const term = getBulkSelectedRowQuery(rowData, resolvedCategory);
         if (term && !terms.includes(term)) {
             terms.push(term);
+        }
+        const id = getBulkSelectedRowId(rowData);
+        if (id != null && !ids.includes(id)) {
+            ids.push(id);
         }
     });
 
@@ -1188,6 +1200,7 @@ function buildBulkSelectionCondition(selectedRows, fallbackCategory) {
         query: terms[0],
         displayQuery: `Collection ${terms.map(t => `"${t}"`).join(', ')}`,
         bulkTerms: terms,
+        bulkIds: ids,
         fields: fieldNames,
         searchFields: searchFields,
         muted: false
@@ -2465,9 +2478,7 @@ async function updateAllFacets(unisonResults, activeCategory) {
                 // already updated above
             } else {
                 if (typeof updateCategoryCount === 'function') {
-                    const preservedTotal = (typeof window !== 'undefined' && typeof window.resolveZeroFacetTotal === 'function')
-                        ? window.resolveZeroFacetTotal(canonicalCategory) : 0;
-                    updateCategoryCount(canonicalCategory, 0, preservedTotal, true);
+                    updateCategoryCount(canonicalCategory, 0, 0, true);
                 }
             }
         }
@@ -2506,9 +2517,7 @@ async function updateAllFacets(unisonResults, activeCategory) {
                 } else {
                     if (typeof updateCategoryCount === 'function') {
                         const canonicalCat = canonicalCategoryKeyFn ? canonicalCategoryKeyFn(category) : category;
-                        const preservedTotal = (typeof window !== 'undefined' && typeof window.resolveZeroFacetTotal === 'function')
-                            ? window.resolveZeroFacetTotal(canonicalCat) : 0;
-                        updateCategoryCount(category, 0, preservedTotal, true);
+                        updateCategoryCount(canonicalCat, 0, 0, true);
                     }
                 }
             } else {
@@ -2982,6 +2991,36 @@ async function executeMultiConditionSearch() {
                 const bulkTerms = Array.isArray(condition.bulkTerms)
                     ? condition.bulkTerms.filter(term => term && String(term).trim() !== '').map(term => String(term).trim())
                     : [];
+                const bulkIds = Array.isArray(condition.bulkIds)
+                    ? condition.bulkIds.map(id => Number(id)).filter(id => Number.isFinite(id) && id > 0)
+                    : [];
+
+                if (bulkIds.length > 0) {
+                    const searchItem = {
+                        operator: (condition.operator || 'FIND').toUpperCase(),
+                        facet: facetId,
+                        keyword: '*',
+                        filters: { ...filters, id: bulkIds }
+                    };
+                    const il = Number(condition.indentLevel);
+                    if (Number.isFinite(il) && il > 0) {
+                        searchItem.indentLevel = il;
+                    }
+                    if (resolvedSearchFields && Object.keys(resolvedSearchFields).length > 0) {
+                        searchItem.searchFields = resolvedSearchFields;
+                    }
+                    if (HIERARCHICAL_FACETS.includes(facetId)) {
+                        searchItem.hierarchicalOptions = {
+                            childInclusion: hierarchicalFilterOptions.childInclusion,
+                            applyFilters: hierarchicalFilterOptions.applyFilters
+                        };
+                    }
+                    if (condition.isDisplayFilter) {
+                        searchItem.displayFilter = true;
+                    }
+                    searches.push(searchItem);
+                    return;
+                }
 
                 if (bulkTerms.length > 0) {
                     bulkTerms.forEach((bulkTerm, index) => {
@@ -3897,6 +3936,7 @@ function startQueryConditionInlineEdit(condition, editableSpan) {
             c.bulkTerms = terms;
             c.displayQuery = terms.join(', ');
             c.query = terms[0] || '*';
+            delete c.bulkIds;
         } else {
             const v = rawValue.trim();
             c.query = v || '*';
@@ -5294,6 +5334,37 @@ function mergeUnisonPartialIntoFetchedRows(partialRows, fetchedRows, category) {
     });
 }
 
+function applyBulkSelectionIdsToRows(category, rows, conditionsSource) {
+    if (!rows || rows.length === 0 || !conditionsSource || conditionsSource.length === 0) {
+        return rows;
+    }
+
+    const bulkIdConditions = conditionsSource.filter(c =>
+        !c.muted &&
+        searchConditionCategoryMatches(c.category, category) &&
+        Array.isArray(c.bulkIds) &&
+        c.bulkIds.length > 0
+    );
+    if (bulkIdConditions.length === 0) {
+        return rows;
+    }
+
+    let filtered = rows;
+    bulkIdConditions.forEach(condition => {
+        const allowedIds = new Set(
+            condition.bulkIds
+                .map(id => Number(id))
+                .filter(id => Number.isFinite(id) && id > 0)
+        );
+        if (allowedIds.size === 0) return;
+        filtered = filtered.filter(row => {
+            const rowId = getBulkSelectedRowId(row);
+            return rowId != null && allowedIds.has(rowId);
+        });
+    });
+    return filtered;
+}
+
 /**
  * Apply unmuted filter conditions (isDisplayFilter and/or isFilterCondition) to a row array
  * for a given category. isDisplayFilter rows are not sent to the backend; isFilterCondition
@@ -5316,6 +5387,8 @@ function applyDisplayFiltersToRows(category, rows) {
             (typeof window !== 'undefined' && window.searchConditions ? window.searchConditions.length : 'n/a') + ')');
         return rows;
     }
+
+    rows = applyBulkSelectionIdsToRows(category, rows, conditionsSource);
 
     // Display-only filters plus normal filter-created conditions for this category (e.g. Glossary lifecycle)
     const rowFilterConditions = conditionsSource.filter(c =>

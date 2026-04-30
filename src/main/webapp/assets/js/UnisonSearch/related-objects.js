@@ -15,15 +15,114 @@ function hasRelatedObjects(category, objectId) {
     if (!window.unisonRelatedObjects || !category || !objectId) {
         return false;
     }
-    
+
     // Normalize category to facet ID
     const facetId = (typeof categorySlugToFacetId === 'function') ? 
                     categorySlugToFacetId(category) : 
                     category.toUpperCase().replace(/-/g, '_');
-    
-    // Check if this facet has related objects
-    const facetRelated = window.unisonRelatedObjects[facetId];
-    return facetRelated && Object.keys(facetRelated).length > 0;
+
+    const relatedData = getRelatedObjectsForObject(facetId, objectId);
+    return relatedData && Object.keys(relatedData).length > 0;
+}
+
+function getRelatedObjectsForObject(facetId, objectId, sourceRow) {
+    const facetRelated = window.unisonRelatedObjects?.[facetId];
+    if (!facetRelated || typeof facetRelated !== 'object') {
+        return {};
+    }
+
+    const objectScoped = facetRelated[objectId] || facetRelated[String(objectId)];
+    if (objectScoped && isRelatedFacetMap(objectScoped)) {
+        return filterHierarchyRelatedData(objectScoped, facetId, objectId, sourceRow);
+    }
+
+    if (isRelatedFacetMap(facetRelated)) {
+        return filterHierarchyRelatedData(facetRelated, facetId, objectId, sourceRow);
+    }
+
+    return {};
+}
+
+function isRelatedFacetMap(value) {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+        return false;
+    }
+    return Object.values(value).some(entry => Array.isArray(entry) || entry instanceof Set);
+}
+
+function filterHierarchyRelatedData(relatedData, sourceFacetId, objectId, sourceRow) {
+    if (!relatedData || typeof relatedData !== 'object') {
+        return {};
+    }
+
+    const sourceFacet = normalizeRelatedFacetKey(sourceFacetId);
+    const sourceObjectId = String(objectId);
+    const hierarchyIds = getSourceHierarchyIds(sourceRow, objectId);
+    const filtered = {};
+
+    for (const [facet, ids] of Object.entries(relatedData)) {
+        const relatedFacet = normalizeRelatedFacetKey(facet);
+        if (relatedFacet === sourceFacet) {
+            const idArray = Array.isArray(ids) ? ids : (ids instanceof Set ? Array.from(ids) : []);
+            const withoutHierarchy = idArray.filter(id => {
+                const idText = String(id);
+                return idText !== sourceObjectId && !hierarchyIds.has(idText);
+            });
+            if (withoutHierarchy.length > 0) {
+                filtered[facet] = withoutHierarchy;
+            }
+            continue;
+        }
+        filtered[facet] = ids;
+    }
+
+    return filtered;
+}
+
+function normalizeRelatedFacetKey(facet) {
+    if (typeof window !== 'undefined' && typeof window.normalizeFacetId === 'function') {
+        return window.normalizeFacetId(facet);
+    }
+    return facet ? facet.toString().toUpperCase().trim().replace(/\s+/g, '_').replace(/-/g, '_') : '';
+}
+
+function getSourceHierarchyIds(sourceRow, objectId) {
+    const ids = new Set();
+    const rowData = extractRowDataFromElement(sourceRow);
+    const possibleParentKeys = [
+        'parentId', 'parent_id', 'parentid', 'Parent_ID', 'ParentID',
+        'Parent Name_ID', 'Parent Short Name_ID', 'Parent Long Name_ID'
+    ];
+
+    possibleParentKeys.forEach(key => {
+        const value = rowData?.[key];
+        if (value !== null && value !== undefined && value !== '') {
+            const valueText = String(value);
+            if (valueText !== String(objectId)) {
+                ids.add(valueText);
+            }
+        }
+    });
+
+    return ids;
+}
+
+function extractRowDataFromElement(sourceRow) {
+    if (!sourceRow || typeof sourceRow.getAttribute !== 'function') {
+        return {};
+    }
+
+    const raw = sourceRow.getAttribute('data-row-data');
+    if (!raw) {
+        return {};
+    }
+
+    try {
+        return JSON.parse(raw) || {};
+    } catch (error) {
+        console.warn('[RelatedObjects] Failed to parse row data for hierarchy filtering:', error);
+        return {};
+    }
 }
 
 /**
@@ -42,7 +141,7 @@ function toggleRelatedObjectsPanel(row, category, objectId) {
         }
     } else {
         // Expand
-        const panel = createRelatedObjectsPanel(category, objectId);
+        const panel = createRelatedObjectsPanel(category, objectId, row);
         row.insertAdjacentElement('afterend', panel);
         const expandBtn = row.querySelector('.expand-related i');
         if (expandBtn) {
@@ -51,19 +150,19 @@ function toggleRelatedObjectsPanel(row, category, objectId) {
         }
         
         // Lazy load details if not cached
-        loadRelatedObjectsDetails(category, objectId, panel);
+        loadRelatedObjectsDetails(category, objectId, panel, row);
     }
 }
 
 /**
  * Create related objects panel DOM
  */
-function createRelatedObjectsPanel(category, objectId) {
+function createRelatedObjectsPanel(category, objectId, sourceRow) {
     const facetId = (typeof categorySlugToFacetId === 'function') ? 
                     categorySlugToFacetId(category) : 
                     category.toUpperCase().replace(/-/g, '_');
-    
-    const relatedData = window.unisonRelatedObjects?.[facetId] || {};
+
+    const relatedData = getRelatedObjectsForObject(facetId, objectId, sourceRow);
     
     const panel = document.createElement('tr');
     panel.classList.add('related-objects-panel');
@@ -167,13 +266,13 @@ function getFacetDisplayName(categorySlug) {
 /**
  * Lazy load related objects details (if not in initial response)
  */
-async function loadRelatedObjectsDetails(category, objectId, panel) {
+async function loadRelatedObjectsDetails(category, objectId, panel, sourceRow) {
     const facetId = (typeof categorySlugToFacetId === 'function') ? 
                     categorySlugToFacetId(category) : 
                     category.toUpperCase().replace(/-/g, '_');
-    
+
     // Check if details already loaded
-    if (window.unisonRelatedObjects?.[facetId]) {
+    if (Object.keys(getRelatedObjectsForObject(facetId, objectId, sourceRow)).length > 0) {
         return; // Already have data
     }
     
@@ -200,7 +299,7 @@ async function loadRelatedObjectsDetails(category, objectId, panel) {
         
         // Re-render
         if (container) {
-            container.innerHTML = renderRelatedObjectsGrid(data);
+            container.innerHTML = renderRelatedObjectsGrid(filterHierarchyRelatedData(data, facetId, objectId, sourceRow));
         }
     } catch (error) {
         console.error('[RelatedObjects] Error loading details:', error);

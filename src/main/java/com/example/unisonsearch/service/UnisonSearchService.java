@@ -803,6 +803,7 @@ public class UnisonSearchService {
         // Populate full rows per facet and recompute counts to match rows
         if (accumulatedResults != null) {
             accumulatedResults = populateFacetRows(accumulatedResults, facetFilters);
+            accumulatedResults = filterSinglePeopleFindToIdentityRows(searches, accumulatedResults);
         }
 
         // Enrich results with related CRs and Active Tasks
@@ -832,14 +833,19 @@ public class UnisonSearchService {
 
         final boolean interfaceOnlyResultSet = accumulatedResults != null && isInterfaceOnlySeedSearch(accumulatedResults);
         final boolean changeRequestOnlyResultSet = accumulatedResults != null && isChangeRequestOnlySeedSearch(accumulatedResults);
+        final boolean capabilityOnlyResultSet = accumulatedResults != null && isCapabilityOnlySeedSearch(accumulatedResults);
+        final boolean projectProcessPolicyOnlyResultSet = accumulatedResults != null
+                && isProjectProcessPolicyOnlySeedSearch(accumulatedResults);
 
         // Restore IDs for related facets (e.g. POLICY) that were emptied by populateFacetRows (e.g. segment filter).
         // Frontend reads result.results.POLICY.ids to load Policy tab; if empty, it shows no data.
         // Skip for interface-only searches: enrichment intentionally dropped traversal noise; do not re-inject first traversal.
-        if (!interfaceOnlyResultSet && !changeRequestOnlyResultSet && accumulatedResults != null && firstTraversalForRelated != null
+        if (!interfaceOnlyResultSet && !changeRequestOnlyResultSet && !capabilityOnlyResultSet
+                && !projectProcessPolicyOnlyResultSet
+                && accumulatedResults != null && firstTraversalForRelated != null
                 && !firstTraversalForRelated.isEmpty()) {
             for (Map.Entry<String, FacetResult> e : firstTraversalForRelated.entrySet()) {
-                String facetId = e.getKey();
+                String facetId = canonicalFacetId(e.getKey());
                 FacetResult firstFr = e.getValue();
                 if (firstFr == null || firstFr.getIds() == null || firstFr.getIds().isEmpty()) continue;
                 FacetResult accFr = accumulatedResults.get(facetId);
@@ -859,7 +865,8 @@ public class UnisonSearchService {
         // Build relatedObjects from traversal results so UI can show impact (e.g. Dataset -> Policies).
         // Use firstTraversalForRelated when set so POLICY and other related facets are not lost when a later FIND replaced accumulatedResults.
         Map<String, Map<String, Set<Integer>>> enrichedRelatedObjects = new HashMap<>();
-        Map<String, FacetResult> sourceForRelated = (interfaceOnlyResultSet || changeRequestOnlyResultSet)
+        Map<String, FacetResult> sourceForRelated = (interfaceOnlyResultSet || changeRequestOnlyResultSet
+                || capabilityOnlyResultSet || projectProcessPolicyOnlyResultSet)
                 ? accumulatedResults
                 : ((firstTraversalForRelated != null && !firstTraversalForRelated.isEmpty())
                         ? firstTraversalForRelated
@@ -887,7 +894,8 @@ public class UnisonSearchService {
                     seedIds = (accSeed != null && accSeed.getIds() != null) ? accSeed.getIds() : null;
                 }
                 // Do not re-run broad graph traversal for interface-only results (would repopulate unrelated facets).
-                if (!interfaceOnlyResultSet && seedIds != null && !seedIds.isEmpty() && maxDepth >= 1) {
+                if (!interfaceOnlyResultSet && !capabilityOnlyResultSet && !projectProcessPolicyOnlyResultSet
+                        && seedIds != null && !seedIds.isEmpty() && maxDepth >= 1) {
                     try {
                         Map<String, FacetResult> traversal = graphTraversalService.findConnectedObjects(
                                 normalizeFacetName(seedFacetId), seedIds, 1);
@@ -911,6 +919,13 @@ public class UnisonSearchService {
                     enrichedRelatedObjects.put(seedFacetId, related);
                 }
             }
+        }
+        enrichedRelatedObjects = suppressHierarchyRelatedObjects(enrichedRelatedObjects, sourceForRelated);
+        if (capabilityOnlyResultSet) {
+            enrichedRelatedObjects = filterRelatedObjectsForCapabilityPrimarySearch(enrichedRelatedObjects);
+        }
+        if (projectProcessPolicyOnlyResultSet) {
+            enrichedRelatedObjects = filterRelatedObjectsForProjectProcessPolicyPrimarySearch(enrichedRelatedObjects);
         }
 
         // Auto-detect: if no explicit people constraint was passed by the client but the
@@ -942,7 +957,7 @@ public class UnisonSearchService {
         UnisonSearchResponse response = new UnisonSearchResponse();
         response.setSuccess(true);
         response.setResults(accumulatedResults != null ? accumulatedResults : new HashMap<>());
-        response.setSearchCounter(searches.size());
+        response.setSearchCounter(searches != null ? searches.size() : 0);
         response.setExecutionTimeMs(executionTime);
         response.setRelatedObjects(enrichedRelatedObjects);
 
@@ -2146,6 +2161,200 @@ public class UnisonSearchService {
         return HIERARCHICAL_FACETS.contains(normalized);
     }
 
+    private Map<String, Map<String, Set<Integer>>> suppressHierarchyRelatedObjects(
+            Map<String, Map<String, Set<Integer>>> relatedObjects,
+            Map<String, FacetResult> sourceForRelated) throws SQLException {
+        if (relatedObjects == null || relatedObjects.isEmpty() || sourceForRelated == null || sourceForRelated.isEmpty()) {
+            return relatedObjects;
+        }
+
+        Map<String, Map<String, Set<Integer>>> cleaned = new HashMap<>();
+        for (Map.Entry<String, Map<String, Set<Integer>>> seedEntry : relatedObjects.entrySet()) {
+            String seedFacetId = canonicalFacetId(seedEntry.getKey());
+            Map<String, Set<Integer>> relatedByFacet = seedEntry.getValue();
+            if (relatedByFacet == null || relatedByFacet.isEmpty()) {
+                continue;
+            }
+
+            Map<String, Set<Integer>> cleanedRelated = new HashMap<>();
+            Set<Integer> hierarchyIds = Collections.emptySet();
+            if (isHierarchicalFacet(seedFacetId)) {
+                Set<Integer> seedIds = getFacetIdsFromResults(sourceForRelated, seedFacetId);
+                if (!seedIds.isEmpty()) {
+                    hierarchyIds = getHierarchyRelatedIds(seedFacetId, seedIds);
+                    hierarchyIds.addAll(seedIds);
+                }
+            }
+
+            for (Map.Entry<String, Set<Integer>> relatedEntry : relatedByFacet.entrySet()) {
+                String relatedFacetId = canonicalFacetId(relatedEntry.getKey());
+                Set<Integer> ids = relatedEntry.getValue();
+                if (ids == null || ids.isEmpty()) {
+                    continue;
+                }
+
+                Set<Integer> filteredIds = new HashSet<>(ids);
+                if (!hierarchyIds.isEmpty() && seedFacetId != null && seedFacetId.equals(relatedFacetId)) {
+                    filteredIds.removeAll(hierarchyIds);
+                }
+
+                if (!filteredIds.isEmpty()) {
+                    cleanedRelated.put(relatedEntry.getKey(), filteredIds);
+                }
+            }
+
+            if (!cleanedRelated.isEmpty()) {
+                cleaned.put(seedEntry.getKey(), cleanedRelated);
+            }
+        }
+
+        return cleaned;
+    }
+
+    private Set<Integer> getFacetIdsFromResults(Map<String, FacetResult> results, String facetId) {
+        if (results == null || results.isEmpty() || facetId == null) {
+            return Collections.emptySet();
+        }
+
+        String canonicalFacet = canonicalFacetId(facetId);
+        for (Map.Entry<String, FacetResult> entry : results.entrySet()) {
+            if (canonicalFacet.equals(canonicalFacetId(entry.getKey()))) {
+                FacetResult result = entry.getValue();
+                if (result != null && result.getIds() != null) {
+                    return new HashSet<>(result.getIds());
+                }
+            }
+        }
+
+        return Collections.emptySet();
+    }
+
+    private Set<Integer> getHierarchyRelatedIds(String facetId, Set<Integer> seedIds) throws SQLException {
+        HierarchyTableConfig config = hierarchyTableConfig(facetId);
+        if (config == null || seedIds == null || seedIds.isEmpty()) {
+            return new HashSet<>();
+        }
+
+        Set<Integer> relatedIds = new HashSet<>();
+        for (Integer seedId : seedIds) {
+            if (seedId == null) {
+                continue;
+            }
+            relatedIds.addAll(getAncestorIds(config, seedId));
+            relatedIds.addAll(getDescendantIds(config, seedId));
+        }
+        relatedIds.removeAll(seedIds);
+        return relatedIds;
+    }
+
+    private Set<Integer> getAncestorIds(HierarchyTableConfig config, Integer seedId) throws SQLException {
+        Set<Integer> ancestors = new HashSet<>();
+        Integer currentId = seedId;
+        int guard = 0;
+        while (currentId != null && guard++ < 100) {
+            Integer parentId = getParentId(config, currentId);
+            if (parentId == null || !ancestors.add(parentId)) {
+                break;
+            }
+            currentId = parentId;
+        }
+        return ancestors;
+    }
+
+    private Set<Integer> getDescendantIds(HierarchyTableConfig config, Integer seedId) throws SQLException {
+        Set<Integer> descendants = new HashSet<>();
+        Queue<Integer> queue = new LinkedList<>();
+        queue.offer(seedId);
+        int guard = 0;
+
+        while (!queue.isEmpty() && guard++ < 10000) {
+            Integer parentId = queue.poll();
+            for (Integer childId : getChildIds(config, parentId)) {
+                if (descendants.add(childId)) {
+                    queue.offer(childId);
+                }
+            }
+        }
+
+        return descendants;
+    }
+
+    private Integer getParentId(HierarchyTableConfig config, Integer id) throws SQLException {
+        String sql = "SELECT " + config.parentColumn + " AS parent_id FROM " + config.tableName
+                + " WHERE " + config.idColumn + " = ?" + config.activeRowClause;
+        com.example.unisonsearch.repository.DatabaseHelper dbHelper = new com.example.unisonsearch.repository.DatabaseHelper();
+        List<Map<String, Object>> rows = dbHelper.executeQuery(sql, List.of(id));
+        if (rows == null || rows.isEmpty()) {
+            return null;
+        }
+        return toInteger(rows.get(0).get("parent_id"));
+    }
+
+    private List<Integer> getChildIds(HierarchyTableConfig config, Integer parentId) throws SQLException {
+        String sql = "SELECT " + config.idColumn + " AS child_id FROM " + config.tableName
+                + " WHERE " + config.parentColumn + " = ?" + config.activeRowClause;
+        com.example.unisonsearch.repository.DatabaseHelper dbHelper = new com.example.unisonsearch.repository.DatabaseHelper();
+        List<Map<String, Object>> rows = dbHelper.executeQuery(sql, List.of(parentId));
+        List<Integer> childIds = new ArrayList<>();
+        if (rows != null) {
+            for (Map<String, Object> row : rows) {
+                Integer childId = toInteger(row.get("child_id"));
+                if (childId != null) {
+                    childIds.add(childId);
+                }
+            }
+        }
+        return childIds;
+    }
+
+    private Integer toInteger(Object value) {
+        if (value instanceof Integer) {
+            return (Integer) value;
+        }
+        if (value instanceof Number) {
+            return ((Number) value).intValue();
+        }
+        if (value != null) {
+            try {
+                return Integer.parseInt(value.toString());
+            } catch (NumberFormatException ignored) {
+                return null;
+            }
+        }
+        return null;
+    }
+
+    private HierarchyTableConfig hierarchyTableConfig(String facetId) {
+        String canonical = canonicalFacetId(facetId);
+        if (canonical == null) {
+            return null;
+        }
+
+        return switch (canonical) {
+            case "GLOSSARY" -> new HierarchyTableConfig("glossary", "ID", "Parent_ID", "Deleted_datetime");
+            case "PROCESS" -> new HierarchyTableConfig("process", "id", "parentid", "deleteddatetime");
+            case "POLICY" -> new HierarchyTableConfig("policy", "ID", "ParentID", "DeletedDatetime");
+            case "CAPABILITY" -> new HierarchyTableConfig("capability", "ID", "Parent_ID", "DeletedDatetime");
+            default -> null;
+        };
+    }
+
+    private static class HierarchyTableConfig {
+        private final String tableName;
+        private final String idColumn;
+        private final String parentColumn;
+        private final String activeRowClause;
+
+        private HierarchyTableConfig(String tableName, String idColumn, String parentColumn, String deletedColumn) {
+            this.tableName = tableName;
+            this.idColumn = idColumn;
+            this.parentColumn = parentColumn;
+            this.activeRowClause = deletedColumn != null && !deletedColumn.isBlank()
+                    ? " AND " + deletedColumn + " IS NULL"
+                    : "";
+        }
+    }
+
     /**
      * Normalize facet ID to a canonical representation to avoid duplicates.
      * Uses FacetNormalizationUtil for consistency.
@@ -2411,11 +2620,100 @@ public class UnisonSearchService {
         return results;
     }
 
+    /**
+     * People searches fan out into roles/CRs, so narrow the seed People rows before
+     * enrichment. A text search may match "Sally" in another user's email; for a
+     * People-rooted search the identity fields should drive the person scope.
+     */
+    private Map<String, FacetResult> filterSinglePeopleFindToIdentityRows(List<UnisonSearchRequest.SearchItem> searches,
+            Map<String, FacetResult> results) {
+        if (results == null || results.isEmpty() || searches == null || searches.size() != 1) {
+            return results;
+        }
+        UnisonSearchRequest.SearchItem s = searches.get(0);
+        if (s == null || s.getFacet() == null || s.getKeyword() == null) {
+            return results;
+        }
+        String operator = s.getOperator() != null ? s.getOperator().toUpperCase(Locale.ROOT) : "FIND";
+        if (!"FIND".equals(operator)) {
+            return results;
+        }
+        String canonical = canonicalFacetId(s.getFacet());
+        if (!"PEOPLE".equals(canonical)) {
+            return results;
+        }
+        String keyword = s.getKeyword().trim();
+        if (keyword.isEmpty() || "*".equals(keyword)) {
+            return results;
+        }
+
+        FacetResult fr = results.get("PEOPLE");
+        if (fr == null) {
+            fr = results.get("PERSON");
+        }
+        if (fr == null || fr.getRows() == null || fr.getRows().isEmpty()) {
+            return results;
+        }
+
+        List<Map<String, Object>> filteredRows = new ArrayList<>();
+        for (Map<String, Object> row : fr.getRows()) {
+            if (row != null && rowMatchesPeopleIdentityKeyword(row, keyword)) {
+                filteredRows.add(row);
+            }
+        }
+        if (filteredRows.isEmpty()) {
+            return results;
+        }
+
+        Set<Integer> ids = new LinkedHashSet<>();
+        Map<Integer, Integer> depth = new HashMap<>();
+        for (Map<String, Object> row : filteredRows) {
+            Integer id = extractIntId(row);
+            if (id != null) {
+                ids.add(id);
+                Integer d = fr.getDepthById() != null ? fr.getDepthById().get(id) : null;
+                depth.put(id, d != null ? d : 0);
+            }
+        }
+
+        FacetResult narrowed = new FacetResult(ids, fr.isHasActiveFilter(), depth, filteredRows, filteredRows.size());
+        results.put("PEOPLE", narrowed);
+        results.remove("PERSON");
+        return results;
+    }
+
     private boolean equalsIgnoreCaseTrim(Object value, String target) {
         if (value == null || target == null)
             return false;
         String v = value.toString().trim();
         return v.equalsIgnoreCase(target.trim());
+    }
+
+    private boolean rowMatchesPeopleIdentityKeyword(Map<String, Object> row, String keyword) {
+        if (row == null || keyword == null || keyword.isBlank()) {
+            return false;
+        }
+        String kw = keyword.trim();
+        Integer rowId = extractIntId(row);
+        if (rowId != null) {
+            try {
+                if (rowId == Integer.parseInt(kw)) {
+                    return true;
+                }
+            } catch (NumberFormatException ignored) {
+                // Text keyword; continue with person identity fields.
+            }
+        }
+
+        Object firstName = firstRowField(row, "First Name", "First_Name", "first_name", "FirstName", "firstName");
+        Object lastName = firstRowField(row, "Last Name", "Last_Name", "last_name", "LastName", "lastName");
+        if (equalsIgnoreCaseTrim(firstName, kw) || equalsIgnoreCaseTrim(lastName, kw)) {
+            return true;
+        }
+
+        String fullName = ((firstName != null ? firstName.toString() : "") + " "
+                + (lastName != null ? lastName.toString() : "")).trim();
+        return !fullName.isEmpty() && fullName.equalsIgnoreCase(kw);
     }
 
     private static Object firstRowField(Map<String, Object> row, String... keys) {
@@ -3762,6 +4060,10 @@ public class UnisonSearchService {
 
         final boolean attributeOnlySeedSearch = isAttributeOnlySeedSearch(results);
         final boolean interfaceOnlySeedSearch = isInterfaceOnlySeedSearch(results);
+        final boolean capabilityOnlySeedSearch = isCapabilityOnlySeedSearch(results);
+        final boolean projectProcessPolicyOnlySeedSearch = isProjectProcessPolicyOnlySeedSearch(results);
+        final boolean peopleOnlySeedSearch = isPeopleOnlySeedSearch(results);
+        final boolean regulationOnlySeedSearch = isRegulationOnlySeedSearch(results);
 
         // Collect only seed object IDs (depth 0) and their facet types.
         // This keeps CR/task enrichment strictly scoped to searched objects.
@@ -3811,7 +4113,7 @@ public class UnisonSearchService {
         Set<Integer> crIds = Collections.emptySet();
         Set<Integer> taskIds = Collections.emptySet();
 
-        if (!attributeOnlySeedSearch) {
+        if (!attributeOnlySeedSearch && !peopleOnlySeedSearch) {
             // Build all reference strings
             Set<String> allReferences = new HashSet<>();
             Map<String, Set<Integer>> referenceToObjectIds = new HashMap<>();
@@ -3948,6 +4250,22 @@ public class UnisonSearchService {
             return results;
         }
 
+        // Capability-only FIND: show direct Impact-tab links, direct stakeholders, CRs, and tasks only.
+        if (capabilityOnlySeedSearch) {
+            results = enrichCapabilityFacet(results, context);
+            results = retainFacetsForCapabilityPrimarySearch(results);
+            results = applyFinalDeduplicationAndSorting(results, context);
+            return results;
+        }
+
+        // Project/Process/Policy-only FIND: keep glossary-derived data plus direct Impact-tab links.
+        if (projectProcessPolicyOnlySeedSearch) {
+            results = enrichProjectProcessPolicyFacet(results, context);
+            results = retainFacetsForProjectProcessPolicyPrimarySearch(results);
+            results = applyFinalDeduplicationAndSorting(results, context);
+            return results;
+        }
+
         // Enrich datasets with impact relationships (Process, Project, Product,
         // Business Area, Capability)
         results = enrichDatasetWithImpactRelationships(results);
@@ -3972,6 +4290,13 @@ public class UnisonSearchService {
         results = enrichOrgUnitFacet(results, context);
         results = enrichGeographyFacet(results, context);
         results = enrichRegulationRegulatorThemeFacet(results, context);
+
+        if (peopleOnlySeedSearch) {
+            results = clampRoleFacetToPeopleSeeds(results);
+        }
+        if (regulationOnlySeedSearch) {
+            results = clampRegulatoryThemeFacetToRegulationSeeds(results);
+        }
 
         // Apply final deduplication and deterministic sorting
         results = applyFinalDeduplicationAndSorting(results, context);
@@ -6540,8 +6865,8 @@ public class UnisonSearchService {
         try {
             com.example.unisonsearch.repository.DatabaseHelper dbHelper = new com.example.unisonsearch.repository.DatabaseHelper();
 
-            // Query product_x_glossary
-            String sql1 = "SELECT DISTINCT product_id FROM product_x_glossary WHERE GlossaryID = ?";
+            // Query product_x_glossary (schema uses productid/glossaryid).
+            String sql1 = "SELECT DISTINCT productid AS product_id FROM product_x_glossary WHERE glossaryid = ?";
             List<Map<String, Object>> productResults = dbHelper.executeQuery(sql1, List.of(glossaryId));
             Set<Integer> productIds = extractIds(productResults, "product_id");
             if (!productIds.isEmpty()) {
@@ -6549,7 +6874,7 @@ public class UnisonSearchService {
             }
 
             // Query client_x_glossary
-            String sql2 = "SELECT DISTINCT Client_ID FROM client_x_glossary WHERE GlossaryID = ?";
+            String sql2 = "SELECT DISTINCT Client_ID FROM client_x_glossary WHERE Glossary_ID = ?";
             List<Map<String, Object>> clientResults = dbHelper.executeQuery(sql2, List.of(glossaryId));
             Set<Integer> clientIds = extractIds(clientResults, "Client_ID");
             if (!clientIds.isEmpty()) {
@@ -6583,9 +6908,9 @@ public class UnisonSearchService {
             }
 
             // policy_x_glossary
-            String sqlPol = "SELECT DISTINCT pxg.PolicyID FROM policy_x_glossary pxg " +
-                    "JOIN policy pol ON pxg.PolicyID = pol.ID " +
-                    "WHERE pxg.GlossaryID = ? AND pol.DeletedDatetime IS NULL";
+            String sqlPol = "SELECT DISTINCT pxg.Policy_ID AS PolicyID FROM policy_x_glossary pxg " +
+                    "JOIN policy pol ON pxg.Policy_ID = pol.ID " +
+                    "WHERE pxg.Glossary_ID = ? AND pol.DeletedDatetime IS NULL";
             Set<Integer> policyIds = extractIds(dbHelper.executeQuery(sqlPol, List.of(glossaryId)), "PolicyID");
             if (!policyIds.isEmpty()) {
                 relationships.put("POLICY", policyIds);
@@ -6735,9 +7060,9 @@ public class UnisonSearchService {
                 relationships.put("SYSTEM", systemIds);
             }
 
-            // Query client_x_capability (if present)
+            // Query capability_x_client (Impact tab)
             try {
-                String sql2 = "SELECT DISTINCT Client_ID FROM client_x_capability WHERE Capability_ID = ?";
+                String sql2 = "SELECT DISTINCT Client_ID FROM capability_x_client WHERE Capability_ID = ?";
                 List<Map<String, Object>> clientResults = dbHelper.executeQuery(sql2, List.of(capabilityId));
                 Set<Integer> clientIds = extractIds(clientResults, "Client_ID");
                 if (!clientIds.isEmpty()) {
@@ -6746,11 +7071,11 @@ public class UnisonSearchService {
             } catch (Exception ignored) {
             }
 
-            // Query product_x_capability (if present)
+            // Query capability_x_product (Impact tab)
             try {
-                String sql3 = "SELECT DISTINCT product_id FROM product_x_capability WHERE Capability_ID = ?";
+                String sql3 = "SELECT DISTINCT Product_ID FROM capability_x_product WHERE Capability_ID = ?";
                 List<Map<String, Object>> productResults = dbHelper.executeQuery(sql3, List.of(capabilityId));
-                Set<Integer> productIds = extractIds(productResults, "product_id");
+                Set<Integer> productIds = extractIds(productResults, "Product_ID");
                 if (!productIds.isEmpty()) {
                     relationships.put("PRODUCT", productIds);
                 }
@@ -7017,17 +7342,21 @@ public class UnisonSearchService {
         try {
             com.example.unisonsearch.repository.DatabaseHelper dbHelper = new com.example.unisonsearch.repository.DatabaseHelper();
 
-            // Query glossary_x_glossary (bidirectional)
+            // Query glossary_x_glossary (bidirectional).
+            // The relationship table uses SourceGlossaryID/TargetGlossaryID and has no DeletedDatetime column.
             String sql = "SELECT DISTINCT " +
-                         "CASE WHEN GlossaryID_1 = ? THEN GlossaryID_2 " +
-                         "     WHEN GlossaryID_2 = ? THEN GlossaryID_1 " +
+                         "CASE WHEN gxg.SourceGlossaryID = ? THEN gxg.TargetGlossaryID " +
+                         "     WHEN gxg.TargetGlossaryID = ? THEN gxg.SourceGlossaryID " +
                          "END AS related_id " +
-                         "FROM glossary_x_glossary " +
-                         "WHERE (GlossaryID_1 = ? OR GlossaryID_2 = ?) " +
-                         "AND DeletedDatetime IS NULL";
+                         "FROM glossary_x_glossary gxg " +
+                         "LEFT JOIN glossary sg ON sg.ID = gxg.SourceGlossaryID " +
+                         "LEFT JOIN glossary tg ON tg.ID = gxg.TargetGlossaryID " +
+                         "WHERE (gxg.SourceGlossaryID = ? OR gxg.TargetGlossaryID = ?) " +
+                         "AND ((gxg.SourceGlossaryID = ? AND tg.Deleted_datetime IS NULL) " +
+                         "OR (gxg.TargetGlossaryID = ? AND sg.Deleted_datetime IS NULL))";
 
             List<Map<String, Object>> results = dbHelper.executeQuery(sql,
-                    List.of(glossaryId, glossaryId, glossaryId, glossaryId));
+                    List.of(glossaryId, glossaryId, glossaryId, glossaryId, glossaryId, glossaryId));
 
             relatedGlossaries = extractIds(results, "related_id");
         } catch (Exception e) {
@@ -8319,6 +8648,95 @@ public class UnisonSearchService {
     }
 
     /**
+     * True when the only governed search seeds (depth 0) are People. People-primary
+     * searches have their own CR rule: show CRs created by the matched person only.
+     */
+    private boolean isPeopleOnlySeedSearch(Map<String, FacetResult> results) {
+        if (results == null || results.isEmpty()) {
+            return false;
+        }
+        boolean hasPeopleSeed = false;
+        for (Map.Entry<String, FacetResult> entry : results.entrySet()) {
+            String facetId = entry.getKey();
+            FacetResult fr = entry.getValue();
+            if (fr == null || fr.getIds() == null || fr.getIds().isEmpty()) {
+                continue;
+            }
+            String norm = facetId != null ? facetId.trim().toUpperCase(Locale.ROOT).replace("-", "_") : "";
+            if (norm.contains("ROLE") || norm.contains("CHANGEREQUEST") || norm.contains("CHANGE_REQUEST")
+                    || norm.contains("ACTIVE_TASK") || norm.contains("ACTIVETASK")) {
+                continue;
+            }
+            Set<Integer> seeds = new HashSet<>();
+            if (fr.getDepthById() != null) {
+                for (Integer id : fr.getIds()) {
+                    if (fr.getDepthById().getOrDefault(id, Integer.MAX_VALUE) == 0) {
+                        seeds.add(id);
+                    }
+                }
+            } else {
+                seeds.addAll(fr.getIds());
+            }
+            if (seeds.isEmpty()) {
+                continue;
+            }
+            if ("PEOPLE".equals(norm) || "PERSON".equals(norm)) {
+                hasPeopleSeed = true;
+                continue;
+            }
+            if (GOVERNED_FACETS.contains(norm)) {
+                return false;
+            }
+        }
+        return hasPeopleSeed;
+    }
+
+    /**
+     * True when the only governed search seeds (depth 0) are Regulations. For this
+     * path the Regulatory Theme facet must stay limited to direct regulation-theme
+     * links, even if traversal found themes through geography/regulator paths.
+     */
+    private boolean isRegulationOnlySeedSearch(Map<String, FacetResult> results) {
+        if (results == null || results.isEmpty()) {
+            return false;
+        }
+        boolean hasRegulationSeed = false;
+        for (Map.Entry<String, FacetResult> entry : results.entrySet()) {
+            String facetId = entry.getKey();
+            FacetResult fr = entry.getValue();
+            if (fr == null || fr.getIds() == null || fr.getIds().isEmpty()) {
+                continue;
+            }
+            String norm = facetId != null ? facetId.trim().toUpperCase(Locale.ROOT).replace("-", "_") : "";
+            if (norm.contains("ROLE") || norm.contains("CHANGEREQUEST") || norm.contains("CHANGE_REQUEST")
+                    || norm.contains("ACTIVE_TASK") || norm.contains("ACTIVETASK")) {
+                continue;
+            }
+            Set<Integer> seeds = new HashSet<>();
+            if (fr.getDepthById() != null) {
+                for (Integer id : fr.getIds()) {
+                    if (fr.getDepthById().getOrDefault(id, Integer.MAX_VALUE) == 0) {
+                        seeds.add(id);
+                    }
+                }
+            } else {
+                seeds.addAll(fr.getIds());
+            }
+            if (seeds.isEmpty()) {
+                continue;
+            }
+            if ("REGULATION".equals(norm) || "REGULATIONS".equals(norm)) {
+                hasRegulationSeed = true;
+                continue;
+            }
+            if (GOVERNED_FACETS.contains(norm)) {
+                return false;
+            }
+        }
+        return hasRegulationSeed;
+    }
+
+    /**
      * True when the only governed search seeds (depth 0) are interfaces — compound searches
      * (e.g. interface + dataset) use the full enrichment pipeline.
      */
@@ -8361,6 +8779,102 @@ public class UnisonSearchService {
             }
         }
         return hasInterfaceSeed;
+    }
+
+    /**
+     * True when the only governed search seeds (depth 0) are capabilities.
+     * Capability-primary search has a narrower result set: direct Impact-tab
+     * relationships, stakeholders, CRs, and active tasks.
+     */
+    private boolean isCapabilityOnlySeedSearch(Map<String, FacetResult> results) {
+        if (results == null || results.isEmpty()) {
+            return false;
+        }
+        boolean hasCapabilitySeed = false;
+        for (Map.Entry<String, FacetResult> entry : results.entrySet()) {
+            String facetId = entry.getKey();
+            FacetResult fr = entry.getValue();
+            if (fr == null || fr.getIds() == null || fr.getIds().isEmpty()) {
+                continue;
+            }
+            String norm = facetId != null ? facetId.trim().toUpperCase(Locale.ROOT).replace("-", "_") : "";
+            if (norm.contains("PEOPLE") || "PERSON".equals(norm) || norm.contains("ROLE")
+                    || norm.contains("ORG_UNIT") || norm.contains("ORGUNIT")
+                    || norm.contains("CHANGEREQUEST") || norm.contains("CHANGE_REQUEST")
+                    || norm.contains("ACTIVE_TASK") || norm.contains("ACTIVETASK")) {
+                continue;
+            }
+            Set<Integer> seeds = new HashSet<>();
+            if (fr.getDepthById() != null) {
+                for (Integer id : fr.getIds()) {
+                    if (fr.getDepthById().getOrDefault(id, Integer.MAX_VALUE) == 0) {
+                        seeds.add(id);
+                    }
+                }
+            } else {
+                seeds.addAll(fr.getIds());
+            }
+            if (seeds.isEmpty()) {
+                continue;
+            }
+            if ("CAPABILITY".equals(norm) || "CAPABILITIES".equals(norm)) {
+                hasCapabilitySeed = true;
+                continue;
+            }
+            if (GOVERNED_FACETS.contains(norm)) {
+                return false;
+            }
+        }
+        return hasCapabilitySeed;
+    }
+
+    /**
+     * True when the only governed search seeds (depth 0) are Project, Process, or
+     * Policy. These primary searches should keep glossary-derived data and direct
+     * Impact-tab links without broader traversal noise.
+     */
+    private boolean isProjectProcessPolicyOnlySeedSearch(Map<String, FacetResult> results) {
+        if (results == null || results.isEmpty()) {
+            return false;
+        }
+        boolean hasPppSeed = false;
+        for (Map.Entry<String, FacetResult> entry : results.entrySet()) {
+            String facetId = entry.getKey();
+            FacetResult fr = entry.getValue();
+            if (fr == null || fr.getIds() == null || fr.getIds().isEmpty()) {
+                continue;
+            }
+            String norm = facetId != null ? facetId.trim().toUpperCase(Locale.ROOT).replace("-", "_") : "";
+            if (norm.contains("PEOPLE") || "PERSON".equals(norm) || norm.contains("ROLE")
+                    || norm.contains("ORG_UNIT") || norm.contains("ORGUNIT")
+                    || norm.contains("CHANGEREQUEST") || norm.contains("CHANGE_REQUEST")
+                    || norm.contains("ACTIVE_TASK") || norm.contains("ACTIVETASK")) {
+                continue;
+            }
+            Set<Integer> seeds = new HashSet<>();
+            if (fr.getDepthById() != null) {
+                for (Integer id : fr.getIds()) {
+                    if (fr.getDepthById().getOrDefault(id, Integer.MAX_VALUE) == 0) {
+                        seeds.add(id);
+                    }
+                }
+            } else {
+                seeds.addAll(fr.getIds());
+            }
+            if (seeds.isEmpty()) {
+                continue;
+            }
+            if ("PROJECT".equals(norm) || "PROJECTS".equals(norm)
+                    || "PROCESS".equals(norm) || "PROCESSES".equals(norm)
+                    || "POLICY".equals(norm) || "POLICIES".equals(norm)) {
+                hasPppSeed = true;
+                continue;
+            }
+            if (GOVERNED_FACETS.contains(norm)) {
+                return false;
+            }
+        }
+        return hasPppSeed;
     }
 
     /**
@@ -8586,6 +9100,167 @@ public class UnisonSearchService {
             }
         }
         return out;
+    }
+
+    private boolean isFacetAllowedForCapabilityPrimarySearch(String facetKey) {
+        if (facetKey == null) {
+            return false;
+        }
+        String n = facetKey.trim().toUpperCase(Locale.ROOT).replace("-", "_");
+        if (n.contains("CAPABILITY")) {
+            return true;
+        }
+        if ("SYSTEM".equals(n) || "SYSTEMS".equals(n)
+                || "CLIENT".equals(n) || "CLIENTS".equals(n)
+                || "PRODUCT".equals(n) || "PRODUCTS".equals(n)
+                || "PROCESS".equals(n) || "PROCESSES".equals(n)
+                || "GLOSSARY".equals(n) || "GLOSSARIES".equals(n)
+                || "BUSINESS_AREA".equals(n) || "BUSINESSAREA".equals(n)
+                || "LEGAL_ENTITY".equals(n) || "LEGALENTITY".equals(n)) {
+            return true;
+        }
+        if (n.contains("PEOPLE") || "PERSON".equals(n)) {
+            return true;
+        }
+        if (n.contains("ROLE")) {
+            return true;
+        }
+        if (n.contains("ORG_UNIT") || "ORGUNIT".equals(n)) {
+            return true;
+        }
+        if (n.contains("CHANGE_REQUEST") || n.contains("CHANGEREQUEST")) {
+            return true;
+        }
+        if (n.contains("ACTIVE_TASK") || n.contains("ACTIVETASK")) {
+            return true;
+        }
+        return false;
+    }
+
+    private Map<String, FacetResult> retainFacetsForCapabilityPrimarySearch(Map<String, FacetResult> results) {
+        if (results == null || results.isEmpty()) {
+            return results;
+        }
+        Map<String, FacetResult> out = new HashMap<>();
+        for (Map.Entry<String, FacetResult> e : results.entrySet()) {
+            if (isFacetAllowedForCapabilityPrimarySearch(e.getKey())) {
+                out.put(e.getKey(), e.getValue());
+            }
+        }
+        return out;
+    }
+
+    private Map<String, Map<String, Set<Integer>>> filterRelatedObjectsForCapabilityPrimarySearch(
+            Map<String, Map<String, Set<Integer>>> relatedObjects) {
+        if (relatedObjects == null || relatedObjects.isEmpty()) {
+            return relatedObjects;
+        }
+        Map<String, Map<String, Set<Integer>>> filtered = new HashMap<>();
+        for (Map.Entry<String, Map<String, Set<Integer>>> sourceEntry : relatedObjects.entrySet()) {
+            String sourceFacet = sourceEntry.getKey();
+            if (!isFacetAllowedForCapabilityPrimarySearch(sourceFacet)) {
+                continue;
+            }
+            Map<String, Set<Integer>> related = sourceEntry.getValue();
+            if (related == null || related.isEmpty()) {
+                continue;
+            }
+            Map<String, Set<Integer>> filteredRelated = new HashMap<>();
+            for (Map.Entry<String, Set<Integer>> relatedEntry : related.entrySet()) {
+                if (isFacetAllowedForCapabilityPrimarySearch(relatedEntry.getKey())
+                        && relatedEntry.getValue() != null
+                        && !relatedEntry.getValue().isEmpty()) {
+                    filteredRelated.put(relatedEntry.getKey(), relatedEntry.getValue());
+                }
+            }
+            if (!filteredRelated.isEmpty()) {
+                filtered.put(sourceFacet, filteredRelated);
+            }
+        }
+        return filtered;
+    }
+
+    private boolean isFacetAllowedForProjectProcessPolicyPrimarySearch(String facetKey) {
+        if (facetKey == null) {
+            return false;
+        }
+        String n = facetKey.trim().toUpperCase(Locale.ROOT).replace("-", "_");
+        if ("PROJECT".equals(n) || "PROJECTS".equals(n)
+                || "PROCESS".equals(n) || "PROCESSES".equals(n)
+                || "POLICY".equals(n) || "POLICIES".equals(n)
+                || "GLOSSARY".equals(n) || "GLOSSARIES".equals(n)
+                || "DATASET".equals(n) || "DATASETS".equals(n) || "DATA_SETS".equals(n)
+                || "ATTRIBUTE".equals(n) || "ATTRIBUTES".equals(n)
+                || "SYSTEM".equals(n) || "SYSTEMS".equals(n)
+                || "CLIENT".equals(n) || "CLIENTS".equals(n)
+                || "PRODUCT".equals(n) || "PRODUCTS".equals(n)
+                || "BUSINESS_AREA".equals(n) || "BUSINESSAREA".equals(n)
+                || "LEGAL_ENTITY".equals(n) || "LEGALENTITY".equals(n)
+                || "CAPABILITY".equals(n) || "CAPABILITIES".equals(n)
+                || "INTERFACE".equals(n) || "INTERFACES".equals(n)
+                || "REGULATION".equals(n) || "REGULATIONS".equals(n)) {
+            return true;
+        }
+        if (n.contains("PEOPLE") || "PERSON".equals(n)) {
+            return true;
+        }
+        if (n.contains("ROLE")) {
+            return true;
+        }
+        if (n.contains("ORG_UNIT") || "ORGUNIT".equals(n)) {
+            return true;
+        }
+        if (n.contains("CHANGE_REQUEST") || n.contains("CHANGEREQUEST")) {
+            return true;
+        }
+        if (n.contains("ACTIVE_TASK") || n.contains("ACTIVETASK")) {
+            return true;
+        }
+        return false;
+    }
+
+    private Map<String, FacetResult> retainFacetsForProjectProcessPolicyPrimarySearch(
+            Map<String, FacetResult> results) {
+        if (results == null || results.isEmpty()) {
+            return results;
+        }
+        Map<String, FacetResult> out = new HashMap<>();
+        for (Map.Entry<String, FacetResult> e : results.entrySet()) {
+            if (isFacetAllowedForProjectProcessPolicyPrimarySearch(e.getKey())) {
+                out.put(e.getKey(), e.getValue());
+            }
+        }
+        return out;
+    }
+
+    private Map<String, Map<String, Set<Integer>>> filterRelatedObjectsForProjectProcessPolicyPrimarySearch(
+            Map<String, Map<String, Set<Integer>>> relatedObjects) {
+        if (relatedObjects == null || relatedObjects.isEmpty()) {
+            return relatedObjects;
+        }
+        Map<String, Map<String, Set<Integer>>> filtered = new HashMap<>();
+        for (Map.Entry<String, Map<String, Set<Integer>>> sourceEntry : relatedObjects.entrySet()) {
+            String sourceFacet = sourceEntry.getKey();
+            if (!isFacetAllowedForProjectProcessPolicyPrimarySearch(sourceFacet)) {
+                continue;
+            }
+            Map<String, Set<Integer>> related = sourceEntry.getValue();
+            if (related == null || related.isEmpty()) {
+                continue;
+            }
+            Map<String, Set<Integer>> filteredRelated = new HashMap<>();
+            for (Map.Entry<String, Set<Integer>> relatedEntry : related.entrySet()) {
+                if (isFacetAllowedForProjectProcessPolicyPrimarySearch(relatedEntry.getKey())
+                        && relatedEntry.getValue() != null
+                        && !relatedEntry.getValue().isEmpty()) {
+                    filteredRelated.put(relatedEntry.getKey(), relatedEntry.getValue());
+                }
+            }
+            if (!filteredRelated.isEmpty()) {
+                filtered.put(sourceFacet, filteredRelated);
+            }
+        }
+        return filtered;
     }
 
     /**
@@ -10824,9 +11499,14 @@ public class UnisonSearchService {
             Map<Integer, Integer> mergedRoleDepth = new HashMap<>();
 
             if (existingRoleResult != null && existingRoleResult.getIds() != null) {
-                mergedOxpIds.addAll(existingRoleResult.getIds());
                 if (existingRoleResult.getDepthById() != null) {
-                    mergedRoleDepth.putAll(existingRoleResult.getDepthById());
+                    for (Integer id : existingRoleResult.getIds()) {
+                        int depth = existingRoleResult.getDepthById().getOrDefault(id, Integer.MAX_VALUE);
+                        if (depth == 0) {
+                            mergedOxpIds.add(id);
+                            mergedRoleDepth.put(id, 0);
+                        }
+                    }
                 }
             }
 
@@ -10891,7 +11571,10 @@ public class UnisonSearchService {
             mergedCRDepth.putAll(crDepth);
 
             List<Map<String, Object>> crRows = loadChangeRequestRows(mergedCRIds);
-            results.put(crFacetId, facetResultFromLoadedRows(crFacetId, mergedCRDepth, crRows, true));
+            Set<Integer> crIdsFromRows = idsFromLoadedRows(crRows);
+            Map<Integer, Integer> crDepthFromRows = depthSubsetForLoadedIds(crIdsFromRows, mergedCRDepth);
+            int crTotal = crRows != null ? crRows.size() : 0;
+            results.put(crFacetId, new FacetResult(crIdsFromRows, true, crDepthFromRows, crRows, crTotal));
         }
 
         // Add Active Tasks results
@@ -10920,6 +11603,119 @@ public class UnisonSearchService {
             results.put(taskFacetId, new FacetResult(taskIdsFromRows, true, taskDepthFromRows, taskRows, taskTotal));
         }
 
+        return results;
+    }
+
+    /**
+     * People-primary searches must show only role assignments for the matched
+     * people. Later enrichment can introduce roles from related objects, so rebuild
+     * ROLE from the People seed IDs as the final source of truth.
+     */
+    private Map<String, FacetResult> clampRoleFacetToPeopleSeeds(Map<String, FacetResult> results) throws SQLException {
+        if (results == null || results.isEmpty()) {
+            return results;
+        }
+
+        FacetResult peopleResult = results.get("PEOPLE");
+        if (peopleResult == null) {
+            peopleResult = results.get("PERSON");
+        }
+        if (peopleResult == null || peopleResult.getIds() == null || peopleResult.getIds().isEmpty()) {
+            results.remove("ROLE");
+            return results;
+        }
+
+        Set<Integer> peopleIds = new LinkedHashSet<>();
+        for (Integer peopleId : peopleResult.getIds()) {
+            if (peopleId != null) {
+                peopleIds.add(peopleId);
+            }
+        }
+        if (peopleIds.isEmpty()) {
+            results.remove("ROLE");
+            return results;
+        }
+
+        Set<Integer> oxpIds = new LinkedHashSet<>();
+        Map<Integer, Integer> roleDepth = new HashMap<>();
+        for (Integer peopleId : peopleIds) {
+            Set<Integer> personOxpIds = queryObjectXPeopleIdsForPerson(peopleId);
+            for (Integer oxpId : personOxpIds) {
+                if (oxpId != null) {
+                    oxpIds.add(oxpId);
+                    roleDepth.putIfAbsent(oxpId, 1);
+                }
+            }
+        }
+
+        if (oxpIds.isEmpty()) {
+            results.remove("ROLE");
+            return results;
+        }
+
+        List<Map<String, Object>> roleRows = loadRoleRowsByObjectXPeopleIds(oxpIds);
+        Set<Integer> idsFromRows = idsFromLoadedRows(roleRows);
+        Map<Integer, Integer> depthFromRows = depthSubsetForLoadedIds(idsFromRows, roleDepth);
+        int roleTotal = roleRows != null ? roleRows.size() : 0;
+        results.put("ROLE", new FacetResult(idsFromRows, true, depthFromRows, roleRows, roleTotal));
+        return results;
+    }
+
+    /**
+     * Regulation-primary searches should show only Regulatory Themes directly linked
+     * to the searched regulations. This replaces themes introduced by broader
+     * traversal/enrichment through geography or regulator relationships.
+     */
+    private Map<String, FacetResult> clampRegulatoryThemeFacetToRegulationSeeds(Map<String, FacetResult> results)
+            throws SQLException {
+        if (results == null || results.isEmpty()) {
+            return results;
+        }
+
+        FacetResult regulationResult = results.get("REGULATION");
+        if (regulationResult == null) {
+            regulationResult = results.get("REGULATIONS");
+        }
+        if (regulationResult == null || regulationResult.getIds() == null || regulationResult.getIds().isEmpty()) {
+            results.remove("REGULATORY_THEME");
+            results.remove("REGULATORYTHEME");
+            return results;
+        }
+
+        Set<Integer> regulationSeedIds = new LinkedHashSet<>();
+        if (regulationResult.getDepthById() != null) {
+            for (Integer regulationId : regulationResult.getIds()) {
+                if (regulationResult.getDepthById().getOrDefault(regulationId, Integer.MAX_VALUE) == 0) {
+                    regulationSeedIds.add(regulationId);
+                }
+            }
+        } else {
+            regulationSeedIds.addAll(regulationResult.getIds());
+        }
+
+        Set<Integer> themeIds = new LinkedHashSet<>();
+        Map<Integer, Integer> themeDepth = new HashMap<>();
+        for (Integer regulationId : regulationSeedIds) {
+            Set<Integer> directThemeIds = queryRegulationRegulatoryThemes(regulationId);
+            for (Integer themeId : directThemeIds) {
+                if (themeId != null) {
+                    themeIds.add(themeId);
+                    themeDepth.putIfAbsent(themeId, 1);
+                }
+            }
+        }
+
+        results.remove("REGULATORYTHEME");
+        if (themeIds.isEmpty()) {
+            results.remove("REGULATORY_THEME");
+            return results;
+        }
+
+        List<Map<String, Object>> themeRows = loadRegulatoryThemeRows(themeIds);
+        Set<Integer> idsFromRows = idsFromLoadedRows(themeRows);
+        Map<Integer, Integer> depthFromRows = depthSubsetForLoadedIds(idsFromRows, themeDepth);
+        int themeTotal = themeRows != null ? themeRows.size() : 0;
+        results.put("REGULATORY_THEME", new FacetResult(idsFromRows, true, depthFromRows, themeRows, themeTotal));
         return results;
     }
 
@@ -11605,7 +12401,10 @@ public class UnisonSearchService {
             }
 
             List<Map<String, Object>> rows = loadFacetRows(facetId, mergedIds);
-            results.put(facetId, facetResultFromLoadedRows(facetId, mergedDepth, rows, true));
+            Set<Integer> idsFromRows = idsFromLoadedRows(rows);
+            Map<Integer, Integer> depthFromRows = depthSubsetForLoadedIds(idsFromRows, mergedDepth);
+            int total = rows != null ? rows.size() : 0;
+            results.put(facetId, new FacetResult(idsFromRows, true, depthFromRows, rows, total));
         }
 
         // Add Active Tasks results
@@ -11734,6 +12533,8 @@ public class UnisonSearchService {
         } else {
             seedCapabilityIds.addAll(capabilityResult.getIds());
         }
+
+        boolean capabilityPrimarySearch = isCapabilityOnlySeedSearch(results);
         
         // Get seed IDs to avoid adding them if they're already seed objects
         Set<Integer> seedGlossaryIds = getSeedObjectIds(results, "GLOSSARY");
@@ -11779,19 +12580,21 @@ public class UnisonSearchService {
                     }
                 }
                 
-                // Glossaries linked to capability → expand datasets / attributes / systems for each glossary
-                Set<Integer> glossaryIds = queryCapabilityGlossaries(capabilityId);
-                for (Integer glossaryId : glossaryIds) {
-                    if (seedGlossaryIds.contains(glossaryId)) {
-                        continue;
-                    }
-                    int newDepth = capabilityDepth + 1;
-                    if (newDepth <= 1) {
-                        allGlossaryIds.add(glossaryId);
-                        glossaryDepth.put(glossaryId, newDepth);
-                        expandGlossaryLinkedArtifactsForEnrichment(glossaryId, newDepth, context,
-                                allGlossaryIds, glossaryDepth, allDatasetIds, datasetDepth,
-                                allAttributeIds, attributeDepth, allSystemIds, systemDepth);
+                if (!capabilityPrimarySearch) {
+                    // Compound searches keep the existing capability -> glossary expansion behavior.
+                    Set<Integer> glossaryIds = queryCapabilityGlossaries(capabilityId);
+                    for (Integer glossaryId : glossaryIds) {
+                        if (seedGlossaryIds.contains(glossaryId)) {
+                            continue;
+                        }
+                        int newDepth = capabilityDepth + 1;
+                        if (newDepth <= 1) {
+                            allGlossaryIds.add(glossaryId);
+                            glossaryDepth.put(glossaryId, newDepth);
+                            expandGlossaryLinkedArtifactsForEnrichment(glossaryId, newDepth, context,
+                                    allGlossaryIds, glossaryDepth, allDatasetIds, datasetDepth,
+                                    allAttributeIds, attributeDepth, allSystemIds, systemDepth);
+                        }
                     }
                 }
             } catch (Exception e) {
@@ -13351,7 +14154,7 @@ public class UnisonSearchService {
 
         try {
             com.example.unisonsearch.repository.DatabaseHelper dbHelper = new com.example.unisonsearch.repository.DatabaseHelper();
-            String sql = "SELECT DISTINCT ID FROM changerequest WHERE Created_By = ?";
+            String sql = "SELECT DISTINCT ID FROM changerequest WHERE Created_By = ? AND Deleted_At IS NULL";
             List<Object> params = List.of(peopleId);
             List<Map<String, Object>> results = dbHelper.executeQuery(sql, params);
 
@@ -14737,8 +15540,10 @@ public class UnisonSearchService {
                     + "i.Description AS Description, "
                     + "sys1.Name AS `Source System Short Name`, "
                     + "sys1.id AS `Source System Short Name_ID`, "
+                    + "i.Source_systemID AS Source_systemID, "
                     + "sys2.Name AS `Target System Short Name`, "
                     + "sys2.id AS `Target System Short Name_ID`, "
+                    + "i.Target_systemID AS Target_systemID, "
                     + "s.PrimaryName AS `BUDG Status`, "
                     + "a.Name AS Automation, "
                     + "f.Name AS Frequency, "
