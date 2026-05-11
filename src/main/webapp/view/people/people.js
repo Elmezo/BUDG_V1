@@ -2431,14 +2431,14 @@
             const data = await response.json();
             let historyRecords = data.data || [];
 
-            // Filter records: only show changes that occurred AFTER stakeholder assignment
+            // Filter records: only show changes that occurred since stakeholder assignment
             if (stakeholderSince) {
                 const stakeholderTimestamp = new Date(stakeholderSince);
                 historyRecords = historyRecords.filter(record => {
                     if (!record.date) return false;
                     const recordDate = new Date(record.date);
-                    // Only include records that occurred STRICTLY AFTER stakeholder assignment
-                    return recordDate > stakeholderTimestamp;
+                    // Include records at the exact assignment timestamp as well.
+                    return recordDate >= stakeholderTimestamp;
                 });
             }
 
@@ -2451,7 +2451,7 @@
             });
 
             if (historyRecords.length === 0) {
-                container.innerHTML = '<div style="padding: 20px; text-align: center; color: #6b7280;">No history records found after becoming stakeholder</div>';
+                container.innerHTML = '<div style="padding: 20px; text-align: center; color: #6b7280;">No history records found since becoming stakeholder</div>';
                 return;
             }
 

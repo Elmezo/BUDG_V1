@@ -447,14 +447,13 @@ public class PersonActivityServlet extends HttpServlet {
             return events;
         }
 
-        // Query audit history for this object, only after user became stakeholder
-        // Count ALL events (including duplicates) that occurred AFTER becoming stakeholder
-        // Only count events that happened STRICTLY AFTER the stakeholder assignment timestamp
+        // Query audit history for this object, only from the stakeholder assignment onwards
+        // Count ALL events (including duplicates) that occurred since becoming stakeholder
+        // Include events that happened at the same timestamp as stakeholder assignment
         // Filter out records where 'from' = 'to' (no actual change) or both are empty/null
         String sql = "SELECT `object`, `updateType`, `date`, `from`, `to` FROM `" + auditTable + "` WHERE `id` = ?";
         if (stakeholderSince != null) {
-            // Use > instead of >= to exclude events that happened at the exact same time as becoming stakeholder
-            sql += " AND `date` > ?";
+            sql += " AND `date` >= ?";
         }
         // Filter out records where there's no actual change (from = to, or both empty/null)
         sql += " AND NOT (`from` = `to` OR (`from` IS NULL AND `to` IS NULL) OR (`from` = '' AND `to` = ''))";
@@ -475,11 +474,10 @@ public class PersonActivityServlet extends HttpServlet {
                     
                     if (objectField == null) continue;
                     
-                    // Double-check: Skip if this change occurred before or at the same time as becoming stakeholder
-                    // This ensures we only count events that happened STRICTLY AFTER becoming stakeholder
+                    // Double-check: Skip if this change occurred before becoming stakeholder
+                    // Include changes that happened at the same timestamp as assignment.
                     if (stakeholderSince != null && changeDate != null) {
-                        // Skip if changeDate is before or equal to stakeholderSince
-                        if (!changeDate.after(stakeholderSince)) {
+                        if (changeDate.before(stakeholderSince)) {
                             continue;
                         }
                     }
@@ -506,18 +504,13 @@ public class PersonActivityServlet extends HttpServlet {
                                        "Status Change".equalsIgnoreCase(updateType) ||
                                        "Deleted".equalsIgnoreCase(updateType);
                     
-                    // IMPORTANT: When a field is updated, count it as BOTH Added AND Updated
-                    // This matches the behavior where a column change creates both records
                     if (isDetails) {
                         // Object details changes (when object field = module name)
                         if (isAdded) {
                             events.put("detailsAdded", events.get("detailsAdded") + 1);
                         }
                         if (isUpdated) {
-                            // Count Updated records
                             events.put("detailsUpdated", events.get("detailsUpdated") + 1);
-                            // Also count as Added (field change = new value added)
-                            events.put("detailsAdded", events.get("detailsAdded") + 1);
                         }
                     } else {
                         // Relationship changes (Impact, Stakeholders, Object X ..., etc.)
@@ -526,10 +519,7 @@ public class PersonActivityServlet extends HttpServlet {
                             events.put("relationshipsAdded", events.get("relationshipsAdded") + 1);
                         }
                         if (isUpdated) {
-                            // Count Updated records
                             events.put("relationshipsUpdated", events.get("relationshipsUpdated") + 1);
-                            // Also count as Added (field change = new value added)
-                            events.put("relationshipsAdded", events.get("relationshipsAdded") + 1);
                         }
                     }
                 }
