@@ -37,6 +37,7 @@ public class AttributeRelationshipsServlet extends HttpServlet {
 
         String sourceSystemParam = req.getParameter("sourceSystem");
         String targetSystemParam = req.getParameter("targetSystem");
+        boolean normalizeDirection = Boolean.parseBoolean(req.getParameter("normalizeDirection"));
         
         LOGGER.info("Source System: " + sourceSystemParam + ", Target System: " + targetSystemParam);
 
@@ -50,7 +51,7 @@ public class AttributeRelationshipsServlet extends HttpServlet {
             int sourceSystemId = Integer.parseInt(sourceSystemParam);
             int targetSystemId = Integer.parseInt(targetSystemParam);
             
-            List<Map<String, Object>> results = getAttributeRelationships(sourceSystemId, targetSystemId);
+            List<Map<String, Object>> results = getAttributeRelationships(sourceSystemId, targetSystemId, normalizeDirection);
             LOGGER.info("Found " + results.size() + " relationships");
             resp.getWriter().write(gson.toJson(results));
             
@@ -72,9 +73,11 @@ public class AttributeRelationshipsServlet extends HttpServlet {
         LOGGER.info("========== Attribute Relationships Request Ended ==========");
     }
 
-    private List<Map<String, Object>> getAttributeRelationships(int sourceSystemId, int targetSystemId) throws SQLException {
+    private List<Map<String, Object>> getAttributeRelationships(int sourceSystemId, int targetSystemId, boolean normalizeDirection) throws SQLException {
         String sql = "SELECT " +
                 "rt.PrimaryName AS relationshipType, " +
+                "s_src.ID AS sourceSystemIdFromRow, " +
+                "s_tgt.ID AS targetSystemIdFromRow, " +
                 "a_src.ID AS sourceAttributeId, " +
                 "a_src.PrimaryName AS sourceAttribute, " +
                 "a_src.Definition AS sourceAttributeDescription, " +
@@ -121,8 +124,10 @@ public class AttributeRelationshipsServlet extends HttpServlet {
                 "LEFT JOIN attribute_edit_role aer_tgt ON aer_tgt.ID = a_tgt.Editability_role " +
                 "LEFT JOIN glossary g_src ON g_src.ID = a_src.Glossary_ID " +
                 "LEFT JOIN glossary g_tgt ON g_tgt.ID = a_tgt.Glossary_ID " +
-                "WHERE s_src.ID = ? " +
-                "AND s_tgt.ID = ? " +
+                "WHERE (" +
+                "   (s_src.ID = ? AND s_tgt.ID = ?) " +
+                (normalizeDirection ? "   OR (s_src.ID = ? AND s_tgt.ID = ?) " : "") +
+                ") " +
                 "AND axa.Relation_Method IS NULL " +
                 "ORDER BY d_src.PrimaryName, a_src.PrimaryName";
 
@@ -137,6 +142,10 @@ public class AttributeRelationshipsServlet extends HttpServlet {
             LOGGER.info("Database connection established");
             ps.setInt(1, sourceSystemId);
             ps.setInt(2, targetSystemId);
+            if (normalizeDirection) {
+                ps.setInt(3, targetSystemId);
+                ps.setInt(4, sourceSystemId);
+            }
             LOGGER.info("Parameters set: sourceSystem=" + sourceSystemId + ", targetSystem=" + targetSystemId);
 
             try (ResultSet rs = ps.executeQuery()) {
@@ -146,40 +155,73 @@ public class AttributeRelationshipsServlet extends HttpServlet {
                 while (rs.next()) {
                     rowCount++;
                     Map<String, Object> row = new HashMap<>();
+                    boolean isReversedForRequestedDirection = normalizeDirection
+                            && rs.getInt("sourceSystemIdFromRow") == targetSystemId
+                            && rs.getInt("targetSystemIdFromRow") == sourceSystemId;
                     
                     row.put("relationshipType", rs.getString("relationshipType"));
-                    
-                    // Source fields
-                    row.put("sourceAttributeId", rs.getInt("sourceAttributeId"));
-                    row.put("sourceAttribute", rs.getString("sourceAttribute"));
-                    row.put("sourceAttributeDescription", rs.getString("sourceAttributeDescription"));
-                    row.put("sourceDataLength", rs.getInt("sourceDataLength"));
-                    row.put("sourceDatasetId", rs.getInt("sourceDatasetId"));
-                    row.put("sourceDataSet", rs.getString("sourceDataSet"));
-                    row.put("sourceRef", rs.getString("sourceRef"));
-                    row.put("sourceDataType", rs.getString("sourceDataType"));
-                    row.put("sourceEditability", rs.getString("sourceEditability"));
-                    row.put("sourceEditabilityRole", rs.getString("sourceEditabilityRole"));
-                    row.put("sourceGlossary", rs.getString("sourceGlossary"));
-                    row.put("sourceGlossaryDescription", rs.getString("sourceGlossaryDescription"));
-                    row.put("sourceMandatory", rs.getInt("sourceMandatory"));
-                    row.put("sourceOrigination", rs.getString("sourceOrigination"));
-                    
-                    // Target fields
-                    row.put("targetAttributeId", rs.getInt("targetAttributeId"));
-                    row.put("targetAttribute", rs.getString("targetAttribute"));
-                    row.put("targetAttributeDescription", rs.getString("targetAttributeDescription"));
-                    row.put("targetDataLength", rs.getInt("targetDataLength"));
-                    row.put("targetDatasetId", rs.getInt("targetDatasetId"));
-                    row.put("targetDataSet", rs.getString("targetDataSet"));
-                    row.put("targetRef", rs.getString("targetRef"));
-                    row.put("targetDataType", rs.getString("targetDataType"));
-                    row.put("targetEditability", rs.getString("targetEditability"));
-                    row.put("targetEditabilityRole", rs.getString("targetEditabilityRole"));
-                    row.put("targetGlossary", rs.getString("targetGlossary"));
-                    row.put("targetGlossaryDescription", rs.getString("targetGlossaryDescription"));
-                    row.put("targetMandatory", rs.getInt("targetMandatory"));
-                    row.put("targetOrigination", rs.getString("targetOrigination"));
+
+                    if (!isReversedForRequestedDirection) {
+                        row.put("sourceAttributeId", rs.getInt("sourceAttributeId"));
+                        row.put("sourceAttribute", rs.getString("sourceAttribute"));
+                        row.put("sourceAttributeDescription", rs.getString("sourceAttributeDescription"));
+                        row.put("sourceDataLength", rs.getInt("sourceDataLength"));
+                        row.put("sourceDatasetId", rs.getInt("sourceDatasetId"));
+                        row.put("sourceDataSet", rs.getString("sourceDataSet"));
+                        row.put("sourceRef", rs.getString("sourceRef"));
+                        row.put("sourceDataType", rs.getString("sourceDataType"));
+                        row.put("sourceEditability", rs.getString("sourceEditability"));
+                        row.put("sourceEditabilityRole", rs.getString("sourceEditabilityRole"));
+                        row.put("sourceGlossary", rs.getString("sourceGlossary"));
+                        row.put("sourceGlossaryDescription", rs.getString("sourceGlossaryDescription"));
+                        row.put("sourceMandatory", rs.getInt("sourceMandatory"));
+                        row.put("sourceOrigination", rs.getString("sourceOrigination"));
+
+                        row.put("targetAttributeId", rs.getInt("targetAttributeId"));
+                        row.put("targetAttribute", rs.getString("targetAttribute"));
+                        row.put("targetAttributeDescription", rs.getString("targetAttributeDescription"));
+                        row.put("targetDataLength", rs.getInt("targetDataLength"));
+                        row.put("targetDatasetId", rs.getInt("targetDatasetId"));
+                        row.put("targetDataSet", rs.getString("targetDataSet"));
+                        row.put("targetRef", rs.getString("targetRef"));
+                        row.put("targetDataType", rs.getString("targetDataType"));
+                        row.put("targetEditability", rs.getString("targetEditability"));
+                        row.put("targetEditabilityRole", rs.getString("targetEditabilityRole"));
+                        row.put("targetGlossary", rs.getString("targetGlossary"));
+                        row.put("targetGlossaryDescription", rs.getString("targetGlossaryDescription"));
+                        row.put("targetMandatory", rs.getInt("targetMandatory"));
+                        row.put("targetOrigination", rs.getString("targetOrigination"));
+                    } else {
+                        row.put("sourceAttributeId", rs.getInt("targetAttributeId"));
+                        row.put("sourceAttribute", rs.getString("targetAttribute"));
+                        row.put("sourceAttributeDescription", rs.getString("targetAttributeDescription"));
+                        row.put("sourceDataLength", rs.getInt("targetDataLength"));
+                        row.put("sourceDatasetId", rs.getInt("targetDatasetId"));
+                        row.put("sourceDataSet", rs.getString("targetDataSet"));
+                        row.put("sourceRef", rs.getString("targetRef"));
+                        row.put("sourceDataType", rs.getString("targetDataType"));
+                        row.put("sourceEditability", rs.getString("targetEditability"));
+                        row.put("sourceEditabilityRole", rs.getString("targetEditabilityRole"));
+                        row.put("sourceGlossary", rs.getString("targetGlossary"));
+                        row.put("sourceGlossaryDescription", rs.getString("targetGlossaryDescription"));
+                        row.put("sourceMandatory", rs.getInt("targetMandatory"));
+                        row.put("sourceOrigination", rs.getString("targetOrigination"));
+
+                        row.put("targetAttributeId", rs.getInt("sourceAttributeId"));
+                        row.put("targetAttribute", rs.getString("sourceAttribute"));
+                        row.put("targetAttributeDescription", rs.getString("sourceAttributeDescription"));
+                        row.put("targetDataLength", rs.getInt("sourceDataLength"));
+                        row.put("targetDatasetId", rs.getInt("sourceDatasetId"));
+                        row.put("targetDataSet", rs.getString("sourceDataSet"));
+                        row.put("targetRef", rs.getString("sourceRef"));
+                        row.put("targetDataType", rs.getString("sourceDataType"));
+                        row.put("targetEditability", rs.getString("sourceEditability"));
+                        row.put("targetEditabilityRole", rs.getString("sourceEditabilityRole"));
+                        row.put("targetGlossary", rs.getString("sourceGlossary"));
+                        row.put("targetGlossaryDescription", rs.getString("sourceGlossaryDescription"));
+                        row.put("targetMandatory", rs.getInt("sourceMandatory"));
+                        row.put("targetOrigination", rs.getString("sourceOrigination"));
+                    }
                     
                     results.add(row);
                 }

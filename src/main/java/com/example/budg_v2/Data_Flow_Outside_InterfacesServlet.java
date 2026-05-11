@@ -12,6 +12,7 @@ import java.io.IOException;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
@@ -78,7 +79,8 @@ public class Data_Flow_Outside_InterfacesServlet extends HttpServlet {
                 "GROUP BY s2.Name, s2.id, s.Name, s.id " +
                 "ORDER BY mapping_count DESC";
         
-        List<Map<String, Object>> results = new ArrayList<>();
+        Map<String, Integer> preferredSourceByPair = new HashMap<>();
+        Map<String, Map<String, Object>> aggregated = new LinkedHashMap<>();
 
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -88,22 +90,114 @@ public class Data_Flow_Outside_InterfacesServlet extends HttpServlet {
 
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
-                    Map<String, Object> row = new HashMap<>();
-                    
-                    row.put("from", rs.getString("source_system"));
-                    row.put("fromId", rs.getInt("source_system_id"));
-                    row.put("to", rs.getString("target_system"));
-                    row.put("toId", rs.getInt("target_system_id"));
-                    row.put("dataAttributes", rs.getInt("mapping_count"));
-                    
-                    results.add(row);
+                    int sourceId = rs.getInt("source_system_id");
+                    int targetId = rs.getInt("target_system_id");
+                    String sourceName = rs.getString("source_system");
+                    String targetName = rs.getString("target_system");
+                    int count = rs.getInt("mapping_count");
+
+                    int preferredSourceId = resolvePreferredSourceSystemId(
+                            conn,
+                            sourceId,
+                            targetId,
+                            systemId,
+                            preferredSourceByPair
+                    );
+
+                    int fromId = sourceId;
+                    String fromName = sourceName;
+                    int toId = targetId;
+                    String toName = targetName;
+
+                    // Normalize direction to the interface direction when it is uniquely defined.
+                    if (preferredSourceId == targetId) {
+                        fromId = targetId;
+                        fromName = targetName;
+                        toId = sourceId;
+                        toName = sourceName;
+                    }
+
+                    String key = fromId + "->" + toId;
+                    Map<String, Object> row = aggregated.get(key);
+                    if (row == null) {
+                        row = new HashMap<>();
+                        row.put("from", fromName);
+                        row.put("fromId", fromId);
+                        row.put("to", toName);
+                        row.put("toId", toId);
+                        row.put("dataAttributes", 0);
+                        aggregated.put(key, row);
+                    }
+                    int runningCount = ((Number) row.get("dataAttributes")).intValue();
+                    row.put("dataAttributes", runningCount + count);
                 }
             }
         } catch (SQLException e) {
             throw e;
         }
 
+        List<Map<String, Object>> results = new ArrayList<>(aggregated.values());
+        results.sort((a, b) -> Integer.compare(
+                ((Number) b.get("dataAttributes")).intValue(),
+                ((Number) a.get("dataAttributes")).intValue()
+        ));
         return results;
+    }
+
+    private int resolvePreferredSourceSystemId(Connection conn,
+                                               int sourceId,
+                                               int targetId,
+                                               int viewingSystemId,
+                                               Map<String, Integer> preferredSourceByPair) throws SQLException {
+        int smaller = Math.min(sourceId, targetId);
+        int larger = Math.max(sourceId, targetId);
+        String pairKey = smaller + ":" + larger;
+        Integer cached = preferredSourceByPair.get(pairKey);
+        if (cached != null) {
+            return cached;
+        }
+
+        String sql = "SELECT Source_systemID, Target_systemID " +
+                "FROM interface " +
+                "WHERE deleted_datetime IS NULL " +
+                "AND ( " +
+                "   (Source_systemID = ? AND Target_systemID = ?) " +
+                "   OR " +
+                "   (Source_systemID = ? AND Target_systemID = ?) " +
+                ")";
+
+        int forwardCount = 0;
+        int reverseCount = 0;
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, sourceId);
+            ps.setInt(2, targetId);
+            ps.setInt(3, targetId);
+            ps.setInt(4, sourceId);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    int ifaceSource = rs.getInt("Source_systemID");
+                    int ifaceTarget = rs.getInt("Target_systemID");
+                    if (ifaceSource == sourceId && ifaceTarget == targetId) {
+                        forwardCount++;
+                    } else if (ifaceSource == targetId && ifaceTarget == sourceId) {
+                        reverseCount++;
+                    }
+                }
+            }
+        }
+
+        int preferredSource = sourceId;
+        if (forwardCount > 0 && reverseCount == 0) {
+            preferredSource = sourceId;
+        } else if (reverseCount > 0 && forwardCount == 0) {
+            preferredSource = targetId;
+        } else if (viewingSystemId == sourceId || viewingSystemId == targetId) {
+            // If interface direction is ambiguous or unavailable, keep the current system as FROM.
+            preferredSource = viewingSystemId;
+        }
+        preferredSourceByPair.put(pairKey, preferredSource);
+        return preferredSource;
     }
 }
 

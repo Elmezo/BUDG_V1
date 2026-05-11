@@ -87,7 +87,7 @@ async function loadDataFlowOutsideInterfaces(systemId) {
 async function loadDataFlowDetails(sourceSystemId, targetSystemId) {
     try {
         // Fetch attribute relationships between the two systems
-        const response = await fetch(`/api/attribute-relationships?sourceSystem=${sourceSystemId}&targetSystem=${targetSystemId}`, {
+        const response = await fetch(`/api/attribute-relationships?sourceSystem=${sourceSystemId}&targetSystem=${targetSystemId}&normalizeDirection=true`, {
             method: 'GET',
             credentials: 'include',
             headers: { 'Content-Type': 'application/json' }

@@ -84,6 +84,8 @@ public class InterfaceDataOutsideServlet extends HttpServlet {
         // Now get relationships without interface but with same source/target systems
         String sql = "SELECT " +
                 "rt.PrimaryName AS relationshipType, " +
+                "s_src.ID AS sourceSystemIdFromRow, " +
+                "s_tgt.ID AS targetSystemIdFromRow, " +
                 "a_src.ID AS sourceAttributeId, " +
                 "a_src.PrimaryName AS sourceAttribute, " +
                 "a_src.Definition AS sourceAttributeDescription, " +
@@ -151,40 +153,74 @@ public class InterfaceDataOutsideServlet extends HttpServlet {
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     Map<String, Object> row = new HashMap<>();
+                    boolean isReversedForInterface = rs.getInt("sourceSystemIdFromRow") == targetSystemId
+                            && rs.getInt("targetSystemIdFromRow") == sourceSystemId;
                     
                     row.put("relationshipType", rs.getString("relationshipType"));
-                    
-                    // Source fields
-                    row.put("sourceAttributeId", rs.getInt("sourceAttributeId"));
-                    row.put("sourceAttribute", rs.getString("sourceAttribute"));
-                    row.put("sourceAttributeDescription", rs.getString("sourceAttributeDescription"));
-                    row.put("sourceDataLength", rs.getInt("sourceDataLength"));
-                    row.put("sourceDatasetId", rs.getInt("sourceDatasetId"));
-                    row.put("sourceDataSet", rs.getString("sourceDataSet"));
-                    row.put("sourceRef", rs.getString("sourceRef"));
-                    row.put("sourceDataType", rs.getString("sourceDataType"));
-                    row.put("sourceEditability", rs.getString("sourceEditability"));
-                    row.put("sourceEditabilityRole", rs.getString("sourceEditabilityRole"));
-                    row.put("sourceGlossary", rs.getString("sourceGlossary"));
-                    row.put("sourceGlossaryDescription", rs.getString("sourceGlossaryDescription"));
-                    row.put("sourceMandatory", rs.getInt("sourceMandatory"));
-                    row.put("sourceOrigination", rs.getString("sourceOrigination"));
-                    
-                    // Target fields
-                    row.put("targetAttributeId", rs.getInt("targetAttributeId"));
-                    row.put("targetAttribute", rs.getString("targetAttribute"));
-                    row.put("targetAttributeDescription", rs.getString("targetAttributeDescription"));
-                    row.put("targetDataLength", rs.getInt("targetDataLength"));
-                    row.put("targetDatasetId", rs.getInt("targetDatasetId"));
-                    row.put("targetDataSet", rs.getString("targetDataSet"));
-                    row.put("targetRef", rs.getString("targetRef"));
-                    row.put("targetDataType", rs.getString("targetDataType"));
-                    row.put("targetEditability", rs.getString("targetEditability"));
-                    row.put("targetEditabilityRole", rs.getString("targetEditabilityRole"));
-                    row.put("targetGlossary", rs.getString("targetGlossary"));
-                    row.put("targetGlossaryDescription", rs.getString("targetGlossaryDescription"));
-                    row.put("targetMandatory", rs.getInt("targetMandatory"));
-                    row.put("targetOrigination", rs.getString("targetOrigination"));
+
+                    if (!isReversedForInterface) {
+                        // Row already matches interface direction.
+                        row.put("sourceAttributeId", rs.getInt("sourceAttributeId"));
+                        row.put("sourceAttribute", rs.getString("sourceAttribute"));
+                        row.put("sourceAttributeDescription", rs.getString("sourceAttributeDescription"));
+                        row.put("sourceDataLength", rs.getInt("sourceDataLength"));
+                        row.put("sourceDatasetId", rs.getInt("sourceDatasetId"));
+                        row.put("sourceDataSet", rs.getString("sourceDataSet"));
+                        row.put("sourceRef", rs.getString("sourceRef"));
+                        row.put("sourceDataType", rs.getString("sourceDataType"));
+                        row.put("sourceEditability", rs.getString("sourceEditability"));
+                        row.put("sourceEditabilityRole", rs.getString("sourceEditabilityRole"));
+                        row.put("sourceGlossary", rs.getString("sourceGlossary"));
+                        row.put("sourceGlossaryDescription", rs.getString("sourceGlossaryDescription"));
+                        row.put("sourceMandatory", rs.getInt("sourceMandatory"));
+                        row.put("sourceOrigination", rs.getString("sourceOrigination"));
+
+                        row.put("targetAttributeId", rs.getInt("targetAttributeId"));
+                        row.put("targetAttribute", rs.getString("targetAttribute"));
+                        row.put("targetAttributeDescription", rs.getString("targetAttributeDescription"));
+                        row.put("targetDataLength", rs.getInt("targetDataLength"));
+                        row.put("targetDatasetId", rs.getInt("targetDatasetId"));
+                        row.put("targetDataSet", rs.getString("targetDataSet"));
+                        row.put("targetRef", rs.getString("targetRef"));
+                        row.put("targetDataType", rs.getString("targetDataType"));
+                        row.put("targetEditability", rs.getString("targetEditability"));
+                        row.put("targetEditabilityRole", rs.getString("targetEditabilityRole"));
+                        row.put("targetGlossary", rs.getString("targetGlossary"));
+                        row.put("targetGlossaryDescription", rs.getString("targetGlossaryDescription"));
+                        row.put("targetMandatory", rs.getInt("targetMandatory"));
+                        row.put("targetOrigination", rs.getString("targetOrigination"));
+                    } else {
+                        // Row is reversed relative to interface direction, so normalize output.
+                        row.put("sourceAttributeId", rs.getInt("targetAttributeId"));
+                        row.put("sourceAttribute", rs.getString("targetAttribute"));
+                        row.put("sourceAttributeDescription", rs.getString("targetAttributeDescription"));
+                        row.put("sourceDataLength", rs.getInt("targetDataLength"));
+                        row.put("sourceDatasetId", rs.getInt("targetDatasetId"));
+                        row.put("sourceDataSet", rs.getString("targetDataSet"));
+                        row.put("sourceRef", rs.getString("targetRef"));
+                        row.put("sourceDataType", rs.getString("targetDataType"));
+                        row.put("sourceEditability", rs.getString("targetEditability"));
+                        row.put("sourceEditabilityRole", rs.getString("targetEditabilityRole"));
+                        row.put("sourceGlossary", rs.getString("targetGlossary"));
+                        row.put("sourceGlossaryDescription", rs.getString("targetGlossaryDescription"));
+                        row.put("sourceMandatory", rs.getInt("targetMandatory"));
+                        row.put("sourceOrigination", rs.getString("targetOrigination"));
+
+                        row.put("targetAttributeId", rs.getInt("sourceAttributeId"));
+                        row.put("targetAttribute", rs.getString("sourceAttribute"));
+                        row.put("targetAttributeDescription", rs.getString("sourceAttributeDescription"));
+                        row.put("targetDataLength", rs.getInt("sourceDataLength"));
+                        row.put("targetDatasetId", rs.getInt("sourceDatasetId"));
+                        row.put("targetDataSet", rs.getString("sourceDataSet"));
+                        row.put("targetRef", rs.getString("sourceRef"));
+                        row.put("targetDataType", rs.getString("sourceDataType"));
+                        row.put("targetEditability", rs.getString("sourceEditability"));
+                        row.put("targetEditabilityRole", rs.getString("sourceEditabilityRole"));
+                        row.put("targetGlossary", rs.getString("sourceGlossary"));
+                        row.put("targetGlossaryDescription", rs.getString("sourceGlossaryDescription"));
+                        row.put("targetMandatory", rs.getInt("sourceMandatory"));
+                        row.put("targetOrigination", rs.getString("sourceOrigination"));
+                    }
                     
                     results.add(row);
                 }
