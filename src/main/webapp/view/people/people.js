@@ -2420,26 +2420,25 @@
         }
 
         try {
-            const response = await fetch(`/api/history?module_id=${moduleId}&object_id=${objectId}&page=1&limit=100`, {
-                credentials: 'include'
-            });
+            const pageSize = 100;
+            let page = 1;
+            let historyRecords = [];
+            let keepLoading = true;
 
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}`);
-            }
-
-            const data = await response.json();
-            let historyRecords = data.data || [];
-
-            // Filter records: only show changes that occurred since stakeholder assignment
-            if (stakeholderSince) {
-                const stakeholderTimestamp = new Date(stakeholderSince);
-                historyRecords = historyRecords.filter(record => {
-                    if (!record.date) return false;
-                    const recordDate = new Date(record.date);
-                    // Include records at the exact assignment timestamp as well.
-                    return recordDate >= stakeholderTimestamp;
+            while (keepLoading) {
+                const response = await fetch(`/api/history?module_id=${moduleId}&object_id=${objectId}&page=${page}&limit=${pageSize}`, {
+                    credentials: 'include'
                 });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+
+                const data = await response.json();
+                const pageRecords = Array.isArray(data.data) ? data.data : [];
+                historyRecords = historyRecords.concat(pageRecords);
+                keepLoading = pageRecords.length === pageSize;
+                page += 1;
             }
 
             // Filter out records where 'from' = 'to' (no actual change)
@@ -2450,8 +2449,26 @@
                 return fromValue !== toValue && !(fromValue === '' && toValue === '');
             });
 
+            // Sort oldest-first so the "Created By" row appears at the top.
+            // Many creation audit rows share the exact same second, so we pin the
+            // "Created By" row to the very top, then sort the rest by date ASC
+            // with auditidpk ASC as a stable tiebreaker.
+            const isCreatedByRow = (r) => String((r && r.field) || '').trim().toLowerCase() === 'created by';
+            historyRecords.sort((a, b) => {
+                const aCreated = isCreatedByRow(a);
+                const bCreated = isCreatedByRow(b);
+                if (aCreated && !bCreated) return -1;
+                if (!aCreated && bCreated) return 1;
+                const dateA = a.date ? new Date(a.date).getTime() : 0;
+                const dateB = b.date ? new Date(b.date).getTime() : 0;
+                if (dateA !== dateB) return dateA - dateB;
+                const pkA = Number(a.auditidpk || a.auditIdPk || 0);
+                const pkB = Number(b.auditidpk || b.auditIdPk || 0);
+                return pkA - pkB;
+            });
+
             if (historyRecords.length === 0) {
-                container.innerHTML = '<div style="padding: 20px; text-align: center; color: #6b7280;">No history records found since becoming stakeholder</div>';
+                container.innerHTML = '<div style="padding: 20px; text-align: center; color: #6b7280;">No history records found</div>';
                 return;
             }
 

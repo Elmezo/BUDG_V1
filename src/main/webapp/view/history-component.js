@@ -219,19 +219,13 @@
                 throw new Error('Unable to determine object_id from URL. Please check the URL format.');
             }
 
-            // Load data from backend API without date filtering
-            const historyData = await loadHistoryFromAPI(moduleId, currentObjectId, null, null, 1);
+            // Load all pages from backend API without date filtering
+            const historyData = await loadAllHistoryPages(moduleId, currentObjectId);
 
             // Merge with additional history data if provided
             let mergedHistoryData = Array.isArray(historyData) ? historyData : [];
             if (additionalHistoryData && Array.isArray(additionalHistoryData)) {
-                mergedHistoryData = [...mergedHistoryData, ...additionalHistoryData];
-                // Sort by date descending (most recent first)
-                mergedHistoryData.sort((a, b) => {
-                    const dateA = a.date ? new Date(a.date) : new Date(0);
-                    const dateB = b.date ? new Date(b.date) : new Date(0);
-                    return dateB - dateA;
-                });
+                mergedHistoryData = sortHistoryAscending([...mergedHistoryData, ...additionalHistoryData]);
             }
 
             // Store data globally for filtering
@@ -851,8 +845,8 @@
                 return;
             }
 
-            // Load data from backend API (no date filtering in backend)
-            const historyData = await loadHistoryFromAPI(moduleId, currentObjectId, null, null, page);
+            // Load every page from the backend so the full creation row is included
+            const historyData = await loadAllHistoryPages(moduleId, currentObjectId);
 
             // Cache the data
             historyCache.set(cacheKey, historyData);
@@ -1113,6 +1107,44 @@
 
         console.warn('Could not determine object_id from URL:', path, search);
         return null;
+    }
+
+    // Sort history records oldest-first so the "Created By" row appears first.
+    // Many creation audit rows share the exact same second, so we pin the
+    // "Created By" row to the very top, then sort the rest by date ASC with
+    // auditidpk ASC as a stable tiebreaker.
+    function sortHistoryAscending(records) {
+        if (!Array.isArray(records)) return [];
+        const isCreatedByRow = (r) => String((r && r.field) || '').trim().toLowerCase() === 'created by';
+        return records.slice().sort((a, b) => {
+            const aCreated = isCreatedByRow(a);
+            const bCreated = isCreatedByRow(b);
+            if (aCreated && !bCreated) return -1;
+            if (!aCreated && bCreated) return 1;
+            const dateA = a && a.date ? new Date(a.date).getTime() : 0;
+            const dateB = b && b.date ? new Date(b.date).getTime() : 0;
+            if (dateA !== dateB) return dateA - dateB;
+            const pkA = Number((a && (a.auditidpk || a.auditIdPk)) || 0);
+            const pkB = Number((b && (b.auditidpk || b.auditIdPk)) || 0);
+            return pkA - pkB;
+        });
+    }
+
+    // Load every page of history for an object and return the sorted oldest-first list.
+    async function loadAllHistoryPages(moduleId, objectId) {
+        const pageSize = 100;
+        let page = 1;
+        let all = [];
+        // Safety cap to avoid runaway loops on a malformed backend response.
+        const maxPages = 1000;
+        while (page <= maxPages) {
+            const pageRecords = await loadHistoryFromAPI(moduleId, objectId, null, null, page, pageSize);
+            if (!Array.isArray(pageRecords) || pageRecords.length === 0) break;
+            all = all.concat(pageRecords);
+            if (pageRecords.length < pageSize) break;
+            page += 1;
+        }
+        return sortHistoryAscending(all);
     }
 
     // Load history data from backend API with pagination (no date filtering)

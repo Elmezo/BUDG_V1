@@ -21,6 +21,7 @@ import java.sql.Timestamp;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -416,8 +417,11 @@ public class PersonActivityServlet extends HttpServlet {
      * 
      * Note: 
      * - "Deleted" is treated as "Updated" for both details and relationships
-     * - Only counts events that occurred AFTER the user became a stakeholder (stakeholderSince timestamp)
-     * - Each audit history record is counted only once based on its updateType
+     * - Counts full object history from creation onwards
+     * - Detail rows are counted one event per audit row
+     * - Relationship rows are grouped: rows sharing the same object/author/second
+     *   and Added/Updated bucket count as ONE relationship event (e.g., a single
+     *   relationship add that writes one row per column counts as 1)
      */
     private Map<String, Integer> calculateEvents(Connection conn, String moduleName, int objectId, Timestamp stakeholderSince) throws SQLException {
         Map<String, Integer> events = new HashMap<>();
@@ -447,23 +451,19 @@ public class PersonActivityServlet extends HttpServlet {
             return events;
         }
 
-        // Query audit history for this object, only from the stakeholder assignment onwards
-        // Count ALL events (including duplicates) that occurred since becoming stakeholder
-        // Include events that happened at the same timestamp as stakeholder assignment
+        // Query full audit history for this object (from creation onward).
         // Filter out records where 'from' = 'to' (no actual change) or both are empty/null
-        String sql = "SELECT `object`, `updateType`, `date`, `from`, `to` FROM `" + auditTable + "` WHERE `id` = ?";
-        if (stakeholderSince != null) {
-            sql += " AND `date` >= ?";
-        }
+        String sql = "SELECT `object`, `updateType`, `date`, `from`, `to`, `author` FROM `" + auditTable + "` WHERE `id` = ?";
         // Filter out records where there's no actual change (from = to, or both empty/null)
         sql += " AND NOT (`from` = `to` OR (`from` IS NULL AND `to` IS NULL) OR (`from` = '' AND `to` = ''))";
         sql += " ORDER BY `date` DESC";
-        
+
+        // Dedup keys so 4 audit rows from a single relationship change count once
+        Set<String> relAddedKeys = new HashSet<>();
+        Set<String> relUpdatedKeys = new HashSet<>();
+
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, objectId);
-            if (stakeholderSince != null) {
-                ps.setTimestamp(2, stakeholderSince);
-            }
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     String objectField = rs.getString("object");
@@ -471,16 +471,9 @@ public class PersonActivityServlet extends HttpServlet {
                     Timestamp changeDate = rs.getTimestamp("date");
                     String fromValue = rs.getString("from");
                     String toValue = rs.getString("to");
+                    String author = rs.getString("author");
                     
                     if (objectField == null) continue;
-                    
-                    // Double-check: Skip if this change occurred before becoming stakeholder
-                    // Include changes that happened at the same timestamp as assignment.
-                    if (stakeholderSince != null && changeDate != null) {
-                        if (changeDate.before(stakeholderSince)) {
-                            continue;
-                        }
-                    }
                     
                     // Additional check: Skip if from and to are the same or both empty/null
                     // This filters out meaningless records like "Parent Process: - -> -"
@@ -493,8 +486,17 @@ public class PersonActivityServlet extends HttpServlet {
                     // Normalize module name for comparison
                     String normalizedModuleName = moduleName.trim();
                     
-                    // Check if object field matches module name (case-insensitive)
-                    boolean isDetails = objectField.equalsIgnoreCase(normalizedModuleName);
+                    // Classify the row:
+                    //  - Details:      object field matches the module name (e.g., "Capability")
+                    //  - Relationship: object field is a cross-facet relationship table
+                    //                  (e.g., "Capability X Process", "Glossary x Glossary").
+                    //                  We detect this by the " x " / " X " token in the name.
+                    //  - Anything else (Stakeholder, Role, etc.) is intentionally NOT counted
+                    //    here because the user wants only Impact / Relationships tab events.
+                    String objectFieldTrim = objectField.trim();
+                    boolean isDetails = objectFieldTrim.equalsIgnoreCase(normalizedModuleName);
+                    boolean isRelationship = !isDetails &&
+                            objectFieldTrim.toLowerCase().matches(".*\\bx\\b.*");
                     
                     // Determine if it's an "Added" or "Updated" operation
                     // Note: "Deleted" is treated as "Updated" for both details and relationships
@@ -512,22 +514,34 @@ public class PersonActivityServlet extends HttpServlet {
                         if (isUpdated) {
                             events.put("detailsUpdated", events.get("detailsUpdated") + 1);
                         }
-                    } else {
-                        // Relationship changes (Impact, Stakeholders, Object X ..., etc.)
-                        // when object field ≠ module name
+                    } else if (isRelationship) {
+                        // Real cross-facet relationship rows (Impact, Relationships tabs).
+                        // Group by (object, author, second) so multi-column rows from a
+                        // single relationship action count as ONE event.
+                        String dateBucket = (changeDate == null)
+                                ? ""
+                                : Long.toString(changeDate.getTime() / 1000L);
+                        String authorKey = author == null ? "" : author.trim().toLowerCase();
+                        String objectKey = objectFieldTrim.toLowerCase();
+                        String key = objectKey + "|" + authorKey + "|" + dateBucket;
                         if (isAdded) {
-                            events.put("relationshipsAdded", events.get("relationshipsAdded") + 1);
+                            relAddedKeys.add(key + "|ADD");
                         }
                         if (isUpdated) {
-                            events.put("relationshipsUpdated", events.get("relationshipsUpdated") + 1);
+                            relUpdatedKeys.add(key + "|UPD");
                         }
                     }
+                    // else: Stakeholder/Role/etc. -> intentionally ignored from the
+                    // Events counts (still visible in the expanded history table).
                 }
             }
         } catch (SQLException e) {
             // If table doesn't exist or query fails, return empty events
             System.err.println("Error calculating events for " + auditTable + ": " + e.getMessage());
         }
+
+        events.put("relationshipsAdded", relAddedKeys.size());
+        events.put("relationshipsUpdated", relUpdatedKeys.size());
 
         return events;
     }
