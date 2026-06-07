@@ -1,5 +1,6 @@
 package com.example.budg_v2.dao;
 
+import com.example.budg_v2.audit.AuditHistoryWriter;
 import com.example.budg_v2.database.DatabaseConnection;
 import com.example.budg_v2.util.ModuleResolver;
 
@@ -1669,6 +1670,7 @@ public class SystemDAO {
             ps.setInt(1, systemId);
             try (ResultSet systemRs = ps.executeQuery()) {
                 if (systemRs.next()) {
+                    AuditHistoryWriter.logCreatedBy(conn, "system_audit_history", systemId, "System", userName);
                     // Create audit records for all fields
                     // Name
                     String name = systemRs.getString("Name");
@@ -1797,15 +1799,7 @@ public class SystemDAO {
                         }
                     }
 
-                    // Created By
-                    Integer createdById = systemRs.getObject("CreatedBy_ID", Integer.class);
-                    if (createdById != null) {
-                        String createdByName = getPersonFullName(conn, createdById);
-                        if (createdByName != null) {
-                            createNewAuditRecord(conn, auditStmt, systemId, "Added", "Created By", createdByName,
-                                    userName);
-                        }
-                    }
+                    // Created By is written as the first row via AuditHistoryWriter.logCreatedBy.
 
                     // Audit ratings - done above
                     // Commit logic removed as transaction is managed by caller

@@ -991,17 +991,26 @@ public class InterfaceStakeholderServlet extends HttpServlet {
     }
 
     private void insertStakeholderAudit(Connection conn, int interfaceId, String field, String oldValue, String newValue, String event, String updateType, String userName) throws SQLException {
-        String sql = "INSERT INTO interface_audit_history (id, object, event, updateType, field, `from`, `to`, author) VALUES (?, 'Stakeholder', ?, ?, ?, ?, ?, ?)";
+        String mappedField = mapStakeholderField(field);
+        String sql = "INSERT INTO interface_audit_history (id, object, event, updateType, field, `from`, `to`, author) VALUES (?, 'Stakeholders', ?, ?, ?, ?, ?, ?)";
         try (PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setInt(1, interfaceId);
             stmt.setString(2, event);
             stmt.setString(3, updateType);
-            stmt.setString(4, field);
+            stmt.setString(4, mappedField);
             stmt.setString(5, oldValue);
             stmt.setString(6, newValue);
             stmt.setString(7, userName);
             stmt.executeUpdate();
         }
+    }
+
+    /** Map legacy stakeholder field names to the audit-trail spec labels. */
+    private static String mapStakeholderField(String field) {
+        if ("Name".equals(field)) return "Stakeholder Name";
+        if ("Role".equals(field)) return "Role Name";
+        if ("Role Status".equals(field)) return "Acceptance Status";
+        return field;
     }
 
     private String getRoleNameById(Connection conn, int roleId) throws SQLException {

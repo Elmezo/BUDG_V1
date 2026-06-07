@@ -2161,7 +2161,15 @@
     }
 
     function buildStakeholderTable(records) {
-        const rows = records.map((record, index) => {
+        // Sort by Last Updated, newest first (oldest sinks to the bottom).
+        // Records without a date are treated as oldest. Copy first so we don't
+        // mutate the caller's array (e.g. window.originalStakeholderRecords).
+        const sortedRecords = [...records].sort((a, b) => {
+            const dateA = a && a.lastUpdated ? new Date(a.lastUpdated).getTime() : 0;
+            const dateB = b && b.lastUpdated ? new Date(b.lastUpdated).getTime() : 0;
+            return dateB - dateA;
+        });
+        const rows = sortedRecords.map((record, index) => {
             const eventsHtml = buildEventSummary(record.events);
             const objectType = escapeHtml(record.type || '-');
             const objectName = escapeHtml(record.name || '-');
@@ -2441,30 +2449,23 @@
                 page += 1;
             }
 
-            // Filter out records where 'from' = 'to' (no actual change)
-            historyRecords = historyRecords.filter(record => {
-                const fromValue = (record.from || '').trim();
-                const toValue = (record.to || '').trim();
-                // Exclude records where from and to are the same or both empty
-                return fromValue !== toValue && !(fromValue === '' && toValue === '');
-            });
+            // Show the full history exactly like the HISTORY tab on the object
+            // view page. The previous "from !== to" filter accidentally hid
+            // legitimate rows whose source DB columns are NULL/empty
+            // (e.g. Deleted rows or freshly created Impact links) and made the
+            // expanded table look like Impact additions were missing.
 
-            // Sort oldest-first so the "Created By" row appears at the top.
-            // Many creation audit rows share the exact same second, so we pin the
-            // "Created By" row to the very top, then sort the rest by date ASC
-            // with auditidpk ASC as a stable tiebreaker.
-            const isCreatedByRow = (r) => String((r && r.field) || '').trim().toLowerCase() === 'created by';
+            // Sort newest-first: the most recent change is on top and the oldest
+            // (including the "Created By" creation row) sinks to the bottom.
+            // Many creation rows share the exact same second, so auditidpk DESC is
+            // used as a stable tiebreaker.
             historyRecords.sort((a, b) => {
-                const aCreated = isCreatedByRow(a);
-                const bCreated = isCreatedByRow(b);
-                if (aCreated && !bCreated) return -1;
-                if (!aCreated && bCreated) return 1;
                 const dateA = a.date ? new Date(a.date).getTime() : 0;
                 const dateB = b.date ? new Date(b.date).getTime() : 0;
-                if (dateA !== dateB) return dateA - dateB;
+                if (dateA !== dateB) return dateB - dateA;
                 const pkA = Number(a.auditidpk || a.auditIdPk || 0);
                 const pkB = Number(b.auditidpk || b.auditIdPk || 0);
-                return pkA - pkB;
+                return pkB - pkA;
             });
 
             if (historyRecords.length === 0) {
@@ -2512,10 +2513,12 @@
     }
     function buildEventSummary(events = {}) {
         const labels = {
+            relationshipsAdded: window.I18n ? window.I18n.t('people.event.relationshipsAdded') : 'Relationships Added',
+            relationshipsUpdated: window.I18n ? window.I18n.t('people.event.relationshipsUpdated') : 'Relationships Updated',
+            relationshipsDeleted: window.I18n ? window.I18n.t('people.event.relationshipsDeleted') : 'Relationships Deleted',
             detailsAdded: window.I18n ? window.I18n.t('people.event.detailsAdded') : 'Details Added',
             detailsUpdated: window.I18n ? window.I18n.t('people.event.detailsUpdated') : 'Details Updated',
-            relationshipsAdded: window.I18n ? window.I18n.t('people.event.relationshipsAdded') : 'Relationships Added',
-            relationshipsUpdated: window.I18n ? window.I18n.t('people.event.relationshipsUpdated') : 'Relationships Updated'
+            detailsDeleted: window.I18n ? window.I18n.t('people.event.detailsDeleted') : 'Details Deleted'
         };
 
         const parts = Object.keys(labels).map(key => {

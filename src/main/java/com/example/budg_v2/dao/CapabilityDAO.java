@@ -1,5 +1,6 @@
 package com.example.budg_v2.dao;
 
+import com.example.budg_v2.audit.AuditHistoryWriter;
 import com.example.budg_v2.database.DatabaseConnection;
 import com.example.budg_v2.model.Capability;
 import com.example.budg_v2.service.SegmentAccessService;
@@ -619,8 +620,9 @@ public class CapabilityDAO {
                         INSERT INTO capability_audit_history (id, object, event, updateType, field, `from`, `to`, author)
                         VALUES (?, 'Capability', 'Details', ?, ?, NULL, ?, ?)
                     """;
+                    AuditHistoryWriter.logCreatedBy(conn, "capability_audit_history", capabilityId, "Capability", userName);
                     auditStmt = conn.prepareStatement(auditSql, Statement.RETURN_GENERATED_KEYS);
-                    
+
                     // Primary Name
                     String primaryName = capabilityRs.getString("PrimaryName");
                     if (primaryName != null && !primaryName.trim().isEmpty()) {
@@ -693,14 +695,7 @@ public class CapabilityDAO {
                         }
                     }
                     
-                    // Created By
-                    Integer createdById = capabilityRs.getObject("LastUpdateUser_ID", Integer.class);
-                    if (createdById != null) {
-                        String createdByName = getPersonFullNameWithConn(conn, createdById);
-                        if (createdByName != null) {
-                            createNewAuditRecord(conn, auditStmt, capabilityId, "Added", "Created By", createdByName, userName);
-                        }
-                    }
+                    // Created By is written as the first row via AuditHistoryWriter.logCreatedBy.
                 }
             }
         } finally {

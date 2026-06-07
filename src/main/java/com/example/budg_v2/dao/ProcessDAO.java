@@ -1,5 +1,6 @@
 package com.example.budg_v2.dao;
 
+import com.example.budg_v2.audit.AuditHistoryWriter;
 import com.example.budg_v2.database.DatabaseConnection;
 import com.example.budg_v2.model.Process;
 
@@ -849,8 +850,9 @@ public class ProcessDAO {
                 INSERT INTO process_audit_history (id, object, event, updateType, field, `from`, `to`, author)
                 VALUES (?, 'Process', 'Details', ?, ?, NULL, ?, ?)
             """;
+            AuditHistoryWriter.logCreatedBy(conn, "process_audit_history", processId, "Process", userName);
             auditStmt = conn.prepareStatement(auditSql, Statement.RETURN_GENERATED_KEYS);
-            
+
             // Primary Name
             String primaryName = processRs.getString("primaryname");
             if (primaryName != null && !primaryName.trim().isEmpty()) {
@@ -941,15 +943,39 @@ public class ProcessDAO {
                 }
             }
             
-            // Created By
-            Integer createdById = processRs.getObject("createdby_id", Integer.class);
-            if (createdById != null) {
-                String createdByName = getPersonFullName(createdById);
-                if (createdByName != null) {
-                    createNewAuditRecord(conn, auditStmt, processId, "Added", "Created By", createdByName, userName);
+            // Step Type (store Name for readability in audit_history)
+            Integer stepTypeId = processRs.getObject("step_type", Integer.class);
+            if (stepTypeId != null) {
+                String stepTypeName = getStepTypeName(conn, stepTypeId);
+                if (stepTypeName != null) {
+                    createNewAuditRecord(conn, auditStmt, processId, "Added", "Step Type", stepTypeName, userName);
                 }
             }
             
+            // Permissions (Yes/No) - log initial state so changes are auditable
+            Integer canCreate = processRs.getObject("cancreate", Integer.class);
+            if (canCreate != null) {
+                createNewAuditRecord(conn, auditStmt, processId, "Added", "Create Permission", (canCreate == 1 ? "Yes" : "No"), userName);
+            }
+            Integer canRead = processRs.getObject("canread", Integer.class);
+            if (canRead != null) {
+                createNewAuditRecord(conn, auditStmt, processId, "Added", "Read Permission", (canRead == 1 ? "Yes" : "No"), userName);
+            }
+            Integer canUpdate = processRs.getObject("canupdate", Integer.class);
+            if (canUpdate != null) {
+                createNewAuditRecord(conn, auditStmt, processId, "Added", "Update Permission", (canUpdate == 1 ? "Yes" : "No"), userName);
+            }
+            Integer canDelete = processRs.getObject("candelete", Integer.class);
+            if (canDelete != null) {
+                createNewAuditRecord(conn, auditStmt, processId, "Added", "Delete Permission", (canDelete == 1 ? "Yes" : "No"), userName);
+            }
+            Integer canArchive = processRs.getObject("canarchive", Integer.class);
+            if (canArchive != null) {
+                createNewAuditRecord(conn, auditStmt, processId, "Added", "Archive Permission", (canArchive == 1 ? "Yes" : "No"), userName);
+            }
+            
+            // Created By is written as the first row via AuditHistoryWriter.logCreatedBy.
+
             conn.commit(); // تأكيد الـ transaction
             
         } catch (SQLException e) {
@@ -1400,6 +1426,24 @@ public class ProcessDAO {
         return "Duration Type " + durationTypeId; // Fallback
     }
 
+    private String getStepTypeName(Connection conn, int stepTypeId) throws SQLException {
+        String sql = "SELECT primaryname FROM process_step_type WHERE id = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, stepTypeId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    String result = rs.getString("primaryname");
+                    if (result != null && !result.trim().isEmpty()) {
+                        return result;
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            // Fall through to fallback
+        }
+        return "Step Type " + stepTypeId; // Fallback
+    }
+
     /**
      * إنشاء audit records للـ stakeholder بعد إنشاء العملية
      * يتم استدعاء هذا method بعد إنشاء العملية بنجاح
@@ -1641,6 +1685,46 @@ public class ProcessDAO {
                 String newDuration = newProcess.getDuration() != null ? String.valueOf(newProcess.getDuration()) : null;
                 createUpdateAuditRecord(conn, auditStmt, processId, "Process", "Details", 
                     "Updated", "Duration", oldDuration, newDuration, userName);
+            }
+            
+            // Step Type (store Name for readability in audit_history)
+            if (!isEqual(oldProcess.getStepType(), newProcess.getStepType())) {
+                String oldStepTypeName = oldProcess.getStepType() != null ? getStepTypeName(conn, oldProcess.getStepType()) : null;
+                String newStepTypeName = newProcess.getStepType() != null ? getStepTypeName(conn, newProcess.getStepType()) : null;
+                createUpdateAuditRecord(conn, auditStmt, processId, "Process", "Details", 
+                    "Updated", "Step Type", oldStepTypeName, newStepTypeName, userName);
+            }
+            
+            // Permissions (Yes/No)
+            if (!isEqual(oldProcess.getCanCreate(), newProcess.getCanCreate())) {
+                String oldVal = oldProcess.getCanCreate() != null ? (oldProcess.getCanCreate() == 1 ? "Yes" : "No") : null;
+                String newVal = newProcess.getCanCreate() != null ? (newProcess.getCanCreate() == 1 ? "Yes" : "No") : null;
+                createUpdateAuditRecord(conn, auditStmt, processId, "Process", "Details", 
+                    "Updated", "Create Permission", oldVal, newVal, userName);
+            }
+            if (!isEqual(oldProcess.getCanRead(), newProcess.getCanRead())) {
+                String oldVal = oldProcess.getCanRead() != null ? (oldProcess.getCanRead() == 1 ? "Yes" : "No") : null;
+                String newVal = newProcess.getCanRead() != null ? (newProcess.getCanRead() == 1 ? "Yes" : "No") : null;
+                createUpdateAuditRecord(conn, auditStmt, processId, "Process", "Details", 
+                    "Updated", "Read Permission", oldVal, newVal, userName);
+            }
+            if (!isEqual(oldProcess.getCanUpdate(), newProcess.getCanUpdate())) {
+                String oldVal = oldProcess.getCanUpdate() != null ? (oldProcess.getCanUpdate() == 1 ? "Yes" : "No") : null;
+                String newVal = newProcess.getCanUpdate() != null ? (newProcess.getCanUpdate() == 1 ? "Yes" : "No") : null;
+                createUpdateAuditRecord(conn, auditStmt, processId, "Process", "Details", 
+                    "Updated", "Update Permission", oldVal, newVal, userName);
+            }
+            if (!isEqual(oldProcess.getCanDelete(), newProcess.getCanDelete())) {
+                String oldVal = oldProcess.getCanDelete() != null ? (oldProcess.getCanDelete() == 1 ? "Yes" : "No") : null;
+                String newVal = newProcess.getCanDelete() != null ? (newProcess.getCanDelete() == 1 ? "Yes" : "No") : null;
+                createUpdateAuditRecord(conn, auditStmt, processId, "Process", "Details", 
+                    "Updated", "Delete Permission", oldVal, newVal, userName);
+            }
+            if (!isEqual(oldProcess.getCanArchive(), newProcess.getCanArchive())) {
+                String oldVal = oldProcess.getCanArchive() != null ? (oldProcess.getCanArchive() == 1 ? "Yes" : "No") : null;
+                String newVal = newProcess.getCanArchive() != null ? (newProcess.getCanArchive() == 1 ? "Yes" : "No") : null;
+                createUpdateAuditRecord(conn, auditStmt, processId, "Process", "Details", 
+                    "Updated", "Archive Permission", oldVal, newVal, userName);
             }
             
             conn.commit();

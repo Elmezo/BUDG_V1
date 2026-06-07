@@ -1,5 +1,6 @@
 package com.example.budg_v2.dao;
 
+import com.example.budg_v2.audit.AuditHistoryWriter;
 import com.example.budg_v2.database.DatabaseConnection;
 import com.example.budg_v2.model.Attribute;
 import com.example.budg_v2.util.DefaultStakeholderUtil;
@@ -417,6 +418,16 @@ public class AttributeDAO {
                     newAttribute.setEditabilityRole(getIntValue(data.get("editability_role")));
                     newAttribute.setDataTypeId(getIntValue(data.get("data_type_id")));
                     newAttribute.setDataLength(getIntValue(data.get("data_length")));
+                    Object confidenceScoreObj = data.get("confidence_score");
+                    if (confidenceScoreObj instanceof Number) {
+                        newAttribute.setConfidenceScore(((Number) confidenceScoreObj).doubleValue());
+                    } else if (confidenceScoreObj != null) {
+                        try {
+                            newAttribute.setConfidenceScore(Double.valueOf(confidenceScoreObj.toString().trim()));
+                        } catch (NumberFormatException ignored) {
+                            // leave null if unparseable
+                        }
+                    }
                     
                     // Get user name for audit
                     String userName = "System"; // Default fallback
@@ -889,8 +900,9 @@ public class AttributeDAO {
                 INSERT INTO attribute_audit_history (id, object, event, updateType, field, `from`, `to`, author, date, lastChange)
                 VALUES (?, 'Attribute', 'Details', ?, ?, NULL, ?, ?, NOW(), NOW())
             """;
+            AuditHistoryWriter.logCreatedBy(conn, "attribute_audit_history", attributeId, "Attribute", userName);
             auditStmt = conn.prepareStatement(auditSql, Statement.RETURN_GENERATED_KEYS);
-            
+
             // Primary Name
             String primaryName = attributeRs.getString("PrimaryName");
             if (primaryName != null && !primaryName.trim().isEmpty()) {
@@ -901,6 +913,99 @@ public class AttributeDAO {
             String definition = attributeRs.getString("Definition");
             if (definition != null && !definition.trim().isEmpty()) {
                 createNewAuditRecord(conn, auditStmt, attributeId, "Added", "Definition", definition, userName);
+            }
+            
+            // Reference Number
+            String refNumber = attributeRs.getString("RefNumber");
+            if (refNumber != null && !refNumber.trim().isEmpty()) {
+                createNewAuditRecord(conn, auditStmt, attributeId, "Added", "Reference Number", refNumber, userName);
+            }
+            
+            // Business Logic
+            String businessLogic = attributeRs.getString("Business_Logic");
+            if (businessLogic != null && !businessLogic.trim().isEmpty()) {
+                createNewAuditRecord(conn, auditStmt, attributeId, "Added", "Business Logic", businessLogic, userName);
+            }
+            
+            // Is Primary Key (Yes/No)
+            Integer isPrimaryKey = attributeRs.getObject("Is_PrimaryKey", Integer.class);
+            if (isPrimaryKey != null) {
+                createNewAuditRecord(conn, auditStmt, attributeId, "Added", "Is Primary Key", (isPrimaryKey == 1 ? "Yes" : "No"), userName);
+            }
+            
+            // Requirement (store name for readability)
+            Integer requirementId = attributeRs.getObject("Requirement_ID", Integer.class);
+            if (requirementId != null) {
+                String requirementName = getRequirementName(conn, requirementId);
+                if (requirementName != null) {
+                    createNewAuditRecord(conn, auditStmt, attributeId, "Added", "Requirement", requirementName, userName);
+                }
+            }
+            
+            // Glossary (store name for readability)
+            Integer glossaryId = attributeRs.getObject("Glossary_ID", Integer.class);
+            if (glossaryId != null) {
+                String glossaryName = getGlossaryName(conn, glossaryId);
+                if (glossaryName != null) {
+                    createNewAuditRecord(conn, auditStmt, attributeId, "Added", "Glossary", glossaryName, userName);
+                }
+            }
+            
+            // Origination (store name for readability)
+            Integer origination = attributeRs.getObject("Origination", Integer.class);
+            if (origination != null) {
+                String originationName = getOriginationName(conn, origination);
+                if (originationName != null) {
+                    createNewAuditRecord(conn, auditStmt, attributeId, "Added", "Origination", originationName, userName);
+                }
+            }
+            
+            // Editability (store name for readability)
+            Integer editability = attributeRs.getObject("Editability", Integer.class);
+            if (editability != null) {
+                String editabilityName = getEditabilityName(conn, editability);
+                if (editabilityName != null) {
+                    createNewAuditRecord(conn, auditStmt, attributeId, "Added", "Editability", editabilityName, userName);
+                }
+            }
+            
+            // Editability Role (store name for readability)
+            Integer editabilityRole = attributeRs.getObject("Editability_role", Integer.class);
+            if (editabilityRole != null) {
+                String roleName = getEditRoleName(conn, editabilityRole);
+                if (roleName != null) {
+                    createNewAuditRecord(conn, auditStmt, attributeId, "Added", "Editability Role", roleName, userName);
+                }
+            }
+            
+            // Data Type (store name for readability)
+            Integer dataTypeId = attributeRs.getObject("Data_type_ID", Integer.class);
+            if (dataTypeId != null) {
+                String dataTypeName = getDataTypeName(conn, dataTypeId);
+                if (dataTypeName != null) {
+                    createNewAuditRecord(conn, auditStmt, attributeId, "Added", "Data Type", dataTypeName, userName);
+                }
+            }
+            
+            // Data Length
+            Integer dataLength = attributeRs.getObject("DataLength", Integer.class);
+            if (dataLength != null) {
+                createNewAuditRecord(conn, auditStmt, attributeId, "Added", "Data Length", dataLength.toString(), userName);
+            }
+            
+            // Dataset (store name for readability)
+            Integer datasetId = attributeRs.getObject("Dataset_ID", Integer.class);
+            if (datasetId != null) {
+                String datasetName = getDatasetName(conn, datasetId);
+                if (datasetName != null) {
+                    createNewAuditRecord(conn, auditStmt, attributeId, "Added", "Dataset", datasetName, userName);
+                }
+            }
+            
+            // Confidence Score
+            Object confidenceScoreObj = attributeRs.getObject("Confidence_score");
+            if (confidenceScoreObj instanceof Number) {
+                createNewAuditRecord(conn, auditStmt, attributeId, "Added", "Confidence Score", formatConfidenceScore(((Number) confidenceScoreObj).doubleValue()), userName);
             }
             
         } finally {
@@ -1288,7 +1393,7 @@ public class AttributeDAO {
         String sql = """
             SELECT ID, Data_type_ID, Requirement_ID, Dataset_ID, Glossary_ID, Origination,
                    Editability, Editability_role, RefNumber, PrimaryName, Definition,
-                   Is_Mandatory, Is_PrimaryKey, Rank, Business_Logic, DataLength
+                   Is_Mandatory, Is_PrimaryKey, Rank, Business_Logic, DataLength, Confidence_score
             FROM attribute WHERE ID = ?
         """;
         
@@ -1314,6 +1419,10 @@ public class AttributeDAO {
                     attribute.setRank((Integer) rs.getObject("Rank"));
                     attribute.setBusinessLogic(rs.getString("Business_Logic"));
                     attribute.setDataLength((Integer) rs.getObject("DataLength"));
+                    Object confidenceObj = rs.getObject("Confidence_score");
+                    if (confidenceObj != null) {
+                        attribute.setConfidenceScore(((Number) confidenceObj).doubleValue());
+                    }
                     return attribute;
                 }
             }
@@ -1426,6 +1535,14 @@ public class AttributeDAO {
                 String newLength = newAttribute.getDataLength() != null ? newAttribute.getDataLength().toString() : null;
                 createUpdateAuditRecord(conn, auditStmt, attributeId, "Attribute", "Details", 
                     "Updated", "Data Length", oldLength, newLength, userName);
+            }
+            
+            // Confidence Score
+            if (!isEqual(oldAttribute.getConfidenceScore(), newAttribute.getConfidenceScore())) {
+                String oldScore = oldAttribute.getConfidenceScore() != null ? formatConfidenceScore(oldAttribute.getConfidenceScore()) : null;
+                String newScore = newAttribute.getConfidenceScore() != null ? formatConfidenceScore(newAttribute.getConfidenceScore()) : null;
+                createUpdateAuditRecord(conn, auditStmt, attributeId, "Attribute", "Details", 
+                    "Updated", "Confidence Score", oldScore, newScore, userName);
             }
             
             conn.commit();
@@ -1630,6 +1747,31 @@ public class AttributeDAO {
             }
         }
         return null;
+    }
+
+    /**
+     * Get dataset name by ID (with existing connection)
+     */
+    private String getDatasetName(Connection conn, int datasetId) throws SQLException {
+        String sql = "SELECT PrimaryName FROM dataset WHERE ID = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, datasetId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) return rs.getString("PrimaryName");
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Format a confidence score for history display, dropping a trailing .0 for whole numbers.
+     */
+    private String formatConfidenceScore(Double score) {
+        if (score == null) return null;
+        if (score == Math.floor(score) && !Double.isInfinite(score)) {
+            return String.valueOf(score.longValue());
+        }
+        return String.valueOf(score);
     }
 }
 

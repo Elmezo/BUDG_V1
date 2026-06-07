@@ -1458,14 +1458,15 @@ public class GlossaryImpactDAO {
             // Get user full name
             String userFullName = getUserFullName(userId);
             
-            // Determine object name based on table type
+            // Determine object name based on table type. Display-style names
+            // match the audit-trail spec (subject is the Glossary the user is editing).
             String objectName = null;
             String entityFieldName = null;
             if ("product".equalsIgnoreCase(tableType)) {
-                objectName = "Product X Glossary";
+                objectName = "Glossary X Product";
                 entityFieldName = "Product";
             } else if ("client".equalsIgnoreCase(tableType)) {
-                objectName = "Client X Glossary";
+                objectName = "Glossary X Client";
                 entityFieldName = "Client";
             } else {
                 System.err.println("Unknown table type for audit history: " + tableType);
@@ -1480,7 +1481,7 @@ public class GlossaryImpactDAO {
             """;
             
             try (PreparedStatement ps = conn.prepareStatement(insertSql)) {
-                // Record 1: Entity linked
+                // Record 1: Entity name (one row per populated field)
                 ps.setInt(1, glossaryId);
                 ps.setString(2, objectName);
                 ps.setString(3, "Links");
@@ -1490,12 +1491,12 @@ public class GlossaryImpactDAO {
                 ps.setString(7, entityName);
                 ps.setString(8, userFullName);
                 ps.executeUpdate();
-                
+
                 // Record 2: Relationship Type
                 ps.setInt(1, glossaryId);
                 ps.setString(2, objectName);
                 ps.setString(3, "Links");
-                ps.setString(4, "Status Change");
+                ps.setString(4, "Added");
                 ps.setString(5, "Relationship Type");
                 ps.setNull(6, Types.VARCHAR);
                 ps.setString(7, relationTypeName);
@@ -1547,14 +1548,14 @@ public class GlossaryImpactDAO {
             // Get user full name
             String userFullName = getUserFullName(userId);
             
-            // Determine object name based on table type
+            // Determine object name based on table type (subject is the glossary).
             String objectName = null;
             String entityFieldName = null;
             if ("product".equalsIgnoreCase(tableType)) {
-                objectName = "Product X Glossary";
+                objectName = "Glossary X Product";
                 entityFieldName = "Product";
             } else if ("client".equalsIgnoreCase(tableType)) {
-                objectName = "Client X Glossary";
+                objectName = "Glossary X Client";
                 entityFieldName = "Client";
             } else {
                 System.err.println("Unknown table type for audit history: " + tableType);
@@ -1627,12 +1628,12 @@ public class GlossaryImpactDAO {
             // Get user full name
             String userFullName = getUserFullName(userId);
             
-            // Determine object name based on table type
+            // Determine object name based on table type (subject is the glossary).
             String objectName = null;
             if ("product".equalsIgnoreCase(tableType)) {
-                objectName = "Product X Glossary";
+                objectName = "Glossary X Product";
             } else if ("client".equalsIgnoreCase(tableType)) {
-                objectName = "Client X Glossary";
+                objectName = "Glossary X Client";
             } else {
                 System.err.println("Unknown table type for audit history: " + tableType);
                 return;

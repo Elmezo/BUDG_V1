@@ -700,7 +700,11 @@ public class ProcessImpactServlet extends HttpServlet {
                 System.err.println("Error checking for active CR: " + e.getMessage());
             }
             
-            boolean success = processImpactService.savePredecessorRelationships(processIdToUse, relationships, request);
+            // Only write audit rows when the save targets the original process row.
+            // When a CR is active, the save goes against the cloned process and audit
+            // is owned by FacetChangesService apply path.
+            boolean writeAudit = (activeCrId == null);
+            boolean success = processImpactService.savePredecessorRelationships(processIdToUse, relationships, request, writeAudit);
             
             // Save mappings for newly created relationships (if CR is active)
             if (success && activeCrId != null) {

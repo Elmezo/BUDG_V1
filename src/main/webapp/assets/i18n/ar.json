@@ -2397,8 +2397,10 @@
         "event": {
             "detailsAdded": "تمت إضافة التفاصيل",
             "detailsUpdated": "تم تحديث التفاصيل",
+            "detailsDeleted": "تم حذف التفاصيل",
             "relationshipsAdded": "تمت إضافة العلاقات",
-            "relationshipsUpdated": "تم تحديث العلاقات"
+            "relationshipsUpdated": "تم تحديث العلاقات",
+            "relationshipsDeleted": "تم حذف العلاقات"
         }
     },
     "adminPanel": {

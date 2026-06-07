@@ -505,6 +505,10 @@ public class AttributeRelationshipServlet extends HttpServlet {
                     // The view logic (handleGetOriginalRelationships / handleGetRelationshipsWithPendingChanges)
                     // uses dataset_changes mappings to determine which relationships are pending
                     
+                    // Audit history rows are only written for direct (non-pending) saves.
+                    // Pending writes are owned by FacetChangesService on CR apply.
+                    boolean writeAudit = (activeCrId == null);
+
                     switch (operation) {
                         case "INSERT":
                             SegmentValidationService.ValidationResult insertValidation =
@@ -517,6 +521,9 @@ public class AttributeRelationshipServlet extends HttpServlet {
                             int newId = insertRelationship(conn, data);
                             if (newId > 0) {
                                 insertedIds.add(newId);
+                                if (writeAudit) {
+                                    logAttributeRelationshipAudit(conn, "Added", null, data);
+                                }
                             } else {
                                 System.err.println("Warning: Failed to get generated ID for new relationship");
                             }
@@ -529,10 +536,22 @@ public class AttributeRelationshipServlet extends HttpServlet {
                                 sendError(resp, updateValidation.message, 400);
                                 return;
                             }
+                            Map<String, Object> beforeUpdate = writeAudit
+                                    ? getRelationshipInfoBeforeDelete(conn, data.get("id").getAsInt())
+                                    : null;
                             updateRelationship(conn, data);
+                            if (writeAudit) {
+                                logAttributeRelationshipAudit(conn, "Updated", beforeUpdate, data);
+                            }
                             break;
                         case "DELETE":
+                            Map<String, Object> beforeDelete = writeAudit
+                                    ? getRelationshipInfoBeforeDelete(conn, data.get("id").getAsInt())
+                                    : null;
                             deleteRelationship(conn, data);
+                            if (writeAudit) {
+                                logAttributeRelationshipAudit(conn, "Deleted", beforeDelete, null);
+                            }
                             break;
                     }
                 }
@@ -739,32 +758,165 @@ public class AttributeRelationshipServlet extends HttpServlet {
     }
     
     /**
-     * Get relationship info before deletion (for tracking in pending changes)
+     * Get relationship info before deletion (for tracking in pending changes and audit history)
      */
-    @SuppressWarnings("unused")
     private Map<String, Object> getRelationshipInfoBeforeDelete(Connection conn, int relId) throws SQLException {
         String sql = "SELECT axa.ID, axa.Source_AttributeID, axa.Target_AttributeID, axa.Relation_Type, axa.Relation_Scope, " +
                      "sa.PrimaryName as source_name, sa.RefNumber as source_ref, " +
-                     "ta.PrimaryName as target_name, ta.RefNumber as target_ref " +
+                     "ta.PrimaryName as target_name, ta.RefNumber as target_ref, " +
+                     "rt.PrimaryName as relation_type_name " +
                      "FROM attribute_x_attribute axa " +
                      "LEFT JOIN attribute sa ON axa.Source_AttributeID = sa.ID " +
                      "LEFT JOIN attribute ta ON axa.Target_AttributeID = ta.ID " +
+                     "LEFT JOIN attribute_x_attribute_relationtype rt ON rt.ID = axa.Relation_Type " +
                      "WHERE axa.ID = ?";
-        
+
         Map<String, Object> info = new HashMap<>();
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, relId);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
                     info.put("id", rs.getInt("ID"));
+                    info.put("source_attribute_id", rs.getInt("Source_AttributeID"));
+                    info.put("target_attribute_id", rs.getInt("Target_AttributeID"));
+                    info.put("relation_type_id", rs.getInt("Relation_Type"));
                     info.put("source_name", rs.getString("source_name"));
                     info.put("source_ref", rs.getString("source_ref"));
                     info.put("target_name", rs.getString("target_name"));
                     info.put("target_ref", rs.getString("target_ref"));
+                    info.put("relation_type_name", rs.getString("relation_type_name"));
                 }
             }
         }
         return info;
+    }
+
+    /**
+     * Write per-field audit history rows for an attribute_x_attribute change. Rows
+     * are written to attribute_audit_history under the source attribute id so they
+     * show in the dataset's History tab via the dataset/attributes UNION.
+     */
+    private void logAttributeRelationshipAudit(Connection conn, String action,
+                                               Map<String, Object> previous, JsonObject newData) {
+        try {
+            String object = "Attribute X Attribute";
+            String event = "Relationships";
+            String auditTable = "attribute_audit_history";
+            int authorUserId = newData != null ? getIntOrZero(newData, "userId")
+                    : (previous != null && previous.get("userId") instanceof Number n ? n.intValue() : 0);
+            String author = resolveUserFullName(conn, authorUserId);
+
+            switch (action) {
+                case "Added": {
+                    Integer sourceAttrId = getIntOrNull(newData, "sourceAttributeId");
+                    if (sourceAttrId == null || sourceAttrId <= 0) return;
+                    String sourceName = resolveAttributeName(conn, sourceAttrId);
+                    String targetName = resolveAttributeName(conn, getIntOrNull(newData, "targetAttributeId"));
+                    String relTypeName = resolveAttributeRelationTypeName(conn, getIntOrNull(newData, "relationTypeId"));
+                    com.example.budg_v2.audit.AuditHistoryWriter.logAdded(conn, auditTable, sourceAttrId,
+                            object, event, "Source Attribute", sourceName, author);
+                    com.example.budg_v2.audit.AuditHistoryWriter.logAdded(conn, auditTable, sourceAttrId,
+                            object, event, "Target Attribute", targetName, author);
+                    com.example.budg_v2.audit.AuditHistoryWriter.logAdded(conn, auditTable, sourceAttrId,
+                            object, event, "Relationship Type", relTypeName, author);
+                    break;
+                }
+                case "Updated": {
+                    if (previous == null) return;
+                    int sourceAttrId = previous.get("source_attribute_id") instanceof Number n ? n.intValue() : 0;
+                    if (sourceAttrId <= 0) return;
+                    Integer newSourceAttrId = getIntOrNull(newData, "sourceAttributeId");
+                    Integer newTargetAttrId = getIntOrNull(newData, "targetAttributeId");
+                    Integer newRelTypeId = getIntOrNull(newData, "relationTypeId");
+                    int prevSourceAttrId = sourceAttrId;
+                    int prevTargetAttrId = previous.get("target_attribute_id") instanceof Number n ? n.intValue() : 0;
+                    int prevRelTypeId = previous.get("relation_type_id") instanceof Number n ? n.intValue() : 0;
+
+                    if (newSourceAttrId != null && newSourceAttrId != prevSourceAttrId) {
+                        com.example.budg_v2.audit.AuditHistoryWriter.logUpdated(conn, auditTable, sourceAttrId,
+                                object, event, "Source Attribute",
+                                (String) previous.get("source_name"),
+                                resolveAttributeName(conn, newSourceAttrId), author);
+                    }
+                    if (newTargetAttrId != null && newTargetAttrId != prevTargetAttrId) {
+                        com.example.budg_v2.audit.AuditHistoryWriter.logUpdated(conn, auditTable, sourceAttrId,
+                                object, event, "Target Attribute",
+                                (String) previous.get("target_name"),
+                                resolveAttributeName(conn, newTargetAttrId), author);
+                    }
+                    if (newRelTypeId != null && newRelTypeId != prevRelTypeId) {
+                        com.example.budg_v2.audit.AuditHistoryWriter.logUpdated(conn, auditTable, sourceAttrId,
+                                object, event, "Relationship Type",
+                                (String) previous.get("relation_type_name"),
+                                resolveAttributeRelationTypeName(conn, newRelTypeId), author);
+                    }
+                    break;
+                }
+                case "Deleted": {
+                    if (previous == null) return;
+                    int sourceAttrId = previous.get("source_attribute_id") instanceof Number n ? n.intValue() : 0;
+                    if (sourceAttrId <= 0) return;
+                    com.example.budg_v2.audit.AuditHistoryWriter.logDeleted(conn, auditTable, sourceAttrId,
+                            object, event, "Source Attribute", (String) previous.get("source_name"), author);
+                    com.example.budg_v2.audit.AuditHistoryWriter.logDeleted(conn, auditTable, sourceAttrId,
+                            object, event, "Target Attribute", (String) previous.get("target_name"), author);
+                    com.example.budg_v2.audit.AuditHistoryWriter.logDeleted(conn, auditTable, sourceAttrId,
+                            object, event, "Relationship Type", (String) previous.get("relation_type_name"), author);
+                    break;
+                }
+                default:
+                    break;
+            }
+        } catch (SQLException e) {
+            System.err.println("[AttributeRelationshipServlet] Failed to log attribute_x_attribute audit: " + e.getMessage());
+        }
+    }
+
+    private int getIntOrZero(JsonObject data, String key) {
+        if (data == null || !data.has(key) || data.get(key).isJsonNull()) return 0;
+        try { return data.get(key).getAsInt(); } catch (Exception e) { return 0; }
+    }
+
+    private String resolveAttributeName(Connection conn, Integer attributeId) {
+        if (attributeId == null || attributeId <= 0) return null;
+        try (PreparedStatement ps = conn.prepareStatement("SELECT PrimaryName FROM attribute WHERE ID = ?")) {
+            ps.setInt(1, attributeId);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? rs.getString(1) : null;
+            }
+        } catch (SQLException e) {
+            return null;
+        }
+    }
+
+    private String resolveAttributeRelationTypeName(Connection conn, Integer relationTypeId) {
+        if (relationTypeId == null || relationTypeId <= 0) return null;
+        try (PreparedStatement ps = conn.prepareStatement(
+                "SELECT PrimaryName FROM attribute_x_attribute_relationtype WHERE ID = ?")) {
+            ps.setInt(1, relationTypeId);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? rs.getString(1) : null;
+            }
+        } catch (SQLException e) {
+            return null;
+        }
+    }
+
+    private String resolveUserFullName(Connection conn, int userId) {
+        if (userId <= 0) return "System";
+        try (PreparedStatement ps = conn.prepareStatement(
+                "SELECT CONCAT(COALESCE(First_Name,''), ' ', COALESCE(Last_Name,'')) FROM people WHERE ID = ?")) {
+            ps.setInt(1, userId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    String name = rs.getString(1);
+                    if (name != null && !name.trim().isEmpty()) return name.trim();
+                }
+            }
+        } catch (SQLException e) {
+            // ignore - fall through to default
+        }
+        return "User #" + userId;
     }
 
     /**

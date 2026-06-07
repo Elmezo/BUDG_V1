@@ -26,6 +26,70 @@
             .replace(/'/g, '&#039;');
     }
 
+    // Normalize From/To audit cell values so JSON nulls and the literal string
+    // "null" render as an empty cell rather than the word "null".
+    function normalizeAuditCell(value) {
+        if (value == null) return '';
+        const trimmed = String(value).trim();
+        if (trimmed.toLowerCase() === 'null') return '';
+        return value;
+    }
+
+    // True when an audit record belongs to the Dataset value-info subsection
+    // (per-cell uploads/manual entries). These rows are surfaced under their
+    // own "History Values" subsection on the Dataset facet.
+    function isDatasetValueRow(record) {
+        return record && String(record.object || '').trim() === 'Dataset Value Info';
+    }
+
+    // Render a "History Values" sub-table below the main history table for the
+    // Dataset facet. Removes any previous instance before rendering so repeated
+    // filter clicks do not stack tables.
+    function renderDatasetValueRows(rows) {
+        const wrapper = document.querySelector('.history-table-wrapper');
+        if (!wrapper) return;
+        const existing = document.getElementById('historyValuesSection');
+        if (existing) existing.remove();
+        if (!Array.isArray(rows) || rows.length === 0) return;
+
+        const section = document.createElement('div');
+        section.id = 'historyValuesSection';
+        section.className = 'history-values-section';
+        section.style.cssText = 'margin-top:1rem;';
+
+        const heading = document.createElement('div');
+        heading.className = 'history-values-title';
+        heading.style.cssText = 'font-weight:600;margin:0.75rem 0 0.5rem 0;font-size:0.95rem;';
+        heading.textContent = (window.I18n && window.I18n.t('history.valuesTitle')) || 'History Values';
+        section.appendChild(heading);
+
+        const table = document.createElement('table');
+        table.className = 'history-table history-values-table';
+        table.innerHTML =
+            '<thead><tr>'
+            + '<th>Object</th><th>Event</th><th>Update Type</th><th>Field</th>'
+            + '<th>From</th><th>To</th><th>Author</th><th>Date</th><th>Last Changed</th>'
+            + '</tr></thead><tbody></tbody>';
+
+        const tbody = table.querySelector('tbody');
+        tbody.innerHTML = rows.map(record => `
+            <tr>
+                <td>${escapeHtml(record.object || '')}</td>
+                <td>${escapeHtml(record.event || '')}</td>
+                <td><span class="update-type-badge ${record.updateType?.toLowerCase().replace(/\s+/g, '-') || ''}">${escapeHtml(record.updateType || '')}</span></td>
+                <td>${escapeHtml(record.field || '')}</td>
+                <td>${escapeHtml(normalizeAuditCell(record.from))}</td>
+                <td>${escapeHtml(normalizeAuditCell(record.to))}</td>
+                <td>${escapeHtml(record.author || '')}</td>
+                <td>${escapeHtml(formatDateForDisplay(record.date || ''))}</td>
+                <td>${escapeHtml(formatDateForDisplay(record.lastChange || ''))}</td>
+            </tr>
+        `).join('');
+
+        section.appendChild(table);
+        wrapper.appendChild(section);
+    }
+
     // Column visibility for history table (order matches thead)
     const HISTORY_COLUMN_KEYS = ['object', 'event', 'updateType', 'field', 'from', 'to', 'author', 'date', 'lastChange'];
     const HISTORY_COLUMN_LABELS = ['Object', 'Event', 'Update Type', 'Field', 'From', 'To', 'Author', 'Date', 'Last Changed'];
@@ -247,30 +311,38 @@
         // Ensure historyData is an array
         const dataArray = Array.isArray(historyData) ? historyData : [];
 
-        if (dataArray.length === 0) {
+        // Pull Dataset Value Info rows into a dedicated subsection rendered below
+        // the main table; they would otherwise dominate the main feed.
+        const mainRows = dataArray.filter(r => !isDatasetValueRow(r));
+        const valueRows = dataArray.filter(isDatasetValueRow);
+
+        if (mainRows.length === 0 && valueRows.length === 0) {
             const noHistoryMsg = window.I18n?.t('message.noHistoryRecords') || 'No history records found';
             tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:2rem;color:var(--text-muted,#9ca3af);">' + noHistoryMsg + '</td></tr>';
             footer.textContent = window.I18n?.t('message.zeroRecords') || '0 records';
+            renderDatasetValueRows([]);
             return;
         }
 
-        const rowsHtml = dataArray.map(record => `
+        const rowsHtml = mainRows.map(record => `
             <tr>
                 <td>${escapeHtml(record.object || '')}</td>
                 <td>${escapeHtml(record.event || '')}</td>
                 <td><span class="update-type-badge ${record.updateType?.toLowerCase().replace(/\s+/g, '-') || ''}">${escapeHtml(record.updateType || '')}</span></td>
                 <td>${escapeHtml(record.field || '')}</td>
-                <td>${escapeHtml(record.from || '')}</td>
-                <td>${escapeHtml(record.to || '')}</td>
+                <td>${escapeHtml(normalizeAuditCell(record.from))}</td>
+                <td>${escapeHtml(normalizeAuditCell(record.to))}</td>
                 <td>${escapeHtml(record.author || '')}</td>
                 <td>${escapeHtml(formatDateForDisplay(record.date || ''))}</td>
                 <td>${escapeHtml(formatDateForDisplay(record.lastChange || ''))}</td>
             </tr>
         `).join('');
 
-        tbody.innerHTML = rowsHtml;
-        footer.textContent = (window.I18n && window.I18n.t('message.records', { count: dataArray.length })) || `${dataArray.length} record${dataArray.length !== 1 ? 's' : ''}`;
+        tbody.innerHTML = rowsHtml || '<tr><td colspan="9" style="text-align:center;padding:1rem;color:var(--text-muted,#9ca3af);">' + ((window.I18n && window.I18n.t('history.noNonValueRecords')) || 'No non-value history records') + '</td></tr>';
+        const totalCount = mainRows.length + valueRows.length;
+        footer.textContent = (window.I18n && window.I18n.t('message.records', { count: totalCount })) || `${totalCount} record${totalCount !== 1 ? 's' : ''}`;
         applyHistoryColumnVisibility();
+        renderDatasetValueRows(valueRows);
     }
 
     // Setup event listeners for the history component
@@ -379,6 +451,7 @@
                 console.warn('No data available for filtering');
                 tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:2rem;color:var(--text-muted,#9ca3af);">' + (window.I18n?.t('history.noDataForFiltering') || 'No data available for filtering') + '</td></tr>';
                 footer.textContent = window.I18n?.t('message.zeroRecords') || '0 records';
+                renderDatasetValueRows([]);
                 return;
             }
 
@@ -419,26 +492,31 @@
             if (filteredData.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:2rem;color:var(--text-muted,#9ca3af);">' + (window.I18n?.t('history.noRecordsForRange') || 'No records found for the selected date range') + '</td></tr>';
                 footer.textContent = window.I18n?.t('message.zeroRecords') || '0 records';
+                renderDatasetValueRows([]);
                 return;
             }
 
-            const rowsHtml = filteredData.map(record => `
+            const mainFiltered = filteredData.filter(r => !isDatasetValueRow(r));
+            const valueFiltered = filteredData.filter(isDatasetValueRow);
+
+            const rowsHtml = mainFiltered.map(record => `
                 <tr>
                     <td>${escapeHtml(record.object || '')}</td>
                     <td>${escapeHtml(record.event || '')}</td>
                     <td><span class="update-type-badge ${record.updateType?.toLowerCase().replace(/\s+/g, '-') || ''}">${escapeHtml(record.updateType || '')}</span></td>
                     <td>${escapeHtml(record.field || '')}</td>
-                    <td>${escapeHtml(record.from || '')}</td>
-                    <td>${escapeHtml(record.to || '')}</td>
+                    <td>${escapeHtml(normalizeAuditCell(record.from))}</td>
+                    <td>${escapeHtml(normalizeAuditCell(record.to))}</td>
                     <td>${escapeHtml(record.author || '')}</td>
                     <td>${escapeHtml(formatDateForDisplay(record.date || ''))}</td>
                     <td>${escapeHtml(formatDateForDisplay(record.lastChange || ''))}</td>
                 </tr>
             `).join('');
 
-            tbody.innerHTML = rowsHtml;
+            tbody.innerHTML = rowsHtml || '<tr><td colspan="9" style="text-align:center;padding:1rem;color:var(--text-muted,#9ca3af);">' + ((window.I18n && window.I18n.t('history.noNonValueRecords')) || 'No non-value history records') + '</td></tr>';
             footer.textContent = ((window.I18n && window.I18n.t('message.records', { count: filteredData.length })) || `${filteredData.length} record${filteredData.length !== 1 ? 's' : ''}`) + ' (filtered)';
             applyHistoryColumnVisibility();
+            renderDatasetValueRows(valueFiltered);
         }
 
         // Show all data without filtering
@@ -934,26 +1012,31 @@
             const noRangeMsg = window.I18n?.t('history.noRecordsForRange') || 'No history records found for the selected date range';
             tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:2rem;color:var(--text-muted,#9ca3af);">' + noRangeMsg + '</td></tr>';
             footer.textContent = window.I18n?.t('message.zeroRecords') || '0 records';
+            renderDatasetValueRows([]);
             return;
         }
 
-        const rowsHtml = filteredData.map(record => `
+        const mainFiltered = filteredData.filter(r => !isDatasetValueRow(r));
+        const valueFiltered = filteredData.filter(isDatasetValueRow);
+
+        const rowsHtml = mainFiltered.map(record => `
             <tr>
                 <td>${escapeHtml(record.object || '')}</td>
                 <td>${escapeHtml(record.event || '')}</td>
                 <td><span class="update-type-badge ${record.updateType?.toLowerCase().replace(/\s+/g, '-') || ''}">${escapeHtml(record.updateType || '')}</span></td>
                 <td>${escapeHtml(record.field || '')}</td>
-                <td>${escapeHtml(record.from || '')}</td>
-                <td>${escapeHtml(record.to || '')}</td>
+                <td>${escapeHtml(normalizeAuditCell(record.from))}</td>
+                <td>${escapeHtml(normalizeAuditCell(record.to))}</td>
                 <td>${escapeHtml(record.author || '')}</td>
                 <td>${escapeHtml(formatDateForDisplay(record.date || ''))}</td>
                 <td>${escapeHtml(formatDateForDisplay(record.lastChange || ''))}</td>
             </tr>
         `).join('');
 
-        tbody.innerHTML = rowsHtml;
+        tbody.innerHTML = rowsHtml || '<tr><td colspan="9" style="text-align:center;padding:1rem;color:var(--text-muted,#9ca3af);">' + ((window.I18n && window.I18n.t('history.noNonValueRecords')) || 'No non-value history records') + '</td></tr>';
         footer.textContent = (window.I18n && window.I18n.t('message.records', { count: filteredData.length })) || `${filteredData.length} record${filteredData.length !== 1 ? 's' : ''}`;
         applyHistoryColumnVisibility();
+        renderDatasetValueRows(valueFiltered);
     }
 
 
@@ -1109,24 +1192,28 @@
         return null;
     }
 
-    // Sort history records oldest-first so the "Created By" row appears first.
+    // Sort history records newest-first so the most recent change is at the top
+    // and the "Created By" row (the very first audit entry for the object) appears
+    // at the very bottom of the feed.
+    //
     // Many creation audit rows share the exact same second, so we pin the
-    // "Created By" row to the very top, then sort the rest by date ASC with
-    // auditidpk ASC as a stable tiebreaker.
+    // "Created By" row to the very bottom, then sort the rest by date DESC with
+    // auditidpk DESC as a stable tiebreaker. The name is preserved for backwards
+    // compatibility with existing call sites.
     function sortHistoryAscending(records) {
         if (!Array.isArray(records)) return [];
         const isCreatedByRow = (r) => String((r && r.field) || '').trim().toLowerCase() === 'created by';
         return records.slice().sort((a, b) => {
             const aCreated = isCreatedByRow(a);
             const bCreated = isCreatedByRow(b);
-            if (aCreated && !bCreated) return -1;
-            if (!aCreated && bCreated) return 1;
+            if (aCreated && !bCreated) return 1;
+            if (!aCreated && bCreated) return -1;
             const dateA = a && a.date ? new Date(a.date).getTime() : 0;
             const dateB = b && b.date ? new Date(b.date).getTime() : 0;
-            if (dateA !== dateB) return dateA - dateB;
+            if (dateA !== dateB) return dateB - dateA;
             const pkA = Number((a && (a.auditidpk || a.auditIdPk)) || 0);
             const pkB = Number((b && (b.auditidpk || b.auditIdPk)) || 0);
-            return pkA - pkB;
+            return pkB - pkA;
         });
     }
 
@@ -1295,14 +1382,12 @@
         URL.revokeObjectURL(url);
     }
 
-    // Initialize history component with default data
+    // Initialize history component with default data.
+    // createHistoryComponent already triggers loadInitialData which fetches every
+    // page; calling loadHistoryData here as well caused a duplicate fetch and an
+    // initial flicker. Just defer to createHistoryComponent.
     async function initializeHistoryComponent(facetName, objectId, containerId) {
         createHistoryComponent(facetName, objectId, containerId);
-
-        // Load initial data with default date range
-        const fromDate = document.getElementById('historyFromDate')?.value || '2025-10-01';
-        const toDate = document.getElementById('historyToDate')?.value || '2025-10-21';
-        await loadHistoryData(facetName, objectId, fromDate, toDate);
     }
 
     // Make functions globally available

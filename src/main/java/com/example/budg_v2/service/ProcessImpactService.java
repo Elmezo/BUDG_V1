@@ -275,13 +275,24 @@ public class ProcessImpactService {
         return processImpactDAO.getProcessRelationTypes();
     }
     
-    public boolean savePredecessorRelationships(int processId, List<Map<String, Object>> relationships, HttpServletRequest request) 
+    public boolean savePredecessorRelationships(int processId, List<Map<String, Object>> relationships, HttpServletRequest request)
+            throws SQLException {
+        return savePredecessorRelationships(processId, relationships, request, false);
+    }
+
+    /**
+     * Overload that lets the caller request per-field audit history rows for the
+     * predecessor change. Audit should only be written when the save targets the
+     * original process row (no pending CR clone).
+     */
+    public boolean savePredecessorRelationships(int processId, List<Map<String, Object>> relationships,
+                                                HttpServletRequest request, boolean writeAudit)
             throws SQLException {
         int userId = UserContextUtil.getCurrentUserId(request);
         if (userId <= 0) {
             throw new SQLException("User authentication required");
         }
-        return processImpactDAO.savePredecessorRelationships(processId, relationships, userId);
+        return processImpactDAO.savePredecessorRelationships(processId, relationships, userId, writeAudit);
     }
     
     // ===== REVERSE LOOKUP METHODS =====

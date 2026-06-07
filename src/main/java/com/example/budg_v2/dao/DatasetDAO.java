@@ -1,5 +1,6 @@
 package com.example.budg_v2.dao;
 
+import com.example.budg_v2.audit.AuditHistoryWriter;
 import com.example.budg_v2.database.DatabaseConnection;
 import com.example.budg_v2.model.Dataset;
 import com.example.budg_v2.util.ModuleResolver;
@@ -751,8 +752,9 @@ public class DatasetDAO {
                 INSERT INTO dataset_audit_history (id, object, event, updateType, field, `from`, `to`, author)
                 VALUES (?, 'Dataset', 'Details', ?, ?, NULL, ?, ?)
             """;
+            AuditHistoryWriter.logCreatedBy(conn, "dataset_audit_history", datasetId, "Dataset", userName);
             auditStmt = conn.prepareStatement(auditSql, Statement.RETURN_GENERATED_KEYS);
-            
+
             // Primary Name
             String primaryName = datasetRs.getString("PrimaryName");
             if (primaryName != null && !primaryName.trim().isEmpty()) {
@@ -831,15 +833,8 @@ public class DatasetDAO {
                 }
             }
             
-            // Created By
-            Integer createdById = datasetRs.getObject("Createdby_ID", Integer.class);
-            if (createdById != null) {
-                String createdByName = getPersonFullName(createdById);
-                if (createdByName != null) {
-                    createNewAuditRecord(conn, auditStmt, datasetId, "Added", "Created By", createdByName, userName);
-                }
-            }
-            
+            // Created By is written as the first row via AuditHistoryWriter.logCreatedBy.
+
             // Note: Stakeholders will be added later through the stakeholder management interface
             // No need to create stakeholder audit records here as they don't exist yet
             

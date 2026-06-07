@@ -1,5 +1,6 @@
 package com.example.budg_v2.dao;
 
+import com.example.budg_v2.audit.AuditHistoryWriter;
 import com.example.budg_v2.database.DatabaseConnection;
 import com.example.budg_v2.util.ModuleResolver;
 import com.example.budg_v2.model.Interface;
@@ -498,8 +499,9 @@ public class InterfaceDAO {
                 INSERT INTO interface_audit_history (id, object, event, updateType, field, `from`, `to`, author)
                 VALUES (?, ?, ?, ?, ?, NULL, ?, ?)
             """;
+            AuditHistoryWriter.logCreatedBy(conn, "interface_audit_history", interfaceId, "Interface", userName);
             auditStmt = conn.prepareStatement(auditSql, Statement.RETURN_GENERATED_KEYS);
-            
+
             // Name
             String name = interfaceRs.getString("Name");
             if (name != null && !name.trim().isEmpty()) {
@@ -608,15 +610,20 @@ public class InterfaceDAO {
                 }
             }
             
-            // Created By
-            Integer createdById = interfaceRs.getObject("last_updateuser_id", Integer.class);
-            if (createdById != null) {
-                String createdByName = getPersonFullName(conn, createdById);
-                if (createdByName != null) {
-                    createNewAuditRecord(conn, auditStmt, interfaceId, "Interface", "Details", "Added", "Created By", createdByName, userName);
-                }
+            // Asset ID
+            String assetId = interfaceRs.getString("Asset_ID");
+            if (assetId != null && !assetId.trim().isEmpty()) {
+                createNewAuditRecord(conn, auditStmt, interfaceId, "Interface", "Details", "Added", "Asset ID", assetId, userName);
             }
             
+            // Synchronisation Control
+            String synchronisationControl = interfaceRs.getString("Synchronisation_Control");
+            if (synchronisationControl != null && !synchronisationControl.trim().isEmpty()) {
+                createNewAuditRecord(conn, auditStmt, interfaceId, "Interface", "Details", "Added", "Synchronisation Control", synchronisationControl, userName);
+            }
+            
+            // Created By is written as the first row via AuditHistoryWriter.logCreatedBy.
+
             //system.out.println("✅ InterfaceDAO.createInterfaceAuditRecords - completed successfully for ID: " + interfaceId);
             
         } catch (SQLException e) {
@@ -1363,6 +1370,20 @@ public class InterfaceDAO {
                 String newIsPublicName = newInterface.getIsPublic() != null ? getViewingName(conn, newInterface.getIsPublic()) : null;
                 createUpdateAuditRecord(conn, auditStmt, interfaceId, "Interface", "Details", 
                     "Updated", "Is Public", oldIsPublicName, newIsPublicName, userName);
+                changesCount++;
+            }
+            
+            // Asset ID
+            if (!isEqual(oldInterface.getAssetId(), newInterface.getAssetId())) {
+                createUpdateAuditRecord(conn, auditStmt, interfaceId, "Interface", "Details", 
+                    "Updated", "Asset ID", oldInterface.getAssetId(), newInterface.getAssetId(), userName);
+                changesCount++;
+            }
+            
+            // Synchronisation Control
+            if (!isEqual(oldInterface.getSynchronisationControl(), newInterface.getSynchronisationControl())) {
+                createUpdateAuditRecord(conn, auditStmt, interfaceId, "Interface", "Details", 
+                    "Updated", "Synchronisation Control", oldInterface.getSynchronisationControl(), newInterface.getSynchronisationControl(), userName);
                 changesCount++;
             }
             

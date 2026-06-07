@@ -154,65 +154,99 @@
     flex: 1;
 }
 
-.card-subtitle {
+.custom-fields-facet-label {
+    display: block;
     font-size: 0.75rem;
     color: #6b7280;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    margin-bottom: 0.25rem;
+    margin: 0 0 0.5rem 0;
+    line-height: 1.2;
+}
+
+.custom-fields-facet-picker {
+    min-width: 280px;
+    max-width: 400px;
+    width: 100%;
 }
 
 .custom-field-select-wrapper {
     position: relative;
-    display: inline-block;
-    min-width: 280px;
+    display: block;
     width: 100%;
-    max-width: 400px;
 }
 
-.custom-field-select-wrapper i {
+.custom-field-select-wrapper .custom-fields-facet-icon {
     position: absolute;
-    left: 1rem;
+    inset-inline-start: 1rem;
     top: 50%;
     transform: translateY(-50%);
     color: #6b7280;
     font-size: 1rem;
-    z-index: 1;
+    z-index: 2;
     pointer-events: none;
+    line-height: 1;
 }
 
-.custom-field-select-wrapper select {
+/* Scoped + !important on background-color so admin-panel-redesign does not break the arrow */
+.custom-fields-page .custom-field-select-wrapper .custom-fields-facet-select {
+    display: block;
     width: 100%;
-    padding: 0.75rem 1rem 0.75rem 2.75rem;
+    box-sizing: border-box;
+    min-height: 2.75rem;
+    line-height: 1.25;
+    padding-block: 0.625rem;
+    padding-inline-start: 2.75rem;
+    padding-inline-end: 2.5rem;
     border: 1px solid #d1d5db;
     border-radius: 6px;
     font-size: 0.875rem;
-    background: white;
+    font-family: inherit;
     color: #1f2937;
     cursor: pointer;
     appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background-color: #ffffff !important;
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236b7280' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
     background-position: right 1rem center;
     background-size: 12px;
-    transition: all 0.2s ease;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
-.custom-field-select-wrapper select:hover {
+[dir="rtl"] .custom-fields-page .custom-field-select-wrapper .custom-fields-facet-select {
+    background-position: left 1rem center;
+}
+
+.custom-fields-page .custom-field-select-wrapper .custom-fields-facet-select:hover {
     border-color: #9ca3af;
 }
 
-.custom-field-select-wrapper select:focus {
+.custom-fields-page .custom-field-select-wrapper .custom-fields-facet-select:focus {
     outline: none;
     border-color: #248567;
     box-shadow: 0 0 0 3px rgba(36, 133, 103, 0.1);
 }
 
-.custom-field-select-wrapper select:disabled {
-    background-color: #f3f4f6;
+.custom-fields-page .custom-field-select-wrapper .custom-fields-facet-select:disabled {
+    background-color: #f3f4f6 !important;
     cursor: not-allowed;
-    opacity: 0.6;
+    opacity: 0.85;
+    color: #6b7280;
+}
+
+.custom-fields-page .custom-field-select-wrapper .custom-fields-facet-select option {
+    color: #1f2937;
+    background-color: #ffffff;
+}
+
+.custom-field-select-wrapper.is-loading .custom-fields-facet-select {
+    cursor: wait;
 }
 
 .card-actions {

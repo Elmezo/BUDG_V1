@@ -1,5 +1,6 @@
 package com.example.budg_v2.dao;
 
+import com.example.budg_v2.audit.AuditHistoryWriter;
 import com.example.budg_v2.database.DatabaseConnection;
 import com.example.budg_v2.model.OrgUnit;
 import com.example.budg_v2.service.SegmentAccessService;
@@ -326,8 +327,9 @@ public class OrgUnitDAO {
                 INSERT INTO orgunit_audit_history (id, object, event, updateType, field, `from`, `to`, author)
                 VALUES (?, ?, ?, ?, ?, NULL, ?, ?)
             """;
+            AuditHistoryWriter.logCreatedBy(conn, "orgunit_audit_history", orgUnitId, "Org Unit", userName);
             auditStmt = conn.prepareStatement(auditSql, Statement.RETURN_GENERATED_KEYS);
-            
+
             // Primary Name
             String name = orgUnitRs.getString("Name");
             if (name != null && !name.trim().isEmpty()) {
@@ -364,15 +366,8 @@ public class OrgUnitDAO {
                 }
             }
             
-            // Created By
-            Integer createdById = orgUnitRs.getObject("lastupdateuser_id", Integer.class);
-            if (createdById != null) {
-                String createdByName = getPersonFullName(createdById);
-                if (createdByName != null) {
-                    createNewAuditRecord(conn, auditStmt, orgUnitId, "Org Unit", "Details", "Added", "Created By", createdByName, userName);
-                }
-            }
-            
+            // Created By is written as the first row via AuditHistoryWriter.logCreatedBy.
+
             conn.commit();
             //system.out.println("✅ OrgUnitDAO.createOrgUnitAuditRecords - COMMITTED successfully for ID: " + orgUnitId);
             

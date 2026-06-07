@@ -516,7 +516,7 @@ public class CapabilityServlet extends HttpServlet {
                 String idParam = pathInfo.substring(14); // Remove "/relationship/" prefix
                 try {
                     int relationshipId = Integer.parseInt(idParam);
-                    handleDeleteCapabilityRelationship(response, relationshipId);
+                    handleDeleteCapabilityRelationship(request, response, relationshipId);
                     return;
                 } catch (NumberFormatException e) {
                     JsonUtil.sendErrorResponse(response.getWriter(), "Invalid relationship ID", 400);
@@ -919,6 +919,8 @@ public class CapabilityServlet extends HttpServlet {
             int relationshipId = createCapabilityRelationship(conn, sourceId, targetId, relationType, description, userId);
             
             if (relationshipId > 0) {
+                logCapXCapInsertAudit(conn, sourceId, targetId, relationType, userId);
+
                 com.google.gson.JsonObject responseJson = new com.google.gson.JsonObject();
                 responseJson.addProperty("success", true);
                 responseJson.addProperty("id", relationshipId);
@@ -953,9 +955,18 @@ public class CapabilityServlet extends HttpServlet {
         }
 
         try (Connection conn = DatabaseConnection.getConnection()) {
+            CapXCapSnapshot before = fetchCapXCapSnapshot(conn, relationshipId);
             boolean updated = updateCapabilityRelationship(conn, relationshipId, relationType, targetCapabilityId, description, userId);
-            
+
             if (updated) {
+                if (before != null) {
+                    logCapXCapUpdateAudit(conn,
+                            before.sourceId,
+                            before.targetId, targetCapabilityId,
+                            before.relationTypeId, relationType,
+                            userId);
+                }
+
                 com.google.gson.JsonObject responseJson = new com.google.gson.JsonObject();
                 responseJson.addProperty("success", true);
                 responseJson.addProperty("message", "Capability relationship updated successfully");
@@ -967,11 +978,21 @@ public class CapabilityServlet extends HttpServlet {
     }
 
     // Delete capability relationship
-    private void handleDeleteCapabilityRelationship(HttpServletResponse response, int relationshipId) throws IOException, SQLException {
+    private void handleDeleteCapabilityRelationship(HttpServletRequest request, HttpServletResponse response, int relationshipId) throws IOException, SQLException {
         try (Connection conn = DatabaseConnection.getConnection()) {
+            CapXCapSnapshot before = fetchCapXCapSnapshot(conn, relationshipId);
             boolean deleted = deleteCapabilityRelationship(conn, relationshipId);
-            
+
             if (deleted) {
+                if (before != null) {
+                    int userId = UserContextUtil.getCurrentUserId(request);
+                    logCapXCapDeleteAudit(conn,
+                            before.sourceId,
+                            before.targetId,
+                            before.relationTypeId,
+                            userId);
+                }
+
                 com.google.gson.JsonObject responseJson = new com.google.gson.JsonObject();
                 responseJson.addProperty("success", true);
                 responseJson.addProperty("message", "Capability relationship deleted successfully");
@@ -1093,5 +1114,205 @@ public class CapabilityServlet extends HttpServlet {
             System.err.println("Error looking up source capability for relationship " + relationshipId + ": " + e.getMessage());
         }
         return -1;
+    }
+
+    // ---------------------------------------------------------------------
+    // Audit history for Capability ↔ Capability relationships (Impact tab)
+    //
+    // The cross-facet (Capability X System / X Process / ...) audit is written
+    // by CapabilityImpactDAO, but capability_x_capability is managed here and
+    // historically had NO audit logging. As a result, relationships added in
+    // the Capability page > Impact > Capabilities sub-tab did not appear in
+    // the object History tab nor in the People Activity Stream expanded table.
+    // The helpers below close that gap by writing "Capability X Capability"
+    // rows into capability_audit_history for INSERT/UPDATE/DELETE, mirroring
+    // the pattern in CapabilityImpactDAO. We log on BOTH ends (source and
+    // target capability) so the relationship shows up in either capability's
+    // history.
+    // ---------------------------------------------------------------------
+
+    private static final String CAP_X_CAP_OBJECT = "Capability X Capability";
+
+    private String getCapabilityPrimaryName(Connection conn, int capabilityId) {
+        String sql = "SELECT PrimaryName FROM capability WHERE ID = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, capabilityId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getString("PrimaryName");
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("Error fetching capability name for ID " + capabilityId + ": " + e.getMessage());
+        }
+        return null;
+    }
+
+    private String getCapXCapRelationTypeName(Connection conn, int relationTypeId) {
+        String sql = "SELECT PrimaryName FROM capability_x_capability_relationtype WHERE ID = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, relationTypeId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getString("PrimaryName");
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("Error fetching cap-x-cap relation type for ID " + relationTypeId + ": " + e.getMessage());
+        }
+        return null;
+    }
+
+    private String getUserFullName(Connection conn, int userId) {
+        String sql = "SELECT CONCAT(First_Name, ' ', Last_Name) AS fullName FROM people WHERE ID = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, userId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getString("fullName");
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("Error fetching user full name for ID " + userId + ": " + e.getMessage());
+        }
+        return "System";
+    }
+
+    /**
+     * Write one audit row into capability_audit_history. Designed to mirror the
+     * column layout used by CapabilityImpactDAO so existing readers (e.g.
+     * HistoryAuditServlet, PersonActivityServlet.calculateEvents) treat these
+     * rows the same as System/Process/Glossary relationship rows.
+     */
+    private void writeCapAuditRow(Connection conn,
+                                  int capabilityId,
+                                  String event,
+                                  String updateType,
+                                  String field,
+                                  String fromValue,
+                                  String toValue,
+                                  String author) {
+        String sql = "INSERT INTO capability_audit_history " +
+                "(id, object, event, updateType, field, `from`, `to`, author, date, lastChange) " +
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, capabilityId);
+            ps.setString(2, CAP_X_CAP_OBJECT);
+            ps.setString(3, event);
+            ps.setString(4, updateType);
+            ps.setString(5, field);
+            if (fromValue == null) {
+                ps.setNull(6, Types.VARCHAR);
+            } else {
+                ps.setString(6, fromValue);
+            }
+            if (toValue == null) {
+                ps.setNull(7, Types.VARCHAR);
+            } else {
+                ps.setString(7, toValue);
+            }
+            ps.setString(8, author);
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            System.err.println("Error writing Capability X Capability audit row for capability "
+                    + capabilityId + ": " + e.getMessage());
+        }
+    }
+
+    /** Audit a freshly-created capability_x_capability link on both ends. */
+    private void logCapXCapInsertAudit(Connection conn, int sourceId, int targetId,
+                                       int relationTypeId, int userId) {
+        String sourceName = getCapabilityPrimaryName(conn, sourceId);
+        String targetName = getCapabilityPrimaryName(conn, targetId);
+        String relTypeName = getCapXCapRelationTypeName(conn, relationTypeId);
+        String author = getUserFullName(conn, userId);
+
+        // From the source's history: it gained a link to `targetName`.
+        writeCapAuditRow(conn, sourceId, "link", "Added", "Capability", null, targetName, author);
+        writeCapAuditRow(conn, sourceId, "link", "Added", "RelationType", null, relTypeName, author);
+
+        // From the target's history: it was linked from `sourceName`.
+        if (targetId != sourceId) {
+            writeCapAuditRow(conn, targetId, "link", "Added", "Capability", null, sourceName, author);
+            writeCapAuditRow(conn, targetId, "link", "Added", "RelationType", null, relTypeName, author);
+        }
+    }
+
+    /** Audit changes to an existing capability_x_capability link. */
+    private void logCapXCapUpdateAudit(Connection conn,
+                                       int sourceId,
+                                       int oldTargetId, int newTargetId,
+                                       int oldRelationTypeId, int newRelationTypeId,
+                                       int userId) {
+        String author = getUserFullName(conn, userId);
+
+        if (oldTargetId != newTargetId) {
+            String oldName = getCapabilityPrimaryName(conn, oldTargetId);
+            String newName = getCapabilityPrimaryName(conn, newTargetId);
+            writeCapAuditRow(conn, sourceId, "edit", "Updated", "Capability", oldName, newName, author);
+            // Reflect the change on each target's history too.
+            if (oldTargetId > 0 && oldTargetId != sourceId) {
+                writeCapAuditRow(conn, oldTargetId, "edit", "Updated", "Capability",
+                        getCapabilityPrimaryName(conn, sourceId), null, author);
+            }
+            if (newTargetId > 0 && newTargetId != sourceId) {
+                writeCapAuditRow(conn, newTargetId, "edit", "Updated", "Capability",
+                        null, getCapabilityPrimaryName(conn, sourceId), author);
+            }
+        }
+
+        if (oldRelationTypeId != newRelationTypeId) {
+            String oldRt = getCapXCapRelationTypeName(conn, oldRelationTypeId);
+            String newRt = getCapXCapRelationTypeName(conn, newRelationTypeId);
+            writeCapAuditRow(conn, sourceId, "edit", "Updated", "RelationType", oldRt, newRt, author);
+            int counterpartId = (oldTargetId == newTargetId) ? oldTargetId : newTargetId;
+            if (counterpartId > 0 && counterpartId != sourceId) {
+                writeCapAuditRow(conn, counterpartId, "edit", "Updated", "RelationType", oldRt, newRt, author);
+            }
+        }
+    }
+
+    /** Audit a deletion on both ends of the link. */
+    private void logCapXCapDeleteAudit(Connection conn, int sourceId, int targetId,
+                                       int relationTypeId, int userId) {
+        String sourceName = getCapabilityPrimaryName(conn, sourceId);
+        String targetName = getCapabilityPrimaryName(conn, targetId);
+        String relTypeName = getCapXCapRelationTypeName(conn, relationTypeId);
+        String author = getUserFullName(conn, userId);
+
+        writeCapAuditRow(conn, sourceId, "delete", "Deleted", "Capability", targetName, null, author);
+        writeCapAuditRow(conn, sourceId, "delete", "Deleted", "RelationType", relTypeName, null, author);
+
+        if (targetId > 0 && targetId != sourceId) {
+            writeCapAuditRow(conn, targetId, "delete", "Deleted", "Capability", sourceName, null, author);
+            writeCapAuditRow(conn, targetId, "delete", "Deleted", "RelationType", relTypeName, null, author);
+        }
+    }
+
+    /** Snapshot of an existing capability_x_capability row, used so UPDATE/DELETE
+     *  audit rows can be written with proper "from" values. */
+    private static class CapXCapSnapshot {
+        int sourceId;
+        int targetId;
+        int relationTypeId;
+    }
+
+    private CapXCapSnapshot fetchCapXCapSnapshot(Connection conn, int relationshipId) {
+        String sql = "SELECT Source_ID, Target_ID, RelationType FROM capability_x_capability WHERE ID = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, relationshipId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    CapXCapSnapshot s = new CapXCapSnapshot();
+                    s.sourceId = rs.getInt("Source_ID");
+                    s.targetId = rs.getInt("Target_ID");
+                    s.relationTypeId = rs.getInt("RelationType");
+                    return s;
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("Error snapshotting capability_x_capability row " + relationshipId + ": " + e.getMessage());
+        }
+        return null;
     }
 }

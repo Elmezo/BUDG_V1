@@ -1,5 +1,6 @@
 package com.example.budg_v2.dao;
 
+import com.example.budg_v2.audit.AuditHistoryWriter;
 import com.example.budg_v2.database.DatabaseConnection;
 import com.example.budg_v2.model.Project;
 
@@ -945,8 +946,9 @@ public class ProjectDAO {
                 INSERT INTO project_audit_history (id, object, event, updateType, field, `from`, `to`, author)
                 VALUES (?, 'Project', 'Details', ?, ?, NULL, ?, ?)
                 """;
+            AuditHistoryWriter.logCreatedBy(conn, "project_audit_history", projectId, "Project", userName);
             auditStmt = conn.prepareStatement(auditSql, Statement.RETURN_GENERATED_KEYS);
-            
+
             // Primary Name
             String primaryName = projectRs.getString("primaryname");
             if (primaryName != null && !primaryName.trim().isEmpty()) {
@@ -1042,14 +1044,7 @@ public class ProjectDAO {
                 createNewAuditRecord(conn, auditStmt, projectId, "Added", "End Date", formattedEndDate, userName);
             }
             
-            // Created By
-            Integer createdById = projectRs.getObject("createdby_id", Integer.class);
-            if (createdById != null) {
-                String createdByName = getPersonFullName(conn, createdById);
-                if (createdByName != null) {
-                    createNewAuditRecord(conn, auditStmt, projectId, "Added", "Created By", createdByName, userName);
-                }
-            }
+            // Created By is written as the first row via AuditHistoryWriter.logCreatedBy.
         } finally {
             if (projectStmt != null) {
                 try {

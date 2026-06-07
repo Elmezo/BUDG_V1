@@ -1,5 +1,6 @@
 package com.example.budg_v2.dao;
 
+import com.example.budg_v2.audit.AuditHistoryWriter;
 import com.example.budg_v2.model.Product;
 import com.example.budg_v2.database.DatabaseConnection;
 import com.example.budg_v2.service.SegmentAccessService;
@@ -443,8 +444,9 @@ public class ProductDAO {
                 INSERT INTO product_audit_history (id, object, event, updateType, field, `from`, `to`, author)
                 VALUES (?, 'Product', 'Details', ?, ?, NULL, ?, ?)
             """;
+            AuditHistoryWriter.logCreatedBy(conn, "product_audit_history", productId, "Product", userName);
             auditStmt = conn.prepareStatement(auditSql, Statement.RETURN_GENERATED_KEYS);
-            
+
             // Primary Name
             String primaryName = productRs.getString("primaryname");
             if (primaryName != null && !primaryName.trim().isEmpty()) {

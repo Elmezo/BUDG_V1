@@ -1,5 +1,6 @@
 package com.example.budg_v2.dao;
 
+import com.example.budg_v2.audit.AuditHistoryWriter;
 import com.example.budg_v2.database.DatabaseConnection;
 import com.example.budg_v2.util.ModuleResolver;
 
@@ -1282,6 +1283,7 @@ public List<Map<String, Object>> getDirectStakeholdersForGlossary(int glossaryId
                 if (!glossaryRs.next()) {
                     throw new SQLException("Glossary not found with ID: " + glossaryId);
                 }
+                AuditHistoryWriter.logCreatedBy(conn, "glossary_audit_history", glossaryId, "Glossary", userName);
                 try (PreparedStatement auditStmt = conn.prepareStatement(auditSql, Statement.RETURN_GENERATED_KEYS)) {
                 // Name
                 String name = glossaryRs.getString("Name");
@@ -1402,15 +1404,47 @@ public List<Map<String, Object>> getDirectStakeholdersForGlossary(int glossaryId
                     }
                 }
 
-                // Created By
-                Integer createdById = glossaryRs.getObject("Last_updated_userID", Integer.class);
-                if (createdById != null) {
-                    String createdByName = getPersonFullName(createdById);
-                    if (createdByName != null) {
-                        createNewAuditRecord(conn, auditStmt, glossaryId, "Glossary", "Details", "Added", "Created By",
-                                createdByName, userName);
+                // KDE
+                Integer kdeId = glossaryRs.getObject("KDE", Integer.class);
+                if (kdeId != null) {
+                    String kdeName = getKdeTypeName(kdeId);
+                    if (kdeName != null) {
+                        createNewAuditRecord(conn, auditStmt, glossaryId, "Glossary", "Details", "Added", "KDE",
+                                kdeName, userName);
                     }
                 }
+
+                // Confidentiality Rating
+                Integer confidentialityRatingId = glossaryRs.getObject("Confidentiality_Rating", Integer.class);
+                if (confidentialityRatingId != null) {
+                    String confidentialityRatingName = getCiaRatingName(confidentialityRatingId);
+                    if (confidentialityRatingName != null) {
+                        createNewAuditRecord(conn, auditStmt, glossaryId, "Glossary", "Details", "Added",
+                                "Confidentiality Rating", confidentialityRatingName, userName);
+                    }
+                }
+
+                // Integrity Rating
+                Integer integrityRatingId = glossaryRs.getObject("Integrity_Rating", Integer.class);
+                if (integrityRatingId != null) {
+                    String integrityRatingName = getCiaRatingName(integrityRatingId);
+                    if (integrityRatingName != null) {
+                        createNewAuditRecord(conn, auditStmt, glossaryId, "Glossary", "Details", "Added",
+                                "Integrity Rating", integrityRatingName, userName);
+                    }
+                }
+
+                // Availability Rating
+                Integer availabilityRatingId = glossaryRs.getObject("Availability_Rating", Integer.class);
+                if (availabilityRatingId != null) {
+                    String availabilityRatingName = getCiaRatingName(availabilityRatingId);
+                    if (availabilityRatingName != null) {
+                        createNewAuditRecord(conn, auditStmt, glossaryId, "Glossary", "Details", "Added",
+                                "Availability Rating", availabilityRatingName, userName);
+                    }
+                }
+
+                // Created By is written as the first row via AuditHistoryWriter.logCreatedBy.
                 }
             }
         }

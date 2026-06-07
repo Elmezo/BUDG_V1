@@ -1,5 +1,6 @@
 package com.example.budg_v2.dao;
 
+import com.example.budg_v2.audit.AuditHistoryWriter;
 import com.example.budg_v2.database.DatabaseConnection;
 import com.example.budg_v2.model.GlossaryXGlossary;
 
@@ -8,6 +9,136 @@ import java.time.LocalDateTime;
 import java.util.*;
 
 public class GlossaryXGlossaryDAO {
+
+    private static final String AUDIT_TABLE = "glossary_audit_history";
+    private static final String AUDIT_OBJECT = "Glossary X Glossary";
+    private static final String AUDIT_EVENT = "Relationships";
+
+    /**
+     * Resolve the display name of a glossary.
+     */
+    private String getGlossaryName(Connection conn, Integer glossaryId) throws SQLException {
+        if (glossaryId == null) return null;
+        try (PreparedStatement ps = conn.prepareStatement("SELECT Name FROM glossary WHERE ID = ?")) {
+            ps.setInt(1, glossaryId);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? rs.getString(1) : null;
+            }
+        }
+    }
+
+    /**
+     * Resolve the display name of a glossary_x_glossary relation type.
+     */
+    private String getRelationTypeName(Connection conn, Integer relationTypeId) throws SQLException {
+        if (relationTypeId == null) return null;
+        try (PreparedStatement ps = conn.prepareStatement(
+                "SELECT PrimaryName FROM glossary_x_glossary_reltype WHERE ID = ?")) {
+            ps.setInt(1, relationTypeId);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? rs.getString(1) : null;
+            }
+        }
+    }
+
+    /**
+     * Resolve the display name of a user (for the Author column).
+     */
+    private String getUserFullName(Connection conn, Integer userId) throws SQLException {
+        if (userId == null || userId <= 0) return "System";
+        String sql = "SELECT CONCAT(COALESCE(First_Name,''), ' ', COALESCE(Last_Name,'')) AS fullName FROM people WHERE ID = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, userId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    String name = rs.getString(1);
+                    if (name != null && !name.trim().isEmpty()) return name.trim();
+                }
+            }
+        }
+        return "User #" + userId;
+    }
+
+    /**
+     * Write one Added audit row per populated field on the source glossary's
+     * history for a newly-created glossary_x_glossary relationship.
+     */
+    public void logRelationshipAdded(Integer sourceGlossaryId, Integer targetGlossaryId,
+                                      Integer relationTypeId, Integer userId) {
+        if (sourceGlossaryId == null || sourceGlossaryId <= 0) return;
+        try (Connection conn = DatabaseConnection.getConnection()) {
+            String sourceName = getGlossaryName(conn, sourceGlossaryId);
+            String targetName = getGlossaryName(conn, targetGlossaryId);
+            String relationTypeName = getRelationTypeName(conn, relationTypeId);
+            String author = getUserFullName(conn, userId);
+
+            AuditHistoryWriter.logAdded(conn, AUDIT_TABLE, sourceGlossaryId,
+                    AUDIT_OBJECT, AUDIT_EVENT, "Source Glossary", sourceName, author);
+            AuditHistoryWriter.logAdded(conn, AUDIT_TABLE, sourceGlossaryId,
+                    AUDIT_OBJECT, AUDIT_EVENT, "Target Glossary", targetName, author);
+            AuditHistoryWriter.logAdded(conn, AUDIT_TABLE, sourceGlossaryId,
+                    AUDIT_OBJECT, AUDIT_EVENT, "Relationship Type", relationTypeName, author);
+        } catch (SQLException e) {
+            // Do not break the main transaction over audit failures
+            System.err.println("[GlossaryXGlossaryDAO] Failed to log relationship-added audit: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Write per-field Updated audit rows for an existing glossary relationship.
+     */
+    public void logRelationshipUpdated(Integer relationshipParentSourceId,
+                                       Integer oldSourceId, Integer newSourceId,
+                                       Integer oldTargetId, Integer newTargetId,
+                                       Integer oldRelationTypeId, Integer newRelationTypeId,
+                                       Integer userId) {
+        if (relationshipParentSourceId == null || relationshipParentSourceId <= 0) return;
+        try (Connection conn = DatabaseConnection.getConnection()) {
+            String author = getUserFullName(conn, userId);
+
+            if (!Objects.equals(oldSourceId, newSourceId)) {
+                AuditHistoryWriter.logUpdated(conn, AUDIT_TABLE, relationshipParentSourceId,
+                        AUDIT_OBJECT, AUDIT_EVENT, "Source Glossary",
+                        getGlossaryName(conn, oldSourceId), getGlossaryName(conn, newSourceId), author);
+            }
+            if (!Objects.equals(oldTargetId, newTargetId)) {
+                AuditHistoryWriter.logUpdated(conn, AUDIT_TABLE, relationshipParentSourceId,
+                        AUDIT_OBJECT, AUDIT_EVENT, "Target Glossary",
+                        getGlossaryName(conn, oldTargetId), getGlossaryName(conn, newTargetId), author);
+            }
+            if (!Objects.equals(oldRelationTypeId, newRelationTypeId)) {
+                AuditHistoryWriter.logUpdated(conn, AUDIT_TABLE, relationshipParentSourceId,
+                        AUDIT_OBJECT, AUDIT_EVENT, "Relationship Type",
+                        getRelationTypeName(conn, oldRelationTypeId),
+                        getRelationTypeName(conn, newRelationTypeId), author);
+            }
+        } catch (SQLException e) {
+            System.err.println("[GlossaryXGlossaryDAO] Failed to log relationship-updated audit: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Write one Deleted audit row per populated field when a relationship is removed.
+     */
+    public void logRelationshipDeleted(Integer sourceGlossaryId, Integer targetGlossaryId,
+                                        Integer relationTypeId, Integer userId) {
+        if (sourceGlossaryId == null || sourceGlossaryId <= 0) return;
+        try (Connection conn = DatabaseConnection.getConnection()) {
+            String sourceName = getGlossaryName(conn, sourceGlossaryId);
+            String targetName = getGlossaryName(conn, targetGlossaryId);
+            String relationTypeName = getRelationTypeName(conn, relationTypeId);
+            String author = getUserFullName(conn, userId);
+
+            AuditHistoryWriter.logDeleted(conn, AUDIT_TABLE, sourceGlossaryId,
+                    AUDIT_OBJECT, AUDIT_EVENT, "Source Glossary", sourceName, author);
+            AuditHistoryWriter.logDeleted(conn, AUDIT_TABLE, sourceGlossaryId,
+                    AUDIT_OBJECT, AUDIT_EVENT, "Target Glossary", targetName, author);
+            AuditHistoryWriter.logDeleted(conn, AUDIT_TABLE, sourceGlossaryId,
+                    AUDIT_OBJECT, AUDIT_EVENT, "Relationship Type", relationTypeName, author);
+        } catch (SQLException e) {
+            System.err.println("[GlossaryXGlossaryDAO] Failed to log relationship-deleted audit: " + e.getMessage());
+        }
+    }
 
     /**
      * Get glossary relationship by ID

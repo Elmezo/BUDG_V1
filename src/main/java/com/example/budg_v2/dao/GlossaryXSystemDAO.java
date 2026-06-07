@@ -1,11 +1,19 @@
 package com.example.budg_v2.dao;
 
+import com.example.budg_v2.audit.AuditHistoryWriter;
 import com.example.budg_v2.database.DatabaseConnection;
 
 import java.sql.*;
 import java.util.*;
 
 public class GlossaryXSystemDAO {
+
+    private static final String GLOSSARY_AUDIT_TABLE = "glossary_audit_history";
+    private static final String SYSTEM_AUDIT_TABLE = "system_audit_history";
+    private static final String OBJECT_STRATEGIC = "Glossary X System";
+    private static final String OBJECT_DATA_CONTENT = "System X Glossary";
+    private static final String EVENT_LINK = "Strategic Source";
+    private static final String EVENT_DATA_CONTENT = "Data Content Summary";
 
     public List<Map<String, Object>> getByGlossaryId(int glossaryId) throws SQLException {
         String sql = "SELECT gxs.ID, gxs.GlossaryID, gxs.SystemID, gxs.Strategic_DatasetID, gxs.Relation_TypeID, " +
@@ -314,6 +322,174 @@ public class GlossaryXSystemDAO {
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, glossaryId);
             return ps.executeUpdate() > 0;
+        }
+    }
+
+    // ----- Audit helpers ---------------------------------------------------
+
+    private String getSystemName(Connection conn, Integer systemId) throws SQLException {
+        if (systemId == null) return null;
+        try (PreparedStatement ps = conn.prepareStatement("SELECT Name FROM system WHERE id = ?")) {
+            ps.setInt(1, systemId);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? rs.getString(1) : null;
+            }
+        }
+    }
+
+    private String getDatasetName(Connection conn, Integer datasetId) throws SQLException {
+        if (datasetId == null) return null;
+        try (PreparedStatement ps = conn.prepareStatement("SELECT PrimaryName FROM dataset WHERE ID = ?")) {
+            ps.setInt(1, datasetId);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? rs.getString(1) : null;
+            }
+        }
+    }
+
+    private String getGlossaryName(Connection conn, Integer glossaryId) throws SQLException {
+        if (glossaryId == null) return null;
+        try (PreparedStatement ps = conn.prepareStatement("SELECT Name FROM glossary WHERE ID = ?")) {
+            ps.setInt(1, glossaryId);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? rs.getString(1) : null;
+            }
+        }
+    }
+
+    private String getRelationTypeName(Connection conn, Integer relationTypeId) throws SQLException {
+        if (relationTypeId == null) return null;
+        try (PreparedStatement ps = conn.prepareStatement(
+                "SELECT PrimaryName FROM glossary_x_system_relationtype WHERE ID = ?")) {
+            ps.setInt(1, relationTypeId);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? rs.getString(1) : null;
+            }
+        }
+    }
+
+    private String getUserFullName(Connection conn, Integer userId) throws SQLException {
+        if (userId == null || userId <= 0) return "System";
+        try (PreparedStatement ps = conn.prepareStatement(
+                "SELECT CONCAT(COALESCE(First_Name,''), ' ', COALESCE(Last_Name,'')) FROM people WHERE ID = ?")) {
+            ps.setInt(1, userId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    String name = rs.getString(1);
+                    if (name != null && !name.trim().isEmpty()) return name.trim();
+                }
+            }
+        }
+        return "User #" + userId;
+    }
+
+    /**
+     * Log Added audit rows for a new Strategic Source relationship on the source glossary's history.
+     * One row per populated non-FK column on the link (System, Strategic Dataset, Relationship Type, Link Source).
+     * Blank values are skipped, so a system-only link yields 3 rows and a system+dataset link yields 4 rows.
+     */
+    public void logStrategicSourceAdded(int glossaryId, Integer systemId, Integer datasetId,
+                                         Integer relationTypeId, Integer userId) {
+        try (Connection conn = DatabaseConnection.getConnection()) {
+            String author = getUserFullName(conn, userId);
+            AuditHistoryWriter.logAdded(conn, GLOSSARY_AUDIT_TABLE, glossaryId,
+                    OBJECT_STRATEGIC, EVENT_LINK, "System", getSystemName(conn, systemId), author);
+            AuditHistoryWriter.logAdded(conn, GLOSSARY_AUDIT_TABLE, glossaryId,
+                    OBJECT_STRATEGIC, EVENT_LINK, "Strategic Dataset", getDatasetName(conn, datasetId), author);
+            AuditHistoryWriter.logAdded(conn, GLOSSARY_AUDIT_TABLE, glossaryId,
+                    OBJECT_STRATEGIC, EVENT_LINK, "Relationship Type", getRelationTypeName(conn, relationTypeId), author);
+            AuditHistoryWriter.logAdded(conn, GLOSSARY_AUDIT_TABLE, glossaryId,
+                    OBJECT_STRATEGIC, EVENT_LINK, "Link Source", "Glossary", author);
+        } catch (SQLException e) {
+            System.err.println("[GlossaryXSystemDAO] Failed to log strategic-source-added audit: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Log per-field Updated audit rows for a Strategic Source relationship change.
+     */
+    public void logStrategicSourceUpdated(int glossaryId,
+                                          Integer oldSystemId, Integer newSystemId,
+                                          Integer oldDatasetId, Integer newDatasetId,
+                                          Integer oldRelationTypeId, Integer newRelationTypeId,
+                                          Integer userId) {
+        try (Connection conn = DatabaseConnection.getConnection()) {
+            String author = getUserFullName(conn, userId);
+            if (!Objects.equals(oldSystemId, newSystemId)) {
+                AuditHistoryWriter.logUpdated(conn, GLOSSARY_AUDIT_TABLE, glossaryId,
+                        OBJECT_STRATEGIC, EVENT_LINK, "System",
+                        getSystemName(conn, oldSystemId), getSystemName(conn, newSystemId), author);
+            }
+            if (!Objects.equals(oldDatasetId, newDatasetId)) {
+                AuditHistoryWriter.logUpdated(conn, GLOSSARY_AUDIT_TABLE, glossaryId,
+                        OBJECT_STRATEGIC, EVENT_LINK, "Strategic Dataset",
+                        getDatasetName(conn, oldDatasetId), getDatasetName(conn, newDatasetId), author);
+            }
+            if (!Objects.equals(oldRelationTypeId, newRelationTypeId)) {
+                AuditHistoryWriter.logUpdated(conn, GLOSSARY_AUDIT_TABLE, glossaryId,
+                        OBJECT_STRATEGIC, EVENT_LINK, "Relationship Type",
+                        getRelationTypeName(conn, oldRelationTypeId),
+                        getRelationTypeName(conn, newRelationTypeId), author);
+            }
+        } catch (SQLException e) {
+            System.err.println("[GlossaryXSystemDAO] Failed to log strategic-source-updated audit: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Log Deleted audit rows when a Strategic Source relationship is removed.
+     */
+    public void logStrategicSourceDeleted(int glossaryId, Integer systemId, Integer datasetId,
+                                          Integer relationTypeId, Integer userId) {
+        try (Connection conn = DatabaseConnection.getConnection()) {
+            String author = getUserFullName(conn, userId);
+            AuditHistoryWriter.logDeleted(conn, GLOSSARY_AUDIT_TABLE, glossaryId,
+                    OBJECT_STRATEGIC, EVENT_LINK, "System", getSystemName(conn, systemId), author);
+            AuditHistoryWriter.logDeleted(conn, GLOSSARY_AUDIT_TABLE, glossaryId,
+                    OBJECT_STRATEGIC, EVENT_LINK, "Strategic Dataset", getDatasetName(conn, datasetId), author);
+            AuditHistoryWriter.logDeleted(conn, GLOSSARY_AUDIT_TABLE, glossaryId,
+                    OBJECT_STRATEGIC, EVENT_LINK, "Relationship Type", getRelationTypeName(conn, relationTypeId), author);
+            AuditHistoryWriter.logDeleted(conn, GLOSSARY_AUDIT_TABLE, glossaryId,
+                    OBJECT_STRATEGIC, EVENT_LINK, "Link Source", "Glossary", author);
+        } catch (SQLException e) {
+            System.err.println("[GlossaryXSystemDAO] Failed to log strategic-source-deleted audit: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Log Data Content Summary changes on the system's history (Object = System X Glossary).
+     */
+    public void logDataContentAdded(int systemId, Integer glossaryId, Integer datasetId,
+                                     Integer relationTypeId, Integer userId) {
+        try (Connection conn = DatabaseConnection.getConnection()) {
+            String author = getUserFullName(conn, userId);
+            AuditHistoryWriter.logAdded(conn, SYSTEM_AUDIT_TABLE, systemId,
+                    OBJECT_DATA_CONTENT, EVENT_DATA_CONTENT, "Glossary", getGlossaryName(conn, glossaryId), author);
+            AuditHistoryWriter.logAdded(conn, SYSTEM_AUDIT_TABLE, systemId,
+                    OBJECT_DATA_CONTENT, EVENT_DATA_CONTENT, "Strategic Dataset", getDatasetName(conn, datasetId), author);
+            AuditHistoryWriter.logAdded(conn, SYSTEM_AUDIT_TABLE, systemId,
+                    OBJECT_DATA_CONTENT, EVENT_DATA_CONTENT, "Relationship Type", getRelationTypeName(conn, relationTypeId), author);
+            AuditHistoryWriter.logAdded(conn, SYSTEM_AUDIT_TABLE, systemId,
+                    OBJECT_DATA_CONTENT, EVENT_DATA_CONTENT, "Link Source", "System", author);
+        } catch (SQLException e) {
+            System.err.println("[GlossaryXSystemDAO] Failed to log data-content-added audit: " + e.getMessage());
+        }
+    }
+
+    public void logDataContentDeleted(int systemId, Integer glossaryId, Integer datasetId,
+                                      Integer relationTypeId, Integer userId) {
+        try (Connection conn = DatabaseConnection.getConnection()) {
+            String author = getUserFullName(conn, userId);
+            AuditHistoryWriter.logDeleted(conn, SYSTEM_AUDIT_TABLE, systemId,
+                    OBJECT_DATA_CONTENT, EVENT_DATA_CONTENT, "Glossary", getGlossaryName(conn, glossaryId), author);
+            AuditHistoryWriter.logDeleted(conn, SYSTEM_AUDIT_TABLE, systemId,
+                    OBJECT_DATA_CONTENT, EVENT_DATA_CONTENT, "Strategic Dataset", getDatasetName(conn, datasetId), author);
+            AuditHistoryWriter.logDeleted(conn, SYSTEM_AUDIT_TABLE, systemId,
+                    OBJECT_DATA_CONTENT, EVENT_DATA_CONTENT, "Relationship Type", getRelationTypeName(conn, relationTypeId), author);
+            AuditHistoryWriter.logDeleted(conn, SYSTEM_AUDIT_TABLE, systemId,
+                    OBJECT_DATA_CONTENT, EVENT_DATA_CONTENT, "Link Source", "System", author);
+        } catch (SQLException e) {
+            System.err.println("[GlossaryXSystemDAO] Failed to log data-content-deleted audit: " + e.getMessage());
         }
     }
 }

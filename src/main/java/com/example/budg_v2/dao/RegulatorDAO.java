@@ -1,5 +1,6 @@
 package com.example.budg_v2.dao;
 
+import com.example.budg_v2.audit.AuditHistoryWriter;
 import com.example.budg_v2.database.DatabaseConnection;
 import com.example.budg_v2.model.Regulator;
 import com.example.budg_v2.service.SegmentAccessService;
@@ -298,8 +299,9 @@ public class RegulatorDAO {
                 INSERT INTO regulator_audit_history (id, object, event, updateType, field, `from`, `to`, author)
                 VALUES (?, ?, ?, ?, ?, NULL, ?, ?)
             """;
+            AuditHistoryWriter.logCreatedBy(conn, "regulator_audit_history", regulatorId, "Regulator", userName);
             auditStmt = conn.prepareStatement(auditSql, Statement.RETURN_GENERATED_KEYS);
-            
+
             // Primary Name
             String primaryName = regulatorRs.getString("PrimaryName");
             if (primaryName != null && !primaryName.trim().isEmpty()) {
@@ -318,14 +320,8 @@ public class RegulatorDAO {
                 createNewAuditRecord(conn, auditStmt, regulatorId, "Regulator", "Details", "Added", "Description", description, userName);
             }
             
-            // Created By
-            Integer lastUpdateUserId = regulatorRs.getObject("LastUpdate_UserID", Integer.class);
-            if (lastUpdateUserId != null) {
-                String createdByName = getPersonFullName(lastUpdateUserId);
-                if (createdByName != null) {
-                    createNewAuditRecord(conn, auditStmt, regulatorId, "Regulator", "Details", "Added", "Created By", createdByName, userName);
-                }
-            }
+            // Created By is written as the first audit row above via AuditHistoryWriter.logCreatedBy;
+            // legacy fallback from LastUpdate_UserID is no longer needed here.
             
             conn.commit(); // تأكيد الـ transaction
             

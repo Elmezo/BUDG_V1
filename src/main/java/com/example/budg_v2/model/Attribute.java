@@ -18,6 +18,7 @@ public class Attribute {
     private Integer rank;
     private String businessLogic;
     private Integer dataLength;
+    private Double confidenceScore;
 
     public Integer getId() {
         return id;
@@ -145,6 +146,14 @@ public class Attribute {
 
     public void setDataLength(Integer dataLength) {
         this.dataLength = dataLength;
+    }
+
+    public Double getConfidenceScore() {
+        return confidenceScore;
+    }
+
+    public void setConfidenceScore(Double confidenceScore) {
+        this.confidenceScore = confidenceScore;
     }
 }
 

@@ -1,5 +1,6 @@
 package com.example.budg_v2.dao;
 
+import com.example.budg_v2.audit.AuditHistoryWriter;
 import com.example.budg_v2.database.DatabaseConnection;
 import com.example.budg_v2.model.RegulatoryTheme;
 import com.example.budg_v2.service.SegmentAccessService;
@@ -372,6 +373,7 @@ public class RegulatoryThemeDAO {
                         INSERT INTO regulatory_theme_audit_history (id, object, event, updateType, field, `from`, `to`, author)
                         VALUES (?, ?, ?, ?, ?, NULL, ?, ?)
                         """;
+                AuditHistoryWriter.logCreatedBy(conn, "regulatory_theme_audit_history", themeId, "Regulatory Theme", userName);
                 try (PreparedStatement auditStmt = conn.prepareStatement(auditSql, Statement.RETURN_GENERATED_KEYS)) {
 
                     String primaryName = themeRs.getString("PrimaryName");
@@ -410,13 +412,7 @@ public class RegulatoryThemeDAO {
                         }
                     }
 
-                    Integer lastUpdateUserId = themeRs.getObject("LastUpdate_UserID", Integer.class);
-                    if (lastUpdateUserId != null) {
-                        String createdByName = getPersonFullName(lastUpdateUserId);
-                        if (createdByName != null) {
-                            createNewAuditRecord(conn, auditStmt, themeId, "Regulatory Theme", "Details", "Added", "Created By", createdByName, userName);
-                        }
-                    }
+                    // Created By is written as the first row via AuditHistoryWriter.logCreatedBy.
                 }
             }
         }

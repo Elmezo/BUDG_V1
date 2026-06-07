@@ -480,8 +480,11 @@ public class FollowServlet extends HttpServlet {
                             }
 
                             if (purgeAuditHistory) {
-                                // HARD DELETE from audit_history for this specific follow
-                                deleteFollowAuditHistory(conn, entityType, entityId, followerName);
+                                // HARD DELETE from audit_history for this specific follow.
+                                // Pass the same author resolution used at insert so the
+                                // DELETE matches the rows actually written for this user.
+                                String author = resolveAuthorName(request, userId);
+                                deleteFollowAuditHistory(conn, entityType, entityId, followerName, author);
                             }
 
                             // Delete from main follow table
@@ -507,21 +510,23 @@ public class FollowServlet extends HttpServlet {
             }
         }
     }
-    private void deleteFollowAuditHistory(Connection conn, String entityType, int entityId, String followerName) throws SQLException {
+    private void deleteFollowAuditHistory(Connection conn, String entityType, int entityId,
+                                          String followerName, String author) throws SQLException {
         AuditMetadata metadata = getAuditMetadata(entityType);
         if (metadata == null) {
             return;
         }
 
-        // Delete audit history records for this specific follow
-        // بنحدد الـ records بناءً على: entity ID + object type + event = Follow + Name = followerName
+        // Match by event='Follow' (covers both the spec-compliant Object='Follow'
+        // rows we now write and any historical rows that recorded the facet label
+        // as Object). Author + the "Name" row's `to` value together identify the
+        // exact rows inserted for this follower's session.
         String sql = "DELETE FROM " + metadata.auditTable +
-                " WHERE id = ? AND object = ? AND event = 'Follow' AND author = ?";
+                " WHERE id = ? AND event = 'Follow' AND author = ?";
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, entityId);
-            ps.setString(2, metadata.objectLabel);
-            ps.setString(3, followerName);
+            ps.setString(2, author != null ? author : followerName);
             int deletedRows = ps.executeUpdate();
             LOGGER.fine(() -> String.format("Deleted %d audit history rows for follower %s on entity %d",
                     deletedRows, followerName, entityId));
@@ -1230,18 +1235,47 @@ public class FollowServlet extends HttpServlet {
 
         String followTypeName = resolveFollowTypeName(conn, followType);
 
-        // Log Follow Type
-        insertAuditHistory(conn, metadata, entityId, "Follow", "Added", "Follow Type", null, followTypeName, author);
+        // Per the audit spec the Object column is "Follow" for follow events; the
+        // facet identifier is implicit because the rows are written to the facet's
+        // audit history table.
+        String object = "Follow";
 
-        // Log Name (المستخدم اللي عمل follow)
-        insertAuditHistory(conn, metadata, entityId, "Follow", "Added", "Name", null, followerName, author);
+        // Follow Type
+        insertFollowAuditRow(conn, metadata.auditTable, object, entityId, "Follow", "Added", "Follow Type", null, followTypeName, author);
 
-        // Log Object ID
-        insertAuditHistory(conn, metadata, entityId, "Follow", "Added", "ObjectId", null, String.valueOf(entityId), author);
+        // Name (the user who followed)
+        insertFollowAuditRow(conn, metadata.auditTable, object, entityId, "Follow", "Added", "Name", null, followerName, author);
 
-        // Log Description
-        String sanitizedDescription = (description == null || description.trim().isEmpty()) ? "" : description;
-        insertAuditHistory(conn, metadata, entityId, "Follow", "Added", "Description", null, sanitizedDescription, author);
+        // Object ID
+        insertFollowAuditRow(conn, metadata.auditTable, object, entityId, "Follow", "Added", "ObjectId", null, String.valueOf(entityId), author);
+
+        // Description - skip when the user did not enter one (per the audit spec).
+        if (description != null && !description.trim().isEmpty()) {
+            insertFollowAuditRow(conn, metadata.auditTable, object, entityId, "Follow", "Added", "Description", null, description, author);
+        }
+    }
+
+    /**
+     * Insert one Follow audit row using "Follow" as the Object column value
+     * regardless of the facet (e.g. Glossary follows still record Object = "Follow").
+     */
+    private void insertFollowAuditRow(Connection conn, String auditTable, String object,
+                                      int entityId, String event, String updateType, String field,
+                                      String fromValue, String toValue, String author) throws SQLException {
+        String sql = "INSERT INTO `" + auditTable + "`"
+                + " (id, object, event, updateType, field, `from`, `to`, author, date, lastChange)"
+                + " VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, entityId);
+            ps.setString(2, object);
+            ps.setString(3, event);
+            ps.setString(4, updateType);
+            ps.setString(5, field);
+            if (fromValue == null) ps.setNull(6, Types.VARCHAR); else ps.setString(6, fromValue);
+            if (toValue == null) ps.setNull(7, Types.VARCHAR); else ps.setString(7, toValue);
+            ps.setString(8, author);
+            ps.executeUpdate();
+        }
     }
 
     private void logFollowUpdateAudit(Connection conn, String entityType, int entityId,

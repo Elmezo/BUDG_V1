@@ -314,8 +314,9 @@ public class GlossaryXGlossaryServlet extends HttpServlet {
                 }
             }
             
-            // No active CR - save completed normally
-            
+            // No active CR - save completed normally; write audit history rows
+            dao.logRelationshipAdded(sourceGlossaryId, targetGlossaryId, relationType, userId);
+
             JsonObject response = new JsonObject();
             response.addProperty("id", newId);
             response.addProperty("pending", false);
@@ -396,9 +397,19 @@ public class GlossaryXGlossaryServlet extends HttpServlet {
             }
             
             existingRelationship.setLastUpdateDatetime(LocalDateTime.now());
-            
+
+            // Snapshot the existing relationship for the audit diff before applying the update
+            GlossaryXGlossary previous = dao.getById(id);
+
             boolean updated = dao.update(existingRelationship);
             if (updated) {
+                if (previous != null) {
+                    dao.logRelationshipUpdated(sourceGlossaryIdForCr,
+                            previous.getSourceGlossaryId(), existingRelationship.getSourceGlossaryId(),
+                            previous.getTargetGlossaryId(), existingRelationship.getTargetGlossaryId(),
+                            previous.getRelationType(), existingRelationship.getRelationType(),
+                            userIdPut);
+                }
                 JsonObject response = new JsonObject();
                 response.addProperty("message", "Glossary relationship updated successfully");
                 JsonUtil.sendSuccessResponse(resp.getWriter(), "Glossary relationship updated successfully", response);
@@ -495,6 +506,10 @@ public class GlossaryXGlossaryServlet extends HttpServlet {
             // No active CR or not a pending relationship - delete directly from database
             boolean deleted = dao.delete(id);
             if (deleted) {
+                dao.logRelationshipDeleted(relationship.getSourceGlossaryId(),
+                        relationship.getTargetGlossaryId(),
+                        relationship.getRelationType(),
+                        userId);
                 JsonObject response = new JsonObject();
                 response.addProperty("pending", false);
                 response.addProperty("message", "Glossary relationship deleted successfully");

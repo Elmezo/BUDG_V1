@@ -66,11 +66,11 @@ function getCustomFieldsLayout() {
         <section class="custom-fields-page">
             <div class="custom-fields-card">
                 <div class="custom-fields-card-header">
-                    <div class="card-title-block">
-                        <label class="card-subtitle" for="customFieldsFacetSelect">${h(T('adminPanel.customFieldsPage.facets', 'Facets'))}</label>
+                    <div class="card-title-block custom-fields-facet-picker">
+                        <label class="custom-fields-facet-label" for="customFieldsFacetSelect">${h(T('adminPanel.customFieldsPage.facets', 'Facets'))}</label>
                         <div class="custom-field-select-wrapper">
-                            <i class="fas fa-layer-group"></i>
-                            <select id="customFieldsFacetSelect" aria-label="${h(T('adminPanel.customFieldsPage.facets', 'Facets'))}">
+                            <i class="fas fa-layer-group custom-fields-facet-icon" aria-hidden="true"></i>
+                            <select id="customFieldsFacetSelect" class="custom-fields-facet-select" aria-label="${h(T('adminPanel.customFieldsPage.facets', 'Facets'))}">
                                 <option value="">${h(T('adminPanel.customFieldsPage.selectFacet', 'Select facet'))}</option>
                             </select>
                         </div>
@@ -252,8 +252,10 @@ function initializeCustomFieldsModule() {
 async function loadFacetsIntoSelect(selectElement) {
     if (!selectElement) return;
     const T = cfT;
+    const wrapper = selectElement.closest('.custom-field-select-wrapper');
     selectElement.disabled = true;
-    selectElement.innerHTML = '<option value="">' + escapeHtml(T('adminPanel.customFieldsPage.loadingFacets', 'Loading facets...')) + '</option>';
+    selectElement.setAttribute('aria-busy', 'true');
+    if (wrapper) wrapper.classList.add('is-loading');
 
     try {
         const response = await fetch('/admin/api/facets');
@@ -270,8 +272,11 @@ async function loadFacetsIntoSelect(selectElement) {
         }
     } catch (error) {
         console.error('Error loading facets:', error);
+        selectElement.innerHTML = '<option value="">' + escapeHtml(T('adminPanel.customFieldsPage.selectFacet', 'Select facet')) + '</option>';
     } finally {
         selectElement.disabled = false;
+        selectElement.removeAttribute('aria-busy');
+        if (wrapper) wrapper.classList.remove('is-loading');
     }
 }
 

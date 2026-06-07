@@ -1,5 +1,6 @@
 package com.example.budg_v2.dao;
 
+import com.example.budg_v2.audit.AuditHistoryWriter;
 import com.example.budg_v2.database.DatabaseConnection;
 import com.example.budg_v2.model.Committee;
 
@@ -55,8 +56,9 @@ public class CommitteeDAO {
                 INSERT INTO committee_audit_history (id, object, event, updateType, field, `from`, `to`, author)
                 VALUES (?, ?, ?, ?, ?, NULL, ?, ?)
             """;
+            AuditHistoryWriter.logCreatedBy(conn, "committee_audit_history", committeeId, "Committee", userName);
             auditStmt = conn.prepareStatement(auditSql, Statement.RETURN_GENERATED_KEYS);
-            
+
             // Primary Name
             String primaryName = committeeRs.getString("PrimaryName");
             if (primaryName != null && !primaryName.trim().isEmpty()) {
@@ -129,18 +131,8 @@ public class CommitteeDAO {
                 }
             }
             
-            // Created By (use Created_By column when present, else fallback to LastUpdate_UserID)
-            Integer createdById = committeeRs.getObject("Created_By", Integer.class);
-            if (createdById == null) {
-                createdById = committeeRs.getObject("LastUpdate_UserID", Integer.class);
-            }
-            if (createdById != null) {
-                String createdByName = getPersonFullName(createdById);
-                if (createdByName != null) {
-                    createNewAuditRecord(conn, auditStmt, committeeId, "Committee", "Details", "Added", "Created By", createdByName, userName);
-                }
-            }
-            
+            // Created By is written as the first row via AuditHistoryWriter.logCreatedBy.
+
             conn.commit(); // تأكيد الـ transaction
             
         } catch (SQLException e) {

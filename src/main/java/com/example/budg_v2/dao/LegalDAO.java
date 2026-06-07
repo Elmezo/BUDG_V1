@@ -1,5 +1,6 @@
 package com.example.budg_v2.dao;
 
+import com.example.budg_v2.audit.AuditHistoryWriter;
 import com.example.budg_v2.database.DatabaseConnection;
 import com.example.budg_v2.model.Legal;
 import com.example.budg_v2.service.SegmentAccessService;
@@ -547,8 +548,9 @@ public class LegalDAO {
                 INSERT INTO legal_audit_history (id, object, event, updateType, field, `from`, `to`, author)
                 VALUES (?, 'Legal', 'Details', ?, ?, NULL, ?, ?)
             """;
+            AuditHistoryWriter.logCreatedBy(conn, "legal_audit_history", legalId, "Legal", userName);
             auditStmt = conn.prepareStatement(auditSql, Statement.RETURN_GENERATED_KEYS);
-            
+
             // Short Name
             String shortName = legalRs.getString("ShortName");
             if (shortName != null && !shortName.trim().isEmpty()) {
@@ -594,15 +596,8 @@ public class LegalDAO {
                 }
             }
             
-            // Created By
-            Integer createdById = legalRs.getObject("LastUpdate_UserID", Integer.class);
-            if (createdById != null) {
-                String createdByName = getPersonFullName(createdById);
-                if (createdByName != null) {
-                    createNewAuditRecord(conn, auditStmt, legalId, "Added", "Created By", createdByName, userName);
-                }
-            }
-            
+            // Created By is written as the first row via AuditHistoryWriter.logCreatedBy.
+
             conn.commit(); // تأكيد الـ transaction
             
         } catch (SQLException e) {

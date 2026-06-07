@@ -557,7 +557,12 @@ public class DatasetValuesServlet extends HttpServlet {
                                 }
                             }
                         }
-                        
+
+                        // Record per-value Deleted audit rows for the entries about to be removed
+                        if (latestEntryRefId > 0) {
+                            writeOverwriteDeletionAudit(conn, datasetId, datastoreId, latestEntryRefId, userId);
+                        }
+
                         // Delete entries from old entry_refs (excluding the latest one we just created)
                         if (latestEntryRefId > 0) {
                             String deleteEntries = "DELETE FROM values_entry WHERE entry_ref_id IN (SELECT id FROM values_entry_ref WHERE datastore_id = ? AND id != ?)";
@@ -954,10 +959,17 @@ public class DatasetValuesServlet extends HttpServlet {
         // Phase 3: In-memory tracking for UNIQUE rule validation (within same upload)
         Map<Integer, java.util.Set<String>> uniqueValueCache = new HashMap<>(); // fieldId -> Set of values
 
+        // Resolve display author once for audit rows
+        String auditAuthor = resolveUserFullName(conn, userId);
+        String auditEvent = "overwrite".equalsIgnoreCase(uploadType) ? "Values Overwrite" : "Values Append";
+
         // Prepare batch insert
         String insertValParams = "INSERT INTO values_entry (entry_ref_id, field_id, row_index, value_text) VALUES (?, ?, ?, ?)";
+        String insertAuditSql = "INSERT INTO dataset_audit_history (id, object, event, updateType, field, `from`, `to`, author, date, lastChange)"
+                + " VALUES (?, 'Dataset Value Info', ?, 'Added', ?, NULL, ?, ?, NOW(), NOW())";
         try (
-                PreparedStatement ps = conn.prepareStatement(insertValParams)) {
+                PreparedStatement ps = conn.prepareStatement(insertValParams);
+                PreparedStatement auditPs = conn.prepareStatement(insertAuditSql)) {
             // Phase 3: Process rows from Excel or CSV - row by row with error handling
             for (String[] values : dataRows) {
                 rowIndex++;
@@ -1038,6 +1050,17 @@ public class DatasetValuesServlet extends HttpServlet {
                                 ps.setString(4, val);
                             }
                             ps.addBatch();
+
+                            // Per-value audit history row (one row per populated cell)
+                            // Use the original dataset id so the rows show up in the dataset's History tab.
+                            if (val != null && !val.trim().isEmpty()) {
+                                auditPs.setInt(1, datasetId);
+                                auditPs.setString(2, auditEvent);
+                                auditPs.setString(3, headers[i].trim());
+                                auditPs.setString(4, val);
+                                auditPs.setString(5, auditAuthor);
+                                auditPs.addBatch();
+                            }
                         }
                         rowCount++;
                     } else {
@@ -1081,12 +1104,22 @@ public class DatasetValuesServlet extends HttpServlet {
                 // Execute batch every 100 successful rows
                 if (rowCount > 0 && rowCount % 100 == 0) {
                     ps.executeBatch();
+                    try {
+                        auditPs.executeBatch();
+                    } catch (SQLException auditEx) {
+                        logger.warn("Failed to flush per-value audit batch: {}", auditEx.getMessage());
+                    }
                 }
             }
             
             // Execute remaining batch
             if (rowCount > 0) {
                 ps.executeBatch();
+                try {
+                    auditPs.executeBatch();
+                } catch (SQLException auditEx) {
+                    logger.warn("Failed to flush final per-value audit batch: {}", auditEx.getMessage());
+                }
             }
         }
 
@@ -1221,6 +1254,67 @@ public class DatasetValuesServlet extends HttpServlet {
         } catch (SQLException e) {
             logger.error("Failed to insert audit record: {}", e.getMessage(), e);
             // Don't throw - audit failure shouldn't break the upload
+        }
+    }
+
+    /**
+     * Resolve the user's display name for audit Author column. Falls back to a
+     * synthetic identifier if the people row is missing.
+     */
+    private String resolveUserFullName(Connection conn, int userId) {
+        if (userId <= 0) return "System";
+        String sql = "SELECT CONCAT(COALESCE(First_Name,''), ' ', COALESCE(Last_Name,'')) FROM people WHERE ID = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, userId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    String name = rs.getString(1);
+                    if (name != null && !name.trim().isEmpty()) return name.trim();
+                }
+            }
+        } catch (SQLException e) {
+            // ignore
+        }
+        return "User #" + userId;
+    }
+
+    /**
+     * Write Deleted audit rows for every populated value cell associated with
+     * the prior entry_refs of a datastore. Used before an Overwrite upload wipes
+     * the previous value entries so the dataset's History tab reflects the loss.
+     */
+    private void writeOverwriteDeletionAudit(Connection conn, int datasetId, int datastoreId,
+                                             int excludeEntryRefId, int userId) {
+        String author = resolveUserFullName(conn, userId);
+        String selectSql = "SELECT vf.column_name, ve.value_text "
+                + "FROM values_entry ve "
+                + "JOIN values_field vf ON vf.id = ve.field_id "
+                + "WHERE ve.entry_ref_id IN ("
+                + "  SELECT id FROM values_entry_ref WHERE datastore_id = ? AND id != ?"
+                + ") "
+                + "AND ve.value_text IS NOT NULL AND ve.value_text != ''";
+        String insertSql = "INSERT INTO dataset_audit_history (id, object, event, updateType, field, `from`, `to`, author, date, lastChange)"
+                + " VALUES (?, 'Dataset Value Info', 'Values Overwrite', 'Deleted', ?, ?, NULL, ?, NOW(), NOW())";
+        try (PreparedStatement sel = conn.prepareStatement(selectSql);
+             PreparedStatement ins = conn.prepareStatement(insertSql)) {
+            sel.setInt(1, datastoreId);
+            sel.setInt(2, excludeEntryRefId);
+            try (ResultSet rs = sel.executeQuery()) {
+                int batched = 0;
+                while (rs.next()) {
+                    ins.setInt(1, datasetId);
+                    ins.setString(2, rs.getString("column_name"));
+                    ins.setString(3, rs.getString("value_text"));
+                    ins.setString(4, author);
+                    ins.addBatch();
+                    if (++batched % 500 == 0) {
+                        ins.executeBatch();
+                    }
+                }
+                if (batched > 0) ins.executeBatch();
+            }
+        } catch (SQLException e) {
+            logger.warn("Failed to write overwrite-deletion audit rows: {}", e.getMessage());
         }
     }
 

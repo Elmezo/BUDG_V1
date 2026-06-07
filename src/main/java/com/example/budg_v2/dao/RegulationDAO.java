@@ -1,5 +1,6 @@
 package com.example.budg_v2.dao;
 
+import com.example.budg_v2.audit.AuditHistoryWriter;
 import com.example.budg_v2.database.DatabaseConnection;
 import com.example.budg_v2.model.Regulation;
 import com.example.budg_v2.service.SegmentAccessService;
@@ -933,6 +934,7 @@ public class RegulationDAO {
                     INSERT INTO regulation_audit_history (id, object, event, updateType, field, `from`, `to`, author)
                     VALUES (?, ?, ?, ?, ?, NULL, ?, ?)
                     """;
+                AuditHistoryWriter.logCreatedBy(conn, "regulation_audit_history", regulationId, "Regulation", userName);
                 try (PreparedStatement auditStmt = conn.prepareStatement(auditSql, Statement.RETURN_GENERATED_KEYS)) {
 
             // Primary Name
@@ -963,6 +965,18 @@ public class RegulationDAO {
             String additionalInfo = regulationRs.getString("AdditionalInfo");
             if (additionalInfo != null && !additionalInfo.trim().isEmpty()) {
                 createNewAuditRecord(conn, auditStmt, regulationId, "Regulation", "Details", "Added", "Additional Info", additionalInfo, userName);
+            }
+            
+            // Rank
+            Integer rank = regulationRs.getObject("Rank", Integer.class);
+            if (rank != null) {
+                createNewAuditRecord(conn, auditStmt, regulationId, "Regulation", "Details", "Added", "Rank", rank.toString(), userName);
+            }
+            
+            // Legal Advice
+            String legalAdvice = regulationRs.getString("LegalAdvice");
+            if (legalAdvice != null && !legalAdvice.trim().isEmpty()) {
+                createNewAuditRecord(conn, auditStmt, regulationId, "Regulation", "Details", "Added", "Legal Advice", legalAdvice, userName);
             }
             
             // Parent Regulation
@@ -1070,14 +1084,7 @@ public class RegulationDAO {
                 createNewAuditRecord(conn, auditStmt, regulationId, "Regulation", "Details", "Added", "Compliance Date", complianceDate.toString(), userName);
             }
             
-            // Created By
-            Integer createdById = regulationRs.getObject("LastUpdate_UserID", Integer.class);
-            if (createdById != null) {
-                String createdByName = getPersonFullName(conn, createdById);
-                if (createdByName != null) {
-                    createNewAuditRecord(conn, auditStmt, regulationId, "Regulation", "Details", "Added", "Created By", createdByName, userName);
-                }
-            }
+            // Created By is written as the first row via AuditHistoryWriter.logCreatedBy.
                 }
             }
         }
@@ -1257,6 +1264,20 @@ public class RegulationDAO {
             if (!isEqual(oldRegulation.getAdditionalInfo(), newRegulation.getAdditionalInfo())) {
                 createUpdateAuditRecord(conn, auditStmt, regulationId, "Regulation", "Details", 
                     "Updated", "Additional Info", oldRegulation.getAdditionalInfo(), newRegulation.getAdditionalInfo(), userName);
+            }
+            
+            // Rank
+            if (!isEqual(oldRegulation.getRank(), newRegulation.getRank())) {
+                String oldRank = oldRegulation.getRank() != null ? oldRegulation.getRank().toString() : null;
+                String newRank = newRegulation.getRank() != null ? newRegulation.getRank().toString() : null;
+                createUpdateAuditRecord(conn, auditStmt, regulationId, "Regulation", "Details", 
+                    "Updated", "Rank", oldRank, newRank, userName);
+            }
+            
+            // Legal Advice
+            if (!isEqual(oldRegulation.getLegalAdvice(), newRegulation.getLegalAdvice())) {
+                createUpdateAuditRecord(conn, auditStmt, regulationId, "Regulation", "Details", 
+                    "Updated", "Legal Advice", oldRegulation.getLegalAdvice(), newRegulation.getLegalAdvice(), userName);
             }
             
             // Parent Regulation

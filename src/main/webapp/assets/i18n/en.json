@@ -2397,8 +2397,10 @@
         "event": {
             "detailsAdded": "Details Added",
             "detailsUpdated": "Details Updated",
+            "detailsDeleted": "Details Deleted",
             "relationshipsAdded": "Relationships Added",
-            "relationshipsUpdated": "Relationships Updated"
+            "relationshipsUpdated": "Relationships Updated",
+            "relationshipsDeleted": "Relationships Deleted"
         }
     },
     "adminPanel": {

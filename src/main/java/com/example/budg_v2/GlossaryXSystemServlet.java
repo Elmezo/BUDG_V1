@@ -308,7 +308,11 @@ public class GlossaryXSystemServlet extends HttpServlet {
                     logger.warn("⚠️ No active CR found for glossary {} - strategic source {} saved without pending change tracking", glossaryId, newId);
                     logger.warn("   This may be expected if no CR is active, but if a CR should be active, this is a problem!");
                 }
-                
+
+                // Audit history: log on the source glossary's history with one row per populated field
+                dao.logStrategicSourceAdded(glossaryId, systemId, datasetId, relationTypeId,
+                        UserContextUtil.getCurrentUserId(req));
+
                 // No active CR - save completed normally
                 JsonUtil.sendJsonResponse(resp.getWriter(), Map.of("id", newId, "success", true));
 
@@ -442,6 +446,14 @@ public class GlossaryXSystemServlet extends HttpServlet {
                     return;
                 }
 
+                // Snapshot the previous values for the audit diff
+                Map<String, Object> beforeUpdate = null;
+                try {
+                    beforeUpdate = dao.getById(id);
+                } catch (SQLException e) {
+                    logger.warn("Could not load previous strategic source values for audit: {}", e.getMessage());
+                }
+
                 boolean success = dao.update(id, systemId, datasetId, relationTypeId);
                 logger.info("Strategic source {} update result: {}", id, success ? "success" : "failed");
                 
@@ -485,7 +497,19 @@ public class GlossaryXSystemServlet extends HttpServlet {
                                    glossaryId != null ? glossaryId : "unknown", originalGlossaryId, id);
                     }
                 }
-                
+
+                // Audit history: log per-field diff for direct (non-pending) updates
+                if (success && beforeUpdate != null && originalGlossaryId != null) {
+                    Integer oldSystemId = beforeUpdate.get("systemId") instanceof Number n ? n.intValue() : null;
+                    Integer oldDatasetId = beforeUpdate.get("datasetId") instanceof Number n ? n.intValue() : null;
+                    Integer oldRelationTypeId = beforeUpdate.get("relationTypeId") instanceof Number n ? n.intValue() : null;
+                    dao.logStrategicSourceUpdated(originalGlossaryId,
+                            oldSystemId, systemId,
+                            oldDatasetId, datasetId,
+                            oldRelationTypeId, relationTypeId,
+                            UserContextUtil.getCurrentUserId(req));
+                }
+
                 // No active CR - update completed normally
                 JsonUtil.sendJsonResponse(resp.getWriter(), Map.of("success", success));
 
@@ -551,7 +575,36 @@ public class GlossaryXSystemServlet extends HttpServlet {
 
             if (pathParts.length == 1) {
                 int id = Integer.parseInt(pathParts[0]);
+
+                // Capture relationship details before deletion to build the audit row
+                Map<String, Object> beforeDelete = null;
+                try {
+                    beforeDelete = dao.getById(id);
+                } catch (SQLException e) {
+                    logger.warn("Could not load strategic source values before delete: {}", e.getMessage());
+                }
+
                 boolean success = dao.delete(id);
+
+                if (success && beforeDelete != null) {
+                    Integer glossaryId = beforeDelete.get("glossaryId") instanceof Number n ? n.intValue() : null;
+                    Integer systemId = beforeDelete.get("systemId") instanceof Number n ? n.intValue() : null;
+                    Integer datasetId = beforeDelete.get("datasetId") instanceof Number n ? n.intValue() : null;
+                    Integer relationTypeId = beforeDelete.get("relationTypeId") instanceof Number n ? n.intValue() : null;
+                    if (glossaryId != null) {
+                        // Resolve the original glossary ID in case this row was linked to a cloned glossary
+                        try {
+                            Integer original = facetChangesDAO.getOriginalObjectId("glossary", glossaryId);
+                            if (original != null) {
+                                glossaryId = original;
+                            }
+                        } catch (SQLException ignored) {
+                        }
+                        dao.logStrategicSourceDeleted(glossaryId, systemId, datasetId, relationTypeId,
+                                UserContextUtil.getCurrentUserId(req));
+                    }
+                }
+
                 JsonUtil.sendJsonResponse(resp.getWriter(), Map.of("success", success));
 
             } else {

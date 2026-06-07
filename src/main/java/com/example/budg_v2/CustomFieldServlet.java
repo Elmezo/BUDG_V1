@@ -1065,15 +1065,22 @@ public class CustomFieldServlet extends HttpServlet {
                         Map<String, String> newRow = newValues.get(metadataId);
                         String fieldName = oldRow != null ? oldRow.get("displayName") : (newRow != null ? newRow.get("displayName") : "Field " + metadataId);
                         if (fieldName == null) fieldName = "Field " + metadataId;
-                        String oldVal = oldRow != null ? oldRow.get("value") : null;
-                        String newVal = newRow != null ? newRow.get("value") : null;
-                        if (oldVal == null) oldVal = "";
-                        if (newVal == null) newVal = "";
-                        if (newRow == null) {
-                            insertFacetAuditRecordForCustomField(conn, auditTable, objectDisplayName, canonicalObjectId, "Removed", fieldName, oldVal, null, author);
-                        } else if (oldRow == null) {
+                        // Classify by the actual (normalized) value rather than map presence.
+                        // A blank custom field is never persisted to Custom_Field_Data, so it stays
+                        // absent from oldValues on every save; comparing presence alone logs a phantom
+                        // "Added" row each time. Comparing normalized values avoids that.
+                        String oldVal = normalizeCustomFieldAuditValue(oldRow != null ? oldRow.get("value") : null);
+                        String newVal = normalizeCustomFieldAuditValue(newRow != null ? newRow.get("value") : null);
+                        boolean oldBlank = oldVal.isEmpty();
+                        boolean newBlank = newVal.isEmpty();
+                        if (oldVal.equals(newVal)) {
+                            continue; // unchanged (including blank -> blank): no history row
+                        }
+                        if (oldBlank) {
                             insertFacetAuditRecordForCustomField(conn, auditTable, objectDisplayName, canonicalObjectId, "Added", fieldName, null, newVal, author);
-                        } else if (!oldVal.equals(newVal)) {
+                        } else if (newBlank) {
+                            insertFacetAuditRecordForCustomField(conn, auditTable, objectDisplayName, canonicalObjectId, "Removed", fieldName, oldVal, null, author);
+                        } else {
                             insertFacetAuditRecordForCustomField(conn, auditTable, objectDisplayName, canonicalObjectId, "Changed", fieldName, oldVal, newVal, author);
                         }
                     }
@@ -2051,6 +2058,15 @@ public class CustomFieldServlet extends HttpServlet {
             }
         }
         return null;
+    }
+
+    /**
+     * Normalize a custom field value for audit comparison. Treats null and blank/whitespace
+     * the same so that an absent (never-persisted, empty) field is not mistaken for a change.
+     */
+    private String normalizeCustomFieldAuditValue(String value) {
+        if (value == null) return "";
+        return value.trim();
     }
 
     private String getEnumLabel(Connection conn, int enumId) throws SQLException {

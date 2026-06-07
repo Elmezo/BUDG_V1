@@ -1,5 +1,6 @@
 package com.example.budg_v2.dao;
 
+import com.example.budg_v2.audit.AuditHistoryWriter;
 import com.example.budg_v2.database.DatabaseConnection;
 import com.example.budg_v2.model.Policy;
 import com.example.budg_v2.model.PolicyType;
@@ -1045,6 +1046,7 @@ public class PolicyDAO {
                 INSERT INTO policy_audit_history (id, object, event, updateType, field, `from`, `to`, author)
                 VALUES (?, 'Policy', 'Details', ?, ?, NULL, ?, ?)
             """;
+            AuditHistoryWriter.logCreatedBy(conn, "policy_audit_history", policyId, "Policy", userName);
             auditStmt = conn.prepareStatement(auditSql, Statement.RETURN_GENERATED_KEYS);
 
             // Primary Name
@@ -1110,15 +1112,8 @@ public class PolicyDAO {
                 }
             }
 
-            // Created By
-            Integer createdById = policyRs.getObject("CreatedBy_ID", Integer.class);
-            if (createdById != null) {
-                String createdByName = getPersonFullName(conn, createdById);
-                if (createdByName != null) {
-                    createNewAuditRecord(conn, auditStmt, policyId, "Added", "Created By", createdByName, userName);
-                }
-            }
-            
+            // Created By is written as the first row via AuditHistoryWriter.logCreatedBy.
+
             // Internal (Yes/No for History)
             Integer internalValue = policyRs.getObject("Internal", Integer.class);
             if (internalValue != null) {
@@ -1130,6 +1125,20 @@ public class PolicyDAO {
             String url = policyRs.getString("URL");
             if (url != null && !url.trim().isEmpty()) {
                 createNewAuditRecord(conn, auditStmt, policyId, "Added", "URL", url, userName);
+            }
+            
+            // Effective Date
+            Timestamp effectiveDate = policyRs.getTimestamp("EffectiveDate");
+            if (effectiveDate != null) {
+                String effectiveDateText = effectiveDate.toLocalDateTime().toLocalDate().toString();
+                createNewAuditRecord(conn, auditStmt, policyId, "Added", "Effective Date", effectiveDateText, userName);
+            }
+            
+            // End Date
+            Timestamp endDate = policyRs.getTimestamp("EndDate");
+            if (endDate != null) {
+                String endDateText = endDate.toLocalDateTime().toLocalDate().toString();
+                createNewAuditRecord(conn, auditStmt, policyId, "Added", "End Date", endDateText, userName);
             }
             
             conn.commit(); // تأكيد الـ transaction

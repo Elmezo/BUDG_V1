@@ -1,5 +1,6 @@
 package com.example.budg_v2.dao;
 
+import com.example.budg_v2.audit.AuditHistoryWriter;
 import com.example.budg_v2.database.DatabaseConnection;
 import com.example.budg_v2.model.Geography;
 import com.example.budg_v2.service.SegmentAccessService;
@@ -351,8 +352,9 @@ public class GeographyDAO {
                 INSERT INTO geography_audit_history (id, object, event, updateType, field, `from`, `to`, author)
                 VALUES (?, ?, ?, ?, ?, NULL, ?, ?)
             """;
+            AuditHistoryWriter.logCreatedBy(conn, "geography_audit_history", geographyId, "Geography", userName);
             auditStmt = conn.prepareStatement(auditSql, Statement.RETURN_GENERATED_KEYS);
-            
+
             // Primary Name
             String primaryName = geographyRs.getString("PrimaryName");
             if (primaryName != null && !primaryName.trim().isEmpty()) {
@@ -373,16 +375,9 @@ public class GeographyDAO {
                     createNewAuditRecord(conn, auditStmt, geographyId, "Geography", "Details", "Added", "Parent Geography", parentName, userName);
                 }
             }
-            
-            // Created By
-            Integer lastUpdateUserId = geographyRs.getObject("LastUpdate_UserID", Integer.class);
-            if (lastUpdateUserId != null) {
-                String createdByName = getPersonFullName(lastUpdateUserId);
-                if (createdByName != null) {
-                    createNewAuditRecord(conn, auditStmt, geographyId, "Geography", "Details", "Added", "Created By", createdByName, userName);
-                }
-            }
-            
+            // Created By is written as the first audit row above via AuditHistoryWriter.logCreatedBy;
+            // legacy fallback from LastUpdate_UserID is no longer needed here.
+
             conn.commit(); // تأكيد الـ transaction
             
         } catch (SQLException e) {

@@ -1,5 +1,6 @@
 package com.example.budg_v2.dao;
 
+import com.example.budg_v2.audit.AuditHistoryWriter;
 import com.example.budg_v2.database.DatabaseConnection;
 
 import java.sql.*;
@@ -53,8 +54,9 @@ public class BusinessAreaDAO {
                 INSERT INTO business_area_audit_history (id, object, event, updateType, field, `from`, `to`, author)
                 VALUES (?, ?, ?, ?, ?, NULL, ?, ?)
             """;
+            AuditHistoryWriter.logCreatedBy(conn, "business_area_audit_history", businessAreaId, "Business Area", userName);
             auditStmt = conn.prepareStatement(auditSql, Statement.RETURN_GENERATED_KEYS);
-            
+
             // Primary Name
             String primaryName = businessAreaRs.getString("PrimaryName");
             if (primaryName != null && !primaryName.trim().isEmpty()) {
@@ -103,15 +105,8 @@ public class BusinessAreaDAO {
                 }
             }
             
-            // Created By
-            Integer createdById = businessAreaRs.getObject("LastUpdate_UserID", Integer.class);
-            if (createdById != null) {
-                String createdByName = getPersonFullName(conn, createdById);
-                if (createdByName != null) {
-                    createNewAuditRecord(conn, auditStmt, businessAreaId, "Business Area", "Details", "Added", "Created By", createdByName, userName);
-                }
-            }
-            
+            // Created By is written as the first row via AuditHistoryWriter.logCreatedBy.
+
             // Note: Transaction commit is managed by the caller
             
         } finally {

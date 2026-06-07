@@ -1,5 +1,6 @@
 package com.example.budg_v2.dao;
 
+import com.example.budg_v2.audit.AuditHistoryWriter;
 import com.example.budg_v2.database.DatabaseConnection;
 import com.example.budg_v2.model.Client;
 import com.example.budg_v2.service.SegmentAccessService;
@@ -391,6 +392,7 @@ public class ClientDAO {
                         INSERT INTO client_audit_history (id, object, event, updateType, field, `from`, `to`, author)
                         VALUES (?, ?, ?, ?, ?, NULL, ?, ?)
                     """;
+            AuditHistoryWriter.logCreatedBy(conn, "client_audit_history", clientId, "Client", userName);
             auditStmt = conn.prepareStatement(auditSql, Statement.RETURN_GENERATED_KEYS);
 
             // Primary Name
@@ -454,15 +456,7 @@ public class ClientDAO {
                 }
             }
 
-            // Created By
-            Integer createdById = clientRs.getObject("LastUpdate_UserID", Integer.class);
-            if (createdById != null) {
-                String createdByName = getPersonFullName(createdById);
-                if (createdByName != null) {
-                    createNewAuditRecord(conn, auditStmt, clientId, "Client", "Details", "Added", "Created By",
-                            createdByName, userName);
-                }
-            }
+            // Created By is written as the first row via AuditHistoryWriter.logCreatedBy.
 
             conn.commit(); // تأكيد الـ transaction
 

@@ -267,14 +267,14 @@ public class RegulationXRegulatoryThemeDAO {
             // Regulation Name
             String regulationName = getRegulationName(regulationId);
             if (regulationName != null) {
-                createNewAuditRecord(conn, auditStmt, regulatoryThemeId, "Regulation", "link", "Added", "Regulation Name", regulationName, userName);
+                createNewAuditRecord(conn, auditStmt, regulatoryThemeId, "Regulation X Regulatory Theme", "link", "Added", "Regulation Name", regulationName, userName);
             }
-            
+
             // Relation Type
             if (relationTypeId != null) {
                 String relationTypeName = getRelationTypeName(relationTypeId);
                 if (relationTypeName != null) {
-                    createNewAuditRecord(conn, auditStmt, regulatoryThemeId, "Regulation", "link", "Added", "Relation Type", relationTypeName, userName);
+                    createNewAuditRecord(conn, auditStmt, regulatoryThemeId, "Regulation X Regulatory Theme", "link", "Added", "Relation Type", relationTypeName, userName);
                 }
             }
             
@@ -322,14 +322,14 @@ public class RegulationXRegulatoryThemeDAO {
             // Regulation Name
             String regulationName = getRegulationName(relationship.getRegulationId());
             if (regulationName != null) {
-                createRemovedAuditRecord(conn, auditStmt, relationship.getRegulatoryThemeId(), "Regulation", "link", "Removed", "Regulation Name", regulationName, userName);
+                createRemovedAuditRecord(conn, auditStmt, relationship.getRegulatoryThemeId(), "Regulation X Regulatory Theme", "link", "Deleted", "Regulation Name", regulationName, userName);
             }
-            
+
             // Relation Type
             if (relationship.getRelationType() != null) {
                 String relationTypeName = getRelationTypeName(relationship.getRelationType());
                 if (relationTypeName != null) {
-                    createRemovedAuditRecord(conn, auditStmt, relationship.getRegulatoryThemeId(), "Regulation", "link", "Removed", "Relation Type", relationTypeName, userName);
+                    createRemovedAuditRecord(conn, auditStmt, relationship.getRegulatoryThemeId(), "Regulation X Regulatory Theme", "link", "Deleted", "Relation Type", relationTypeName, userName);
                 }
             }
             
@@ -372,15 +372,15 @@ public class RegulationXRegulatoryThemeDAO {
             if (!oldRelationship.getRegulationId().equals(newRelationship.getRegulationId())) {
                 String oldRegulationName = getRegulationName(oldRelationship.getRegulationId());
                 String newRegulationName = getRegulationName(newRelationship.getRegulationId());
-                createUpdateAuditRecord(conn, auditStmt, newRelationship.getRegulatoryThemeId(), "Regulation", "link", 
+                createUpdateAuditRecord(conn, auditStmt, newRelationship.getRegulatoryThemeId(), "Regulation X Regulatory Theme", "link",
                     "Updated", "Regulation Name", oldRegulationName, newRegulationName, userName);
             }
-            
+
             // Check if Relation Type changed
             if (!isEqual(oldRelationship.getRelationType(), newRelationship.getRelationType())) {
                 String oldRelationTypeName = oldRelationship.getRelationType() != null ? getRelationTypeName(oldRelationship.getRelationType()) : null;
                 String newRelationTypeName = newRelationship.getRelationType() != null ? getRelationTypeName(newRelationship.getRelationType()) : null;
-                createUpdateAuditRecord(conn, auditStmt, newRelationship.getRegulatoryThemeId(), "Regulation", "link", 
+                createUpdateAuditRecord(conn, auditStmt, newRelationship.getRegulatoryThemeId(), "Regulation X Regulatory Theme", "link",
                     "Updated", "Relation Type", oldRelationTypeName, newRelationTypeName, userName);
             }
             

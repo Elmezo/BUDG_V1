@@ -3290,22 +3290,35 @@ public class ProcessImpactDAO {
     
     public boolean savePredecessorRelationships(int processId, List<Map<String, Object>> relationships, int userId) 
             throws SQLException {
+        return savePredecessorRelationships(processId, relationships, userId, false);
+    }
+
+    /**
+     * Save predecessor relationships and optionally write per-field audit rows to
+     * process_audit_history. Audit is written only for direct (non-pending) saves
+     * because pending writes go to a cloned process row.
+     */
+    public boolean savePredecessorRelationships(int processId, List<Map<String, Object>> relationships,
+                                                int userId, boolean writeAudit)
+            throws SQLException {
         Connection conn = null;
         try {
             conn = DatabaseConnection.getConnection();
             conn.setAutoCommit(false);
-            
-            // Get existing relationships
-            String selectSql = "SELECT id FROM process_x_process WHERE sourceprocess_id = ?";
-            Set<Integer> existingIds = new HashSet<>();
-            try (PreparedStatement ps = conn.prepareStatement(selectSql)) {
+
+            // Snapshot existing relationships (id -> target/relation type) so we can diff for audit
+            Map<Integer, int[]> existingDetails = new HashMap<>();
+            String detailsSql = "SELECT id, targetprocess_id, relationtype FROM process_x_process WHERE sourceprocess_id = ?";
+            try (PreparedStatement ps = conn.prepareStatement(detailsSql)) {
                 ps.setInt(1, processId);
                 try (ResultSet rs = ps.executeQuery()) {
                     while (rs.next()) {
-                        existingIds.add(rs.getInt("id"));
+                        existingDetails.put(rs.getInt("id"),
+                                new int[]{rs.getInt("targetprocess_id"), rs.getInt("relationtype")});
                     }
                 }
             }
+            Set<Integer> existingIds = new HashSet<>(existingDetails.keySet());
             
             // Determine which relationships to delete, update, and insert
             Set<Integer> incomingIds = new HashSet<>();
@@ -3325,6 +3338,12 @@ public class ProcessImpactDAO {
                     for (Integer id : toDelete) {
                         ps.setInt(1, id);
                         ps.executeUpdate();
+                        if (writeAudit) {
+                            int[] prev = existingDetails.get(id);
+                            if (prev != null) {
+                                logProcessXProcessAudit(conn, processId, "Deleted", prev[0], 0, prev[1], 0, userId);
+                            }
+                        }
                     }
                 }
             }
@@ -3353,12 +3372,20 @@ public class ProcessImpactDAO {
                     
                     if (idObj != null && existingIds.contains(((Number) idObj).intValue())) {
                         // Update existing
+                        int existingId = ((Number) idObj).intValue();
                         updatePs.setInt(1, targetProcessId);
                         updatePs.setInt(2, relationType);
                         updatePs.setString(3, annotations);
                         updatePs.setInt(4, userId);
-                        updatePs.setInt(5, ((Number) idObj).intValue());
+                        updatePs.setInt(5, existingId);
                         updatePs.executeUpdate();
+                        if (writeAudit) {
+                            int[] prev = existingDetails.get(existingId);
+                            if (prev != null) {
+                                logProcessXProcessAudit(conn, processId, "Updated",
+                                        prev[0], targetProcessId, prev[1], relationType, userId);
+                            }
+                        }
                     } else {
                         // Insert new
                         insertPs.setInt(1, processId);
@@ -3367,6 +3394,10 @@ public class ProcessImpactDAO {
                         insertPs.setString(4, annotations);
                         insertPs.setInt(5, userId);
                         insertPs.executeUpdate();
+                        if (writeAudit) {
+                            logProcessXProcessAudit(conn, processId, "Added",
+                                    0, targetProcessId, 0, relationType, userId);
+                        }
                     }
                 }
             }
@@ -3403,6 +3434,83 @@ public class ProcessImpactDAO {
                 return rs.getInt(1);
             }
             return 1;
+        }
+    }
+
+    private String lookupProcessName(Connection conn, int processId) {
+        if (processId <= 0) return null;
+        try (PreparedStatement ps = conn.prepareStatement("SELECT primaryname FROM process WHERE id = ?")) {
+            ps.setInt(1, processId);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? rs.getString(1) : null;
+            }
+        } catch (SQLException e) {
+            return null;
+        }
+    }
+
+    private String lookupProcessXProcessRelationTypeName(Connection conn, int relationTypeId) {
+        if (relationTypeId <= 0) return null;
+        try (PreparedStatement ps = conn.prepareStatement(
+                "SELECT primaryname FROM process_x_process_relationtype WHERE id = ?")) {
+            ps.setInt(1, relationTypeId);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? rs.getString(1) : null;
+            }
+        } catch (SQLException e) {
+            return null;
+        }
+    }
+
+    /**
+     * Write per-field process_audit_history rows for a process_x_process relationship change.
+     * action = "Added" | "Updated" | "Deleted". For Added/Deleted, only one of old/new
+     * values is meaningful (pass 0 for the unused side).
+     */
+    private void logProcessXProcessAudit(Connection conn, int processId, String action,
+                                          int oldTargetId, int newTargetId,
+                                          int oldRelationTypeId, int newRelationTypeId,
+                                          int userId) {
+        try {
+            String author = getUserFullName(userId);
+            String object = "Process X Process";
+            String event = "Predecessors";
+            switch (action) {
+                case "Added":
+                    com.example.budg_v2.audit.AuditHistoryWriter.logAdded(conn, "process_audit_history",
+                            processId, object, event, "Target Process",
+                            lookupProcessName(conn, newTargetId), author);
+                    com.example.budg_v2.audit.AuditHistoryWriter.logAdded(conn, "process_audit_history",
+                            processId, object, event, "Relationship Type",
+                            lookupProcessXProcessRelationTypeName(conn, newRelationTypeId), author);
+                    break;
+                case "Deleted":
+                    com.example.budg_v2.audit.AuditHistoryWriter.logDeleted(conn, "process_audit_history",
+                            processId, object, event, "Target Process",
+                            lookupProcessName(conn, oldTargetId), author);
+                    com.example.budg_v2.audit.AuditHistoryWriter.logDeleted(conn, "process_audit_history",
+                            processId, object, event, "Relationship Type",
+                            lookupProcessXProcessRelationTypeName(conn, oldRelationTypeId), author);
+                    break;
+                case "Updated":
+                    if (oldTargetId != newTargetId) {
+                        com.example.budg_v2.audit.AuditHistoryWriter.logUpdated(conn, "process_audit_history",
+                                processId, object, event, "Target Process",
+                                lookupProcessName(conn, oldTargetId),
+                                lookupProcessName(conn, newTargetId), author);
+                    }
+                    if (oldRelationTypeId != newRelationTypeId) {
+                        com.example.budg_v2.audit.AuditHistoryWriter.logUpdated(conn, "process_audit_history",
+                                processId, object, event, "Relationship Type",
+                                lookupProcessXProcessRelationTypeName(conn, oldRelationTypeId),
+                                lookupProcessXProcessRelationTypeName(conn, newRelationTypeId), author);
+                    }
+                    break;
+                default:
+                    break;
+            }
+        } catch (SQLException e) {
+            System.err.println("[ProcessImpactDAO] Failed to log process_x_process audit: " + e.getMessage());
         }
     }
     

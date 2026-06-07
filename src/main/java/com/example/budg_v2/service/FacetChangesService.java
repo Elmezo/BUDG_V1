@@ -1517,10 +1517,67 @@ public class FacetChangesService {
                 // Don't throw - deletion is cleanup, not critical
                 logger.warn("            ⚠️  Continuing despite delete error...");
             }
-            
+
+            // Summary audit row so CR-applied relationship changes appear on the
+            // facet's History tab. Per-field detail for direct (non-pending) writes
+            // is captured by the originating servlet/DAO.
+            logRelationshipChangeApplied(conn, facetName, objectId, tableNameOriginal);
+
         } catch (SQLException e) {
             logger.error("            ❌ Error applying relationship changes for {}: {}", areaKey, e.getMessage(), e);
             throw e;
+        }
+    }
+
+    /**
+     * Write a single audit_history summary row when a CR-pending relationship change
+     * is applied to the original object. Use display-style Object names (e.g.
+     * "Glossary X Glossary") matching the direct-CRUD audit writers.
+     */
+    private void logRelationshipChangeApplied(Connection conn, String facetName, int objectId, String relationshipTable) {
+        try {
+            String auditTable = resolveFacetAuditTable(facetName);
+            if (auditTable == null) return;
+            String displayObject = com.example.budg_v2.audit.AuditHistoryWriter.toDisplayObjectName(relationshipTable);
+            com.example.budg_v2.audit.AuditHistoryWriter.logAdded(conn, auditTable, objectId,
+                    displayObject, "Change Request", "Relationship changes applied",
+                    relationshipTable, "Change Request");
+        } catch (SQLException e) {
+            logger.warn("Audit hook: could not log applied relationship change for facet {} object {}: {}",
+                    facetName, objectId, e.getMessage());
+        }
+    }
+
+    private String resolveFacetAuditTable(String facetName) {
+        if (facetName == null) return null;
+        switch (facetName.toLowerCase()) {
+            case "glossary": return "glossary_audit_history";
+            case "dataset":
+            case "data sets":
+            case "data_sets": return "dataset_audit_history";
+            case "process":
+            case "processes": return "process_audit_history";
+            case "system":
+            case "systems": return "system_audit_history";
+            case "project":
+            case "projects": return "project_audit_history";
+            case "product":
+            case "products": return "product_audit_history";
+            case "policy":
+            case "policies": return "policy_audit_history";
+            case "interface": return "interface_audit_history";
+            case "capability": return "capability_audit_history";
+            case "client": return "client_audit_history";
+            case "committee": return "committee_audit_history";
+            case "legal":
+            case "legalentity":
+            case "legal entity":
+            case "legal-entity": return "legal_audit_history";
+            case "regulation": return "regulation_audit_history";
+            case "regulatory_theme":
+            case "regulatory theme":
+            case "regulatorytheme": return "regulatory_theme_audit_history";
+            default: return null;
         }
     }
 

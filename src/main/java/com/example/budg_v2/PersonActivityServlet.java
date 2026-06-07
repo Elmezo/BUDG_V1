@@ -21,7 +21,6 @@ import java.sql.Timestamp;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -402,33 +401,44 @@ public class PersonActivityServlet extends HttpServlet {
         if (events == null) return false;
         return events.getOrDefault("detailsAdded", 0) > 0 ||
                events.getOrDefault("detailsUpdated", 0) > 0 ||
+               events.getOrDefault("detailsDeleted", 0) > 0 ||
                events.getOrDefault("relationshipsAdded", 0) > 0 ||
-               events.getOrDefault("relationshipsUpdated", 0) > 0;
+               events.getOrDefault("relationshipsUpdated", 0) > 0 ||
+               events.getOrDefault("relationshipsDeleted", 0) > 0;
     }
 
     /**
-     * Calculate event counts (Details Added/Updated, Relationships Added/Updated) from audit history
-     * 
+     * Calculate event counts from audit history for the Activity Stream Events column.
+     *
      * Logic:
-     * - Object details: when object field in history matches the module name (e.g., "Glossary" for Glossary module)
-     *   → Counts as "Details Added" or "Details Updated"
-     * - Relationships: when object field is something else (e.g., "Stakeholders", "Impact", "Object X ...", etc.)
-     *   → Counts as "Relationships Added" or "Relationships Updated"
-     * 
-     * Note: 
-     * - "Deleted" is treated as "Updated" for both details and relationships
-     * - Counts full object history from creation onwards
-     * - Detail rows are counted one event per audit row
-     * - Relationship rows are grouped: rows sharing the same object/author/second
-     *   and Added/Updated bucket count as ONE relationship event (e.g., a single
-     *   relationship add that writes one row per column counts as 1)
+     * - Object details: object field matches the module name (e.g., "Glossary" for Glossary module)
+     *   → Counts as Details Added / Updated / Deleted.
+     * - Relationships: ANY other object value (e.g., "Stakeholders", "Dependencies",
+     *   "Object X ...") → Counts as Relationships Added / Updated / Deleted.
+     *
+     * Buckets (by updateType) differ slightly between details and relationships:
+     * - Details:       Added = "Added"/"Status Change"; Updated = "Updated"/"Modified".
+     *   (a creation-time status/lifecycle value is counted as Added)
+     * - Relationships: Added = "Added"; Updated = "Updated"/"Modified"/"Status Change"/"Accepted".
+     *   (changing or accepting the status of an EXISTING link is an update, not a new link)
+     * - Deleted = "Deleted" for both.
+     *
+     * Notes:
+     * - Only changes on/after the stakeholder link date (stakeholderSince) are counted.
+     *   When stakeholderSince is null, full object history is counted.
+     * - Every audit row counts as exactly one event (no de-duplication, no
+     *   no-change/blank filtering) so the summary reconciles 1:1 with the full
+     *   history detail table the user expands (see HistoryAuditServlet, which
+     *   returns every row for the object).
      */
     private Map<String, Integer> calculateEvents(Connection conn, String moduleName, int objectId, Timestamp stakeholderSince) throws SQLException {
         Map<String, Integer> events = new HashMap<>();
         events.put("detailsAdded", 0);
         events.put("detailsUpdated", 0);
+        events.put("detailsDeleted", 0);
         events.put("relationshipsAdded", 0);
         events.put("relationshipsUpdated", 0);
+        events.put("relationshipsDeleted", 0);
 
         String auditTable = getAuditTableName(moduleName);
         if (auditTable == null) {
@@ -451,97 +461,91 @@ public class PersonActivityServlet extends HttpServlet {
             return events;
         }
 
-        // Query full audit history for this object (from creation onward).
-        // Filter out records where 'from' = 'to' (no actual change) or both are empty/null
-        String sql = "SELECT `object`, `updateType`, `date`, `from`, `to`, `author` FROM `" + auditTable + "` WHERE `id` = ?";
-        // Filter out records where there's no actual change (from = to, or both empty/null)
-        sql += " AND NOT (`from` = `to` OR (`from` IS NULL AND `to` IS NULL) OR (`from` = '' AND `to` = ''))";
+        // Query audit history for this object, restricted to changes since the user
+        // became a stakeholder of it (Rule 1: timestamp >= linked_at / stakeholderSince).
+        // We intentionally do NOT filter out from=to / blank rows here: the history
+        // detail table (HistoryAuditServlet) shows every row, and the Events summary
+        // must reconcile 1:1 with it.
+        String sql = "SELECT `object`, `updateType`, `date` FROM `" + auditTable + "` WHERE `id` = ?";
+        // Only count changes that happened on/after the stakeholder link date.
+        // When stakeholderSince is null we have no link date, so count full history.
+        // Rows whose `date` is NULL are kept: several audit inserts (stakeholder links,
+        // legacy/DAO writes) omit the `date` column, and a "since" filter cannot
+        // meaningfully exclude a change whose timestamp is unknown.
+        sql += " AND (? IS NULL OR `date` IS NULL OR `date` >= ?)";
         sql += " ORDER BY `date` DESC";
-
-        // Dedup keys so 4 audit rows from a single relationship change count once
-        Set<String> relAddedKeys = new HashSet<>();
-        Set<String> relUpdatedKeys = new HashSet<>();
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, objectId);
+            ps.setTimestamp(2, stakeholderSince);
+            ps.setTimestamp(3, stakeholderSince);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     String objectField = rs.getString("object");
                     String updateType = rs.getString("updateType");
-                    Timestamp changeDate = rs.getTimestamp("date");
-                    String fromValue = rs.getString("from");
-                    String toValue = rs.getString("to");
-                    String author = rs.getString("author");
                     
                     if (objectField == null) continue;
-                    
-                    // Additional check: Skip if from and to are the same or both empty/null
-                    // This filters out meaningless records like "Parent Process: - -> -"
-                    String normalizedFrom = (fromValue == null || fromValue.trim().isEmpty()) ? "" : fromValue.trim();
-                    String normalizedTo = (toValue == null || toValue.trim().isEmpty()) ? "" : toValue.trim();
-                    if (normalizedFrom.equals(normalizedTo)) {
-                        continue;
-                    }
                     
                     // Normalize module name for comparison
                     String normalizedModuleName = moduleName.trim();
                     
-                    // Classify the row:
+                    // Classify the row (Rules 2 & 3):
                     //  - Details:      object field matches the module name (e.g., "Capability")
-                    //  - Relationship: object field is a cross-facet relationship table
-                    //                  (e.g., "Capability X Process", "Glossary x Glossary").
-                    //                  We detect this by the " x " / " X " token in the name.
-                    //  - Anything else (Stakeholder, Role, etc.) is intentionally NOT counted
-                    //    here because the user wants only Impact / Relationships tab events.
+                    //  - Relationship: ANY other object value (e.g., "Stakeholders",
+                    //                  "Dependencies", "Capability X Process"). Anything that
+                    //                  is not the main object type counts as a relationship.
                     String objectFieldTrim = objectField.trim();
                     boolean isDetails = objectFieldTrim.equalsIgnoreCase(normalizedModuleName);
-                    boolean isRelationship = !isDetails &&
-                            objectFieldTrim.toLowerCase().matches(".*\\bx\\b.*");
+                    boolean isRelationship = !isDetails;
                     
-                    // Determine if it's an "Added" or "Updated" operation
-                    // Note: "Deleted" is treated as "Updated" for both details and relationships
-                    boolean isAdded = "Added".equalsIgnoreCase(updateType);
-                    boolean isUpdated = "Modified".equalsIgnoreCase(updateType) || 
-                                       "Updated".equalsIgnoreCase(updateType) ||
-                                       "Status Change".equalsIgnoreCase(updateType) ||
-                                       "Deleted".equalsIgnoreCase(updateType);
+                    // Determine the operation bucket (Rule 4). "Deleted" is the same
+                    // for both; Added/Updated differ between details and relationships.
+                    String ut = updateType == null ? "" : updateType.trim();
+                    boolean isDeleted = "Deleted".equalsIgnoreCase(ut);
                     
                     if (isDetails) {
-                        // Object details changes (when object field = module name)
+                        // Object details changes (when object field = module name).
+                        // Counted one event per audit row.
+                        //  - Added bucket   = "Added" or "Status Change"
+                        //    (a creation-time status/lifecycle value is part of "Added")
+                        //  - Updated bucket = "Updated" or "Modified"
+                        boolean isAdded = "Added".equalsIgnoreCase(ut) ||
+                                          "Status Change".equalsIgnoreCase(ut);
+                        boolean isUpdated = "Updated".equalsIgnoreCase(ut) ||
+                                            "Modified".equalsIgnoreCase(ut);
                         if (isAdded) {
                             events.put("detailsAdded", events.get("detailsAdded") + 1);
-                        }
-                        if (isUpdated) {
+                        } else if (isUpdated) {
                             events.put("detailsUpdated", events.get("detailsUpdated") + 1);
+                        } else if (isDeleted) {
+                            events.put("detailsDeleted", events.get("detailsDeleted") + 1);
                         }
                     } else if (isRelationship) {
-                        // Real cross-facet relationship rows (Impact, Relationships tabs).
-                        // Group by (object, author, second) so multi-column rows from a
-                        // single relationship action count as ONE event.
-                        String dateBucket = (changeDate == null)
-                                ? ""
-                                : Long.toString(changeDate.getTime() / 1000L);
-                        String authorKey = author == null ? "" : author.trim().toLowerCase();
-                        String objectKey = objectFieldTrim.toLowerCase();
-                        String key = objectKey + "|" + authorKey + "|" + dateBucket;
+                        // Relationship rows (Stakeholder, Dependencies, cross-facet links, ...).
+                        // Counted one event per audit row, like details.
+                        //  - Added bucket   = "Added" (a brand-new relationship link)
+                        //  - Updated bucket = "Updated"/"Modified" plus "Status Change"
+                        //    and "Accepted": changing/accepting the status of an
+                        //    EXISTING relationship is an update, not a new link.
+                        boolean isAdded = "Added".equalsIgnoreCase(ut);
+                        boolean isUpdated = "Updated".equalsIgnoreCase(ut) ||
+                                            "Modified".equalsIgnoreCase(ut) ||
+                                            "Status Change".equalsIgnoreCase(ut) ||
+                                            "Accepted".equalsIgnoreCase(ut);
                         if (isAdded) {
-                            relAddedKeys.add(key + "|ADD");
-                        }
-                        if (isUpdated) {
-                            relUpdatedKeys.add(key + "|UPD");
+                            events.put("relationshipsAdded", events.get("relationshipsAdded") + 1);
+                        } else if (isUpdated) {
+                            events.put("relationshipsUpdated", events.get("relationshipsUpdated") + 1);
+                        } else if (isDeleted) {
+                            events.put("relationshipsDeleted", events.get("relationshipsDeleted") + 1);
                         }
                     }
-                    // else: Stakeholder/Role/etc. -> intentionally ignored from the
-                    // Events counts (still visible in the expanded history table).
                 }
             }
         } catch (SQLException e) {
             // If table doesn't exist or query fails, return empty events
             System.err.println("Error calculating events for " + auditTable + ": " + e.getMessage());
         }
-
-        events.put("relationshipsAdded", relAddedKeys.size());
-        events.put("relationshipsUpdated", relUpdatedKeys.size());
 
         return events;
     }
